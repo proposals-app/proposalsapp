@@ -1,7 +1,7 @@
 'use server';
 
 import { daoSlugSchema } from '@/lib/validations';
-import { dbIndexer } from '@proposalsapp/db-indexer';
+import { db } from '@proposalsapp/db';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 import { add, startOfDay, sub } from 'date-fns';
@@ -72,7 +72,7 @@ export async function getVotingPowerRanking(
   cacheTag(`vp-ranking-${daoSlug}`);
   cacheLife('minutes'); // Cache for a few minutes as VP changes
 
-  const dao = await dbIndexer
+  const dao = await db.public
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .select('id')
@@ -85,7 +85,7 @@ export async function getVotingPowerRanking(
   const daoId = dao.id;
 
   // 1. Identify Top N Voters based on LATEST voting power using CTE
-  const topVotersLatest = await dbIndexer
+  const topVotersLatest = await db.public
     .with(
       'latest_vp_per_voter',
       (db) =>
@@ -110,7 +110,7 @@ export async function getVotingPowerRanking(
   }
 
   // 2. Fetch Voter Details (ENS, Avatar) for the top N
-  const voterDetails = await dbIndexer
+  const voterDetails = await db.public
     .selectFrom('voter')
     .select(['address', 'ens', 'avatar'])
     .where('address', 'in', topVoterAddresses)
@@ -140,7 +140,7 @@ export async function getVotingPowerRanking(
 
   // 4. Fetch relevant Voting Power history for the top N voters within the timeframe
   // Find the *last* record for each voter *before* the start of our window
-  const initialVpRecords = await dbIndexer
+  const initialVpRecords = await db.public
     .selectFrom('votingPower')
     .select(['voter', 'votingPower', 'timestamp'])
     .where('daoId', '=', daoId)
@@ -152,7 +152,7 @@ export async function getVotingPowerRanking(
     .execute();
 
   // Fetch records *within* the window
-  const withinWindowVpRecords = await dbIndexer
+  const withinWindowVpRecords = await db.public
     .selectFrom('votingPower')
     .select(['voter', 'votingPower', 'timestamp'])
     .where('daoId', '=', daoId)

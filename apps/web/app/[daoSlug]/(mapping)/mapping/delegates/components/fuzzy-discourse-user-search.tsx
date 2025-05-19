@@ -1,6 +1,6 @@
 'use client';
 
-import { Selectable, DiscourseUser } from '@proposalsapp/db-indexer';
+import { Selectable, DiscourseUser } from '@proposalsapp/db';
 import { fuzzySearchDiscourseUsers } from '../actions';
 import { useState, useCallback, useEffect, useRef } from 'react';
 

@@ -1,9 +1,0 @@
-{
-  "extends": "@tsconfig/recommended/tsconfig.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "resolveJsonModule": true,
-    "composite": true
-  },
-  "include": ["src/**/*"]
-}

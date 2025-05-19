@@ -4,13 +4,7 @@ import {
   FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import {
-  getGroup,
-  getBodyVersions,
-  getFeed,
-  getGroupHeader,
-  SelectableProposalWithGovernor,
-} from './actions';
+import { getGroup, getBodyVersions, getFeed, getGroupHeader } from './actions';
 import {
   AuthorInfo,
   Body,
@@ -32,7 +26,7 @@ import AISummary from './components/ai-summary';
 import { ResultEvent } from '@/lib/types';
 import Loading from './loading';
 import { VoteButton } from '../../components/vote/vote-button';
-import { Proposal, Selectable } from '@proposalsapp/db-indexer';
+import { Proposal, Selectable } from '@proposalsapp/db';
 
 export default async function Page({
   params,

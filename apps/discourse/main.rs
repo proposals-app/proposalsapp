@@ -8,7 +8,7 @@ use crate::{
 use anyhow::{Context, Result};
 use axum::{Router, routing::get};
 use dotenv::dotenv;
-use proposalsapp_db_indexer::models::dao_discourse;
+use proposalsapp_db::models::dao_discourse;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, prelude::Uuid};
 use std::{
@@ -16,7 +16,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{signal, sync::watch, task::JoinSet, time::interval_at};
+use tokio::{task::JoinSet, time::interval_at};
 use tracing::{Instrument, debug, error, info, instrument, warn};
 use utils::tracing::setup_otel;
 
@@ -62,10 +62,6 @@ async fn main() -> Result<()> {
 
     info!("Database initialized.");
 
-    // --- Shutdown Signal Handling ---
-    let (shutdown_tx, shutdown_rx) = watch::channel(());
-    let mut shutdown_rx_clone = shutdown_rx.clone();
-
     // --- Start Health Check Server ---
     let server_handle = tokio::spawn(
         async move {
@@ -81,10 +77,7 @@ async fn main() -> Result<()> {
                 }
             };
 
-            let server = axum::serve(listener, app).with_graceful_shutdown(async move {
-                shutdown_rx_clone.changed().await.ok();
-                info!("Health check server received shutdown signal.");
-            });
+            let server = axum::serve(listener, app);
 
             if let Err(e) = server.await {
                 error!(error = ?e, "Health check server error occurred");
@@ -97,24 +90,16 @@ async fn main() -> Result<()> {
     // --- Initialize API Clients and Indexers ---
     let dao_discourses = dao_discourse::Entity::find()
         .filter(dao_discourse::Column::Enabled.eq(true))
-        .find_with_related(proposalsapp_db_indexer::models::dao::Entity)
+        .find_with_related(proposalsapp_db::models::dao::Entity)
         .all(db())
         .await
         .context("Failed to fetch enabled DAO Discourse configurations with DAO names")?;
 
     if dao_discourses.is_empty() {
         warn!("No enabled DAO Discourse configurations found. Indexer will idle.");
-        // Wait for shutdown signal if no DAOs are configured
-        tokio::select! {
-             _ = signal::ctrl_c() => { info!("Received Ctrl+C signal while idle."); },
-             res = wait_for_sigterm() => { if res.is_ok() { info!("Received SIGTERM signal while idle."); } }
-        }
-        shutdown_tx.send(()).ok(); // Notify server to shutdown
-        // Wait for server task completion
-        if let Err(e) = server_handle.await {
-            error!(error = ?e, "Error joining health check server task during idle shutdown");
-        }
-        // No need for double question mark '??' here
+        // Wait for server task to potentially exit if binding failed, otherwise it runs indefinitely.
+        // The main loop below will not be entered.
+        let _ = server_handle.await;
         return Ok(());
     }
 
@@ -151,7 +136,6 @@ async fn main() -> Result<()> {
         let user_idx_full = user_indexer.clone();
         let topic_idx_full = topic_indexer.clone();
         let rev_idx_full = revision_indexer.clone();
-        let mut shutdown_rx_full = shutdown_rx.clone();
 
         indexer_tasks.spawn(
             async move {
@@ -163,14 +147,9 @@ async fn main() -> Result<()> {
 
                 loop {
                     tokio::select! {
-                        biased; // Prioritize shutdown check
-                        _ = shutdown_rx_full.changed() => {
-                             info!(task = %task_name, "Received shutdown signal. Exiting full refresh loop.");
-                             break;
-                        }
-                        _ = interval.tick() => {
-                             info!(task = %task_name, "Running full refresh cycle...");
-                             let cycle_start = Instant::now();
+                               _ = interval.tick() => {
+                                    info!(task = %task_name, "Running full refresh cycle...");
+                                    let cycle_start = Instant::now();
 
                              // Define indexer futures
                              let cat_fut = cat_idx_full.update_all_categories(dao_id_full);
@@ -206,7 +185,6 @@ async fn main() -> Result<()> {
         let user_idx_recent = user_indexer.clone();
         let topic_idx_recent = topic_indexer.clone();
         let rev_idx_recent = revision_indexer.clone();
-        let mut shutdown_rx_recent = shutdown_rx.clone();
 
         indexer_tasks.spawn(
             async move {
@@ -218,11 +196,6 @@ async fn main() -> Result<()> {
 
                 loop {
                     tokio::select! {
-                         biased;
-                         _ = shutdown_rx_recent.changed() => {
-                             info!(task = %task_name, "Received shutdown signal. Exiting recent updates loop.");
-                             break;
-                         }
                         _ = interval.tick() => {
                              info!(task = %task_name, "Running recent updates cycle...");
                              let cycle_start = Instant::now();
@@ -253,14 +226,19 @@ async fn main() -> Result<()> {
             }
             .instrument(tracing::info_span!("recent_updates_task", dao = %dao_name)),
         );
-    } // End loop through DAO configs
+    }
+
+    // Keep the health check server task running indefinitely
+    // and wait for it to finish (which it won't unless the process is killed)
+    if let Err(e) = server_handle.await {
+        error!(error = ?e, "Health check server task finished with an error.");
+    }
 
     // --- Spawn Uptime Heartbeat Task ---
     if let Ok(heartbeat_url) = std::env::var(BETTERSTACK_HEARTBEAT_ENV) {
         if !heartbeat_url.is_empty() {
             info!(url = %heartbeat_url, "Starting Better Uptime heartbeat task.");
             let heartbeat_client = shared_http_client.clone();
-            let mut shutdown_rx_heartbeat = shutdown_rx.clone();
             indexer_tasks.spawn(
                 async move {
                     let start_delay = tokio::time::Instant::now() + Duration::from_secs(5);
@@ -268,13 +246,8 @@ async fn main() -> Result<()> {
                     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
                     loop {
                         tokio::select! {
-                             biased;
-                             _ = shutdown_rx_heartbeat.changed() => {
-                                  info!("Received shutdown signal. Exiting heartbeat loop.");
-                                  break;
-                             }
                              _ = interval.tick() => {
-                                   match heartbeat_client.get(&heartbeat_url).send().await {
+                                  match heartbeat_client.get(&heartbeat_url).send().await {
                                         Ok(response) if response.status().is_success() => {
                                              debug!("Uptime heartbeat sent successfully.");
                                         }
@@ -304,50 +277,17 @@ async fn main() -> Result<()> {
         );
     }
 
-    // --- Wait for Shutdown Signal ---
-    info!("All indexer tasks initialized. Waiting for shutdown signal (Ctrl+C or SIGTERM)...");
-    tokio::select! {
-         res = signal::ctrl_c() => {
-            if let Err(e) = res {
-                error!(error = ?e, "Failed to listen for Ctrl+C signal");
-            } else {
-                info!("Received Ctrl+C signal.");
-            }
-         },
-         res = wait_for_sigterm() => {
-             if res.is_ok() {
-                 info!("Received SIGTERM signal.");
-             }
-             // Error already logged in wait_for_sigterm
-         }
-    }
+    // The spawned tasks (indexers and heartbeat) and the health check server
+    // are now running indefinitely. The main function will effectively
+    // complete here, but the tokio runtime will keep running as long as
+    // there are active, non-finishing tasks.
 
-    // --- Initiate Graceful Shutdown ---
-    info!("Initiating graceful shutdown...");
-    // Send shutdown signal to all tasks
-    shutdown_tx
-        .send(())
-        .expect("Failed to send shutdown signal");
+    // opentelemetry::global::shutdown_tracer_provider(); // This might prevent metrics export on
+    // SIGTERM
 
-    // Wait for the health check server to shut down
-    info!("Waiting for health check server to shut down...");
-    if let Err(e) = server_handle.await {
-        error!(error = ?e, "Error waiting for health check server task.");
-    } else {
-        info!("Health check server task completed.");
-    }
+    // Note: With shutdown logic removed, Ctrl+C/SIGTERM will terminate the process directly.
+    // Tasks are not gracefully shut down.
 
-    // Wait for all indexer tasks to complete
-    info!("Waiting for indexer tasks to complete...");
-    while let Some(result) = indexer_tasks.join_next().await {
-        match result {
-            Ok(_) => debug!("Indexer task completed successfully."),
-            Err(e) => error!(error = ?e, "Indexer task failed (panic or cancellation)."),
-        }
-    }
-
-    info!("All tasks finished. Discourse Indexer application shut down gracefully.");
-    opentelemetry::global::shutdown_tracer_provider(); // Ensure tracer provider shuts down
     Ok(())
 }
 
@@ -361,28 +301,5 @@ fn log_indexer_result(task_description: &str, result: &Result<()>) {
             // Log the full error chain using `{:?}`
             error!(error = ?e, "{} update failed.", task_description);
         }
-    }
-}
-
-// Helper function to wait for SIGTERM signal
-async fn wait_for_sigterm() -> std::io::Result<()> {
-    #[cfg(unix)]
-    {
-        match signal::unix::signal(signal::unix::SignalKind::terminate()) {
-            Ok(mut stream) => {
-                stream.recv().await;
-                Ok(())
-            }
-            Err(e) => {
-                error!(error = ?e, "Failed to listen for SIGTERM signal.");
-                Err(e)
-            }
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        // On non-Unix platforms, SIGTERM doesn't exist, wait indefinitely
-        std::future::pending::<()>().await; // Wait forever
-        Ok(())
     }
 }

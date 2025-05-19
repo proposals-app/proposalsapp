@@ -1,4 +1,4 @@
-import { DiscourseUser, Selectable } from '@proposalsapp/db-indexer';
+import { DiscourseUser, Selectable } from '@proposalsapp/db';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Root } from 'hast';
 import { fromMarkdown } from 'mdast-util-from-markdown';

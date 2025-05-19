@@ -9,7 +9,7 @@ use crate::{
 };
 use ethers::utils::{hex::ToHex, to_checksum};
 use futures::stream::{self, StreamExt};
-use proposalsapp_db_indexer::models::{delegation, voting_power};
+use proposalsapp_db::models::{delegation, voting_power};
 use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
 use sea_orm::{
     ActiveValue::{NotSet, Set},

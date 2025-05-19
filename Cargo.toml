@@ -3,7 +3,7 @@ members = [
     "apps/discourse",
     "apps/mapper",
     "apps/rindexer",
-    "libs/rust/db-indexer",
+    "libs/rust/db",
     "libs/rust/utils",
 ]
 
@@ -52,7 +52,7 @@ ethers = "2.0"
 rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp", package = "rindexer" }
 tokio-retry = "0.3.0"
 serial_test = "3.2.0"
-proposalsapp-db-indexer = { path = "libs/rust/db-indexer" }
+proposalsapp-db = { path = "libs/rust/db" }
 utils = { path = "libs/rust/utils" }
 
 [profile.release]

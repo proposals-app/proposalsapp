@@ -1,7 +1,7 @@
 use crate::extensions::{block_time::estimate_timestamp, db_extension::DB};
 use anyhow::{Context, Result};
 use chrono::Utc;
-use proposalsapp_db_indexer::models::proposal;
+use proposalsapp_db::models::proposal;
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::time::Duration;
 use tokio::time;

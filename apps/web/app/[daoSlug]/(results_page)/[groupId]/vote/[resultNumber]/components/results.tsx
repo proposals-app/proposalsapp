@@ -1,4 +1,4 @@
-import { Proposal, Selectable } from '@proposalsapp/db-indexer';
+import { Proposal, Selectable } from '@proposalsapp/db';
 import {
   getVoter,
   getProposalGovernor,

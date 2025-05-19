@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ProposalMetadata } from '@/lib/types';
-import { Selectable, Proposal } from '@proposalsapp/db-indexer';
+import { Selectable, Proposal } from '@proposalsapp/db';
 import { Vote } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';

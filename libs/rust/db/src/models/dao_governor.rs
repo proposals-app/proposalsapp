@@ -57,7 +57,7 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::Uuid.def(),
+            Self::Id => ColumnType::Uuid.def().unique(),
             Self::DaoId => ColumnType::Uuid.def(),
             Self::Name => ColumnType::Text.def(),
             Self::Type => ColumnType::Text.def(),

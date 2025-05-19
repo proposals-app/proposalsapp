@@ -2,7 +2,7 @@ use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
 use anyhow::{Context, Result};
 use ethers::{providers::Middleware, types::Address};
 use once_cell::sync::{Lazy, OnceCell};
-use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
+use proposalsapp_db::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
 use std::{
     collections::{HashMap, HashSet},

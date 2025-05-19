@@ -4,7 +4,7 @@ import {
   daoSlugSchema,
   discourseUserIdSchema,
 } from '@/lib/validations';
-import { dbIndexer, sql } from '@proposalsapp/db-indexer';
+import { db, sql } from '@proposalsapp/db';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
@@ -14,7 +14,7 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   discourseUserIdSchema.parse(userId);
   daoDiscourseIdSchema.parse(daoDiscourseId);
 
-  const discourseUser = await dbIndexer
+  const discourseUser = await db.public
     .selectFrom('discourseUser')
     .selectAll()
     .where('daoDiscourseId', '=', daoDiscourseId)
@@ -37,20 +37,20 @@ export async function getDelegateByDiscourseUser(
   discourseUserIdSchema.parse(discourseUserId);
   daoSlugSchema.parse(daoSlug);
 
-  const dao = await dbIndexer
+  const dao = await db.public
     .selectFrom('dao')
     .selectAll()
     .where('dao.slug', '=', daoSlug)
     .executeTakeFirstOrThrow();
 
-  const daoDiscourse = await dbIndexer
+  const daoDiscourse = await db.public
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', dao.id)
     .executeTakeFirstOrThrow();
 
   // Fetch the discourse user
-  const discourseUser = await dbIndexer
+  const discourseUser = await db.public
     .selectFrom('discourseUser')
     .selectAll()
     .where('externalId', '=', discourseUserId)
@@ -60,7 +60,7 @@ export async function getDelegateByDiscourseUser(
   if (!discourseUser) return null;
 
   // Find the associated delegate via delegateToDiscourseUser
-  const delegateToDiscourseUser = await dbIndexer
+  const delegateToDiscourseUser = await db.public
     .selectFrom('delegateToDiscourseUser')
     .selectAll()
     .where('discourseUserId', '=', discourseUser.id)
@@ -69,7 +69,7 @@ export async function getDelegateByDiscourseUser(
   if (!delegateToDiscourseUser) return null;
 
   // Find the associated voter via delegateToVoter
-  const delegateToVoter = await dbIndexer
+  const delegateToVoter = await db.public
     .selectFrom('delegateToVoter')
     .selectAll()
     .where('delegateId', '=', delegateToDiscourseUser.delegateId)
@@ -78,7 +78,7 @@ export async function getDelegateByDiscourseUser(
   if (!delegateToVoter) return null;
 
   // Fetch the voter using the voter ID from delegateToVoter
-  const voter = await dbIndexer
+  const voter = await db.public
     .selectFrom('voter')
     .selectAll()
     .where('id', '=', delegateToVoter.voterId)
@@ -95,7 +95,7 @@ export async function getDelegateByDiscourseUser(
     let proposalEndTimes: number[] = [];
 
     if (proposalIds && proposalIds.length > 0) {
-      const proposals = await dbIndexer
+      const proposals = await db.public
         .selectFrom('proposal')
         .selectAll()
         .where('id', 'in', proposalIds)
@@ -111,7 +111,7 @@ export async function getDelegateByDiscourseUser(
     let topicEndTimes: number[] = [];
 
     if (topicIds && topicIds.length > 0) {
-      const topics = await dbIndexer
+      const topics = await db.public
         .selectFrom('discourseTopic')
         .selectAll()
         .where('id', 'in', topicIds)
@@ -128,7 +128,7 @@ export async function getDelegateByDiscourseUser(
   }
 
   // Fetch the delegate with all related data in one query
-  let query = dbIndexer
+  let query = db.public
     .selectFrom('delegate')
     .innerJoin('delegateToVoter', 'delegate.id', 'delegateToVoter.delegateId')
     .leftJoin(
@@ -163,7 +163,7 @@ export async function getDelegateByDiscourseUser(
 
   if (!delegateData) return null;
 
-  const latestVotingPower = await dbIndexer
+  const latestVotingPower = await db.public
     .selectFrom('votingPower')
     .selectAll()
     .where('voter', '=', delegateData.voterAddress)
@@ -199,7 +199,7 @@ export async function getPostLikesCount(
 
   daoDiscourseIdSchema.parse(daoDiscourseId);
 
-  const result = await dbIndexer
+  const result = await db.public
     .selectFrom('discoursePostLike')
     .select(sql<number>`count(*)`.as('count'))
     .where('externalDiscoursePostId', '=', externalPostId)

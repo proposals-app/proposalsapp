@@ -5,7 +5,7 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::OnceCell;
-use proposalsapp_db_indexer::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
+use proposalsapp_db::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult, PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
 use std::time::Duration;
 use tracing::{debug, info, instrument, warn};
@@ -301,9 +301,10 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
 #[instrument(skip(post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
     // Determine if the post is considered deleted based on specific raw content patterns.
-    let mut is_deleted = post.raw.as_ref().is_some_and(|raw| {
-        raw == "(post deleted by author)" || raw == "<p>(post deleted by author)</p>" || raw.is_empty()
-    });
+    let mut is_deleted = post
+        .raw
+        .as_ref()
+        .is_some_and(|raw| raw == "(post deleted by author)" || raw == "<p>(post deleted by author)</p>" || raw.is_empty());
 
     let cooked_content = if is_deleted {
         NotSet

@@ -1,7 +1,7 @@
 use crate::{DB, metrics::METRICS};
 use anyhow::{Context, Result};
 use chrono::Duration;
-use proposalsapp_db_indexer::models::{dao_discourse, discourse_topic, job_queue, proposal, proposal_group};
+use proposalsapp_db::models::{dao_discourse, discourse_topic, job_queue, proposal, proposal_group};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, prelude::Uuid};
 use std::time::Duration as StdDuration;
 use tokio::time::{Instant, sleep};

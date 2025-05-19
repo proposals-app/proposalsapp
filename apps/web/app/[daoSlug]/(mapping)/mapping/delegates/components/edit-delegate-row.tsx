@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  Selectable,
-  Delegate,
-  DiscourseUser,
-  Voter,
-} from '@proposalsapp/db-indexer';
+import { Selectable, Delegate, DiscourseUser, Voter } from '@proposalsapp/db';
 import { useState } from 'react';
 import {
   mapDiscourseUserToDelegate,

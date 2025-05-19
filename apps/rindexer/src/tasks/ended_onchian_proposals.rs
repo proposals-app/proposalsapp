@@ -1,7 +1,7 @@
 use crate::extensions::db_extension::DB;
 use anyhow::{Context, Result};
 use chrono::Utc;
-use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState, vote};
+use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::collections::HashMap;
 use tokio::time;
@@ -142,9 +142,9 @@ async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<
     };
 
     for vote in votes.iter().filter(|vote| {
-        vote.choice.as_u64().is_some_and(|choice_index| {
-            quorum_choices_indexes.contains(&(choice_index as usize))
-        })
+        vote.choice
+            .as_u64()
+            .is_some_and(|choice_index| quorum_choices_indexes.contains(&(choice_index as usize)))
     }) {
         quorum_votes += vote.voting_power;
     }

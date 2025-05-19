@@ -18,18 +18,47 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not defined.");
 }
 
+if (!process.env.ARBITRUM_DATABASE_URL) {
+  throw new Error("ARBITRUM_DATABASE_URL environment variable is not defined.");
+}
+
 const { Pool } = pg;
 
-const db_pool = new Pool({
+export const db_pool_public = new Pool({
   connectionString: process.env.DATABASE_URL,
   min: 5,
   max: 10,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
-const createDbInstance = () => {
+export const db_pool_arbitrum = new Pool({
+  connectionString: process.env.ARBITRUM_DATABASE_URL,
+  min: 5,
+  max: 10,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
+const createDbPublicInstance = () => {
   return new Kysely<DB>({
     dialect: new PostgresDialect({
-      pool: db_pool,
+      pool: db_pool_public,
+    }),
+    plugins: [
+      new CamelCasePlugin(),
+      new DeduplicateJoinsPlugin(),
+      new ParseJSONResultsPlugin(),
+    ],
+  });
+};
+
+const createDbArbitrumInstance = () => {
+  return new Kysely<DB>({
+    dialect: new PostgresDialect({
+      pool: db_pool_arbitrum,
     }),
     plugins: [
       new CamelCasePlugin(),
@@ -41,12 +70,26 @@ const createDbInstance = () => {
 
 declare global {
   // eslint-disable-next-line no-var
-  var dbIndexerInternal: Kysely<DB> | undefined;
+  var dbPublicInternal: Kysely<DB> | undefined;
+  // eslint-disable-next-line no-var
+  var dbArbitrumInternal: Kysely<DB> | undefined;
 }
 
-export const dbIndexer = global.dbIndexerInternal || createDbInstance();
+const dbPublic = global.dbPublicInternal || createDbPublicInstance();
+const dbArbitrum = global.dbArbitrumInternal || createDbArbitrumInstance();
 
-//if (process.env.NODE_ENV !== "production") global.db = db;
+export const dbPool = {
+  public: db_pool_public,
+  arbitrum: db_pool_arbitrum,
+};
+
+export const db = {
+  public: dbPublic,
+  arbitrum: dbArbitrum.withSchema("arbitrum"),
+};
+
+//if (process.env.NODE_ENV !== "production") global.dbPublic = dbPublic;
+//if (process.env.NODE_ENV !== "production") global.dbArbitrum = dbArbitrum;
 
 function traverseJSON<DB, TB extends keyof DB>(
   eb: ExpressionBuilder<DB, TB>,
@@ -63,7 +106,6 @@ function traverseJSON<DB, TB extends keyof DB>(
 }
 
 export { traverseJSON };
-export { db_pool };
 export * from "./kysely_db";
 export { Kysely };
 export { sql, type Selectable, type Insertable } from "kysely";

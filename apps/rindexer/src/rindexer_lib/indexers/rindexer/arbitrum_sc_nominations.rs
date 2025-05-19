@@ -11,7 +11,7 @@ use ethers::{
     types::U256,
     utils::{hex::ToHex, to_checksum},
 };
-use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState};
+use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState};
 use regex::Regex;
 use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error, rindexer_info};
 use sea_orm::{

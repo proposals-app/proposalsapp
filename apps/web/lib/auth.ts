@@ -1,4 +1,4 @@
-import { db_pool, dbWeb } from '@proposalsapp/db-web';
+import { db, dbPool } from '@proposalsapp/db';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins';
@@ -8,12 +8,13 @@ import {
   DeleteAccountTemplate,
   resend,
 } from '@proposalsapp/emails';
-import { dbIndexer } from '@proposalsapp/db-indexer';
+
+const INSTANCE_SLUG = process.env.WEB_INSTANCE_SLUG;
 
 export const auth = betterAuth({
   appName: 'proposals.app',
-  database: db_pool,
-  trustedOrigins: ['https://arbitrum.proposals.app'],
+  database: dbPool[INSTANCE_SLUG as keyof typeof db],
+  trustedOrigins: [`https://${INSTANCE_SLUG}.proposals.app`],
 
   plugins: [
     emailOTP({
@@ -110,19 +111,19 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          const allGroups = await dbIndexer
+          const allGroups = await db.public
             .selectFrom('proposalGroup')
             .selectAll()
             .execute();
 
           if (allGroups)
-            await dbWeb
-              .insertInto('user_proposal_group_last_read')
+            await db[INSTANCE_SLUG as keyof typeof db]
+              .insertInto('userProposalGroupLastRead')
               .values(
                 allGroups.map((group) => ({
-                  user_id: user.id,
-                  proposal_group_id: group.id,
-                  last_read_at: new Date(),
+                  userId: user.id,
+                  proposalGroupId: group.id,
+                  lastReadAt: new Date(),
                 }))
               )
               .execute();

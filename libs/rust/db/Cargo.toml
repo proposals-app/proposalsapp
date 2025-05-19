@@ -1,5 +1,5 @@
 [package]
-name = "proposalsapp-db-indexer"
+name = "proposalsapp-db"
 version = "0.1.0"
 edition = "2024"
 

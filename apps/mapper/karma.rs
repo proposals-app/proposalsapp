@@ -1,7 +1,7 @@
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use proposalsapp_db_indexer::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
+use proposalsapp_db::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
 use reqwest::Client;
 use sea_orm::{
     ActiveValue::NotSet,

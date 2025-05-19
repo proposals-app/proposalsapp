@@ -7,8 +7,7 @@
   },
   "include": ["src/**/*"],
   "references": [
-    { "path": "../../libs/ts/db-web" },
-    { "path": "../../libs/ts/db-indexer" },
+    { "path": "../../libs/ts/db" },
     { "path": "../../libs/ts/emails" }
   ]
 }

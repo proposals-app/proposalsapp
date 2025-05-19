@@ -4708,9 +4708,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@proposalsapp/db-indexer@npm:1.0.0, @proposalsapp/db-indexer@workspace:libs/ts/db-indexer":
+"@proposalsapp/db@npm:1.0.0, @proposalsapp/db@workspace:libs/ts/db":
   version: 0.0.0-use.local
-  resolution: "@proposalsapp/db-indexer@workspace:libs/ts/db-indexer"
+  resolution: "@proposalsapp/db@workspace:libs/ts/db"
   dependencies:
     "@tsconfig/recommended": "npm:^1.0.8"
     "@types/dotenv": "npm:^8.2.3"
@@ -4718,23 +4718,7 @@ __metadata:
     dotenv: "npm:^16.5.0"
     kysely: "npm:0.28.2"
     kysely-codegen: "npm:0.18.5"
-    kysely-ctl: "npm:0.12.2"
-    pg: "npm:8.16.0"
-    typescript: "npm:^5.8.3"
-  languageName: unknown
-  linkType: soft
-
-"@proposalsapp/db-web@npm:1.0.0, @proposalsapp/db-web@workspace:libs/ts/db-web":
-  version: 0.0.0-use.local
-  resolution: "@proposalsapp/db-web@workspace:libs/ts/db-web"
-  dependencies:
-    "@tsconfig/recommended": "npm:^1.0.8"
-    "@types/dotenv": "npm:^8.2.3"
-    "@types/pg": "npm:8"
-    dotenv: "npm:^16.5.0"
-    kysely: "npm:0.28.2"
-    kysely-codegen: "npm:0.18.5"
-    kysely-ctl: "npm:0.12.2"
+    kysely-ctl: "npm:^0.13.0"
     pg: "npm:8.16.0"
     typescript: "npm:^5.8.3"
   languageName: unknown
@@ -4744,8 +4728,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/email-service@workspace:apps/email-service"
   dependencies:
-    "@proposalsapp/db-indexer": "npm:1.0.0"
-    "@proposalsapp/db-web": "npm:1.0.0"
+    "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/emails": "npm:1.0.0"
     "@tsconfig/recommended": "npm:^1.0.8"
     "@types/dotenv": "npm:^8.2.3"
@@ -4786,26 +4769,6 @@ __metadata:
     resend: "npm:^4.5.1"
     tailwindcss: "npm:^4.1.7"
     typescript: "npm:^5.8.3"
-  languageName: unknown
-  linkType: soft
-
-"@proposalsapp/push-service@workspace:apps/push-service":
-  version: 0.0.0-use.local
-  resolution: "@proposalsapp/push-service@workspace:apps/push-service"
-  dependencies:
-    "@proposalsapp/db-indexer": "npm:1.0.0"
-    "@tsconfig/recommended": "npm:^1.0.8"
-    "@types/dotenv": "npm:^8.2.3"
-    "@types/express": "npm:^5.0.1"
-    "@types/node-cron": "npm:^3.0.11"
-    "@types/web-push": "npm:3.6.4"
-    axios: "npm:^1.9.0"
-    dotenv: "npm:^16.5.0"
-    express: "npm:^5.1.0"
-    node-cron: "npm:^4.0.5"
-    tsx: "npm:^4.19.4"
-    typescript: "npm:^5.8.3"
-    web-push: "npm:^3.6.7"
   languageName: unknown
   linkType: soft
 
@@ -4862,8 +4825,7 @@ __metadata:
     "@opentelemetry/sdk-metrics": "npm:^2.0.1"
     "@opentelemetry/sdk-trace-base": "npm:^2.0.1"
     "@playwright/test": "npm:^1.52.0"
-    "@proposalsapp/db-indexer": "npm:1.0.0"
-    "@proposalsapp/db-web": "npm:1.0.0"
+    "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/visual-dom-diff": "npm:0.7.2"
     "@radix-ui/react-checkbox": "npm:^1.3.1"
     "@radix-ui/react-dialog": "npm:^1.1.13"
@@ -7635,15 +7597,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/web-push@npm:3.6.4":
-  version: 3.6.4
-  resolution: "@types/web-push@npm:3.6.4"
-  dependencies:
-    "@types/node": "npm:*"
-  checksum: 10c0/f3b656510241020f66615cb662702c0778e68f407fb59b3671758a3fe5b8982824a8b4b70339f3d3901458cdbfe5e981d84c1a75298807f2694a2b3390ebb2da
-  languageName: node
-  linkType: hard
-
 "@types/ws@npm:^8.5.10":
   version: 8.18.1
   resolution: "@types/ws@npm:8.18.1"
@@ -10064,28 +10017,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"c12@npm:^2.0.1":
-  version: 2.0.4
-  resolution: "c12@npm:2.0.4"
+"c12@npm:^3.0.4":
+  version: 3.0.4
+  resolution: "c12@npm:3.0.4"
   dependencies:
     chokidar: "npm:^4.0.3"
-    confbox: "npm:^0.1.8"
+    confbox: "npm:^0.2.2"
     defu: "npm:^6.1.4"
-    dotenv: "npm:^16.4.7"
-    giget: "npm:^1.2.4"
+    dotenv: "npm:^16.5.0"
+    exsolve: "npm:^1.0.5"
+    giget: "npm:^2.0.0"
     jiti: "npm:^2.4.2"
-    mlly: "npm:^1.7.4"
-    ohash: "npm:^2.0.4"
+    ohash: "npm:^2.0.11"
     pathe: "npm:^2.0.3"
     perfect-debounce: "npm:^1.0.0"
-    pkg-types: "npm:^1.3.1"
+    pkg-types: "npm:^2.1.0"
     rc9: "npm:^2.1.2"
   peerDependencies:
     magicast: ^0.3.5
   peerDependenciesMeta:
     magicast:
       optional: true
-  checksum: 10c0/c2846397b6df618476dd81ae3255e325903aec61f566a91c51e3ea4af3fe058e0735aab41df47c31a3526801207c76a40d21392fce5991b3a1842830702bc8cd
+  checksum: 10c0/564c3c835c3238541501f4cbac010aadaea3471c8fe8d696ed38d7f884f3d8642106e0206e204b0fe3e9cb64700462fde4211e9ff430fd624e19de059126f4a4
   languageName: node
   linkType: hard
 
@@ -10781,10 +10734,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"confbox@npm:^0.1.8":
-  version: 0.1.8
-  resolution: "confbox@npm:0.1.8"
-  checksum: 10c0/fc2c68d97cb54d885b10b63e45bd8da83a8a71459d3ecf1825143dd4c7f9f1b696b3283e07d9d12a144c1301c2ebc7842380bdf0014e55acc4ae1c9550102418
+"confbox@npm:^0.2.1, confbox@npm:^0.2.2":
+  version: 0.2.2
+  resolution: "confbox@npm:0.2.2"
+  checksum: 10c0/7c246588d533d31e8cdf66cb4701dff6de60f9be77ab54c0d0338e7988750ac56863cc0aca1b3f2046f45ff223a765d3e5d4977a7674485afcd37b6edf3fd129
   languageName: node
   linkType: hard
 
@@ -10795,7 +10748,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"consola@npm:^3.2.3, consola@npm:^3.4.0":
+"consola@npm:^3.2.3, consola@npm:^3.4.0, consola@npm:^3.4.2":
   version: 3.4.2
   resolution: "consola@npm:3.4.2"
   checksum: 10c0/7cebe57ecf646ba74b300bcce23bff43034ed6fbec9f7e39c27cee1dc00df8a21cd336b466ad32e304ea70fba04ec9e890c200270de9a526ce021ba8a7e4c11a
@@ -11780,7 +11733,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:*, dotenv@npm:^16.4.5, dotenv@npm:^16.4.7":
+"dotenv@npm:*, dotenv@npm:^16.4.5":
   version: 16.4.7
   resolution: "dotenv@npm:16.4.7"
   checksum: 10c0/be9f597e36a8daf834452daa1f4cc30e5375a5968f98f46d89b16b983c567398a330580c88395069a77473943c06b877d1ca25b4afafcdd6d4adb549e8293462
@@ -13290,6 +13243,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"exsolve@npm:^1.0.1, exsolve@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "exsolve@npm:1.0.5"
+  checksum: 10c0/0e845843951e8e7f190d26648259b3d584990933ea68a3c8ec984e826d4fb3731681f7f2569252b4fe619db1d67b0859abe0ef694cb2edb454343bd44bcdce59
+  languageName: node
+  linkType: hard
+
 "extend@npm:^3.0.0":
   version: 3.0.2
   resolution: "extend@npm:3.0.2"
@@ -13915,20 +13875,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"giget@npm:^1.2.4":
-  version: 1.2.5
-  resolution: "giget@npm:1.2.5"
+"giget@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "giget@npm:2.0.0"
   dependencies:
     citty: "npm:^0.1.6"
     consola: "npm:^3.4.0"
     defu: "npm:^6.1.4"
     node-fetch-native: "npm:^1.6.6"
-    nypm: "npm:^0.5.4"
+    nypm: "npm:^0.6.0"
     pathe: "npm:^2.0.3"
-    tar: "npm:^6.2.1"
   bin:
     giget: dist/cli.mjs
-  checksum: 10c0/0c541589b8a10274f5adb6cd34a568829939182f50b3d80f8bb891e974b889f0fc629a5d702920456037cc9c90fba84cf3860bad7a22a46bc51a5c55998f24a9
+  checksum: 10c0/606d81652643936ee7f76653b4dcebc09703524ff7fd19692634ce69e3fc6775a377760d7508162379451c03bf43cc6f46716aeadeb803f7cef3fc53d0671396
   languageName: node
   linkType: hard
 
@@ -16710,19 +16669,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-ctl@npm:0.12.2":
-  version: 0.12.2
-  resolution: "kysely-ctl@npm:0.12.2"
+"kysely-ctl@npm:^0.13.0":
+  version: 0.13.0
+  resolution: "kysely-ctl@npm:0.13.0"
   dependencies:
-    c12: "npm:^2.0.1"
+    c12: "npm:^3.0.4"
     citty: "npm:^0.1.6"
-    consola: "npm:^3.4.0"
+    consola: "npm:^3.4.2"
     jiti: "npm:^2.4.2"
-    nypm: "npm:^0.5.2"
+    nypm: "npm:^0.6.0"
     ofetch: "npm:^1.4.1"
-    pathe: "npm:^2.0.2"
-    pkg-types: "npm:^1.3.1"
-    std-env: "npm:^3.8.0"
+    pathe: "npm:^2.0.3"
+    pkg-types: "npm:^2.1.0"
+    std-env: "npm:^3.9.0"
   peerDependencies:
     kysely: ">=0.18.1 <0.29.0"
     kysely-postgres-js: ^2
@@ -16731,7 +16690,7 @@ __metadata:
       optional: true
   bin:
     kysely: dist/bin.js
-  checksum: 10c0/8e1ccb094eb48438de802aec31ba6e039229b928b5c7f5798d5d8eb306964fa0559ffa9905aa7539ae1df73e8d13606234804c98f8bf5b139b95a6a9a5e9f2ea
+  checksum: 10c0/99f6f212af78e3294813691ef7920a79be6c45052d90b02740ddaf59e9a13f87909f87f2f34ad85b7ef5349223134336f56e577b2e9e5f0ac55ebced90ee747c
   languageName: node
   linkType: hard
 
@@ -18468,18 +18427,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mlly@npm:^1.7.4":
-  version: 1.7.4
-  resolution: "mlly@npm:1.7.4"
-  dependencies:
-    acorn: "npm:^8.14.0"
-    pathe: "npm:^2.0.1"
-    pkg-types: "npm:^1.3.0"
-    ufo: "npm:^1.5.4"
-  checksum: 10c0/69e738218a13d6365caf930e0ab4e2b848b84eec261597df9788cefb9930f3e40667be9cb58a4718834ba5f97a6efeef31d3b5a95f4388143fd4e0d0deff72ff
-  languageName: node
-  linkType: hard
-
 "modern-ahocorasick@npm:^1.0.0":
   version: 1.1.0
   resolution: "modern-ahocorasick@npm:1.1.0"
@@ -19185,19 +19132,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nypm@npm:^0.5.2, nypm@npm:^0.5.4":
-  version: 0.5.4
-  resolution: "nypm@npm:0.5.4"
+"nypm@npm:^0.6.0":
+  version: 0.6.0
+  resolution: "nypm@npm:0.6.0"
   dependencies:
     citty: "npm:^0.1.6"
     consola: "npm:^3.4.0"
     pathe: "npm:^2.0.3"
-    pkg-types: "npm:^1.3.1"
+    pkg-types: "npm:^2.0.0"
     tinyexec: "npm:^0.3.2"
-    ufo: "npm:^1.5.4"
   bin:
     nypm: dist/cli.mjs
-  checksum: 10c0/4b4661d2e460f4f8e96338669776dc3be4ed895bd34208ac188b5b8b438553aab737d41a5699cdc716f078fba9048b3d40b7d8a55c2544f9453536f837d323dc
+  checksum: 10c0/899f16c2df1bdf3ef4de5f7d4ed5530e2e1ca097cc7dedbaa25abb6b8e44bb470c25cd26639f6e3e4f5734867e61f7f77c4ed5dfbe86b2a1bdef4525a2dc0026
   languageName: node
   linkType: hard
 
@@ -19312,7 +19258,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ohash@npm:^2.0.4":
+"ohash@npm:^2.0.11":
   version: 2.0.11
   resolution: "ohash@npm:2.0.11"
   checksum: 10c0/d07c8d79cc26da082c1a7c8d5b56c399dd4ed3b2bd069fcae6bae78c99a9bcc3ad813b1e1f49ca2f335292846d689c6141a762cf078727d2302a33d414e69c79
@@ -19848,7 +19794,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pathe@npm:^2.0.1, pathe@npm:^2.0.2, pathe@npm:^2.0.3":
+"pathe@npm:^2.0.3":
   version: 2.0.3
   resolution: "pathe@npm:2.0.3"
   checksum: 10c0/c118dc5a8b5c4166011b2b70608762e260085180bb9e33e80a50dcdb1e78c010b1624f4280c492c92b05fc276715a4c357d1f9edc570f8f1b3d90b6839ebaca1
@@ -20162,14 +20108,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pkg-types@npm:^1.3.0, pkg-types@npm:^1.3.1":
-  version: 1.3.1
-  resolution: "pkg-types@npm:1.3.1"
+"pkg-types@npm:^2.0.0, pkg-types@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "pkg-types@npm:2.1.0"
   dependencies:
-    confbox: "npm:^0.1.8"
-    mlly: "npm:^1.7.4"
-    pathe: "npm:^2.0.1"
-  checksum: 10c0/19e6cb8b66dcc66c89f2344aecfa47f2431c988cfa3366bdfdcfb1dd6695f87dcce37fbd90fe9d1605e2f4440b77f391e83c23255347c35cf84e7fd774d7fcea
+    confbox: "npm:^0.2.1"
+    exsolve: "npm:^1.0.1"
+    pathe: "npm:^2.0.3"
+  checksum: 10c0/7729d0a2367ba0aa2caf0f84a6ff0b73b13f4e9a3d62c229ddfa6d45d1f3898f590acdbaa64d779d56737d4ebea2d085961efd59094b8adf8baa34d829599b75
   languageName: node
   linkType: hard
 
@@ -23044,7 +22990,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"std-env@npm:^3.8.0, std-env@npm:^3.9.0":
+"std-env@npm:^3.9.0":
   version: 3.9.0
   resolution: "std-env@npm:3.9.0"
   checksum: 10c0/4a6f9218aef3f41046c3c7ecf1f98df00b30a07f4f35c6d47b28329bc2531eef820828951c7d7b39a1c5eb19ad8a46e3ddfc7deb28f0a2f3ceebee11bab7ba50

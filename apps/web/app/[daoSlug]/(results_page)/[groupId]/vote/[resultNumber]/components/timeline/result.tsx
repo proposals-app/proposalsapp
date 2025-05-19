@@ -1,4 +1,4 @@
-import { Proposal, Selectable } from '@proposalsapp/db-indexer';
+import { Proposal, Selectable } from '@proposalsapp/db';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import OnchainEventIcon from '@/public/assets/web/icons/onchain.svg';

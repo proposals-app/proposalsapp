@@ -5,7 +5,7 @@ use crate::extensions::{
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use futures::{StreamExt, stream};
-use proposalsapp_db_indexer::models::{proposal, vote};
+use proposalsapp_db::models::{proposal, vote};
 use sea_orm::{
     ActiveValue::NotSet,
     ColumnTrait, Condition, EntityOrSelect, EntityTrait, FromQueryResult, Order, QueryFilter, QueryOrder, QuerySelect, Set, Value,
@@ -216,8 +216,6 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
                     error!(dao_slug = %dao_slug, "DAO ID not found for slug. Skipping DAO for vote update.");
                     continue;
                 };
-
-
 
                 for (gov_type, governor_id) in governor_types.iter() {
                     if gov_type.contains("SNAPSHOT") {

@@ -14,7 +14,7 @@ use ethers::{
     utils::{hex::ToHex, to_checksum},
 };
 use futures::{StreamExt, stream};
-use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState, vote};
+use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
 use sea_orm::{
     ActiveValue::{self, NotSet},

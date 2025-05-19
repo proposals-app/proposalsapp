@@ -1,8 +1,7 @@
 import express from "express";
 import { config } from "dotenv";
 import cron from "node-cron";
-import { dbIndexer } from "@proposalsapp/db-indexer";
-import { dbWeb } from "@proposalsapp/db-web";
+import { db, Kysely, DB } from "@proposalsapp/db"; // Import Kysely and DB
 import {
   NewProposalEmailTemplate,
   NewDiscussionEmailTemplate,
@@ -40,7 +39,7 @@ export type ProposalGroupItem = ProposalItem | TopicItem;
 export async function checkNewProposals() {
   try {
     // Check for new proposals
-    const newProposals = await dbIndexer
+    const newProposals = await db.public
       .selectFrom("proposal")
       .selectAll()
       .where("createdAt", ">", new Date(Date.now() - 3 * 60 * 60 * 1000))
@@ -48,7 +47,7 @@ export async function checkNewProposals() {
 
     for (const proposal of newProposals) {
       // Check if proposal is part of a group
-      const proposalGroups = await dbIndexer
+      const proposalGroups = await db.public
         .selectFrom("proposalGroup")
         .selectAll()
         .where("daoId", "=", proposal.daoId)
@@ -84,21 +83,14 @@ export async function checkNewProposals() {
 
       // Get the author information from the voter table
 
-      const author = await dbIndexer
+      const author = await db.public
         .selectFrom("voter")
         .selectAll()
         .where("address", "=", proposal.author)
         .executeTakeFirst();
 
-      // Get users who have enabled new proposal notifications
-      const users = await dbWeb
-        .selectFrom("user")
-        .select(["id", "email"])
-        .where("emailSettingsNewProposals", "=", true)
-        .execute();
-
       // Get the DAO name and slug
-      const dao = await dbIndexer
+      const dao = await db.public
         .selectFrom("dao")
         .selectAll()
         .where("id", "=", proposal.daoId)
@@ -109,12 +101,19 @@ export async function checkNewProposals() {
         continue;
       }
 
+      // Get users who have enabled new proposal notifications from the specific web schema
+      const users = await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+        .selectFrom("user")
+        .select(["id", "email"])
+        .where("emailSettingsNewProposals", "=", true)
+        .execute();
+
       for (const user of users) {
         if (!user.email) continue;
 
-        // Check if notification already sent
-        const existingNotification = await dbWeb
-          .selectFrom("user_notification")
+        // Check if notification already sent in the specific web schema
+        const existingNotification = await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+          .selectFrom("userNotification") // Use unprefixed table name
           .selectAll()
           .where((eb) =>
             eb.and([
@@ -149,13 +148,13 @@ export async function checkNewProposals() {
             continue;
           }
 
-          // Record notification
+          // Record notification in the specific web schema
 
-          await dbWeb
-            .insertInto("user_notification")
+          await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.arbitrum)
+            .insertInto("userNotification") // Use unprefixed table name
             .values({
               userId: user.id,
-              type: "EMAIL_NEW_PROPOSAL",
+              type: "EMAIL_ENDING_PROPOSAL",
               targetId: proposal.id,
               sentAt: new Date(),
             })
@@ -176,7 +175,7 @@ export async function checkNewProposals() {
 export async function checkNewDiscussions() {
   try {
     // Get discussions created in the last minute
-    const newDiscussions = await dbIndexer
+    const newDiscussions = await db.public
       .selectFrom("discourseTopic")
       .selectAll()
       .where("createdAt", ">=", new Date(Date.now() - 3 * 60 * 60 * 1000))
@@ -184,7 +183,7 @@ export async function checkNewDiscussions() {
 
     for (const discussion of newDiscussions) {
       // Check if discussion is part of a group
-      const daoDiscourse = await dbIndexer
+      const daoDiscourse = await db.public
         .selectFrom("daoDiscourse")
         .selectAll()
         .where("id", "=", discussion.daoDiscourseId)
@@ -198,7 +197,7 @@ export async function checkNewDiscussions() {
       }
 
       // Get the first post of the discussion to get the author
-      const firstPost = await dbIndexer
+      const firstPost = await db.public
         .selectFrom("discoursePost")
         .selectAll()
         .where((eb) =>
@@ -216,7 +215,7 @@ export async function checkNewDiscussions() {
       }
 
       // Get the author information from Discourse
-      const discourseUser = await dbIndexer
+      const discourseUser = await db.public
         .selectFrom("discourseUser")
         .selectAll()
         .where((eb) =>
@@ -234,7 +233,7 @@ export async function checkNewDiscussions() {
         continue;
       }
 
-      const proposalGroups = await dbIndexer
+      const proposalGroups = await db.public
         .selectFrom("proposalGroup")
         .selectAll()
         .where("daoId", "=", daoDiscourse.daoId)
@@ -268,8 +267,8 @@ export async function checkNewDiscussions() {
         continue;
       }
 
-      // Get the DAO name
-      const dao = await dbIndexer
+      // Get the DAO name and slug
+      const dao = await db.public
         .selectFrom("dao")
         .selectAll()
         .where("id", "=", daoDiscourse.daoId)
@@ -280,9 +279,9 @@ export async function checkNewDiscussions() {
         continue;
       }
 
-      // Get users who have enabled new discussion notifications
-      const users = await dbWeb
-        .selectFrom("user")
+      // Get users who have enabled new discussion notifications from the specific web schema
+      const users = await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+        .selectFrom("user") // Use unprefixed table name
         .select(["id", "email"])
         .where("emailSettingsNewDiscussions", "=", true)
         .execute();
@@ -290,9 +289,9 @@ export async function checkNewDiscussions() {
       for (const user of users) {
         if (!user.email) continue;
 
-        // Check if notification was already sent
-        const existingNotification = await dbWeb
-          .selectFrom("user_notification")
+        // Check if notification was already sent in the specific web schema
+        const existingNotification = await (dao.slug === 'arbitrum' ? db.arbitrum : db.public)
+          .selectFrom("userNotification") // Use unprefixed table name
           .selectAll()
           .where((eb) =>
             eb.and([
@@ -329,10 +328,10 @@ export async function checkNewDiscussions() {
             continue;
           }
 
-          // Record notification
+          // Record notification in the specific web schema
 
-          await dbWeb
-            .insertInto("user_notification")
+          await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+            .insertInto("userNotification") // Use unprefixed table name
             .values({
               userId: user.id,
               type: "EMAIL_NEW_DISCUSSION",
@@ -356,7 +355,7 @@ export async function checkNewDiscussions() {
 export async function checkEndingProposals() {
   try {
     // Check for ending proposals
-    const endingProposals = await dbIndexer
+    const endingProposals = await db.public
       .selectFrom("proposal")
       .selectAll()
       .where((eb) =>
@@ -369,7 +368,7 @@ export async function checkEndingProposals() {
 
     for (const proposal of endingProposals) {
       // Check if proposal is part of a group
-      const proposalGroups = await dbIndexer
+      const proposalGroups = await db.public
         .selectFrom("proposalGroup")
         .selectAll()
         .where("daoId", "=", proposal.daoId)
@@ -403,15 +402,8 @@ export async function checkEndingProposals() {
         continue;
       }
 
-      // Get users who have enabled ending proposal notifications
-      const users = await dbWeb
-        .selectFrom("user")
-        .select(["id", "email"])
-        .where("emailSettingsEndingProposals", "=", true)
-        .execute();
-
-      // Get the DAO name
-      const dao = await dbIndexer
+      // Get the DAO name and slug
+      const dao = await db.public
         .selectFrom("dao")
         .selectAll()
         .where("id", "=", proposal.daoId)
@@ -422,12 +414,19 @@ export async function checkEndingProposals() {
         continue;
       }
 
+      // Get users who have enabled ending proposal notifications from the specific web schema
+      const users = await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+        .selectFrom("user") // Use unprefixed table name
+        .select(["id", "email"])
+        .where("emailSettingsEndingProposals", "=", true)
+        .execute();
+
       for (const user of users) {
         if (!user.email) continue;
 
-        // Check if notification already sent
-        const existingNotification = await dbWeb
-          .selectFrom("user_notification")
+        // Check if notification already sent in the specific web schema
+        const existingNotification = await (dao.slug === 'arbitrum' ? db.arbitrum : db.public)
+          .selectFrom("userNotification") // Use unprefixed table name
           .selectAll()
           .where((eb) =>
             eb.and([
@@ -461,10 +460,10 @@ export async function checkEndingProposals() {
             continue;
           }
 
-          // Record notification
+          // Record notification in the specific web schema
 
-          await dbWeb
-            .insertInto("user_notification")
+          await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+            .insertInto("userNotification") // Use unprefixed table name
             .values({
               userId: user.id,
               type: "EMAIL_ENDING_PROPOSAL",
@@ -488,6 +487,14 @@ export async function checkEndingProposals() {
 // Define the scheduled job function
 async function runScheduledJobs() {
   try {
+    // In a real-world scenario with multiple schemas, you might iterate over the
+    // DAOs that have a configured webDbConfig and call the check functions for each.
+    // For now, the checks fetch all relevant items from dbPublic and then
+    // filter based on the DAO's webDbConfig availability for notifications.
+    // This approach works but might be less efficient if you have many DAOs
+    // with no webDbConfig configured. A more optimized approach might involve
+    // querying DAOs with webDbConfig first, then fetching proposals/discussions
+    // filtered by those DAO IDs.
     await checkNewProposals();
     await checkNewDiscussions();
     await checkEndingProposals();

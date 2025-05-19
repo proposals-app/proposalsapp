@@ -7,7 +7,7 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use futures::stream::{self, StreamExt, TryStreamExt};
-use proposalsapp_db_indexer::models::{discourse_post, discourse_post_revision};
+use proposalsapp_db::models::{discourse_post, discourse_post_revision};
 use sea_orm::{ColumnTrait, Condition, EntityTrait, FromQueryResult, QueryFilter, QuerySelect, prelude::Uuid, sea_query::Expr};
 use std::{collections::HashSet, sync::Arc};
 use tokio::task::JoinSet;

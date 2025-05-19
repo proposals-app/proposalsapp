@@ -4,7 +4,7 @@ use crate::extensions::{
 };
 use anyhow::{Context, Result};
 use chrono::DateTime;
-use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState};
+use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState};
 use sea_orm::{ActiveValue::NotSet, Set, prelude::Uuid};
 use serde::Deserialize;
 use serde_json::json;

@@ -36,9 +36,23 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
-export type Numeric = ColumnType<string, number | string, number | string>;
-
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export interface Account {
+  accessToken: string | null;
+  accessTokenExpiresAt: Timestamp | null;
+  accountId: string;
+  createdAt: Timestamp;
+  id: string;
+  idToken: string | null;
+  password: string | null;
+  providerId: string;
+  refreshToken: string | null;
+  refreshTokenExpiresAt: Timestamp | null;
+  scope: string | null;
+  updatedAt: Timestamp;
+  userId: string;
+}
 
 export interface Dao {
   id: Generated<string>;
@@ -225,80 +239,6 @@ export interface JobQueue {
   type: string;
 }
 
-export interface PgStatMonitor {
-  applicationName: string | null;
-  bucket: Int8 | null;
-  bucketDone: boolean | null;
-  bucketStartTime: Timestamp | null;
-  calls: Int8 | null;
-  clientIp: string | null;
-  cmdType: number | null;
-  cmdTypeText: string | null;
-  comments: string | null;
-  cpuSysTime: number | null;
-  cpuUserTime: number | null;
-  datname: string | null;
-  dbid: number | null;
-  elevel: number | null;
-  jitDeformCount: Int8 | null;
-  jitDeformTime: number | null;
-  jitEmissionCount: Int8 | null;
-  jitEmissionTime: number | null;
-  jitFunctions: Int8 | null;
-  jitGenerationTime: number | null;
-  jitInliningCount: Int8 | null;
-  jitInliningTime: number | null;
-  jitOptimizationCount: Int8 | null;
-  jitOptimizationTime: number | null;
-  localBlkReadTime: number | null;
-  localBlksDirtied: Int8 | null;
-  localBlksHit: Int8 | null;
-  localBlksRead: Int8 | null;
-  localBlksWritten: Int8 | null;
-  localBlkWriteTime: number | null;
-  maxExecTime: number | null;
-  maxPlanTime: number | null;
-  meanExecTime: number | null;
-  meanPlanTime: number | null;
-  message: string | null;
-  minExecTime: number | null;
-  minmaxStatsSince: Timestamp | null;
-  minPlanTime: number | null;
-  pgsmQueryId: Int8 | null;
-  planid: Int8 | null;
-  plans: Int8 | null;
-  query: string | null;
-  queryid: Int8 | null;
-  queryPlan: string | null;
-  relations: string[] | null;
-  respCalls: string[] | null;
-  rows: Int8 | null;
-  sharedBlkReadTime: number | null;
-  sharedBlksDirtied: Int8 | null;
-  sharedBlksHit: Int8 | null;
-  sharedBlksRead: Int8 | null;
-  sharedBlksWritten: Int8 | null;
-  sharedBlkWriteTime: number | null;
-  sqlcode: string | null;
-  statsSince: Timestamp | null;
-  stddevExecTime: number | null;
-  stddevPlanTime: number | null;
-  tempBlkReadTime: number | null;
-  tempBlksRead: Int8 | null;
-  tempBlksWritten: Int8 | null;
-  tempBlkWriteTime: number | null;
-  toplevel: boolean | null;
-  topQuery: string | null;
-  topQueryid: Int8 | null;
-  totalExecTime: number | null;
-  totalPlanTime: number | null;
-  userid: number | null;
-  username: string | null;
-  walBytes: Numeric | null;
-  walFpi: Int8 | null;
-  walRecords: Int8 | null;
-}
-
 export interface Proposal {
   author: string | null;
   blockCreatedAt: number | null;
@@ -325,89 +265,58 @@ export interface Proposal {
 
 export interface ProposalGroup {
   createdAt: Generated<Timestamp>;
-  daoId: Generated<string>;
+  daoId: string;
   id: Generated<string>;
   items: Generated<Json>;
   name: string;
 }
 
-export interface RindexerInternalRindexerArbitrumCoreGovernorProposalCreated {
-  lastSyncedBlock: Numeric | null;
-  network: string;
+export interface Session {
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  id: string;
+  ipAddress: string | null;
+  token: string;
+  updatedAt: Timestamp;
+  userAgent: string | null;
+  userId: string;
 }
 
-export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted {
-  lastSyncedBlock: Numeric | null;
-  network: string;
+export interface User {
+  createdAt: Timestamp;
+  email: string;
+  emailSettingsEndingProposals: Generated<boolean>;
+  emailSettingsNewDiscussions: Generated<boolean>;
+  emailSettingsNewProposals: Generated<boolean>;
+  emailVerified: boolean;
+  id: string;
+  image: string | null;
+  isOnboarded: Generated<boolean>;
+  name: string;
+  updatedAt: Timestamp;
 }
 
-export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExtended {
-  lastSyncedBlock: Numeric | null;
-  network: string;
+export interface UserNotification {
+  id: Generated<string>;
+  sentAt: Generated<Timestamp>;
+  targetId: string;
+  type: string;
+  userId: string;
 }
 
-export interface RindexerInternalRindexerArbitrumCoreGovernorVoteCast {
-  lastSyncedBlock: Numeric | null;
-  network: string;
+export interface UserProposalGroupLastRead {
+  id: Generated<string>;
+  lastReadAt: Timestamp | null;
+  proposalGroupId: string;
+  userId: string;
 }
 
-export interface RindexerInternalRindexerArbitrumCoreGovernorVoteCastWithParams {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumScNominationsProposalCreated {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumScNominationsProposalExecuted {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorVoteCastWithParams {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbTokenDelegateChanged {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbTokenDelegateVotesChanged {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerLastKnownIndexesDroppingSql {
-  key: number;
-  value: string;
-}
-
-export interface RindexerInternalRindexerLastKnownRelationshipDroppingSql {
-  key: number;
+export interface Verification {
+  createdAt: Timestamp | null;
+  expiresAt: Timestamp;
+  id: string;
+  identifier: string;
+  updatedAt: Timestamp | null;
   value: string;
 }
 
@@ -444,6 +353,7 @@ export interface VotingPower {
 }
 
 export interface DB {
+  account: Account;
   dao: Dao;
   daoDiscourse: DaoDiscourse;
   daoGovernor: DaoGovernor;
@@ -458,25 +368,13 @@ export interface DB {
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   jobQueue: JobQueue;
-  pgStatMonitor: PgStatMonitor;
   proposal: Proposal;
   proposalGroup: ProposalGroup;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated": RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExecuted": RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExtended": RindexerInternalRindexerArbitrumCoreGovernorProposalExtended;
-  "rindexerInternal.rindexerArbitrumCoreGovernorVoteCast": RindexerInternalRindexerArbitrumCoreGovernorVoteCast;
-  "rindexerInternal.rindexerArbitrumCoreGovernorVoteCastWithParams": RindexerInternalRindexerArbitrumCoreGovernorVoteCastWithParams;
-  "rindexerInternal.rindexerArbitrumScNominationsProposalCreated": RindexerInternalRindexerArbitrumScNominationsProposalCreated;
-  "rindexerInternal.rindexerArbitrumScNominationsProposalExecuted": RindexerInternalRindexerArbitrumScNominationsProposalExecuted;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalCreated": RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExecuted": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExtended": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCast": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCastWithParams": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCastWithParams;
-  "rindexerInternal.rindexerArbTokenDelegateChanged": RindexerInternalRindexerArbTokenDelegateChanged;
-  "rindexerInternal.rindexerArbTokenDelegateVotesChanged": RindexerInternalRindexerArbTokenDelegateVotesChanged;
-  "rindexerInternal.rindexerLastKnownIndexesDroppingSql": RindexerInternalRindexerLastKnownIndexesDroppingSql;
-  "rindexerInternal.rindexerLastKnownRelationshipDroppingSql": RindexerInternalRindexerLastKnownRelationshipDroppingSql;
+  session: Session;
+  user: User;
+  userNotification: UserNotification;
+  userProposalGroupLastRead: UserProposalGroupLastRead;
+  verification: Verification;
   vote: Vote;
   voter: Voter;
   votingPower: VotingPower;

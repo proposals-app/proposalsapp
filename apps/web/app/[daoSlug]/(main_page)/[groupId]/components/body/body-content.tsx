@@ -1,7 +1,6 @@
 'use client';
 
 import { parseAsBoolean, useQueryState } from 'nuqs';
-
 import { memo } from 'react';
 
 const BodyContent = memo(

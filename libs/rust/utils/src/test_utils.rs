@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use proposalsapp_db_indexer::models::{delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power};
+use proposalsapp_db::models::{delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power};
 use serde_json::Value;
 
 pub struct ExpectedProposal {

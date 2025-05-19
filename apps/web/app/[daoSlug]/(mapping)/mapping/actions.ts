@@ -1,7 +1,7 @@
 'use server';
 
 import Fuse from 'fuse.js';
-import { dbIndexer } from '@proposalsapp/db-indexer';
+import { db } from '@proposalsapp/db';
 import { AsyncReturnType } from '@/lib/utils';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
@@ -56,13 +56,13 @@ export async function getGroupsData(daoSlug: string) {
   'use cache';
   cacheTag('groupsData');
 
-  const dao = await dbIndexer
+  const dao = await db.public
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
     .executeTakeFirstOrThrow();
 
-  const proposalGroups = await dbIndexer
+  const proposalGroups = await db.public
     .selectFrom('proposalGroup')
     .where('daoId', '=', dao.id)
     .selectAll()
@@ -77,7 +77,7 @@ export async function getGroupsData(daoSlug: string) {
           let indexerName = 'unknown';
 
           if (item.type === 'proposal') {
-            const proposal = await dbIndexer
+            const proposal = await db.public
               .selectFrom('proposal')
               .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
               .select('daoGovernor.name as governorName')
@@ -86,7 +86,7 @@ export async function getGroupsData(daoSlug: string) {
               .executeTakeFirst();
             indexerName = proposal?.governorName ?? 'unknown';
           } else if (item.type === 'topic') {
-            const topic = await dbIndexer
+            const topic = await db.public
               .selectFrom('discourseTopic')
               .leftJoin(
                 'daoDiscourse',
@@ -127,13 +127,13 @@ export async function getUngroupedProposals(
   'use cache';
   cacheTag('ungroupedProposals');
 
-  const dao = await dbIndexer
+  const dao = await db.public
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
     .executeTakeFirstOrThrow();
 
-  const allProposals = await dbIndexer
+  const allProposals = await db.public
     .selectFrom('proposal')
     .where('proposal.daoId', '=', dao.id)
     .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
@@ -147,7 +147,7 @@ export async function getUngroupedProposals(
     .where('markedSpam', '=', false)
     .execute();
 
-  const groups = await dbIndexer
+  const groups = await db.public
     .selectFrom('proposalGroup')
     .select('items')
     .execute();
@@ -160,7 +160,7 @@ export async function getUngroupedProposals(
         const proposalsIds = await Promise.all(
           items.map(async (item) => {
             if (item.type === 'proposal') {
-              const proposal = await dbIndexer
+              const proposal = await db.public
                 .selectFrom('proposal')
                 .select(['id', 'proposal.governorId'])
                 .where('proposal.externalId', '=', item.externalId)
@@ -203,13 +203,13 @@ export async function fuzzySearchItems(
   'use cache';
   cacheTag(`fuzzy-group-${searchTerm}`);
 
-  const dao = await dbIndexer
+  const dao = await db.public
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
     .executeTakeFirstOrThrow();
 
-  const daoDiscourse = await dbIndexer
+  const daoDiscourse = await db.public
     .selectFrom('daoDiscourse')
     .where('daoId', '=', dao.id)
     .selectAll()
@@ -220,7 +220,7 @@ export async function fuzzySearchItems(
   }
 
   const [proposals, topics] = await Promise.all([
-    dbIndexer
+    db.public
       .selectFrom('proposal')
       .where('markedSpam', '=', false)
       .where('proposal.daoId', '=', dao.id)
@@ -233,7 +233,7 @@ export async function fuzzySearchItems(
         'daoGovernor.name as governorName',
       ])
       .execute(),
-    dbIndexer
+    db.public
       .selectFrom('discourseTopic')
       .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
       .leftJoin(
@@ -292,7 +292,7 @@ export async function saveGroups(groups: ProposalGroup[]) {
   await Promise.all(
     groups.map(async (group) => {
       if (group.id) {
-        await dbIndexer
+        await db.public
           .insertInto('proposalGroup')
           .values({
             id: group.id,
@@ -311,7 +311,7 @@ export async function saveGroups(groups: ProposalGroup[]) {
           )
           .execute();
       } else {
-        await dbIndexer
+        await db.public
           .insertInto('proposalGroup')
           .values({
             name: group.name,
@@ -332,7 +332,7 @@ export async function saveGroups(groups: ProposalGroup[]) {
  * Deletes a group from the database
  */
 export async function deleteGroup(groupId: string) {
-  await dbIndexer
+  await db.public
     .deleteFrom('proposalGroup')
     .where('id', '=', groupId)
     .execute();
@@ -348,7 +348,7 @@ export async function getDao(daoSlug: string) {
   'use cache';
   cacheLife('hours');
 
-  const dao = await dbIndexer
+  const dao = await db.public
     .selectFrom('dao')
     .selectAll()
     .where('slug', '=', daoSlug)

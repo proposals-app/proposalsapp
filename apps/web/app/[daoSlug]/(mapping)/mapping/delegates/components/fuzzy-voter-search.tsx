@@ -1,6 +1,6 @@
 'use client';
 
-import { Selectable, Voter } from '@proposalsapp/db-indexer';
+import { Selectable, Voter } from '@proposalsapp/db';
 import { fuzzySearchVoters } from '../actions';
 import { useState, useCallback, useEffect, useRef } from 'react';
 

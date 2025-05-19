@@ -2,8 +2,7 @@
   "name": "@proposalsapp/email-service",
   "version": "1.0.0",
   "dependencies": {
-    "@proposalsapp/db-indexer": "1.0.0",
-    "@proposalsapp/db-web": "1.0.0",
+    "@proposalsapp/db": "1.0.0",
     "@proposalsapp/emails": "1.0.0",
     "axios": "^1.9.0",
     "dotenv": "^16.5.0",

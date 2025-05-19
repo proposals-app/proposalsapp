@@ -94,8 +94,6 @@ impl PrimaryKeyTrait for PrimaryKey {
 pub enum Relation {
     DaoDiscourse,
     DiscoursePostRevision,
-    DiscourseTopic,
-    DiscourseUser,
 }
 
 impl ColumnTrait for Column {
@@ -143,20 +141,6 @@ impl RelationTrait for Relation {
                 .to(super::dao_discourse::Column::Id)
                 .into(),
             Self::DiscoursePostRevision => Entity::has_many(super::discourse_post_revision::Entity).into(),
-            Self::DiscourseTopic => Entity::belongs_to(super::discourse_topic::Entity)
-                .from((Column::TopicId, Column::DaoDiscourseId))
-                .to((
-                    super::discourse_topic::Column::ExternalId,
-                    super::discourse_topic::Column::DaoDiscourseId,
-                ))
-                .into(),
-            Self::DiscourseUser => Entity::belongs_to(super::discourse_user::Entity)
-                .from((Column::UserId, Column::DaoDiscourseId))
-                .to((
-                    super::discourse_user::Column::ExternalId,
-                    super::discourse_user::Column::DaoDiscourseId,
-                ))
-                .into(),
         }
     }
 }
@@ -170,18 +154,6 @@ impl Related<super::dao_discourse::Entity> for Entity {
 impl Related<super::discourse_post_revision::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DiscoursePostRevision.def()
-    }
-}
-
-impl Related<super::discourse_topic::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::DiscourseTopic.def()
-    }
-}
-
-impl Related<super::discourse_user::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::DiscourseUser.def()
     }
 }
 

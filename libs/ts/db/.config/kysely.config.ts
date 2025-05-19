@@ -8,6 +8,9 @@ export default defineConfig({
       connectionString: process.env.DATABASE_URL,
       min: 5,
       max: 10,
+      ssl: {
+        rejectUnauthorized: false,
+      },
     }),
   }),
   migrations: {

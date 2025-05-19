@@ -1,11 +1,10 @@
 'use server';
 
 import { AsyncReturnType } from '@/lib/utils';
-import { dbIndexer, sql } from '@proposalsapp/db-indexer';
+import { db, sql } from '@proposalsapp/db';
 import { ProposalGroupItem } from '@/lib/types';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { dbWeb } from '@proposalsapp/db-web';
 import { revalidateTag } from 'next/cache';
 import { daoIdSchema, daoSlugSchema } from '@/lib/validations';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
@@ -22,7 +21,7 @@ export async function markAllAsRead(daoSlug: string) {
     return;
   }
 
-  const dao = await dbIndexer
+  const dao = await db.public
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .select('id')
@@ -34,7 +33,7 @@ export async function markAllAsRead(daoSlug: string) {
   }
 
   // Fetch only the group IDs needed for the update
-  const groupIds = await dbIndexer
+  const groupIds = await db.public
     .selectFrom('proposalGroup')
     .where('daoId', '=', dao.id)
     .select('id')
@@ -47,19 +46,17 @@ export async function markAllAsRead(daoSlug: string) {
 
   const now = new Date();
   const values = groupIds.map((group) => ({
-    user_id: userId,
-    proposal_group_id: group.id,
-    last_read_at: now,
+    userId: userId,
+    proposalGroupId: group.id,
+    lastReadAt: now,
   }));
 
   // Batch insert/update all groups at once
-  await dbWeb
-    .insertInto('user_proposal_group_last_read')
+  await (daoSlug in db ? db[daoSlug as keyof typeof db] : db.public)
+    .insertInto('userProposalGroupLastRead')
     .values(values)
     .onConflict((oc) =>
-      oc
-        .columns(['user_id', 'proposal_group_id'])
-        .doUpdateSet({ last_read_at: now })
+      oc.columns(['userId', 'proposalGroupId']).doUpdateSet({ lastReadAt: now })
     )
     .execute();
 
@@ -102,7 +99,7 @@ async function getCoreGroupsData(
   cacheTag(`groups-data-${daoId}`);
   cacheLife('minutes');
 
-  const coreGroups = await dbIndexer
+  const coreGroups = await db.public
     .selectFrom('proposalGroup')
     .select(['id', 'name', 'items', 'daoId'])
     .where('daoId', '=', daoId)
@@ -165,7 +162,7 @@ async function getActivityAndAuthorData(groups: GroupCoreData[]): Promise<{
   // --- Optimized Bulk Queries ---
   const proposalsPromise =
     allProposalItems.length > 0
-      ? dbIndexer
+      ? db.public
           .selectFrom('proposal')
           .leftJoin('vote', 'vote.proposalId', 'proposal.id')
           .select([
@@ -175,7 +172,7 @@ async function getActivityAndAuthorData(groups: GroupCoreData[]): Promise<{
             'proposal.author',
             'proposal.createdAt',
             'proposal.endAt',
-            dbIndexer.fn.count('vote.id').as('voteCount'),
+            db.public.fn.count('vote.id').as('voteCount'),
           ])
           .where(
             sql`(proposal."external_id", proposal."governor_id")`,
@@ -192,7 +189,7 @@ async function getActivityAndAuthorData(groups: GroupCoreData[]): Promise<{
 
   const topicsPromise =
     allTopicItems.length > 0
-      ? dbIndexer
+      ? db.public
           .selectFrom('discourseTopic')
           .select([
             'discourseTopic.id as topicId', // Select the internal topic ID too
@@ -219,7 +216,7 @@ async function getActivityAndAuthorData(groups: GroupCoreData[]): Promise<{
   // Fetch first post authors more efficiently
   const firstPostsAuthorsPromise =
     allTopicIdsForPosts.length > 0
-      ? dbIndexer
+      ? db.public
           .selectFrom('discoursePost as dp')
           .innerJoin('discourseUser as du', (join) =>
             join
@@ -395,15 +392,17 @@ async function getUserLastReadData(
   const lastReadMap = new Map<string, Date | null>();
   if (groupIds.length === 0) return lastReadMap;
 
-  const lastReads = await dbWeb
-    .selectFrom('user_proposal_group_last_read')
-    .where('user_id', '=', userId)
-    .where('proposal_group_id', 'in', groupIds)
-    .select(['proposal_group_id', 'last_read_at'])
+  const lastReads = await (
+    daoSlug in db ? db[daoSlug as keyof typeof db] : db.public
+  )
+    .selectFrom('userProposalGroupLastRead')
+    .where('userId', '=', userId)
+    .where('proposalGroupId', 'in', groupIds)
+    .select(['proposalGroupId', 'lastReadAt'])
     .execute();
 
   lastReads.forEach((lr) => {
-    lastReadMap.set(lr.proposal_group_id, lr.last_read_at);
+    lastReadMap.set(lr.proposalGroupId, lr.lastReadAt);
   });
 
   return lastReadMap;
@@ -412,7 +411,7 @@ async function getUserLastReadData(
 export async function getGroups(daoSlug: string, userId?: string) {
   daoSlugSchema.parse(daoSlug);
 
-  const dao = await dbIndexer
+  const dao = await db.public
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .select(['id', 'name'])
@@ -538,7 +537,7 @@ export async function getTotalVotingPower(daoId: string): Promise<number> {
   daoIdSchema.parse(daoId);
 
   try {
-    const result = await dbIndexer
+    const result = await db.public
       .with('latest_voting_power', (db) =>
         db
           .selectFrom('votingPower')
