@@ -11,8 +11,7 @@ COPY package.json yarn.lock .yarnrc.yml ./
 
 # Copy project-specific package files
 COPY apps/web/package.json apps/web/
-COPY libs/ts/db-indexer/package.json libs/ts/db-indexer/
-COPY libs/ts/db-web/package.json libs/ts/db-web/
+COPY libs/ts/db/package.json libs/ts/db/
 COPY libs/ts/emails/package.json libs/ts/emails/
 COPY libs/ts/visual-dom-diff/package.json libs/ts/visual-dom-diff/
 
@@ -22,8 +21,7 @@ RUN yarn install
 
 # Copy the remaining project files
 COPY apps/web/ apps/web/
-COPY libs/ts/db-indexer/ libs/ts/db-indexer/
-COPY libs/ts/db-web/ libs/ts/db-web/
+COPY libs/ts/db/ libs/ts/db/
 COPY libs/ts/emails/ libs/ts/emails/
 COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 
@@ -53,8 +51,7 @@ RUN apt-get update && apt-get install -y curl && \
 
 # Copy the built project and required files from the builder stage
 COPY --from=builder /app/apps/web/ /app/apps/web/
-COPY --from=builder /app/libs/ts/db-indexer/ /app/libs/ts/db-indexer/
-COPY --from=builder /app/libs/ts/db-web/ /app/libs/ts/db-web/
+COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
 COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
 COPY --from=builder /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
 COPY --from=builder /app/node_modules/ /app/node_modules/
