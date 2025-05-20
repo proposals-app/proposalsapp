@@ -26,33 +26,33 @@ async fn main() -> Result<()> {
         .await
         .context("Failed to initialize database")?;
 
-    // initialize_snapshot_api()
-    //     .await
-    //     .context("Failed to initialize snapshot API")?;
+    initialize_snapshot_api()
+        .await
+        .context("Failed to initialize snapshot API")?;
 
-    // tokio::spawn(async {
-    //     if let Err(e) = run_periodic_snapshot_proposals_update().await {
-    //         error!("Error in periodic snapshot proposals update task: {:?}", e);
-    //     }
-    // });
+    tokio::spawn(async {
+        if let Err(e) = run_periodic_snapshot_proposals_update().await {
+            error!("Error in periodic snapshot proposals update task: {:?}", e);
+        }
+    });
 
-    // tokio::spawn(async {
-    //     if let Err(e) = run_periodic_snapshot_votes_update().await {
-    //         error!("Error in periodic snapshot votes update task: {:?}", e);
-    //     }
-    // });
+    tokio::spawn(async {
+        if let Err(e) = run_periodic_snapshot_votes_update().await {
+            error!("Error in periodic snapshot votes update task: {:?}", e);
+        }
+    });
 
-    // tokio::spawn(async {
-    //     if let Err(e) = run_periodic_proposal_state_update().await {
-    //         error!("Error in periodic proposal state update task: {:?}", e);
-    //     }
-    // });
+    tokio::spawn(async {
+        if let Err(e) = run_periodic_proposal_state_update().await {
+            error!("Error in periodic proposal state update task: {:?}", e);
+        }
+    });
 
-    // tokio::spawn(async {
-    //     if let Err(e) = run_periodic_block_times_update().await {
-    //         error!("Error in periodic block times update task: {:?}", e);
-    //     }
-    // });
+    tokio::spawn(async {
+        if let Err(e) = run_periodic_block_times_update().await {
+            error!("Error in periodic block times update task: {:?}", e);
+        }
+    });
 
     tokio::spawn(async move {
         let client = Client::new();
