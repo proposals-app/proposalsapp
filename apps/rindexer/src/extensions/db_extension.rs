@@ -403,20 +403,15 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
     let txn = db.begin().await?;
 
     for chunk in delegations.chunks(BATCH_SIZE) {
-        let result = delegation::Entity::insert_many(chunk.to_vec())
+        let insert_result = delegation::Entity::insert_many(chunk.to_vec())
             .on_conflict(OnConflict::new().do_nothing().to_owned())
             .exec(&txn)
             .await;
 
-        if let Err(err) = result {
-            error!(error = %err, count = chunk.len(), "Failed to insert delegation chunk, rolling back transaction.");
-            txn.rollback().await?;
-            return Err(err.into());
+        if let Err(e) = insert_result {
+            error!(error = %e, "Bulk insert of new delegations failed");
         } else {
-            debug!(
-                count = chunk.len(),
-                "Delegation chunk inserted successfully."
-            );
+            debug!(count = ?insert_result.as_ref(), "Bulk insert of new delegations completed");
         }
     }
 
@@ -439,20 +434,15 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
     let txn = db.begin().await?;
 
     for chunk in voting_powers.chunks(BATCH_SIZE) {
-        let result = voting_power::Entity::insert_many(chunk.to_vec())
+        let insert_result = voting_power::Entity::insert_many(chunk.to_vec())
             .on_conflict(OnConflict::new().do_nothing().to_owned())
             .exec(&txn)
             .await;
 
-        if let Err(err) = result {
-            error!(error = %err, count = chunk.len(), "Failed to insert/update voting power chunk, rolling back transaction.");
-            txn.rollback().await?;
-            return Err(err.into());
+        if let Err(e) = insert_result {
+            error!(error = %e, "Bulk insert of new voting powers failed");
         } else {
-            debug!(
-                count = chunk.len(),
-                "Voting power chunk processed successfully."
-            );
+            debug!(count = ?insert_result.as_ref(), "Bulk insert of new voting powers completed");
         }
     }
 
