@@ -37,6 +37,10 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
+  // A basic sticky maintenance header. You might want to add logic here
+  // to conditionally render this header based on an environment variable or feature flag.
+  const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true'; // Example flag
+
   return (
     <html lang='en' suppressHydrationWarning>
       <head>
@@ -58,6 +62,12 @@ export default async function Layout({
         <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
+        {isMaintenanceMode && (
+          <div className='fixed top-0 left-0 z-50 w-full bg-red-500 p-2 text-center text-white'>
+            Heads up! We&apos;re currently performing scheduled maintenance. You
+            might experience temporary interruptions.
+          </div>
+        )}
         <SuspendedThemeProvider>
           <NuqsAdapter>
             <Suspense>
@@ -67,7 +77,10 @@ export default async function Layout({
             <Suspense>
               <PHProvider>
                 <WalletProvider>
-                  <main>{children}</main>
+                  {/* Add padding to the main content if the maintenance header is visible */}
+                  <main className={isMaintenanceMode ? 'pt-12' : ''}>
+                    {children}
+                  </main>
                   <Toaster />
                 </WalletProvider>
               </PHProvider>
