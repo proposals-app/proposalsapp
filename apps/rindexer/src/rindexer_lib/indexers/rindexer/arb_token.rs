@@ -90,7 +90,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                             dao_id: Set(dao_id),
                             block: Set(block_number as i32),
                             timestamp: Set(created_at),
-                            txid: Set(Some(tx_hash.encode_hex())),
+                            txid: Set(Some(result.tx_information.transaction_hash.to_string())),
                         })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
@@ -175,7 +175,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                             dao_id: Set(dao_id),
                             block: Set(block_number as i32),
                             timestamp: Set(created_at),
-                            txid: Set(Some(tx_hash.encode_hex())),
+                            txid: Set(Some(result.tx_information.transaction_hash.to_string())),
                         })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)

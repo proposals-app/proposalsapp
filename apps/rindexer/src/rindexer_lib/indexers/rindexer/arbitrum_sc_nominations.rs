@@ -165,7 +165,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         block_start_at: Set(Some(result.event_data.startBlock.to::<u64>() as i32)),
                         block_end_at: Set(Some(result.event_data.endBlock.to::<u64>() as i32)),
                         metadata: Set(json!({"vote_type":"sc_nominations"}).into()),
-                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
+                        txid: Set(Some(result.tx_information.transaction_hash.to_string())),
                         governor_id: Set(get_governor_id().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
                         author: Set(Some(result.event_data.proposer.to_string())),

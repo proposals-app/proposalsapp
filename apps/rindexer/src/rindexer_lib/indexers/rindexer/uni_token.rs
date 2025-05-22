@@ -84,7 +84,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                             dao_id: Set(dao_id),
                             block: Set(block_number as i32),
                             timestamp: Set(created_at),
-                            txid: Set(Some(tx_hash.encode_hex())),
+                            txid: Set(Some(result.tx_information.transaction_hash.to_string())),
                         })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
@@ -138,7 +138,6 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                         let block_number = result.tx_information.block_number.to::<u64>();
                         let delegate_addr = result.event_data.delegate;
                         let new_balance = result.event_data.newBalance;
-                        let tx_hash = result.tx_information.transaction_hash;
 
                         let created_at = match estimate_timestamp("ethereum", block_number).await {
                             Ok(ts) => ts,
@@ -165,7 +164,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                             dao_id: Set(dao_id),
                             block: Set(block_number as i32),
                             timestamp: Set(created_at),
-                            txid: Set(Some(tx_hash.to_string())),
+                            txid: Set(Some(result.tx_information.transaction_hash.to_string())),
                         })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
