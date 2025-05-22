@@ -4,8 +4,8 @@ version = "1.0.0"
 edition = "2024"
 
 [dependencies]
-alloy = { workspace = true, features = ["full"]}
-alloy-ens = "1.0.6"
+alloy = { workspace = true, features = ["full"] }
+alloy-ens = { workspace = true, features = ["contract","provider"] }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }

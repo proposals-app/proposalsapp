@@ -1,13 +1,14 @@
 use crate::rindexer_lib::typings::networks::get_ethereum_provider;
+use alloy::primitives::Address;
+use alloy_ens::ProviderEnsExt;
 use anyhow::{Context, Result};
-use ethers::types::Address;
 use once_cell::sync::{Lazy, OnceCell};
 use proposalsapp_db::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
-use rindexer::provider::JsonRpcCachedProvider;
+use rindexer::provider::RindexerProvider;
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
 use std::{
     collections::{HashMap, HashSet},
-    sync::Mutex,
+    sync::{Arc, Mutex},
     time::Duration,
 };
 use tracing::{debug, error, info, instrument, warn};
@@ -533,35 +534,35 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                     }
 
                     // Try to resolve avatar with timeout
-                    let avatar_result = match tokio::time::timeout(
-                        std::time::Duration::from_secs(5),
-                        isolated_avatar_resolve(fetched_ens.clone(), addr_clone.clone(), provider.clone()),
-                    )
-                    .await
-                    {
-                        Ok(result) => result,
-                        Err(_) => {
-                            debug!(
-                                address = addr_clone,
-                                ens = fetched_ens,
-                                "Avatar resolution timed out"
-                            );
-                            Err(anyhow::anyhow!("Avatar resolution timed out"))
-                        }
-                    };
+                    // let avatar_result = match tokio::time::timeout(
+                    //     std::time::Duration::from_secs(5),
+                    //     isolated_avatar_resolve(fetched_ens.clone(), addr_clone.clone(), provider.clone()),
+                    // )
+                    // .await
+                    // {
+                    //     Ok(result) => result,
+                    //     Err(_) => {
+                    //         debug!(
+                    //             address = addr_clone,
+                    //             ens = fetched_ens,
+                    //             "Avatar resolution timed out"
+                    //         );
+                    //         Err(anyhow::anyhow!("Avatar resolution timed out"))
+                    //     }
+                    // };
 
-                    if let Ok(avatar_url) = avatar_result {
-                        if existing_voter.avatar != Some(avatar_url.clone()) {
-                            debug!(
-                                address = address,
-                                old_avatar = existing_voter.avatar,
-                                new_avatar = avatar_url,
-                                "Updating avatar for address"
-                            );
-                            updated_avatar = Some(avatar_url);
-                            needs_update = true;
-                        }
-                    }
+                    // if let Ok(avatar_url) = avatar_result {
+                    //     if existing_voter.avatar != Some(avatar_url.clone()) {
+                    //         debug!(
+                    //             address = address,
+                    //             old_avatar = existing_voter.avatar,
+                    //             new_avatar = avatar_url,
+                    //             "Updating avatar for address"
+                    //         );
+                    //         updated_avatar = Some(avatar_url);
+                    //         needs_update = true;
+                    //     }
+                    // }
 
                     if needs_update {
                         let mut voter_active_model = voter::ActiveModel {
@@ -625,36 +626,43 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 
                 if let Ok(ens) = ens_result {
                     // Try to resolve avatar with timeout
-                    let avatar_result = match tokio::time::timeout(
-                        std::time::Duration::from_secs(5),
-                        isolated_avatar_resolve(ens.clone(), addr_clone.clone(), provider.clone()),
-                    )
-                    .await
-                    {
-                        Ok(result) => result,
-                        Err(_) => {
-                            debug!(
-                                address = addr_clone,
-                                ens = ens,
-                                "Avatar resolution timed out for new voter"
-                            );
-                            Err(anyhow::anyhow!("Avatar resolution timed out"))
-                        }
-                    };
+                    // let avatar_result = match tokio::time::timeout(
+                    //     std::time::Duration::from_secs(5),
+                    //     isolated_avatar_resolve(ens.clone(), addr_clone.clone(), provider.clone()),
+                    // )
+                    // .await
+                    // {
+                    //     Ok(result) => result,
+                    //     Err(_) => {
+                    //         debug!(
+                    //             address = addr_clone,
+                    //             ens = ens,
+                    //             "Avatar resolution timed out for new voter"
+                    //         );
+                    //         Err(anyhow::anyhow!("Avatar resolution timed out"))
+                    //     }
+                    // };
 
-                    let avatar = match avatar_result {
-                        Ok(avatar_url) => Some(avatar_url),
-                        Err(e) => {
-                            debug!(address = addr_clone, ens = ens, error = %e, "Avatar resolution error for new voter");
-                            None
-                        }
-                    };
+                    // let avatar = match avatar_result {
+                    //     Ok(avatar_url) => Some(avatar_url),
+                    //     Err(e) => {
+                    //         debug!(address = addr_clone, ens = ens, error = %e, "Avatar resolution error for new
+                    // voter");         None
+                    //     }
+                    // };
 
+                    // voters_to_insert.push(voter::ActiveModel {
+                    //     id: NotSet,
+                    //     address: Set(address.clone()),
+                    //     ens: Set(Some(ens)),
+                    //     avatar: Set(avatar),
+                    // });
+                    //
                     voters_to_insert.push(voter::ActiveModel {
                         id: NotSet,
                         address: Set(address.clone()),
                         ens: Set(Some(ens)),
-                        avatar: Set(avatar),
+                        avatar: NotSet,
                     });
                 } else if let Err(e) = ens_result {
                     debug!(address = addr_clone, error = %e, "ENS lookup failed for new voter");
@@ -699,9 +707,9 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 }
 
 #[instrument(name = "db_isolated_ens_lookup", skip(address, provider, addr_string), fields(address = %address))]
-async fn isolated_ens_lookup(address: Address, addr_string: String, provider: JsonRpcCachedProvider) -> Result<String> {
+async fn isolated_ens_lookup(address: Address, addr_string: String, provider: Arc<RindexerProvider>) -> Result<String> {
     // Spawn a task to isolate potential panics
-    match tokio::task::spawn(async move { provider.get_inner_provider().lookup_address(address).await }).await {
+    match tokio::task::spawn(async move { provider.lookup_address(&address).await }).await {
         Ok(result) => match result {
             Ok(ens) => {
                 debug!(ens_name = ens, "ENS lookup successful");
@@ -724,31 +732,31 @@ async fn isolated_ens_lookup(address: Address, addr_string: String, provider: Js
     }
 }
 
-#[instrument(name = "db_isolated_avatar_resolve", skip(ens, provider, addr_string), fields(ens_name = ens))]
-async fn isolated_avatar_resolve(ens: String, addr_string: String, provider: JsonRpcCachedProvider) -> Result<String> {
-    // Spawn a task to isolate potential panics
-    match tokio::task::spawn(async move { provider..resolve_avatar(&ens).await }).await {
-        Ok(result) => match result {
-            Ok(avatar) => {
-                debug!(avatar_url = %avatar, "Avatar resolution successful");
-                Ok(avatar.to_string())
-            }
-            Err(e) => {
-                debug!(error = %e, "Avatar resolution error");
-                Err(anyhow::anyhow!("Avatar resolution error: {}", e))
-            }
-        },
-        Err(e) => {
-            warn!(
-                address = addr_string,
-                error = %e,
-                "Task error during avatar resolution"
-            );
-            // This happens if the task panicked
-            Err(anyhow::anyhow!(
-                "Task error during avatar resolution: {}",
-                e
-            ))
-        }
-    }
-}
+// #[instrument(name = "db_isolated_avatar_resolve", skip(ens, provider, addr_string),
+// fields(ens_name = ens))] async fn isolated_avatar_resolve(ens: String, addr_string: String,
+// provider: Arc<RindexerProvider>) -> Result<String> {     // Spawn a task to isolate potential
+// panics     match tokio::task::spawn(async move { provider.resolve_avatar(&ens).await }).await {
+//         Ok(result) => match result {
+//             Ok(avatar) => {
+//                 debug!(avatar_url = %avatar, "Avatar resolution successful");
+//                 Ok(avatar.to_string())
+//             }
+//             Err(e) => {
+//                 debug!(error = %e, "Avatar resolution error");
+//                 Err(anyhow::anyhow!("Avatar resolution error: {}", e))
+//             }
+//         },
+//         Err(e) => {
+//             warn!(
+//                 address = addr_string,
+//                 error = %e,
+//                 "Task error during avatar resolution"
+//             );
+//             // This happens if the task panicked
+//             Err(anyhow::anyhow!(
+//                 "Task error during avatar resolution: {}",
+//                 e
+//             ))
+//         }
+//     }
+// }

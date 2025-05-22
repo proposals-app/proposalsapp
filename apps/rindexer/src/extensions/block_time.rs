@@ -1,10 +1,8 @@
-use crate::rindexer_lib::typings::networks::{get_arbitrum_provider_cache, get_avalanche_provider_cache, get_ethereum_provider_cache, get_optimism_provider_cache, get_polygon_provider_cache};
 use alloy::{eips::BlockId, providers::Provider};
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use lazy_static::lazy_static;
 use reqwest::Client;
-use rindexer::provider::JsonRpcCachedProvider;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, VecDeque},
@@ -14,9 +12,11 @@ use std::{
 use tokio::sync::{Mutex, OnceCell};
 use tracing::{debug, error, instrument, warn};
 
+use crate::rindexer_lib::typings::networks::get_provider_cache_for_network;
+
 #[derive(Clone)]
 struct ChainConfig {
-    provider: Arc<JsonRpcCachedProvider>,
+    network: &'static str,
     scan_api_url: Option<String>,
     scan_api_key: Option<String>,
 }
@@ -27,7 +27,7 @@ lazy_static! {
         map.insert(
             "ethereum",
             ChainConfig {
-                provider: get_ethereum_provider_cache().await,
+                network: "ethereum",
                 scan_api_url: Some("https://api.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("ETHERSCAN_API_KEY").ok(),
             },
@@ -35,7 +35,7 @@ lazy_static! {
         map.insert(
             "arbitrum",
             ChainConfig {
-                provider: get_arbitrum_provider_cache().await,
+                network: "arbitrum",
                 scan_api_url: Some("https://api.arbiscan.io/api".to_string()),
                 scan_api_key: std::env::var("ARBISCAN_API_KEY").ok(),
             },
@@ -43,7 +43,7 @@ lazy_static! {
         map.insert(
             "optimism",
             ChainConfig {
-                provider: get_optimism_provider_cache().await,
+                network: "optimism",
                 scan_api_url: Some("https://api-optimistic.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("OPTIMISTIC_SCAN_API_KEY").ok(),
             },
@@ -51,7 +51,7 @@ lazy_static! {
         map.insert(
             "polygon",
             ChainConfig {
-                provider: get_polygon_provider_cache().await,
+                network: "polygon",
                 scan_api_url: Some("https://api.polygonscan.com/api".to_string()),
                 scan_api_key: std::env::var("POLYGONSCAN_API_KEY").ok(),
             },
@@ -59,7 +59,7 @@ lazy_static! {
         map.insert(
             "avalanche",
             ChainConfig {
-                provider: get_avalanche_provider_cache().await,
+                network: "avalanche",
                 scan_api_url: None,
                 scan_api_key: None,
             },
@@ -142,7 +142,7 @@ async fn job_processor() {
 #[instrument(name = "block_time_process_request_inner", skip_all, fields(block_number = block_number))]
 async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result<NaiveDateTime> {
     let provider_result = async {
-        let provider = config.provider.clone();
+        let provider = get_provider_cache_for_network(config.network).await;
         let inner_provider = provider.get_inner_provider();
 
         let current_block = provider
@@ -495,12 +495,32 @@ mod request_tests {
         block_offset: i64, // Positive for future, negative for past
     ) -> Result<()> {
         let current_block = match network {
-            "ethereum" => get_ethereum_provider_cache().await.get_block_number().await,
-            "arbitrum" => get_arbitrum_provider_cache().await.get_block_number().await,
-            "optimism" => get_optimism_provider_cache().await.get_block_number().await,
-            "polygon" => get_polygon_provider_cache().await.get_block_number().await,
+            "ethereum" => {
+                get_provider_cache_for_network("ethereum")
+                    .await
+                    .get_block_number()
+                    .await
+            }
+            "arbitrum" => {
+                get_provider_cache_for_network("arbitrum")
+                    .await
+                    .get_block_number()
+                    .await
+            }
+            "optimism" => {
+                get_provider_cache_for_network("optimism")
+                    .await
+                    .get_block_number()
+                    .await
+            }
+            "polygon" => {
+                get_provider_cache_for_network("polygon")
+                    .await
+                    .get_block_number()
+                    .await
+            }
             "avalanche" => {
-                get_avalanche_provider_cache()
+                get_provider_cache_for_network("avalanche")
                     .await
                     .get_block_number()
                     .await
@@ -670,12 +690,32 @@ mod request_tests {
         for network in networks {
             println!("Starting intensive test for network: {}", network);
             let current_block = match network {
-                "ethereum" => get_ethereum_provider_cache().await.get_block_number().await,
-                "arbitrum" => get_arbitrum_provider_cache().await.get_block_number().await,
-                "optimism" => get_optimism_provider_cache().await.get_block_number().await,
-                "polygon" => get_polygon_provider_cache().await.get_block_number().await,
+                "ethereum" => {
+                    get_provider_cache_for_network("ethereum")
+                        .await
+                        .get_block_number()
+                        .await
+                }
+                "arbitrum" => {
+                    get_provider_cache_for_network("arbitrum")
+                        .await
+                        .get_block_number()
+                        .await
+                }
+                "optimism" => {
+                    get_provider_cache_for_network("optimism")
+                        .await
+                        .get_block_number()
+                        .await
+                }
+                "polygon" => {
+                    get_provider_cache_for_network("polygon")
+                        .await
+                        .get_block_number()
+                        .await
+                }
                 "avalanche" => {
-                    get_avalanche_provider_cache()
+                    get_provider_cache_for_network("avalanche")
                         .await
                         .get_block_number()
                         .await
@@ -863,7 +903,7 @@ mod api_tests {
     async fn test_api_request_success_ethereum() -> Result<()> {
         let (etherscan_key, _) = ensure_api_keys().await?;
 
-        let current_block = get_ethereum_provider_cache()
+        let current_block = get_provider_cache_for_network("ethereum")
             .await
             .get_block_number()
             .await?
@@ -893,7 +933,7 @@ mod api_tests {
     async fn test_api_request_success_arbitrum() -> Result<()> {
         let (_, arbiscan_key) = ensure_api_keys().await?;
 
-        let current_block = get_arbitrum_provider_cache()
+        let current_block = get_provider_cache_for_network("arbitrum")
             .await
             .get_block_number()
             .await?
