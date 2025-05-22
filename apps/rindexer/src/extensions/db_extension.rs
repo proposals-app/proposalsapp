@@ -409,7 +409,9 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
             .await;
 
         if let Err(e) = insert_result {
-            error!(error = %e, "Bulk insert of new delegations failed");
+            if !e.to_string().contains("None of the records are inserted") {
+                error!(error = %e, "Bulk insert of new delegations failed");
+            }
         } else {
             debug!(count = ?insert_result.as_ref(), "Bulk insert of new delegations completed");
         }
@@ -440,7 +442,9 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
             .await;
 
         if let Err(e) = insert_result {
-            error!(error = %e, "Bulk insert of new voting powers failed");
+            if !e.to_string().contains("None of the records are inserted") {
+                error!(error = %e, "Bulk insert of new voting powers failed");
+            }
         } else {
             debug!(count = ?insert_result.as_ref(), "Bulk insert of new voting powers completed");
         }
@@ -674,7 +678,9 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 .exec(txn)
                 .await;
             if let Err(e) = insert_result {
-                error!(error = %e, "Bulk insert of new voters failed");
+                if !e.to_string().contains("None of the records are inserted") {
+                    error!(error = %e, "Bulk insert of new voters failed");
+                }
             } else {
                 debug!(count = ?insert_result.as_ref(), "Bulk insert of new voters completed");
             }
