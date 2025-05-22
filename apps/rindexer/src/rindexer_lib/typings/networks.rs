@@ -48,7 +48,7 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("ETHEREUM_NODE_URL").unwrap_or("ETHEREUM_NODE_URL".to_string()),
                 1,
                 None,
-                Some(U64::from(10000)),
+                Some(U64::from(1000)),
                 HeaderMap::new(),
             )
             .await
