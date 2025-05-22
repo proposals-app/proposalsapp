@@ -69,9 +69,9 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 );
 
                 for result in results.clone() {
-                    let proposal_id = result.event_data.proposal_id;
-                    let block_number = result.tx_information.block_number.as_u64();
-                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum");
+                    let proposal_id = result.event_data.proposalId;
+                    let block_number = result.tx_information.block_number.to::<u64>();
+                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum").await;
 
                     let created_at = match estimate_timestamp("arbitrum", block_number).await {
                         Ok(ts) => ts,
@@ -81,18 +81,18 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
-                    let start_at = match estimate_timestamp("ethereum", result.event_data.start_block.as_u64()).await {
+                    let start_at = match estimate_timestamp("ethereum", result.event_data.startBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
-                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, start_block = %result.event_data.start_block, "Failed to estimate start_at timestamp");
+                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, start_block = %result.event_data.startBlock, "Failed to estimate start_at timestamp");
                             continue;
                         }
                     };
 
-                    let end_at = match estimate_timestamp("ethereum", result.event_data.end_block.as_u64()).await {
+                    let end_at = match estimate_timestamp("ethereum", result.event_data.endBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
-                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, end_block = %result.event_data.end_block, "Failed to estimate end_at timestamp");
+                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, end_block = %result.event_data.endBlock, "Failed to estimate end_at timestamp");
                             continue;
                         }
                     };
@@ -124,7 +124,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     };
 
                     let proposal_snapshot_block_result = arbitrum_treasury_governor
-                        .proposal_snapshot(proposal_id)
+                        .proposalSnapshot(proposal_id)
                         .call()
                         .await;
                     let quorum_result = match proposal_snapshot_block_result {
@@ -141,7 +141,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     };
 
                     let quorum = match quorum_result {
-                        Ok(r) => r.as_u128() as f64 / (10.0f64.powi(18)),
+                        Ok(r) => r.to::<u128>() as f64 / (10.0f64.powi(18)),
                         Err(_) => U256::from(0).as_u128() as f64 / (10.0f64.powi(18)),
                     };
 
@@ -168,17 +168,17 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         start_at: Set(start_at),
                         end_at: Set(end_at),
                         block_created_at: Set(Some(block_number as i32)),
-                        block_start_at: Set(Some(result.event_data.start_block.as_u64() as i32)),
-                        block_end_at: Set(Some(result.event_data.end_block.as_u64() as i32)),
+                        block_start_at: Set(Some(result.event_data.startBlock.to::<u64>() as i32)),
+                        block_end_at: Set(Some(result.event_data.endBlock.to::<u64>() as i32)),
                         metadata: Set(json!({"vote_type":"basic", "quorum_choices":[0,2], "total_delegated_vp":total_delegated_vp, "targets":result.event_data.targets, "values":result.event_data.values, "calldatas":result.event_data.calldatas, "signatures":result.event_data.signatures}).into()),
                         txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
                         governor_id: Set(get_governor_id().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
-                        author: Set(Some(to_checksum(&result.event_data.proposer, None))),
+                        author: Set(Some(result.event_data.proposer.to_string())),
                     };
 
                     store_proposal(proposal).await;
-                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposal_id, "ArbitrumTreasuryGovernor Proposal stored");
+                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumTreasuryGovernor Proposal stored");
                 }
 
                 info!(
@@ -217,7 +217,7 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                 );
 
                 for result in results.clone() {
-                    let proposal_id = result.event_data.proposal_id;
+                    let proposal_id = result.event_data.proposalId;
                     let proposal = proposal::ActiveModel {
                         id: NotSet,
                         external_id: Set(proposal_id.to_string()),
@@ -243,7 +243,7 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                     };
 
                     store_proposal(proposal).await;
-                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposal_id, "ArbitrumTreasuryGovernor Proposal state updated to Executed");
+                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumTreasuryGovernor Proposal state updated to Executed");
                 }
 
                 info!(
@@ -282,8 +282,8 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                 );
 
                 for result in results.clone() {
-                    let proposal_id = result.event_data.proposal_id;
-                    let extended_deadline = result.event_data.extended_deadline;
+                    let proposal_id = result.event_data.proposalId;
+                    let extended_deadline = result.event_data.extendedDeadline;
 
                     let end_at = match estimate_timestamp("ethereum", extended_deadline).await {
                         Ok(ts) => ts,
@@ -318,7 +318,7 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                     };
 
                     store_proposal(proposal).await;
-                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposal_id, end_at = ?end_at, "ArbitrumTreasuryGovernor Proposal end_at updated for ProposalExtended event");
+                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, end_at = ?end_at, "ArbitrumTreasuryGovernor Proposal end_at updated for ProposalExtended event");
                 }
                 info!(
                     event_name = "ArbitrumTreasuryGovernor::ProposalExtended",
@@ -360,8 +360,8 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                 let votes: Vec<vote::ActiveModel> = stream::iter(results)
                     .map(|result| async move {
-                        let block_number = result.tx_information.block_number.as_u64();
-                        let proposal_id = result.event_data.proposal_id.to_string();
+                        let block_number = result.tx_information.block_number.to::<u64>();
+                        let proposal_id = result.event_data.proposalId.to_string();
 
                         let created_at = match estimate_timestamp("arbitrum", block_number).await {
                             Ok(ts) => ts,
@@ -373,14 +373,14 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                         Some(vote::ActiveModel {
                             id: NotSet,
-                            voter_address: Set(to_checksum(&result.event_data.voter, None)),
+                            voter_address: Set(result.event_data.voter.to_string()),
                             choice: Set(match result.event_data.support {
                                 0 => 1.into(),
                                 1 => 0.into(),
                                 2 => 2.into(),
                                 _ => 2.into(),
                             }),
-                            voting_power: Set((result.event_data.weight.as_u128() as f64) / (10.0f64.powi(18))),
+                            voting_power: Set((result.event_data.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
                             reason: Set(Some(result.event_data.reason.clone())),
                             created_at: Set(created_at),
                             block_created_at: Set(Some(block_number as i32)),

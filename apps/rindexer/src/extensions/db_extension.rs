@@ -1,8 +1,9 @@
-use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
+use crate::rindexer_lib::typings::networks::get_ethereum_provider;
 use anyhow::{Context, Result};
-use ethers::{providers::Middleware, types::Address};
+use ethers::types::Address;
 use once_cell::sync::{Lazy, OnceCell};
 use proposalsapp_db::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
+use rindexer::provider::JsonRpcCachedProvider;
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
 use std::{
     collections::{HashMap, HashSet},
@@ -465,7 +466,7 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
 #[instrument(name = "db_store_voters", skip(txn, voter_addresses), fields(voter_address_count = voter_addresses.len()))]
 async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String>) -> Result<()> {
     // Get the provider once at the beginning to reuse throughout the function
-    let provider = get_ethereum_provider_cache().get_inner_provider();
+    let provider = get_ethereum_provider().await;
 
     for addresses_chunk in voter_addresses
         .into_iter()
@@ -698,9 +699,9 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 }
 
 #[instrument(name = "db_isolated_ens_lookup", skip(address, provider, addr_string), fields(address = %address))]
-async fn isolated_ens_lookup<M: Middleware + 'static>(address: Address, addr_string: String, provider: M) -> Result<String> {
+async fn isolated_ens_lookup(address: Address, addr_string: String, provider: JsonRpcCachedProvider) -> Result<String> {
     // Spawn a task to isolate potential panics
-    match tokio::task::spawn(async move { provider.lookup_address(address).await }).await {
+    match tokio::task::spawn(async move { provider.get_inner_provider().lookup_address(address).await }).await {
         Ok(result) => match result {
             Ok(ens) => {
                 debug!(ens_name = ens, "ENS lookup successful");
@@ -724,9 +725,9 @@ async fn isolated_ens_lookup<M: Middleware + 'static>(address: Address, addr_str
 }
 
 #[instrument(name = "db_isolated_avatar_resolve", skip(ens, provider, addr_string), fields(ens_name = ens))]
-async fn isolated_avatar_resolve<M: Middleware + 'static>(ens: String, addr_string: String, provider: M) -> Result<String> {
+async fn isolated_avatar_resolve(ens: String, addr_string: String, provider: JsonRpcCachedProvider) -> Result<String> {
     // Spawn a task to isolate potential panics
-    match tokio::task::spawn(async move { provider.resolve_avatar(&ens).await }).await {
+    match tokio::task::spawn(async move { provider..resolve_avatar(&ens).await }).await {
         Ok(result) => match result {
             Ok(avatar) => {
                 debug!(avatar_url = %avatar, "Avatar resolution successful");

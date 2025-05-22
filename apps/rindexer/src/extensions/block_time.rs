@@ -1,7 +1,7 @@
 use crate::rindexer_lib::typings::networks::{get_arbitrum_provider_cache, get_avalanche_provider_cache, get_ethereum_provider_cache, get_optimism_provider_cache, get_polygon_provider_cache};
+use alloy::{eips::BlockId, providers::Provider};
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
-use ethers::{providers::Middleware, types::BlockId};
 use lazy_static::lazy_static;
 use reqwest::Client;
 use rindexer::provider::JsonRpcCachedProvider;
@@ -27,7 +27,7 @@ lazy_static! {
         map.insert(
             "ethereum",
             ChainConfig {
-                provider: get_ethereum_provider_cache(),
+                provider: get_ethereum_provider_cache().await,
                 scan_api_url: Some("https://api.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("ETHERSCAN_API_KEY").ok(),
             },
@@ -35,7 +35,7 @@ lazy_static! {
         map.insert(
             "arbitrum",
             ChainConfig {
-                provider: get_arbitrum_provider_cache(),
+                provider: get_arbitrum_provider_cache().await,
                 scan_api_url: Some("https://api.arbiscan.io/api".to_string()),
                 scan_api_key: std::env::var("ARBISCAN_API_KEY").ok(),
             },
@@ -43,7 +43,7 @@ lazy_static! {
         map.insert(
             "optimism",
             ChainConfig {
-                provider: get_optimism_provider_cache(),
+                provider: get_optimism_provider_cache().await,
                 scan_api_url: Some("https://api-optimistic.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("OPTIMISTIC_SCAN_API_KEY").ok(),
             },
@@ -51,7 +51,7 @@ lazy_static! {
         map.insert(
             "polygon",
             ChainConfig {
-                provider: get_polygon_provider_cache(),
+                provider: get_polygon_provider_cache().await,
                 scan_api_url: Some("https://api.polygonscan.com/api".to_string()),
                 scan_api_key: std::env::var("POLYGONSCAN_API_KEY").ok(),
             },
@@ -59,7 +59,7 @@ lazy_static! {
         map.insert(
             "avalanche",
             ChainConfig {
-                provider: get_avalanche_provider_cache(),
+                provider: get_avalanche_provider_cache().await,
                 scan_api_url: None,
                 scan_api_key: None,
             },
@@ -148,13 +148,15 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
         let current_block = provider
             .get_block_number()
             .await
-            .context("Failed to get current block number from provider")?;
+            .context("Failed to get current block number from provider")?
+            .to::<u64>();
+
         debug!(
-            current_block = current_block.as_u64(),
+            current_block = current_block,
             "Current block number from provider"
         );
 
-        if block_number <= current_block.as_u64() {
+        if block_number <= current_block {
             let block = inner_provider
                 .get_block(BlockId::Number(block_number.into()))
                 .await
@@ -164,8 +166,8 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                 ))?;
 
             if let Some(block) = block {
-                let timestamp = block.timestamp.as_u64() as i64;
-                debug!(block_timestamp = timestamp, block_hash = ?block.hash, "Block found from provider");
+                let timestamp = block.header.timestamp as i64;
+                debug!(block_timestamp = timestamp, block_hash = ?block.header.hash, "Block found from provider");
                 return DateTime::<Utc>::from_timestamp(timestamp, 0)
                     .map(|dt| dt.naive_utc())
                     .context("Timestamp from provider out of range");
@@ -493,18 +495,23 @@ mod request_tests {
         block_offset: i64, // Positive for future, negative for past
     ) -> Result<()> {
         let current_block = match network {
-            "ethereum" => get_ethereum_provider_cache().get_block_number().await,
-            "arbitrum" => get_arbitrum_provider_cache().get_block_number().await,
-            "optimism" => get_optimism_provider_cache().get_block_number().await,
-            "polygon" => get_polygon_provider_cache().get_block_number().await,
-            "avalanche" => get_avalanche_provider_cache().get_block_number().await,
+            "ethereum" => get_ethereum_provider_cache().await.get_block_number().await,
+            "arbitrum" => get_arbitrum_provider_cache().await.get_block_number().await,
+            "optimism" => get_optimism_provider_cache().await.get_block_number().await,
+            "polygon" => get_polygon_provider_cache().await.get_block_number().await,
+            "avalanche" => {
+                get_avalanche_provider_cache()
+                    .await
+                    .get_block_number()
+                    .await
+            }
             _ => panic!("Unsupported network for testing"),
         }
         .context(format!(
             "Failed to get current block number for network: {}",
             network
         ))?
-        .as_u64();
+        .to::<u64>();
 
         let target_block_number = if block_offset >= 0 {
             current_block.checked_add(block_offset as u64)
@@ -663,18 +670,23 @@ mod request_tests {
         for network in networks {
             println!("Starting intensive test for network: {}", network);
             let current_block = match network {
-                "ethereum" => get_ethereum_provider_cache().get_block_number().await,
-                "arbitrum" => get_arbitrum_provider_cache().get_block_number().await,
-                "optimism" => get_optimism_provider_cache().get_block_number().await,
-                "polygon" => get_polygon_provider_cache().get_block_number().await,
-                "avalanche" => get_avalanche_provider_cache().get_block_number().await,
+                "ethereum" => get_ethereum_provider_cache().await.get_block_number().await,
+                "arbitrum" => get_arbitrum_provider_cache().await.get_block_number().await,
+                "optimism" => get_optimism_provider_cache().await.get_block_number().await,
+                "polygon" => get_polygon_provider_cache().await.get_block_number().await,
+                "avalanche" => {
+                    get_avalanche_provider_cache()
+                        .await
+                        .get_block_number()
+                        .await
+                }
                 _ => panic!("Unsupported network for testing"),
             }
             .context(format!(
                 "Failed to get current block number for network: {}",
                 network
             ))?
-            .as_u64();
+            .to::<u64>();
 
             let mut tasks = JoinSet::new();
             let network_start_time = Instant::now();
@@ -851,8 +863,12 @@ mod api_tests {
     async fn test_api_request_success_ethereum() -> Result<()> {
         let (etherscan_key, _) = ensure_api_keys().await?;
 
-        let current_block = get_ethereum_provider_cache().get_block_number().await?;
-        let future_block = current_block.as_u64() + 1000;
+        let current_block = get_ethereum_provider_cache()
+            .await
+            .get_block_number()
+            .await?
+            .to::<u64>();
+        let future_block = current_block + 1000;
         let api_url = "https://api.etherscan.io/api";
 
         let response = future_scan_api_request(api_url, &etherscan_key, future_block).await?;
@@ -877,8 +893,12 @@ mod api_tests {
     async fn test_api_request_success_arbitrum() -> Result<()> {
         let (_, arbiscan_key) = ensure_api_keys().await?;
 
-        let current_block = get_arbitrum_provider_cache().get_block_number().await?;
-        let future_block = current_block.as_u64() + 1000;
+        let current_block = get_arbitrum_provider_cache()
+            .await
+            .get_block_number()
+            .await?
+            .to::<u64>();
+        let future_block = current_block + 1000;
         let api_url = "https://api.arbiscan.io/api";
 
         let response = future_scan_api_request(api_url, &arbiscan_key, future_block).await?;

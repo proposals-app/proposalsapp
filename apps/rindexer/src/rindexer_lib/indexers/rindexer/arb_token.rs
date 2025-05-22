@@ -57,9 +57,9 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                 // Process results in parallel using futures streams
                 let delegations: Vec<delegation::ActiveModel> = stream::iter(results)
                     .map(|result| async move {
-                        let block_number = result.tx_information.block_number.as_u64();
+                        let block_number = result.tx_information.block_number.to::<u64>();
                         let delegator_addr = result.event_data.delegator;
-                        let delegate_addr = result.event_data.to_delegate;
+                        let delegate_addr = result.event_data.toDelegate;
                         let tx_hash = result.tx_information.transaction_hash;
 
                         let created_at = match estimate_timestamp("arbitrum", block_number).await {
@@ -85,8 +85,8 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                         Some(delegation::ActiveModel {
                             id: NotSet,
-                            delegator: Set(to_checksum(&delegator_addr, None)),
-                            delegate: Set(to_checksum(&delegate_addr, None)),
+                            delegator: Set(delegator_addr.to_string()),
+                            delegate: Set(delegate_addr.to_string()),
                             dao_id: Set(dao_id),
                             block: Set(block_number as i32),
                             timestamp: Set(created_at),
@@ -144,9 +144,9 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
                 // Process results in parallel using futures streams
                 let vps: Vec<voting_power::ActiveModel> = stream::iter(results)
                     .map(|result| async move {
-                        let block_number = result.tx_information.block_number.as_u64();
+                        let block_number = result.tx_information.block_number.to::<u64>();
                         let delegate_addr = result.event_data.delegate;
-                        let new_balance = result.event_data.new_balance;
+                        let new_balance = result.event_data.newBalance;
                         let tx_hash = result.tx_information.transaction_hash;
 
                         let created_at = match estimate_timestamp("arbitrum", block_number).await {
@@ -169,8 +169,8 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
 
                         Some(voting_power::ActiveModel {
                             id: NotSet,
-                            voter: Set(to_checksum(&delegate_addr, None)),
-                            voting_power: Set(new_balance.as_u128() as f64 / (10.0f64.powi(18))),
+                            voter: Set(delegate_addr.to_string()),
+                            voting_power: Set(new_balance.to::<u128>() as f64 / (10.0f64.powi(18))),
                             dao_id: Set(dao_id),
                             block: Set(block_number as i32),
                             timestamp: Set(created_at),
