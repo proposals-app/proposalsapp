@@ -520,7 +520,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 if let Ok(fetched_ens) = ens_result {
                     let mut needs_update = false;
                     let mut updated_ens: Option<String> = None;
-                    let mut updated_avatar: Option<String> = None;
+                    // let mut updated_avatar: Option<String> = None;
 
                     if existing_voter.ens != Some(fetched_ens.clone()) {
                         debug!(
@@ -574,9 +574,9 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                         if let Some(ens) = updated_ens {
                             voter_active_model.ens = Set(Some(ens));
                         }
-                        if let Some(avatar) = updated_avatar {
-                            voter_active_model.avatar = Set(Some(avatar));
-                        }
+                        // if let Some(avatar) = updated_avatar {
+                        //     voter_active_model.avatar = Set(Some(avatar));
+                        // }
                         voters_to_update.push(voter_active_model);
                     }
                 } else if let Err(e) = ens_result {

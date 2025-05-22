@@ -544,7 +544,7 @@ mod request_tests {
 
         // Basic validation: estimated time should not be epoch.
         assert!(
-            estimated_time > NaiveDateTime::UNIX_EPOCH,
+            estimated_time > DateTime::UNIX_EPOCH.naive_utc(),
             "Estimated time should not be epoch"
         );
 
@@ -748,7 +748,7 @@ mod request_tests {
 
                     match result {
                         Ok(estimated_time) => {
-                            assert!(estimated_time > NaiveDateTime::UNIX_EPOCH);
+                            assert!(estimated_time > DateTime::UNIX_EPOCH.naive_utc());
                             println!(
                                 "Network: {}, Task {}: Estimated time for block {}: {:?}, took {:?}",
                                 network, i, target_block_number, estimated_time, task_duration
