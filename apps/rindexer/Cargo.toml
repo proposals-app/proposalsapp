@@ -17,8 +17,6 @@ proposalsapp-db = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
-reqwest-middleware = { workspace = true }
-reqwest-retry = { workspace = true }
 rindexer = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
@@ -33,7 +31,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serial_test = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-tokio-retry = { workspace = true }
 tracing = { workspace = true }
 utils = { workspace = true }
 

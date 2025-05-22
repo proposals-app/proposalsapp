@@ -14,4 +14,3 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
 ] }
 serde = { workspace = true }
-serde_json = { workspace = true }
