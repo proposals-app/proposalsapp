@@ -2,6 +2,7 @@ use crate::rindexer_lib::typings::networks::get_ethereum_provider;
 use alloy::primitives::Address;
 use alloy_ens::ProviderEnsExt;
 use anyhow::{Context, Result};
+use chrono::Utc;
 use once_cell::sync::{Lazy, OnceCell};
 use proposalsapp_db::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
 use rindexer::provider::RindexerProvider;
@@ -486,6 +487,18 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         for address in addresses_chunk {
             if let Some(existing_voter) = existing_voters_map.get(address) {
                 // Voter exists, check and update ENS and Avatar if needed
+
+                // Check if updated_at is older than 24 hours
+                let twenty_four_hours_ago = Utc::now() - Duration::from_secs(24 * 60 * 60);
+                if existing_voter.updated_at > twenty_four_hours_ago.naive_utc() {
+                    // Voter was updated recently, skip ENS lookup
+                    debug!(
+                        address = address,
+                        "Voter updated recently, skipping ENS lookup"
+                    );
+                    continue;
+                }
+
                 let addr_clone = address.clone();
 
                 // Safely convert address string to Address type
@@ -564,6 +577,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                             address: NotSet,
                             ens: NotSet,
                             avatar: NotSet,
+                            updated_at: Set(Utc::now().naive_utc()),
                         };
                         if let Some(ens) = updated_ens {
                             voter_active_model.ens = Set(Some(ens));
@@ -592,6 +606,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                             address: Set(address.clone()),
                             ens: NotSet,
                             avatar: NotSet,
+                            updated_at: Set(Utc::now().naive_utc()),
                         });
                         continue; // Continue to the next address
                     }
@@ -613,6 +628,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                             address: Set(address.clone()),
                             ens: NotSet,
                             avatar: NotSet,
+                            updated_at: Set(Utc::now().naive_utc()),
                         });
                         continue;
                     }
@@ -657,6 +673,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                         address: Set(address.clone()),
                         ens: Set(Some(ens)),
                         avatar: NotSet,
+                        updated_at: Set(Utc::now().naive_utc()),
                     });
                 } else if let Err(e) = ens_result {
                     debug!(address = addr_clone, error = %e, "ENS lookup failed for new voter");
@@ -666,6 +683,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                         address: Set(address.clone()),
                         ens: NotSet,
                         avatar: NotSet,
+                        updated_at: Set(Utc::now().naive_utc()),
                     });
                 }
             }

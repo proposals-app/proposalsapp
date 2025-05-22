@@ -427,6 +427,7 @@ export interface Voter {
   avatar: string | null;
   ens: string | null;
   id: Generated<string>;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface VotingPower {
