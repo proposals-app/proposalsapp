@@ -4,7 +4,7 @@ use crate::extensions::{
     db_extension::{DAO_SLUG_ID_MAP, store_delegations, store_voting_powers},
 };
 
-use super::super::super::typings::rindexer::events::uni_token::{ApprovalEvent, DelegateChangedEvent, DelegateVotesChangedEvent, MinterChangedEvent, TransferEvent, UniEventType, no_extensions};
+use super::super::super::typings::rindexer::events::uni_token::{DelegateChangedEvent, DelegateVotesChangedEvent, UNITokenEventType, no_extensions};
 use alloy::hex::ToHexExt;
 use futures::{StreamExt, stream};
 use proposalsapp_db::models::{delegation, voting_power};
@@ -29,7 +29,7 @@ fn get_dao_id() -> Option<Uuid> {
 }
 
 async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    UniEventType::DelegateChanged(
+    UNITokenEventType::DelegateChanged(
         DelegateChangedEvent::handler(
             |results, context| async move {
                 if results.is_empty() {
@@ -114,7 +114,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
 }
 
 async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    UniEventType::DelegateVotesChanged(
+    UNITokenEventType::DelegateVotesChanged(
         DelegateVotesChangedEvent::handler(
             |results, context| async move {
                 if results.is_empty() {
