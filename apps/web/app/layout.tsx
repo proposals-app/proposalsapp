@@ -63,7 +63,7 @@ export default async function Layout({
       </head>
       <body>
         {isMaintenanceMode && (
-          <div className='fixed top-0 left-0 z-50 w-full bg-red-500 p-2 text-center text-white'>
+          <div className='fixed top-0 left-0 z-[2000] w-full bg-red-500 p-1 text-center text-white'>
             Heads up! We&apos;re currently performing scheduled maintenance. You
             might experience temporary interruptions.
           </div>
