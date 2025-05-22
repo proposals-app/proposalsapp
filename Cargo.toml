@@ -48,7 +48,6 @@ tracing-opentelemetry = "0.28.0"
 tracing-subscriber = "0.3.19"
 pyroscope = "0.5.8"
 pyroscope_pprofrs = "0.2.10"
-ethers = "2.0"
 # rindexer = { path = "../rindexer/core", package = "rindexer" }
 rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp-new", package = "rindexer" }
 tokio-retry = "0.3.0"

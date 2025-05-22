@@ -7,10 +7,7 @@ use crate::{
     },
     rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations::arbitrum_sc_nominations_contract,
 };
-use ethers::{
-    types::U256,
-    utils::{hex::ToHex, to_checksum},
-};
+use alloy::{hex::ToHexExt, primitives::U256};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState};
 use regex::Regex;
 use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error, rindexer_info};
@@ -147,7 +144,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     let quorum = match quorum_result {
                         Ok(r) => r.to::<u128>() as f64 / (10.0f64.powi(18)),
-                        Err(_) => U256::from(0).as_u128() as f64 / (10.0f64.powi(18)),
+                        Err(_) => U256::from(0).to::<u128>() as f64 / (10.0f64.powi(18)),
                     };
 
                     let proposal = proposal::ActiveModel {

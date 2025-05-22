@@ -7,7 +7,7 @@ use crate::{
     },
     rindexer_lib::typings::rindexer::events::arb_token::arb_token_contract,
 };
-use ethers::utils::{hex::ToHex, to_checksum};
+use alloy::hex::ToHexExt;
 use futures::stream::{self, StreamExt};
 use proposalsapp_db::models::{delegation, voting_power};
 use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};

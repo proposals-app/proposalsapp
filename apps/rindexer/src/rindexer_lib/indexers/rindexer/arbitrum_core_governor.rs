@@ -7,12 +7,9 @@ use crate::{
     },
     rindexer_lib::typings::rindexer::events::arbitrum_core_governor::arbitrum_core_governor_contract,
 };
+use alloy::{hex::ToHexExt, primitives::U256};
 use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
-use ethers::{
-    types::{U64, U256},
-    utils::{hex::ToHex, to_checksum},
-};
 use futures::{StreamExt, stream};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use rindexer::{EthereumSqlTypeWrapper, PgType, PostgresClient, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
@@ -139,7 +136,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     let quorum = match quorum_result {
                         Ok(r) => r.to::<u128>() as f64 / (10.0f64.powi(18)),
-                        Err(_) => U256::from(0).as_u128() as f64 / (10.0f64.powi(18)),
+                        Err(_) => U256::from(0).to::<u128>() as f64 / (10.0f64.powi(18)),
                     };
 
                     let total_delegated_vp = match calculate_total_delegated_vp(created_at).await {
