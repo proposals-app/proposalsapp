@@ -1,61 +1,56 @@
 name: rindexer
 project_type: rust
-
-storage:
-  postgres:
-    enabled: true
-
-native_transfers:
-  enabled: false
-
 networks:
   - name: ethereum
     chain_id: 1
     rpc: ${ETHEREUM_NODE_URL}
-    max_block_range: 10000
-
+    max_block_range: "10000"
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
-    max_block_range: 10000
-
+    max_block_range: "10000"
   - name: optimism
     chain_id: 10
     rpc: ${OPTIMISM_NODE_URL}
-    max_block_range: 10000
-
+    max_block_range: "10000"
   - name: polygon
     chain_id: 137
     rpc: ${POLYGON_NODE_URL}
-    max_block_range: 10000
-
+    max_block_range: "10000"
   - name: avalanche
     chain_id: 43114
     rpc: ${AVALANCHE_NODE_URL}
-    max_block_range: 10000
+    max_block_range: "10000"
+
+storage:
+  postgres:
+    enabled: true
+    disable_create_tables: true
+
+native_transfers:
+  enabled: false
 
 contracts:
   - name: ARBToken
-    abi: ./abis/ARBToken.abi.json
     details:
       - network: arbitrum
-        address: "0x912CE59144191C1204E64559FE8253a0e49E6548"
-        start_block: 70398215
-    reorg_safe_distance: true
+        address: 0x912ce59144191c1204e64559fe8253a0e49e6548
+        start_block: "70398215"
+    abi: ./abis/ARBToken.abi.json
     include_events:
       - DelegateVotesChanged
       - DelegateChanged
     index_event_in_order:
       - DelegateVotesChanged
       - DelegateChanged
+    reorg_safe_distance: true
 
   - name: ArbitrumCoreGovernor
-    abi: ./abis/ArbitrumCoreGovernor.abi.json
     details:
       - network: arbitrum
-        address: "0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9"
-        start_block: 70398215
-    reorg_safe_distance: true
+        address: 0xf07ded9dc292157749b6fd268e37df6ea38395b9
+        start_block: "70398215"
+    abi: ./abis/ArbitrumCoreGovernor.abi.json
     include_events:
       - ProposalCreated
       - VoteCast
@@ -78,14 +73,14 @@ contracts:
           then:
             events:
               - ProposalExecuted
+    reorg_safe_distance: true
 
   - name: ArbitrumTreasuryGovernor
-    abi: ./abis/ArbitrumTreasuryGovernor.abi.json
     details:
       - network: arbitrum
-        address: "0x789fC99093B09aD01C34DC7251D0C89ce743e5a4"
-        start_block: 70398215
-    reorg_safe_distance: true
+        address: 0x789fc99093b09ad01c34dc7251d0c89ce743e5a4
+        start_block: "70398215"
+    abi: ./abis/ArbitrumTreasuryGovernor.abi.json
     include_events:
       - ProposalCreated
       - VoteCast
@@ -109,14 +104,14 @@ contracts:
           then:
             events:
               - ProposalExecuted
+    reorg_safe_distance: true
 
   - name: ArbitrumSCNominations
-    abi: ./abis/ArbitrumSCNominations.abi.json
     details:
       - network: arbitrum
-        address: "0x8a1cDA8dee421cD06023470608605934c16A05a0"
-        start_block: 121763102
-    reorg_safe_distance: true
+        address: 0x8a1cda8dee421cd06023470608605934c16a05a0
+        start_block: "121763102"
+    abi: ./abis/ArbitrumSCNominations.abi.json
     include_events:
       - ProposalCreated
       - ProposalExecuted
@@ -129,3 +124,18 @@ contracts:
       then:
         events:
           - ProposalExecuted
+    reorg_safe_distance: true
+
+  - name: Uni
+    details:
+      - network: ethereum
+        address: 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984
+        start_block: "10861674"
+    abi: ./abis/UNIToken.abi.json
+    include_events:
+      - DelegateVotesChanged
+      - DelegateChanged
+    index_event_in_order:
+      - DelegateVotesChanged
+      - DelegateChanged
+    reorg_safe_distance: true
