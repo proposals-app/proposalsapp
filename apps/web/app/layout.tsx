@@ -78,7 +78,7 @@ export default async function Layout({
               <PHProvider>
                 <WalletProvider>
                   {/* Add padding to the main content if the maintenance header is visible */}
-                  <main className={isMaintenanceMode ? 'pt-12' : ''}>
+                  <main className={isMaintenanceMode ? 'pt-8' : ''}>
                     {children}
                   </main>
                   <Toaster />
