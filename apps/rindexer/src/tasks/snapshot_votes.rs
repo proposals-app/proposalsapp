@@ -89,7 +89,7 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
             r#"
             {{
                 votes(
-                    first: 1000,
+                    first: 100,
                     orderBy: "created",
                     orderDirection: asc,
                     where: {{
