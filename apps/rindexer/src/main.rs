@@ -70,7 +70,7 @@ async fn main() -> Result<()> {
     let path = env::current_dir().context("Failed to get current directory")?;
     let manifest_path = path.join("rindexer.yaml");
 
-    start_rindexer(StartDetails {
+    let indexer_settings = StartDetails {
         manifest_path: &manifest_path,
         indexing_details: Some(IndexingDetails {
             registry: register_all_handlers(&manifest_path).await,
@@ -80,9 +80,13 @@ async fn main() -> Result<()> {
             enabled: false,
             override_port: None,
         },
-    })
-    .await
-    .context("Failed to start rindexer")?;
+    };
+
+    println!("Indexer settings: {:?}", indexer_settings);
+
+    start_rindexer(indexer_settings)
+        .await
+        .context("Failed to start rindexer")?;
 
     std::future::pending::<()>().await;
 

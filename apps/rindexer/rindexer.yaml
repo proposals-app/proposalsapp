@@ -4,7 +4,9 @@ project_type: rust
 storage:
   postgres:
     enabled: true
-    disable_create_tables: true
+
+native_transfers:
+  enabled: false
 
 networks:
   - name: ethereum

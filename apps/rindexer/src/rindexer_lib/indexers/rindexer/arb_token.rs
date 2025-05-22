@@ -115,7 +115,8 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
         )
         .await,
     )
-    .register(manifest_path, registry);
+    .register(manifest_path, registry)
+    .await;
 }
 
 #[instrument(
@@ -199,7 +200,8 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
         )
         .await,
     )
-    .register(manifest_path, registry);
+    .register(manifest_path, registry)
+    .await;
 }
 
 #[instrument(name = "arb_token_handlers", skip(manifest_path, registry))]

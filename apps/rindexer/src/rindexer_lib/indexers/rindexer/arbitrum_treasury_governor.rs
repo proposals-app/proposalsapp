@@ -194,7 +194,8 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
         )
         .await,
     )
-    .register(manifest_path, registry);
+    .register(manifest_path, registry)
+    .await;
 }
 
 #[instrument(
@@ -259,7 +260,8 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
         )
         .await,
     )
-    .register(manifest_path, registry);
+    .register(manifest_path, registry)
+    .await;
 }
 
 #[instrument(
@@ -332,7 +334,8 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
         )
         .await,
     )
-    .register(manifest_path, registry);
+    .register(manifest_path, registry)
+    .await;
 }
 
 #[instrument(
@@ -410,7 +413,8 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
         )
         .await,
     )
-    .register(manifest_path, registry);
+    .register(manifest_path, registry)
+    .await;
 }
 
 #[instrument(
