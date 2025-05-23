@@ -3972,10 +3972,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/env@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/env@npm:15.4.0-canary.14"
-  checksum: 10c0/c8db63a0b7972e9b535a5e292da48c059f99348f7bd54b5301b1af6316c78ec04d54ffc6aa9eeb27bc439b900956c7d28a5500bc1eafb290647b249ef53b8a74
+"@next/env@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/env@npm:15.4.0-canary.47"
+  checksum: 10c0/a2b2245b6c321b98400f6416a41a7c8a617bbcdbfacc65ca4752596840e680a8e96ba11116dc3027435e43c4be676b2d1207580b1b318f162a106a6659581e9e
   languageName: node
   linkType: hard
 
@@ -3995,9 +3995,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-arm64@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/swc-darwin-arm64@npm:15.4.0-canary.14"
+"@next/swc-darwin-arm64@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/swc-darwin-arm64@npm:15.4.0-canary.47"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
@@ -4009,9 +4009,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-x64@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/swc-darwin-x64@npm:15.4.0-canary.14"
+"@next/swc-darwin-x64@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/swc-darwin-x64@npm:15.4.0-canary.47"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -4023,9 +4023,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-gnu@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/swc-linux-arm64-gnu@npm:15.4.0-canary.14"
+"@next/swc-linux-arm64-gnu@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/swc-linux-arm64-gnu@npm:15.4.0-canary.47"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
@@ -4037,9 +4037,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-musl@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/swc-linux-arm64-musl@npm:15.4.0-canary.14"
+"@next/swc-linux-arm64-musl@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/swc-linux-arm64-musl@npm:15.4.0-canary.47"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -4051,9 +4051,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-gnu@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/swc-linux-x64-gnu@npm:15.4.0-canary.14"
+"@next/swc-linux-x64-gnu@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/swc-linux-x64-gnu@npm:15.4.0-canary.47"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
@@ -4065,9 +4065,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-musl@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/swc-linux-x64-musl@npm:15.4.0-canary.14"
+"@next/swc-linux-x64-musl@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/swc-linux-x64-musl@npm:15.4.0-canary.47"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
@@ -4079,9 +4079,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-win32-arm64-msvc@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/swc-win32-arm64-msvc@npm:15.4.0-canary.14"
+"@next/swc-win32-arm64-msvc@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/swc-win32-arm64-msvc@npm:15.4.0-canary.47"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
@@ -4093,9 +4093,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-win32-x64-msvc@npm:15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "@next/swc-win32-x64-msvc@npm:15.4.0-canary.14"
+"@next/swc-win32-x64-msvc@npm:15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "@next/swc-win32-x64-msvc@npm:15.4.0-canary.47"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -4721,7 +4721,7 @@ __metadata:
     axios: "npm:^1.9.0"
     dotenv: "npm:^16.5.0"
     express: "npm:^5.1.0"
-    node-cron: "npm:^4.0.6"
+    node-cron: "npm:^4.0.7"
     supertest: "npm:^7.1.1"
     tsx: "npm:^4.19.4"
     typescript: "npm:^5.8.3"
@@ -4821,7 +4821,7 @@ __metadata:
     "@synthetixio/synpress": "npm:^4.1.0"
     "@tailwindcss/postcss": "npm:^4.1.7"
     "@tailwindcss/typography": "npm:^0.5.16"
-    "@tanstack/react-query": "npm:^5.76.1"
+    "@tanstack/react-query": "npm:^5.76.2"
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
@@ -4856,14 +4856,14 @@ __metadata:
     lucide-react: "npm:^0.511.0"
     mdast-util-from-markdown: "npm:^2.0.2"
     mdast-util-to-hast: "npm:^13.2.0"
-    next: "npm:^15.4.0-canary.14"
+    next: "npm:^15.4.0-canary.47"
     next-themes: "npm:^0.4.6"
     npm-run-all: "npm:^4.1.5"
     nuqs: "npm:^2.4.3"
     ollama-ai-provider: "npm:^1.2.0"
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.3"
-    posthog-js: "npm:^1.245.1"
+    posthog-js: "npm:^1.246.0"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.8"
     prettier-plugin-merge: "npm:^0.7.4"
@@ -4893,7 +4893,7 @@ __metadata:
     viem: "npm:^2.30.0"
     wagmi: "npm:^2.15.4"
     web-push: "npm:^3.6.7"
-    zod: "npm:^3.25.20"
+    zod: "npm:^3.25.23"
   languageName: unknown
   linkType: soft
 
@@ -6866,21 +6866,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.76.0":
-  version: 5.76.0
-  resolution: "@tanstack/query-core@npm:5.76.0"
-  checksum: 10c0/970cc783838bf7e30acbad476c72e4bb3b302c15525152cfcf5ffef8b185537e780b608e3f77793cb355b49cc98a9de597d978d400df44dbd550cba78742d67c
+"@tanstack/query-core@npm:5.76.2":
+  version: 5.76.2
+  resolution: "@tanstack/query-core@npm:5.76.2"
+  checksum: 10c0/04c347799f7d0e11008dc4c2197e27321ea9b582ae40b2b6e869bfda565d82385dcb37b257199ca5562bc7158c0cac953b94d7b04930cbb404676dad2adbfc03
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.76.1":
-  version: 5.76.1
-  resolution: "@tanstack/react-query@npm:5.76.1"
+"@tanstack/react-query@npm:^5.76.2":
+  version: 5.76.2
+  resolution: "@tanstack/react-query@npm:5.76.2"
   dependencies:
-    "@tanstack/query-core": "npm:5.76.0"
+    "@tanstack/query-core": "npm:5.76.2"
   peerDependencies:
     react: ^18 || ^19
-  checksum: 10c0/35757f185ccd577e0763b18c2e29db621b40fb85419507d43a2a136fd47d8a4410f219fa9697142f7199577cc42c23dd117021cc8c072545eca133d5114148d9
+  checksum: 10c0/5286378658dd3a8377013321a9f16d95a063d63f205caa44583d6030e16cc64bfe2698d66037dc4dc029ba036a6009524cb94d996c8b807869e0afbe2bafe452
   languageName: node
   linkType: hard
 
@@ -18622,20 +18622,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:^15.4.0-canary.14":
-  version: 15.4.0-canary.14
-  resolution: "next@npm:15.4.0-canary.14"
+"next@npm:^15.4.0-canary.47":
+  version: 15.4.0-canary.47
+  resolution: "next@npm:15.4.0-canary.47"
   dependencies:
-    "@next/env": "npm:15.4.0-canary.14"
-    "@next/swc-darwin-arm64": "npm:15.4.0-canary.14"
-    "@next/swc-darwin-x64": "npm:15.4.0-canary.14"
-    "@next/swc-linux-arm64-gnu": "npm:15.4.0-canary.14"
-    "@next/swc-linux-arm64-musl": "npm:15.4.0-canary.14"
-    "@next/swc-linux-x64-gnu": "npm:15.4.0-canary.14"
-    "@next/swc-linux-x64-musl": "npm:15.4.0-canary.14"
-    "@next/swc-win32-arm64-msvc": "npm:15.4.0-canary.14"
-    "@next/swc-win32-x64-msvc": "npm:15.4.0-canary.14"
-    "@swc/counter": "npm:0.1.3"
+    "@next/env": "npm:15.4.0-canary.47"
+    "@next/swc-darwin-arm64": "npm:15.4.0-canary.47"
+    "@next/swc-darwin-x64": "npm:15.4.0-canary.47"
+    "@next/swc-linux-arm64-gnu": "npm:15.4.0-canary.47"
+    "@next/swc-linux-arm64-musl": "npm:15.4.0-canary.47"
+    "@next/swc-linux-x64-gnu": "npm:15.4.0-canary.47"
+    "@next/swc-linux-x64-musl": "npm:15.4.0-canary.47"
+    "@next/swc-win32-arm64-msvc": "npm:15.4.0-canary.47"
+    "@next/swc-win32-x64-msvc": "npm:15.4.0-canary.47"
     "@swc/helpers": "npm:0.5.15"
     caniuse-lite: "npm:^1.0.30001579"
     postcss: "npm:8.4.31"
@@ -18678,7 +18677,7 @@ __metadata:
       optional: true
   bin:
     next: dist/bin/next
-  checksum: 10c0/49838b1dd6d2c93edb6b46831f360f75dc5fa098afd6c203d84b488e0be630ee4e26c20cdaf5d085248fe989ae03e64578f2e687d3227392f8b6194007c95c47
+  checksum: 10c0/e6f8ec37b12f6d77efd13e6298502b291ce06d03cb022aba59080694bcd5fe3ecba26194603e57d3428910d5130ef530f511f2389688ce20883dca22885187f9
   languageName: node
   linkType: hard
 
@@ -18708,10 +18707,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-cron@npm:^4.0.6":
-  version: 4.0.6
-  resolution: "node-cron@npm:4.0.6"
-  checksum: 10c0/16482aa79deaf210a8c9efd33c0ff58071b6bf5187ffd0b2dcbdeee2ff823e8ad07d990259244828573f11f89c71e8faea40459c3b62219c5f91eb0a369ddeb7
+"node-cron@npm:^4.0.7":
+  version: 4.0.7
+  resolution: "node-cron@npm:4.0.7"
+  checksum: 10c0/fceafcda2da4e1c8958c89fec8cd5e6416cf0bfdebb7c9c91c3f6f2df7720b403eaa14f3ab39e311539caad7bd353dda91f3b825934e4f727a3d3f263bbc7965
   languageName: node
   linkType: hard
 
@@ -20350,9 +20349,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.245.1":
-  version: 1.245.1
-  resolution: "posthog-js@npm:1.245.1"
+"posthog-js@npm:^1.246.0":
+  version: 1.246.0
+  resolution: "posthog-js@npm:1.246.0"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -20366,7 +20365,7 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/d0596ec460a192137d26182380d51b9cb4cbd1b1973cee3f2e94565c6b3d9703cfc388221a36b2a51d89c29650adf375bbf56de6cf534667cdb3474c6d0e405d
+  checksum: 10c0/239ef01bc0b95b05ccf0da04422b28502dc45278634269f7d23553122a351cf34cca73df7c8592fa5610971929f992ddb9a8217e44b1700c82e38b5ec20bbda6
   languageName: node
   linkType: hard
 
@@ -25932,10 +25931,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25.20":
-  version: 3.25.20
-  resolution: "zod@npm:3.25.20"
-  checksum: 10c0/f3b3e8875e1e02ca25bbfd45332aa1010f1b252b60a619c94c15bd6de637f841d344a3975d6950b2fbee68db4160ddb534cb9571c517fac17983871739085278
+"zod@npm:^3.25.23":
+  version: 3.25.23
+  resolution: "zod@npm:3.25.23"
+  checksum: 10c0/c0a9d1b215ead64fdd1f3be47bc7376be6016472ae5bd1ef56d0a579d544b785b5e266dbd30947172e5b92873b7a8bed123625eeb00aea4e5d7526d86a5a31f6
   languageName: node
   linkType: hard
 

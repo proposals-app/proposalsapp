@@ -2,10 +2,11 @@ ARG APP_NAME=mapper
 
 # Stage 1: Planner
 FROM rust:slim-bookworm AS planner
+ARG APP_NAME
 WORKDIR /app
 RUN cargo install cargo-chef
 COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
+RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 2: Cacher
 FROM rust:slim-bookworm AS cacher
@@ -13,7 +14,6 @@ WORKDIR /app
 ARG APP_NAME
 
 RUN cargo install cargo-chef
-COPY --from=planner /app/recipe.json recipe.json
 
 # Install only essential build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -23,7 +23,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cargo chef cook --release --recipe-path recipe.json
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 3: Builder
 FROM rust:slim-bookworm AS builder
