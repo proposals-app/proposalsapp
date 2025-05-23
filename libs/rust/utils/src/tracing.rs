@@ -13,9 +13,9 @@ use opentelemetry_sdk::{
 };
 use pyroscope::{PyroscopeAgent, pyroscope::PyroscopeAgentRunning};
 use pyroscope_pprofrs::{PprofConfig, pprof_backend};
-use tracing::{Level, info};
+use tracing::{info, level_filters::LevelFilter};
 use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{filter::Targets, layer::SubscriberExt, util::SubscriberInitExt};
 
 pub fn get_meter() -> opentelemetry::metrics::Meter {
     global::meter("proposals.app")
@@ -84,9 +84,12 @@ fn init_otel() -> OtelGuard {
     let tracer = tracer_provider.tracer("tracing-otel-subscriber");
 
     tracing_subscriber::registry()
-        .with(tracing_subscriber::filter::LevelFilter::from_level(
-            Level::DEBUG,
-        ))
+        .with(
+            Targets::new()
+                .with_target("hyper_util", LevelFilter::OFF)
+                .with_target("alloy_rpc_client", LevelFilter::OFF)
+                .with_default(LevelFilter::DEBUG),
+        )
         .with(tracing_subscriber::fmt::layer())
         .with(MetricsLayer::new(meter_provider.clone()))
         .with(OpenTelemetryLayer::new(tracer))
