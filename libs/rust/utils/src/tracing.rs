@@ -88,6 +88,11 @@ fn init_otel() -> OtelGuard {
             Targets::new()
                 .with_target("hyper_util", LevelFilter::OFF)
                 .with_target("alloy_rpc_client", LevelFilter::OFF)
+                .with_target("opentelemetry_sdk", LevelFilter::OFF)
+                .with_target("Pyroscope", LevelFilter::OFF)
+                .with_target("pprof2", LevelFilter::OFF)
+                .with_target("reqwest", LevelFilter::OFF)
+                .with_target("alloy_transport_http", LevelFilter::OFF)
                 .with_default(LevelFilter::DEBUG),
         )
         .with(tracing_subscriber::fmt::layer())
