@@ -3972,10 +3972,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/env@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/env@npm:15.4.0-canary.47"
-  checksum: 10c0/a2b2245b6c321b98400f6416a41a7c8a617bbcdbfacc65ca4752596840e680a8e96ba11116dc3027435e43c4be676b2d1207580b1b318f162a106a6659581e9e
+"@next/env@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/env@npm:15.4.0-canary.50"
+  checksum: 10c0/037509544ccd2b4d52ca061abfa7aaf6e259836a2399e3a603995e3315908c8f352169253816ad55283a861c6d2ea091984eec4cf23e9b1255b96aff1db53594
   languageName: node
   linkType: hard
 
@@ -3995,9 +3995,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-arm64@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/swc-darwin-arm64@npm:15.4.0-canary.47"
+"@next/swc-darwin-arm64@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/swc-darwin-arm64@npm:15.4.0-canary.50"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
@@ -4009,9 +4009,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-x64@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/swc-darwin-x64@npm:15.4.0-canary.47"
+"@next/swc-darwin-x64@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/swc-darwin-x64@npm:15.4.0-canary.50"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
@@ -4023,9 +4023,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-gnu@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/swc-linux-arm64-gnu@npm:15.4.0-canary.47"
+"@next/swc-linux-arm64-gnu@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/swc-linux-arm64-gnu@npm:15.4.0-canary.50"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
@@ -4037,9 +4037,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-musl@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/swc-linux-arm64-musl@npm:15.4.0-canary.47"
+"@next/swc-linux-arm64-musl@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/swc-linux-arm64-musl@npm:15.4.0-canary.50"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -4051,9 +4051,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-gnu@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/swc-linux-x64-gnu@npm:15.4.0-canary.47"
+"@next/swc-linux-x64-gnu@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/swc-linux-x64-gnu@npm:15.4.0-canary.50"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
@@ -4065,9 +4065,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-musl@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/swc-linux-x64-musl@npm:15.4.0-canary.47"
+"@next/swc-linux-x64-musl@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/swc-linux-x64-musl@npm:15.4.0-canary.50"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
@@ -4079,9 +4079,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-win32-arm64-msvc@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/swc-win32-arm64-msvc@npm:15.4.0-canary.47"
+"@next/swc-win32-arm64-msvc@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/swc-win32-arm64-msvc@npm:15.4.0-canary.50"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
@@ -4093,9 +4093,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-win32-x64-msvc@npm:15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "@next/swc-win32-x64-msvc@npm:15.4.0-canary.47"
+"@next/swc-win32-x64-msvc@npm:15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "@next/swc-win32-x64-msvc@npm:15.4.0-canary.50"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -4111,6 +4111,13 @@ __metadata:
   version: 0.6.0
   resolution: "@noble/ciphers@npm:0.6.0"
   checksum: 10c0/840900243306dbf4caad942d518dc215bbe83e4daf6385d9294e76ea39b0834ba21591271cf2dd5cc5e64f96f98cdb967065b75e804b0b338b10ed50415ea64e
+  languageName: node
+  linkType: hard
+
+"@noble/ciphers@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "@noble/ciphers@npm:1.3.0"
+  checksum: 10c0/3ba6da645ce45e2f35e3b2e5c87ceba86b21dfa62b9466ede9edfb397f8116dae284f06652c0cd81d99445a2262b606632e868103d54ecc99fd946ae1af8cd37
   languageName: node
   linkType: hard
 
@@ -4168,6 +4175,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@noble/curves@npm:1.9.1, @noble/curves@npm:~1.9.0":
+  version: 1.9.1
+  resolution: "@noble/curves@npm:1.9.1"
+  dependencies:
+    "@noble/hashes": "npm:1.8.0"
+  checksum: 10c0/39c84dbfecdca80cfde2ecea4b06ef2ec1255a4df40158d22491d1400057a283f57b2b26c8b1331006e6e061db791f31d47764961c239437032e2f45e8888c1e
+  languageName: node
+  linkType: hard
+
 "@noble/hashes@npm:1.3.2":
   version: 1.3.2
   resolution: "@noble/hashes@npm:1.3.2"
@@ -4210,7 +4226,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:^1.1.5":
+"@noble/hashes@npm:1.8.0, @noble/hashes@npm:^1.1.5, @noble/hashes@npm:~1.8.0":
   version: 1.8.0
   resolution: "@noble/hashes@npm:1.8.0"
   checksum: 10c0/06a0b52c81a6fa7f04d67762e08b2c476a00285858150caeaaff4037356dd5e119f45b2a530f638b77a5eeca013168ec1b655db41bae3236cb2e9d511484fc77
@@ -4856,7 +4872,7 @@ __metadata:
     lucide-react: "npm:^0.511.0"
     mdast-util-from-markdown: "npm:^2.0.2"
     mdast-util-to-hast: "npm:^13.2.0"
-    next: "npm:^15.4.0-canary.47"
+    next: "npm:^15.4.0-canary.50"
     next-themes: "npm:^0.4.6"
     npm-run-all: "npm:^4.1.5"
     nuqs: "npm:^2.4.3"
@@ -4890,10 +4906,10 @@ __metadata:
     typescript: "npm:^5.8.3"
     unified: "npm:^11.0.5"
     uuid: "npm:^11.1.0"
-    viem: "npm:^2.30.0"
+    viem: "npm:^2.30.1"
     wagmi: "npm:^2.15.4"
     web-push: "npm:^3.6.7"
-    zod: "npm:^3.25.23"
+    zod: "npm:^3.25.28"
   languageName: unknown
   linkType: soft
 
@@ -5954,6 +5970,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@scure/base@npm:~1.2.5":
+  version: 1.2.5
+  resolution: "@scure/base@npm:1.2.5"
+  checksum: 10c0/078928dbcdd21a037b273b81b8b0bd93af8a325e2ffd535b7ccaadd48ee3c15bab600ec2920a209fca0910abc792cca9b01d3336b472405c407440e6c0aa8bd6
+  languageName: node
+  linkType: hard
+
 "@scure/bip32@npm:1.3.2":
   version: 1.3.2
   resolution: "@scure/bip32@npm:1.3.2"
@@ -5987,6 +6010,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@scure/bip32@npm:1.7.0":
+  version: 1.7.0
+  resolution: "@scure/bip32@npm:1.7.0"
+  dependencies:
+    "@noble/curves": "npm:~1.9.0"
+    "@noble/hashes": "npm:~1.8.0"
+    "@scure/base": "npm:~1.2.5"
+  checksum: 10c0/e3d4c1f207df16abcd79babcdb74d36f89bdafc90bf02218a5140cc5cba25821d80d42957c6705f35210cc5769714ea9501d4ae34732cdd1c26c9ff182a219f7
+  languageName: node
+  linkType: hard
+
 "@scure/bip39@npm:1.2.1":
   version: 1.2.1
   resolution: "@scure/bip39@npm:1.2.1"
@@ -6014,6 +6048,16 @@ __metadata:
     "@noble/hashes": "npm:~1.7.1"
     "@scure/base": "npm:~1.2.4"
   checksum: 10c0/0b398b8335b624c16dfb0d81b0e79f80f098bb98e327f1d68ace56636e0c56cc09a240ed3ba9c1187573758242ade7000260d65c15d3a6bcd95ac9cb284b450a
+  languageName: node
+  linkType: hard
+
+"@scure/bip39@npm:1.6.0":
+  version: 1.6.0
+  resolution: "@scure/bip39@npm:1.6.0"
+  dependencies:
+    "@noble/hashes": "npm:~1.8.0"
+    "@scure/base": "npm:~1.2.5"
+  checksum: 10c0/73a54b5566a50a3f8348a5cfd74d2092efeefc485efbed83d7a7374ffd9a75defddf446e8e5ea0385e4adb49a94b8ae83c5bad3e16333af400e932f7da3aaff8
   languageName: node
   linkType: hard
 
@@ -18622,19 +18666,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:^15.4.0-canary.47":
-  version: 15.4.0-canary.47
-  resolution: "next@npm:15.4.0-canary.47"
+"next@npm:^15.4.0-canary.50":
+  version: 15.4.0-canary.50
+  resolution: "next@npm:15.4.0-canary.50"
   dependencies:
-    "@next/env": "npm:15.4.0-canary.47"
-    "@next/swc-darwin-arm64": "npm:15.4.0-canary.47"
-    "@next/swc-darwin-x64": "npm:15.4.0-canary.47"
-    "@next/swc-linux-arm64-gnu": "npm:15.4.0-canary.47"
-    "@next/swc-linux-arm64-musl": "npm:15.4.0-canary.47"
-    "@next/swc-linux-x64-gnu": "npm:15.4.0-canary.47"
-    "@next/swc-linux-x64-musl": "npm:15.4.0-canary.47"
-    "@next/swc-win32-arm64-msvc": "npm:15.4.0-canary.47"
-    "@next/swc-win32-x64-msvc": "npm:15.4.0-canary.47"
+    "@next/env": "npm:15.4.0-canary.50"
+    "@next/swc-darwin-arm64": "npm:15.4.0-canary.50"
+    "@next/swc-darwin-x64": "npm:15.4.0-canary.50"
+    "@next/swc-linux-arm64-gnu": "npm:15.4.0-canary.50"
+    "@next/swc-linux-arm64-musl": "npm:15.4.0-canary.50"
+    "@next/swc-linux-x64-gnu": "npm:15.4.0-canary.50"
+    "@next/swc-linux-x64-musl": "npm:15.4.0-canary.50"
+    "@next/swc-win32-arm64-msvc": "npm:15.4.0-canary.50"
+    "@next/swc-win32-x64-msvc": "npm:15.4.0-canary.50"
     "@swc/helpers": "npm:0.5.15"
     caniuse-lite: "npm:^1.0.30001579"
     postcss: "npm:8.4.31"
@@ -18677,7 +18721,7 @@ __metadata:
       optional: true
   bin:
     next: dist/bin/next
-  checksum: 10c0/e6f8ec37b12f6d77efd13e6298502b291ce06d03cb022aba59080694bcd5fe3ecba26194603e57d3428910d5130ef530f511f2389688ce20883dca22885187f9
+  checksum: 10c0/2a1cd8d681a3c66ab854e37b4a02a8a5f1790e67d446de331381e00c5162b0826c5fcc2b16d9d6a3937d6645b1dee345031443dc2661a7aac71dee9263f3988f
   languageName: node
   linkType: hard
 
@@ -19419,6 +19463,27 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/02a7ea9795eaac0a7a672e983094f62ae6f19b7d0c786e6d7ef4584683faf535b5b133e42452dd3abb77115382e16b2cb5c0f629d5a0f2b80832c47756e0ecd1
+  languageName: node
+  linkType: hard
+
+"ox@npm:0.7.1":
+  version: 0.7.1
+  resolution: "ox@npm:0.7.1"
+  dependencies:
+    "@adraffy/ens-normalize": "npm:^1.10.1"
+    "@noble/ciphers": "npm:^1.3.0"
+    "@noble/curves": "npm:^1.6.0"
+    "@noble/hashes": "npm:^1.5.0"
+    "@scure/bip32": "npm:^1.5.0"
+    "@scure/bip39": "npm:^1.4.0"
+    abitype: "npm:^1.0.6"
+    eventemitter3: "npm:5.0.1"
+  peerDependencies:
+    typescript: ">=5.4.0"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: 10c0/15370d76f7e5fe1b06c5b9986bc709a8c433e4242660900b3d1adb2a56c8f762a2010a9166bdb95bdf531806cde7891911456c7ec8ba135fc232a5d5037ac673
   languageName: node
   linkType: hard
 
@@ -24933,24 +24998,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:^2.30.0":
-  version: 2.30.0
-  resolution: "viem@npm:2.30.0"
+"viem@npm:^2.30.1":
+  version: 2.30.1
+  resolution: "viem@npm:2.30.1"
   dependencies:
-    "@noble/curves": "npm:1.8.2"
-    "@noble/hashes": "npm:1.7.2"
-    "@scure/bip32": "npm:1.6.2"
-    "@scure/bip39": "npm:1.5.4"
+    "@noble/curves": "npm:1.9.1"
+    "@noble/hashes": "npm:1.8.0"
+    "@scure/bip32": "npm:1.7.0"
+    "@scure/bip39": "npm:1.6.0"
     abitype: "npm:1.0.8"
     isows: "npm:1.0.7"
-    ox: "npm:0.6.9"
-    ws: "npm:8.18.1"
+    ox: "npm:0.7.1"
+    ws: "npm:8.18.2"
   peerDependencies:
     typescript: ">=5.0.4"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/28b87b39734674b2c03a01b98b9493275483aabeec52e17d6f83304c4efc393af9a824ead8c8861735547692ee7539322e1d320b7bfffa4d07fabff7521b123a
+  checksum: 10c0/8fddf593294d8a0c484fad258602551b8f6fd81b79e26ac17763a68302ec55d43e21a2dd5da99e8d11fc176feb1c2b52ec252003b30a48ebc9dbbdce8806783c
   languageName: node
   linkType: hard
 
@@ -25706,6 +25771,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ws@npm:8.18.2":
+  version: 8.18.2
+  resolution: "ws@npm:8.18.2"
+  peerDependencies:
+    bufferutil: ^4.0.1
+    utf-8-validate: ">=5.0.2"
+  peerDependenciesMeta:
+    bufferutil:
+      optional: true
+    utf-8-validate:
+      optional: true
+  checksum: 10c0/4b50f67931b8c6943c893f59c524f0e4905bbd183016cfb0f2b8653aa7f28dad4e456b9d99d285bbb67cca4fedd9ce90dfdfaa82b898a11414ebd66ee99141e4
+  languageName: node
+  linkType: hard
+
 "ws@npm:^7.5.1":
   version: 7.5.10
   resolution: "ws@npm:7.5.10"
@@ -25931,10 +26011,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25.23":
-  version: 3.25.23
-  resolution: "zod@npm:3.25.23"
-  checksum: 10c0/c0a9d1b215ead64fdd1f3be47bc7376be6016472ae5bd1ef56d0a579d544b785b5e266dbd30947172e5b92873b7a8bed123625eeb00aea4e5d7526d86a5a31f6
+"zod@npm:^3.25.28":
+  version: 3.25.28
+  resolution: "zod@npm:3.25.28"
+  checksum: 10c0/557fb621813d128f8090c43de65f9e8661ce9bd8bd29d7adc6b38b0a79e14729a8926e28a2e6eee2fa0ec0ea390cc549363f50235e8f45d2e4771906d1f87b20
   languageName: node
   linkType: hard
 
