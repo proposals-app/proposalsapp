@@ -1,4 +1,14 @@
-export async function GET() {
+export async function GET(request: Request) {
+  const origin = request.headers.get('origin');
+  const allowedOrigins = [
+    'https://proposalapp-test.discourse.group',
+    'https://discourse.proposal.vote',
+  ];
+
+  const corsOrigin = allowedOrigins.includes(origin || '')
+    ? origin!
+    : allowedOrigins[0];
+
   return new Response(
     JSON.stringify({
       value: `VP: ${Math.floor(Math.random() * 1001)}`,
@@ -29,8 +39,7 @@ export async function GET() {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin':
-          'https://proposalapp-test.discourse.group, https://discourse.proposal.vote',
+        'Access-Control-Allow-Origin': corsOrigin,
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers':
           'Content-Type, Discourse-Logged-In, Discourse-Present',
@@ -39,12 +48,21 @@ export async function GET() {
   );
 }
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get('origin');
+  const allowedOrigins = [
+    'https://proposalapp-test.discourse.group',
+    'https://discourse.proposal.vote',
+  ];
+
+  const corsOrigin = allowedOrigins.includes(origin || '')
+    ? origin!
+    : allowedOrigins[0];
+
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin':
-        'https://proposalapp-test.discourse.group, https://discourse.proposal.vote',
+      'Access-Control-Allow-Origin': corsOrigin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers':
         'Content-Type, Discourse-Logged-In, Discourse-Present',
