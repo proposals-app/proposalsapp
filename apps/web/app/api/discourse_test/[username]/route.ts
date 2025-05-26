@@ -1,4 +1,6 @@
-export async function GET(request: Request) {
+import { NextRequest } from 'next/server';
+
+export async function GET(request: NextRequest) {
   const origin = request.headers.get('origin');
   const allowedOrigins = [
     'https://proposalapp-test.discourse.group',
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
   );
 }
 
-export function OPTIONS(request: Request) {
+export function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
   const allowedOrigins = [
     'https://proposalapp-test.discourse.group',
