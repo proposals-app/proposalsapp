@@ -7,6 +7,9 @@ import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 
 export async function NavBar() {
+  const DAO_PICTURE_PATH = 'assets/project-logos/arbitrum';
+  const DAO_NAME = 'Arbitrum';
+
   const cookieStore = await cookies();
 
   const theme =
@@ -22,15 +25,15 @@ export async function NavBar() {
           className='flex h-10 w-10 items-center justify-center'
         >
           <Image
-            src={`/assets/logo.svg`}
-            alt={'proposals.app'}
+            src={`/${DAO_PICTURE_PATH}.svg`}
+            alt={DAO_NAME}
             width={32}
             height={32}
             className='dark:hidden'
           />
           <Image
-            src={`/assets/logo_dark.svg`}
-            alt={'proposals.app'}
+            src={`/${DAO_PICTURE_PATH}_dark.svg`}
+            alt={DAO_NAME}
             width={32}
             height={32}
             className='hidden dark:block'
@@ -71,15 +74,15 @@ export async function NavBar() {
         <div className='flex flex-col items-center justify-center gap-8'>
           <Link href={`/`} prefetch className='mb-8 h-12 w-12'>
             <Image
-              src={`/assets/logo.svg`}
-              alt={'proposals.app'}
+              src={`/${DAO_PICTURE_PATH}.svg`}
+              alt={DAO_NAME}
               width={64}
               height={64}
               className='dark:hidden'
             />
             <Image
-              src={`/assets/logo_dark.svg`}
-              alt={'proposals.app'}
+              src={`/${DAO_PICTURE_PATH}_dark.svg`}
+              alt={DAO_NAME}
               width={64}
               height={64}
               className='hidden dark:block'
@@ -108,14 +111,14 @@ export async function NavBar() {
           </Suspense>
 
           <Image
-            src={`/assets/logo.svg`}
+            src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo.svg`}
             alt={'proposals.app'}
             width={48}
             height={48}
             className='dark:hidden'
           />
           <Image
-            src={`/assets/logo_dark.svg`}
+            src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo_dark.svg`}
             alt={'proposals.app'}
             width={48}
             height={48}

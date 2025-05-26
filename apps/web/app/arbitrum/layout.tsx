@@ -1,7 +1,7 @@
 import { ReactNode, Suspense } from 'react';
-import { NavBar } from '../[daoSlug]/components/nav-bar';
 import Banner from '../components/banner';
 import SuspendedThemeProvider from '../components/theme-provider';
+import { NavBar } from './components/nav-bar';
 
 export default async function ArbitrumLayout({
   children,

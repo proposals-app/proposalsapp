@@ -103,15 +103,15 @@ export function UniswapSummaryHeader({
         {/* Header with profile picture */}
         <div className='p-6'>
           <div className='flex flex-row items-center space-x-4'>
-            <div className='relative flex h-12 w-12 items-center justify-center rounded-full bg-white p-4 dark:bg-neutral-800'>
+            <div className='relative flex h-12 w-12 items-center justify-center rounded-full p-4'>
               <Image
-                src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
+                src={`/${DAO_PICTURE_PATH}.svg`}
                 alt='Uniswap'
                 fill={true}
                 className='dark:hidden'
               />
               <Image
-                src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}_dark.svg`}
+                src={`/${DAO_PICTURE_PATH}_dark.svg`}
                 alt='Uniswap'
                 fill={true}
                 className='hidden dark:block'
@@ -123,7 +123,7 @@ export function UniswapSummaryHeader({
                 Uniswap DAO
               </h1>
               <p className='text-xm mt-1.5 text-neutral-500 dark:text-neutral-400'>
-                Decentralized Exchange & Protocol Governance
+                Governance discussions and proposals
               </p>
             </div>
           </div>
@@ -160,15 +160,15 @@ export function UniswapSummaryHeader({
           {/* Profile picture, name and description (spans col 1-3, rows 1-2) */}
           <div className='col-span-3 row-span-2 p-6'>
             <div className='flex flex-row items-center space-x-8'>
-              <div className='relative flex h-16 w-16 items-center justify-center rounded-full border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-800'>
+              <div className='relative flex h-16 w-16 items-center justify-center rounded-full p-4'>
                 <Image
-                  src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
+                  src={`/${DAO_PICTURE_PATH}.svg`}
                   alt='Uniswap'
                   fill={true}
                   className='dark:hidden'
                 />
                 <Image
-                  src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}_dark.svg`}
+                  src={`/${DAO_PICTURE_PATH}_dark.svg`}
                   alt='Uniswap'
                   fill={true}
                   className='hidden dark:block'
@@ -180,7 +180,7 @@ export function UniswapSummaryHeader({
                   Uniswap DAO
                 </h1>
                 <p className='mt-1.5 text-sm text-neutral-500 dark:text-neutral-400'>
-                  Decentralized Exchange & Protocol Governance
+                  Governance discussions and proposals
                 </p>
               </div>
             </div>
