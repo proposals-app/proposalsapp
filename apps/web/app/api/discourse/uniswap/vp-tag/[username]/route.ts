@@ -1,15 +1,6 @@
 import { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [
-    'https://proposalapp-test.discourse.group',
-    'https://discourse.proposal.vote',
-  ];
-
-  // More flexible CORS origin handling
-  const corsOrigin = allowedOrigins.includes(origin || '') ? origin! : '*';
-
   try {
     // Get the timestamp parameter from the URL (Unix timestamp in seconds)
     const { searchParams } = new URL(request.url);
@@ -33,10 +24,9 @@ export async function GET(request: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': corsOrigin,
+          'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers':
-            'Content-Type, Discourse-Logged-In, Discourse-Present',
+          'Access-Control-Allow-Headers': '*',
         },
       }
     );
@@ -49,32 +39,21 @@ export async function GET(request: NextRequest) {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': corsOrigin,
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers':
-          'Content-Type, Discourse-Logged-In, Discourse-Present',
+        'Access-Control-Allow-Headers': '*',
       },
     });
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [
-    'https://proposalapp-test.discourse.group',
-    'https://discourse.proposal.vote',
-  ];
-
-  // More flexible CORS origin handling
-  const corsOrigin = allowedOrigins.includes(origin || '') ? origin! : '*';
-
   return new Response(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers':
-        'Content-Type, Discourse-Logged-In, Discourse-Present',
+      'Access-Control-Allow-Headers': '*',
     },
   });
 }
