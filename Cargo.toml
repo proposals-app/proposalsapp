@@ -10,8 +10,8 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-alloy = { version = "1.0.6", features = ["full"] }
-alloy-ens = { version = "1.0.6", features = ["contract","provider"] }
+alloy = { version = "1.0.7", features = ["full"] }
+alloy-ens = { version = "1.0.7", features = ["contract","provider"] }
 anyhow = "1.0.98"
 async-trait = "0.1.88"
 axum = "0.7.9"
@@ -42,7 +42,7 @@ sea-orm = { version = "1.1.11", default-features = false }
 serde = "1.0.219"
 serde_json = "1.0.140"
 thiserror = "2.0.12"
-tokio = "1.45.0"
+tokio = "1.45.1"
 tracing = "0.1.41"
 tracing-opentelemetry = "0.28.0"
 tracing-subscriber = "0.3.19"

@@ -34,7 +34,7 @@ async function ProfilePage() {
               <h1 className='mb-2 text-3xl font-bold text-neutral-800 dark:text-neutral-100'>
                 Welcome back,
               </h1>
-              <p className='text-primary max-w-full truncate px-2 text-lg font-medium text-neutral-600 dark:text-neutral-400'>
+              <p className='max-w-full truncate px-2 text-lg font-medium text-neutral-600 dark:text-neutral-400'>
                 {session.user.email}
               </p>
             </div>

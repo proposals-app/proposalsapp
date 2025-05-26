@@ -4716,7 +4716,7 @@ __metadata:
     dotenv: "npm:^16.5.0"
     kysely: "npm:0.28.2"
     kysely-codegen: "npm:0.18.5"
-    kysely-ctl: "npm:^0.13.0"
+    kysely-ctl: "npm:^0.13.1"
     pg: "npm:8.16.0"
     typescript: "npm:^5.8.3"
   languageName: unknown
@@ -4837,7 +4837,7 @@ __metadata:
     "@synthetixio/synpress": "npm:^4.1.0"
     "@tailwindcss/postcss": "npm:^4.1.7"
     "@tailwindcss/typography": "npm:^0.5.16"
-    "@tanstack/react-query": "npm:^5.76.2"
+    "@tanstack/react-query": "npm:^5.77.2"
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
@@ -6910,21 +6910,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.76.2":
-  version: 5.76.2
-  resolution: "@tanstack/query-core@npm:5.76.2"
-  checksum: 10c0/04c347799f7d0e11008dc4c2197e27321ea9b582ae40b2b6e869bfda565d82385dcb37b257199ca5562bc7158c0cac953b94d7b04930cbb404676dad2adbfc03
+"@tanstack/query-core@npm:5.77.2":
+  version: 5.77.2
+  resolution: "@tanstack/query-core@npm:5.77.2"
+  checksum: 10c0/2c83a23f61443de054250f35f596345d0ed4731b2bf4218f2acbef224255d0d9a1e41547e56ec58db4da5a97942cdd829c5d7c3906fc4a23857dd16f4d4608de
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.76.2":
-  version: 5.76.2
-  resolution: "@tanstack/react-query@npm:5.76.2"
+"@tanstack/react-query@npm:^5.77.2":
+  version: 5.77.2
+  resolution: "@tanstack/react-query@npm:5.77.2"
   dependencies:
-    "@tanstack/query-core": "npm:5.76.2"
+    "@tanstack/query-core": "npm:5.77.2"
   peerDependencies:
     react: ^18 || ^19
-  checksum: 10c0/5286378658dd3a8377013321a9f16d95a063d63f205caa44583d6030e16cc64bfe2698d66037dc4dc029ba036a6009524cb94d996c8b807869e0afbe2bafe452
+  checksum: 10c0/949d866ca8e1264ab506c7ac5ae11a596103a2f0c5cbf46022a22d256951791e330a8f126011cc6a73831514f889b87de11063d04f14014038375ae5a7ad3556
   languageName: node
   linkType: hard
 
@@ -16688,9 +16688,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely-ctl@npm:^0.13.0":
-  version: 0.13.0
-  resolution: "kysely-ctl@npm:0.13.0"
+"kysely-ctl@npm:^0.13.1":
+  version: 0.13.1
+  resolution: "kysely-ctl@npm:0.13.1"
   dependencies:
     c12: "npm:^3.0.4"
     citty: "npm:^0.1.6"
@@ -16709,7 +16709,7 @@ __metadata:
       optional: true
   bin:
     kysely: dist/bin.js
-  checksum: 10c0/99f6f212af78e3294813691ef7920a79be6c45052d90b02740ddaf59e9a13f87909f87f2f34ad85b7ef5349223134336f56e577b2e9e5f0ac55ebced90ee747c
+  checksum: 10c0/2251445454dddac6b3a5866cd1ac725f6ad109727a38cc3ae7a9bec74661c632d01fabf2df833d2b0fb3a7cd6fb68742712e148d42ff4459e4f05b492fd31518
   languageName: node
   linkType: hard
 
