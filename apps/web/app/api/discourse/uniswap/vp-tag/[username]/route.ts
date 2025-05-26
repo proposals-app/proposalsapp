@@ -15,27 +15,6 @@ export async function GET(request: NextRequest) {
     JSON.stringify({
       value: `VP: ${Math.floor(Math.random() * 1001)}`,
       url: 'https://arbitrum.proposals.app',
-      styles: {
-        container: {
-          padding: '8px 12px',
-          backgroundColor: '#0079bf',
-          color: 'white',
-          fontWeight: '600',
-          borderRadius: '4px',
-          marginBottom: '8px',
-          cursor: 'pointer',
-          userSelect: 'none',
-          maxWidth: 'fit-content',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-          transition: 'background-color 0.2s ease',
-        },
-        hover: {
-          backgroundColor: '#005c99',
-        },
-        error: {
-          backgroundColor: '#d9534f',
-        },
-      },
     }),
     {
       status: 200,
