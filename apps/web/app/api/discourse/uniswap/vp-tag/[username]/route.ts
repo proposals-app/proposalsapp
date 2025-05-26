@@ -67,14 +67,13 @@ export async function OPTIONS(request: NextRequest) {
   const corsOrigin = allowedOrigins.includes(origin || '') ? origin! : '*';
 
   return new Response(null, {
-    status: 200, // Changed from 204 to 200
+    status: 200,
     headers: {
       'Access-Control-Allow-Origin': corsOrigin,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers':
         'Content-Type, Authorization, X-Requested-With, Accept, Origin, Referer, User-Agent, Discourse-Logged-In, Discourse-Present, Discourse-Track-View',
       'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
     },
   });
 }
