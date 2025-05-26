@@ -2,7 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '@/styles/globals.css';
 import { PHProvider } from './components/posthog-provider';
-import SuspendedPostHogPageView from './components/posthog-page-view';
+import {
+  PostHogIdentifier,
+  PostHogPageView,
+} from './components/posthog-page-view';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
 import WalletProvider from './components/wallet-provider';
@@ -60,7 +63,10 @@ export default async function Layout({
         <Suspense>
           <WebVitals />
         </Suspense>
-        <SuspendedPostHogPageView />
+        <Suspense>
+          <PostHogIdentifier />
+          <PostHogPageView />
+        </Suspense>
         <Suspense>
           <NuqsAdapter>
             <PHProvider>

@@ -1,4 +1,6 @@
-export const metadata = {
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
   title: 'Proposal Groups Management',
   description: 'Create and manage proposal groups for your DAO',
 };
