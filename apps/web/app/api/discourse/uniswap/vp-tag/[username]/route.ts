@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     ? origin!
     : allowedOrigins[0];
 
-  // Get the timestamp parameter from the URL
+  // Get the timestamp parameter from the URL (Unix timestamp in seconds)
   const { searchParams } = new URL(request.url);
   const timestamp = searchParams.get('timestamp');
   const unixTimestamp = timestamp ? parseInt(timestamp) : null;
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       currentVP: `${currentVP} UNI`,
       historicalVP: `${historicalVP} UNI`,
       url: 'https://arbitrum.proposals.app',
-      timestamp: unixTimestamp,
+      timestamp: unixTimestamp, // Include for debugging/verification
     }),
     {
       status: 200,
@@ -46,6 +46,7 @@ export function OPTIONS(request: NextRequest) {
   const allowedOrigins = [
     'https://proposalapp-test.discourse.group',
     'https://discourse.proposal.vote',
+    'https://arbitrum.proposal.vote', // Add this domain
   ];
   const corsOrigin = allowedOrigins.includes(origin || '')
     ? origin!
@@ -55,9 +56,10 @@ export function OPTIONS(request: NextRequest) {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': corsOrigin,
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers':
-        'Content-Type, Discourse-Logged-In, Discourse-Present',
+        'Content-Type, Authorization, X-Requested-With, Accept, Origin, Referer, User-Agent, Discourse-Logged-In, Discourse-Present, Discourse-Track-View',
+      'Access-Control-Allow-Credentials': 'true',
     },
   });
 }
