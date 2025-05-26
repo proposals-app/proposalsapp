@@ -30,7 +30,7 @@ export async function GET() {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin':
-          'https://proposalapp-test.discourse.group',
+          'https://proposalapp-test.discourse.group, https://discourse.proposal.vote',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers':
           'Content-Type, Discourse-Logged-In, Discourse-Present',
@@ -43,7 +43,8 @@ export function OPTIONS() {
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': 'https://proposalapp-test.discourse.group',
+      'Access-Control-Allow-Origin':
+        'https://proposalapp-test.discourse.group, https://discourse.proposal.vote',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers':
         'Content-Type, Discourse-Logged-In, Discourse-Present',
