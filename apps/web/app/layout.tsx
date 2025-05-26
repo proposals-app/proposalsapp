@@ -11,10 +11,10 @@ import { Suspense } from 'react';
 import WalletProvider from './components/wallet-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { SubdomainInfo } from '@/components/subdomain-info';
-import { firaSans, firaSansCondensed, firaMono } from './lib/fonts';
+import { firaSans, firaSansCondensed, firaMono } from '../lib/fonts';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
+  metadataBase: new URL('https://proposals.app'),
   title: 'proposals.app',
   applicationName: 'proposals.app',
   appleWebApp: {
@@ -42,26 +42,38 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang='en' suppressHydrationWarning className={`${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable}`}>
+    <html
+      lang='en'
+      suppressHydrationWarning
+      className={`${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable}`}
+    >
       <head>
         <link rel='icon' href='/favicon.ico' />
         <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
-        <Suspense>
+        <Suspense fallback={null}>
           <WebVitals />
         </Suspense>
-        <Suspense>
+        <Suspense fallback={null}>
           <PostHogIdentifier />
+        </Suspense>
+        <Suspense fallback={null}>
           <PostHogPageView />
         </Suspense>
-        <Suspense>
+        <Suspense fallback={null}>
           <NuqsAdapter>
             <PHProvider>
               <WalletProvider>
-                <main>{children}</main>
+                <main>
+                  <Suspense fallback={<div>Loading...</div>}>
+                    {children}
+                  </Suspense>
+                </main>
                 <Toaster />
-                <SubdomainInfo />
+                <Suspense fallback={null}>
+                  <SubdomainInfo />
+                </Suspense>
               </WalletProvider>
             </PHProvider>
           </NuqsAdapter>

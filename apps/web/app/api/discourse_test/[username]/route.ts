@@ -1,4 +1,7 @@
+import { connection } from 'next/server';
+
 export async function GET() {
+  await connection();
   return new Response(
     JSON.stringify({
       value: `VP: ${Math.floor(Math.random() * 1001)}`,
