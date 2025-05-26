@@ -59,17 +59,30 @@ const nextConfig = {
   // Additional headers for CORS and subdomain support
   async headers() {
     return [
+      // Specific headers for Discourse API routes
+      {
+        source: '/api/discourse/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' }, // Allow all origins for now, match API route
+          { key: 'Access-Control-Allow-Methods', value: 'GET, OPTIONS' }, // Allow GET and OPTIONS
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Discourse-Logged-In, Discourse-Present, X-Requested-With, X-CSRF-Token', // Add required Discourse headers
+          },
+        ],
+      },
+      // General headers for all other routes
       {
         source: '/:path*',
         headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Origin', value: '*' }, // Keep general allow origin
           {
             key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS',
+            value: 'GET, POST, PUT, DELETE, OPTIONS', // Keep general methods
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'X-Requested-With, Content-Type, Authorization',
+            value: 'X-Requested-With, Content-Type, Authorization', // Keep general headers
           },
         ],
       },
