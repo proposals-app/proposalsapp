@@ -94,13 +94,8 @@ const getTreasuryBalance = async () => {
   cacheTag(`treasury-uniswap`);
 
   const TREASURY_ADDRESSES = [
-    'eip155:1:0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
-    'eip155:1:0xdac17f958d2ee523a2206206994597c13d831ec7',
-    'eip155:1:0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-    'eip155:1:0x6b0b3a982b4634ac68dd83a4dbf02311ce324181',
-    'eip155:1:0xe0b0c16038845bed3fcf70304d3e167df81ce225',
-    'eip155:1:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-    'eip155:1:0x4554cc10898f92d45378b98d6d6c2dd54c687fb2',
+    'eip155:1:0x1a9C8182C09F50C8318d769245beA52c32BE35BC',
+    'eip155:1:0xe571dC7A558bb6D68FfE264c3d7BB98B0C6C73fC',
   ];
 
   try {
