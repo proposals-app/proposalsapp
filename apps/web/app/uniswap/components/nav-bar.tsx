@@ -111,14 +111,14 @@ export async function NavBar() {
           </Suspense>
 
           <Image
-            src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo.svg`}
+            src={`/assets/logo.svg`}
             alt={'proposals.app'}
             width={48}
             height={48}
             className='dark:hidden'
           />
           <Image
-            src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/assets/logo_dark.svg`}
+            src={`/assets/logo_dark.svg`}
             alt={'proposals.app'}
             width={48}
             height={48}
