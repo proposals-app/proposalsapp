@@ -19,6 +19,11 @@ export default function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
+  // Explicitly bypass middleware for /api routes
+  if (url.pathname.startsWith('/api')) {
+    return NextResponse.next();
+  }
+
   // Get configured domain from env or use default for local development
   const configuredRootDomain =
     process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
