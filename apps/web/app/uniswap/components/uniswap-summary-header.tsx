@@ -1,9 +1,7 @@
 import Image from 'next/image';
 import { formatNumberWithSuffix } from '@/lib/utils';
 
-interface DaoSummaryHeaderProps {
-  daoName: string;
-  daoSlug: string;
+interface UniswapSummaryHeaderProps {
   activeGroupsCount: number;
   totalProposalsCount: number;
   totalTopicsCount: number;
@@ -12,17 +10,15 @@ interface DaoSummaryHeaderProps {
   treasuryBalance: number | null;
 }
 
-export function DaoSummaryHeader({
-  daoName,
-  daoSlug,
+export function UniswapSummaryHeader({
   activeGroupsCount,
   totalProposalsCount,
   totalTopicsCount,
   tokenPrice,
   totalVp,
   treasuryBalance,
-}: DaoSummaryHeaderProps) {
-  const DAO_PICTURE_PATH = 'assets/project-logos/arbitrum';
+}: UniswapSummaryHeaderProps) {
+  const DAO_PICTURE_PATH = 'assets/project-logos/uniswap';
 
   interface MetricItem {
     value: number;
@@ -60,22 +56,22 @@ export function DaoSummaryHeader({
     {
       value: totalVp ?? 0,
       label: 'Voting Power',
-      colorClass: 'text-brand-accent/90',
-      bgClass: 'bg-brand-accent/5 dark:bg-brand-accent/10',
-      format: (v: number) => `${formatNumberWithSuffix(v)} ARB`,
+      colorClass: 'text-[#FF007A]/90', // Uniswap pink
+      bgClass: 'bg-[#FF007A]/5 dark:bg-[#FF007A]/10',
+      format: (v: number) => `${formatNumberWithSuffix(v)} UNI`,
     },
     {
       value: treasuryBalance ?? 0,
       label: 'Treasury',
-      colorClass: 'text-brand-accent/90',
-      bgClass: 'bg-brand-accent/5 dark:bg-brand-accent/10',
+      colorClass: 'text-[#FF007A]/90', // Uniswap pink
+      bgClass: 'bg-[#FF007A]/5 dark:bg-[#FF007A]/10',
       format: (v: number) => `$${formatNumberWithSuffix(v)}`,
     },
     {
       value: tokenPrice ?? 0,
-      label: 'Token Price',
-      colorClass: 'text-brand-accent/90',
-      bgClass: 'bg-brand-accent/5 dark:bg-brand-accent/10',
+      label: 'UNI Price',
+      colorClass: 'text-[#FF007A]/90', // Uniswap pink
+      bgClass: 'bg-[#FF007A]/5 dark:bg-[#FF007A]/10',
       format: (v: number) => `$${v.toFixed(2)}`,
     },
   ];
@@ -110,24 +106,24 @@ export function DaoSummaryHeader({
             <div className='relative flex h-12 w-12 items-center justify-center rounded-full bg-white p-4 dark:bg-neutral-800'>
               <Image
                 src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
-                alt={daoName || daoSlug}
+                alt='Uniswap'
                 fill={true}
                 className='dark:hidden'
               />
               <Image
                 src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}_dark.svg`}
-                alt={daoName || daoSlug}
+                alt='Uniswap'
                 fill={true}
                 className='hidden dark:block'
               />
             </div>
 
             <div className='flex-1'>
-              <h1 className='text-xl font-bold text-neutral-800 dark:text-neutral-100'>
-                {daoName || daoSlug}
+              <h1 className='text-xl font-bold text-[#FF007A] dark:text-[#FF007A]'>
+                Uniswap DAO
               </h1>
               <p className='text-xm mt-1.5 text-neutral-500 dark:text-neutral-400'>
-                Governance discussions and proposals
+                Decentralized Exchange & Protocol Governance
               </p>
             </div>
           </div>
@@ -167,24 +163,24 @@ export function DaoSummaryHeader({
               <div className='relative flex h-16 w-16 items-center justify-center rounded-full border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-800'>
                 <Image
                   src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}.svg`}
-                  alt={daoName || daoSlug}
+                  alt='Uniswap'
                   fill={true}
                   className='dark:hidden'
                 />
                 <Image
                   src={`${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/${DAO_PICTURE_PATH}_dark.svg`}
-                  alt={daoName || daoSlug}
+                  alt='Uniswap'
                   fill={true}
                   className='hidden dark:block'
                 />
               </div>
 
               <div className='flex-1'>
-                <h1 className='text-3xl font-bold text-neutral-800 dark:text-neutral-100'>
-                  {daoName || daoSlug}
+                <h1 className='text-3xl font-bold text-[#FF007A] dark:text-[#FF007A]'>
+                  Uniswap DAO
                 </h1>
                 <p className='mt-1.5 text-sm text-neutral-500 dark:text-neutral-400'>
-                  Governance discussions and proposals
+                  Decentralized Exchange & Protocol Governance
                 </p>
               </div>
             </div>

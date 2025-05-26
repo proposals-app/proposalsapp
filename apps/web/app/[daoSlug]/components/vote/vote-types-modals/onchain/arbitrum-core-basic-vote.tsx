@@ -108,7 +108,7 @@ export function OnchainArbitrumCoreBasicVoteModalContent({
     }
     // Intentionally keeping voteError out of deps if we only want to set/clear based on new external errors or submission state changes.
     // If you want the effect to re-run whenever voteError itself changes, add it back.
-  }, [writeError, confirmError, isSubmitting]);
+  }, [writeError, confirmError, isSubmitting, voteError]);
 
   const handleSubmit = async () => {
     setVoteError(null); // Clear previous errors on new submission attempt

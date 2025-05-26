@@ -1,11 +1,15 @@
 import { ReactNode, Suspense } from 'react';
-import { NavBar } from './components/nav-bar';
+import { NavBar } from '../[daoSlug]/components/nav-bar';
 import Banner from '../components/banner';
 import SuspendedThemeProvider from '../components/theme-provider';
 
-export default async function DaoLayout({ children }: { children: ReactNode }) {
+export default async function ArbitrumLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
-    <SuspendedThemeProvider theme={'default'}>
+    <SuspendedThemeProvider theme={'arbitrum'}>
       <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
         <Suspense>
           <NavBar />

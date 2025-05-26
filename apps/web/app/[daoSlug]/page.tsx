@@ -1,17 +1,11 @@
-import {
-  getGroups,
-  getTotalVotingPower,
-  getTokenPrice,
-  getTreasuryBalance,
-} from './actions';
+import { getGroups } from './actions';
 import { GroupList } from './components/group-list';
 import { MarkAllAsReadButton } from './components/mark-all-as-read';
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { ActiveGroupItem } from './components/group-items/active-item';
-import { DaoSummaryHeader } from './components/dao-summary-header';
-import Loading, { LoadingGroupList, LoadingHeader } from './loading';
+import Loading, { LoadingGroupList } from './loading';
 
 export default async function Page({
   params,
@@ -41,7 +35,7 @@ async function GroupsPage({
     return null;
   }
 
-  const { daoName, groups } = result;
+  const { groups } = result;
 
   // Transform data - items no longer needed here
   const groupsWithInfo = groups.map((group) => {
@@ -71,40 +65,9 @@ async function GroupsPage({
     (group) => group.hasNewActivity
   );
 
-  // Get active and inactive groups counts
-  const activeGroupsCount = groupsWithInfo.filter(
-    (g) => g.hasActiveProposal
-  ).length;
-  const totalProposalsCount = groupsWithInfo.reduce(
-    (sum, group) => sum + group.proposalsCount,
-    0
-  );
-  const totalTopicsCount = groupsWithInfo.reduce(
-    (sum, group) => sum + group.topicsCount,
-    0
-  );
-
-  // Fetch financial data
-  const tokenPrice = await getTokenPrice(daoSlug);
-  const totalVp = await getTotalVotingPower(result.daoId);
-  const treasuryBalance = await getTreasuryBalance(daoSlug);
-
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        <Suspense fallback={<LoadingHeader />}>
-          <DaoSummaryHeader
-            daoName={daoName}
-            daoSlug={daoSlug}
-            activeGroupsCount={activeGroupsCount}
-            totalProposalsCount={totalProposalsCount}
-            totalTopicsCount={totalTopicsCount}
-            tokenPrice={tokenPrice}
-            totalVp={totalVp}
-            treasuryBalance={treasuryBalance}
-          />
-        </Suspense>
-
         {/* Action Bar */}
         <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
           <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-300'>

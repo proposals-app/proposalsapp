@@ -22,11 +22,8 @@ import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultN
 import { PostedRevisions } from './components/body/posted-revision';
 import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 import { LastReadUpdater } from './components/last-read-updater';
-import AISummary from './components/ai-summary';
 import { ResultEvent } from '@/lib/types';
 import Loading from './loading';
-import { VoteButton } from '../../components/vote/vote-button';
-import { Proposal, Selectable } from '@proposalsapp/db';
 
 export default async function Page({
   params,

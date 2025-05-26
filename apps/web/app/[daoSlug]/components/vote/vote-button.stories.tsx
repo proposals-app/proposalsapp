@@ -947,7 +947,3 @@ export const OnChainArbitrumTreasury: Story = () => (
   />
 );
 OnChainArbitrumTreasury.storyName = 'On-Chain - Arbitrum Treasury';
-
-export default {
-  title: 'Vote Button',
-};

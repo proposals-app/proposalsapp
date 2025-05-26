@@ -5,7 +5,6 @@ import { PHProvider } from './components/posthog-provider';
 import SuspendedPostHogPageView from './components/posthog-page-view';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
-import SuspendedThemeProvider from './components/theme-provider';
 import WalletProvider from './components/wallet-provider';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -58,22 +57,20 @@ export default async function Layout({
         <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
-        <SuspendedThemeProvider>
+        <Suspense>
+          <WebVitals />
+        </Suspense>
+        <SuspendedPostHogPageView />
+        <Suspense>
           <NuqsAdapter>
-            <Suspense>
-              <WebVitals />
-            </Suspense>
-            <SuspendedPostHogPageView />
-            <Suspense>
-              <PHProvider>
-                <WalletProvider>
-                  <main>{children}</main>
-                  <Toaster />
-                </WalletProvider>
-              </PHProvider>
-            </Suspense>
+            <PHProvider>
+              <WalletProvider>
+                <main>{children}</main>
+                <Toaster />
+              </WalletProvider>
+            </PHProvider>
           </NuqsAdapter>
-        </SuspendedThemeProvider>
+        </Suspense>
       </body>
     </html>
   );
