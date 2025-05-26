@@ -1,11 +1,15 @@
-export async function GET(request: Request) {
+import { NextRequest } from 'next/server';
+
+export async function GET(request: NextRequest) {
   const origin = request.headers.get('origin');
   const allowedOrigins = [
     'https://proposalapp-test.discourse.group',
-    'https://discourse.proposal.vote'
+    'https://discourse.proposal.vote',
   ];
-  
-  const corsOrigin = allowedOrigins.includes(origin || '') ? origin! : allowedOrigins[0];
+
+  const corsOrigin = allowedOrigins.includes(origin || '')
+    ? origin!
+    : allowedOrigins[0];
 
   return new Response(
     JSON.stringify({
@@ -46,14 +50,16 @@ export async function GET(request: Request) {
   );
 }
 
-export function OPTIONS(request: Request) {
+export function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
   const allowedOrigins = [
     'https://proposalapp-test.discourse.group',
-    'https://discourse.proposal.vote'
+    'https://discourse.proposal.vote',
   ];
-  
-  const corsOrigin = allowedOrigins.includes(origin || '') ? origin! : allowedOrigins[0];
+
+  const corsOrigin = allowedOrigins.includes(origin || '')
+    ? origin!
+    : allowedOrigins[0];
 
   return new Response(null, {
     status: 204,
