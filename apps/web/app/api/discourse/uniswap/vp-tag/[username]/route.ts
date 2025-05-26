@@ -46,7 +46,6 @@ export function OPTIONS(request: NextRequest) {
   const allowedOrigins = [
     'https://proposalapp-test.discourse.group',
     'https://discourse.proposal.vote',
-    'https://arbitrum.proposal.vote', // Add this domain
   ];
   const corsOrigin = allowedOrigins.includes(origin || '')
     ? origin!
