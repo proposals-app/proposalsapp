@@ -93,7 +93,6 @@ const getTreasuryBalance = async () => {
   cacheLife('days');
   cacheTag(`treasury-uniswap`);
 
-  // Consider moving this mapping outside or making it configurable
   const TREASURY_ADDRESSES = [
     'eip155:1:0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
     'eip155:1:0xdac17f958d2ee523a2206206994597c13d831ec7',
@@ -134,7 +133,7 @@ const getTreasuryBalance = async () => {
 const getTokenPrice = async () => {
   'use cache';
   cacheLife('hours');
-  cacheTag(`token-price-uniswap`); // Add tag
+  cacheTag(`token-price-uniswap`);
 
   try {
     const url = `https://api.coingecko.com/api/v3/coins/uniswap/market_chart?vs_currency=usd&days=1`;

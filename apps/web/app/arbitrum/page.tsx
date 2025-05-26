@@ -91,9 +91,8 @@ async function fetchBalanceForAddress(address: string): Promise<number> {
 const getTreasuryBalance = async () => {
   'use cache';
   cacheLife('days');
-  cacheTag(`treasury-arbitrum`); // Add tag
+  cacheTag(`treasury-arbitrum`);
 
-  // Consider moving this mapping outside or making it configurable
   const TREASURY_ADDRESSES = [
     'eip155:42161:0x34d45e99f7D8c45ed05B5cA72D54bbD1fb3F98f0',
     'eip155:42161:0xbFc1FECa8B09A5c5D3EFfE7429eBE24b9c09EF58',

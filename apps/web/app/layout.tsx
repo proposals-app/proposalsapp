@@ -52,26 +52,24 @@ export default async function Layout({
         <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
-        <Suspense fallback={null}>
+        <Suspense>
           <WebVitals />
         </Suspense>
-        <Suspense fallback={null}>
+        <Suspense>
           <PostHogIdentifier />
         </Suspense>
-        <Suspense fallback={null}>
+        <Suspense>
           <PostHogPageView />
         </Suspense>
-        <Suspense fallback={null}>
+        <Suspense>
           <NuqsAdapter>
             <PHProvider>
               <WalletProvider>
                 <main>
-                  <Suspense fallback={<div>Loading...</div>}>
-                    {children}
-                  </Suspense>
+                  <Suspense>{children}</Suspense>
                 </main>
                 <Toaster />
-                <Suspense fallback={null}>
+                <Suspense>
                   <SubdomainInfo />
                 </Suspense>
               </WalletProvider>
