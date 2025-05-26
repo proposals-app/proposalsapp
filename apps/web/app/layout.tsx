@@ -10,6 +10,8 @@ import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
 import WalletProvider from './components/wallet-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { SubdomainInfo } from '@/components/subdomain-info';
+import { firaSans, firaSansCondensed, firaMono } from './lib/fonts';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.WEB_URL ?? 'https://proposals.app'),
@@ -40,22 +42,8 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html lang='en' suppressHydrationWarning className={`${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable}`}>
       <head>
-        <link rel='preconnect' href='https://fonts.googleapis.com' />
-        <link rel='preconnect' href='https://fonts.gstatic.com' />
-        <link
-          href='https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap'
-          rel='stylesheet'
-        />
-        <link
-          href='https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap'
-          rel='stylesheet'
-        />
-        <link
-          href='https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap'
-          rel='stylesheet'
-        />
         <link rel='icon' href='/favicon.ico' />
         <link rel='manifest' href='/manifest.json' />
       </head>
@@ -73,6 +61,7 @@ export default async function Layout({
               <WalletProvider>
                 <main>{children}</main>
                 <Toaster />
+                <SubdomainInfo />
               </WalletProvider>
             </PHProvider>
           </NuqsAdapter>

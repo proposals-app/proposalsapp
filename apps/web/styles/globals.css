@@ -144,9 +144,9 @@
   --sidebar-accent-foreground: oklch(0.2 0 0);
   --sidebar-border: oklch(0.92 0 0);
   --sidebar-ring: oklch(0.71 0 0);
-  --font-sans: 'Fira Sans', sans-serif;
-  --font-serif: 'Fira Sans Condensed', sans-serif;
-  --font-mono: 'Fira Mono', monospace;
+  --font-sans: var(--font-fira-sans), sans-serif;
+  --font-serif: var(--font-fira-sans-condensed), sans-serif;
+  --font-mono: var(--font-fira-mono), monospace;
   --radius: 0rem;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 0% / 0);
   --shadow-xs: 0px 1px 0px 0px hsl(0 0% 0% / 0);
@@ -195,9 +195,9 @@
   --sidebar-accent-foreground: oklch(0.99 0 0);
   --sidebar-border: oklch(1 0 0);
   --sidebar-ring: oklch(0.44 0 0);
-  --font-sans: 'Fira Sans', sans-serif;
-  --font-serif: 'Fira Sans Condensed', sans-serif;
-  --font-mono: 'Fira Mono', monospace;
+  --font-sans: var(--font-fira-sans), sans-serif;
+  --font-serif: var(--font-fira-sans-condensed), sans-serif;
+  --font-mono: var(--font-fira-mono), monospace;
   --radius: 0rem;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 0% / 0);
   --shadow-xs: 0px 1px 0px 0px hsl(0 0% 0% / 0);

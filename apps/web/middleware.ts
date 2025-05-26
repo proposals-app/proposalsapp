@@ -18,25 +18,58 @@ export const config = {
 export default function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
-  const configuredRootDomain =
-    process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'example.com';
 
-  // Strip http:// or https:// and any trailing slashes from the configured root domain
+  // Get configured domain from env or use default for local development
+  const configuredRootDomain =
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
+
+  // Special subdomains with custom implementations
+  const specialSubdomains = process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS?.split(
+    ','
+  ) || ['arbitrum', 'uniswap'];
+
+  // Remove protocol and trailing slashes
   const rootDomain = configuredRootDomain
     .replace(/^(https?:\/\/)?/, '')
     .replace(/\/$/, '');
 
-  // Get the subdomain from the hostname
-  const subdomain = hostname.replace(`.${rootDomain}`, '');
+  // Check if we're running in development with localhost
+  const isDev = rootDomain.includes('localhost');
 
-  if (hostname !== rootDomain) {
-    // Rewrite the URL to include the subdomain as the daoSlug
-    if (subdomain) {
-      // Rewrite the URL pathname
-      url.pathname = `/${subdomain}${url.pathname}`;
-      return NextResponse.rewrite(url);
+  // Extract subdomain differently based on environment
+  let subdomain = '';
+  if (isDev) {
+    // In development, subdomains might be represented as subdomain.localhost:3000
+    const hostnameWithoutPort = hostname.split(':')[0];
+    const parts = hostnameWithoutPort.split('.');
+    // If we have a valid subdomain pattern (something.localhost)
+    if (parts.length > 1 && parts[parts.length - 1] === 'localhost') {
+      subdomain = parts[0];
+    }
+  } else {
+    // In production, extract subdomain from hostname
+    if (hostname !== rootDomain && hostname.endsWith(`.${rootDomain}`)) {
+      subdomain = hostname.replace(`.${rootDomain}`, '');
     }
   }
 
-  return NextResponse.next();
+  // If no valid subdomain was found, proceed normally
+  if (!subdomain) {
+    return NextResponse.next();
+  }
+
+  // Handle specific subdomains with specialized implementations
+  if (specialSubdomains.includes(subdomain)) {
+    // Rewrite to the specialized implementation
+    url.pathname = `/${subdomain}${url.pathname}`;
+    return NextResponse.rewrite(url);
+  }
+  // Handle other DAOs through the dynamic [daoSlug] route
+  else {
+    // Rewrite to the dynamic [daoSlug] route
+    url.pathname = `/[daoSlug]${url.pathname}`;
+    // Store the actual slug in searchParams to be accessed in the page
+    url.searchParams.set('daoSlug', subdomain);
+    return NextResponse.rewrite(url);
+  }
 }

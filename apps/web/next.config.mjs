@@ -17,7 +17,12 @@ const nextConfig = {
       },
     },
   },
-  allowedDevOrigins: ['arbitrum.localhost', 'localhost'],
+  allowedDevOrigins: [
+    'arbitrum.localhost',
+    'uniswap.localhost',
+    'localhost',
+    '*.localhost',
+  ],
   rewrites: () => {
     return [
       // PostHog rewrites need to come first to ensure they're not caught by the catch-all subdomain rewrite
@@ -50,12 +55,36 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+
+  // Additional headers for CORS and subdomain support
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With, Content-Type, Authorization',
+          },
+        ],
+      },
+    ];
+  },
   images: {
     minimumCacheTTL: 3600,
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost',
       },
     ],
   },

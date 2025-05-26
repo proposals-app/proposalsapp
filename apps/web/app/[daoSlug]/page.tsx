@@ -9,25 +9,41 @@ import Loading, { LoadingGroupList } from './loading';
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ daoSlug: string }>;
+  searchParams: Promise<{ daoSlug?: string }>;
 }) {
   return (
     <Suspense fallback={<Loading />}>
-      <GroupsPage params={params} />
+      <GroupsPage params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
 async function GroupsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ daoSlug: string }>;
+  searchParams: Promise<{ daoSlug?: string }>;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
-  const { daoSlug } = await params;
+  // Get daoSlug from searchParams (set by middleware) or from route params
+  let daoSlug: string;
+
+  const resolvedSearchParams = await searchParams;
+  const routeParams = await params;
+
+  if (resolvedSearchParams.daoSlug) {
+    // When coming from subdomain via middleware
+    daoSlug = resolvedSearchParams.daoSlug;
+  } else {
+    // When accessed directly via path
+    daoSlug = routeParams.daoSlug;
+  }
 
   const result = await getGroups(daoSlug, userId);
 
