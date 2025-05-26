@@ -1,22 +1,20 @@
 // app/api/discourse/uniswap/vp-tag/[username]/route.ts (or your actual path)
 import { NextRequest, NextResponse } from 'next/server';
 
-// It's good practice to list the headers Discourse might send
 const ALLOWED_HEADERS = [
   'Content-Type',
-  'Discourse-Logged-In', // <-- Add this
-  'Discourse-Present', // <-- Add this (Discourse often sends this too)
-  'X-Requested-With', // Common for AJAX requests
-  'X-CSRF-Token', // If CSRF protection is involved on Discourse side for POSTs etc.
-  // Add any other custom headers your client might send
+  'Discourse-Logged-In',
+  'Discourse-Present',
+  'X-Requested-With',
+  'X-CSRF-Token',
 ].join(', ');
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } } // Assuming you're using the username from the path
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
-    const username = params.username; // Get username from dynamic route segment
+    const { username } = await params;
     const { searchParams } = new URL(request.url);
     const timestamp = searchParams.get('timestamp');
     const unixTimestamp = timestamp ? parseInt(timestamp) : null;
@@ -65,7 +63,7 @@ export async function GET(
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
