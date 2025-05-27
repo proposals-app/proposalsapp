@@ -284,48 +284,90 @@ export async function fuzzySearchItems(
       score: result.score ?? 1.0,
     }));
 }
-
 /**
  * Saves updated groups to the database
  */
 export async function saveGroups(groups: ProposalGroup[]) {
-  await Promise.all(
-    groups.map(async (group) => {
-      if (group.id) {
-        await db.public
-          .insertInto('proposalGroup')
-          .values({
-            id: group.id,
-            name: group.name,
-            items: JSON.stringify(group.items),
-            daoId: group.daoId,
-            createdAt: group.createdAt,
-          })
-          .onConflict((oc) =>
-            oc.column('id').doUpdateSet({
+  'use server';
+  try {
+    await Promise.all(
+      groups.map(async (group) => {
+        if (group.id) {
+          await db.public
+            .insertInto('proposalGroup')
+            .values({
+              id: group.id,
               name: group.name,
               items: JSON.stringify(group.items),
               daoId: group.daoId,
               createdAt: group.createdAt,
             })
-          )
-          .execute();
-      } else {
-        await db.public
-          .insertInto('proposalGroup')
-          .values({
-            name: group.name,
-            items: JSON.stringify(group.items),
-            daoId: group.daoId,
-            createdAt: group.createdAt,
-          })
-          .execute();
-      }
-    })
-  );
+            .onConflict((oc) =>
+              oc.column('id').doUpdateSet({
+                name: group.name,
+                items: JSON.stringify(group.items),
+                daoId: group.daoId,
+                createdAt: group.createdAt,
+              })
+            )
+            .execute();
+        } else {
+          await db.public
+            .insertInto('proposalGroup')
+            .values({
+              name: group.name,
+              items: JSON.stringify(group.items),
+              daoId: group.daoId,
+              createdAt: group.createdAt,
+            })
+            .execute();
+        }
+      })
+    );
 
-  revalidateTag('groupsData');
-  revalidateTag('ungroupedProposals');
+    revalidateTag('groupsData');
+    revalidateTag('ungroupedProposals');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save groups:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Creates a new empty proposal group
+ */
+export async function createGroup(daoSlug: string) {
+  'use server';
+  try {
+    const dao = await getDao(daoSlug);
+
+    const newGroup: ProposalGroup = {
+      id: crypto.randomUUID(),
+      name: `New Group ${new Date().toLocaleString()}`,
+      items: [],
+      daoId: dao.id,
+      createdAt: new Date(),
+    };
+
+    await db.public
+      .insertInto('proposalGroup')
+      .values({
+        id: newGroup.id,
+        name: newGroup.name,
+        items: JSON.stringify(newGroup.items),
+        daoId: newGroup.daoId,
+        createdAt: newGroup.createdAt,
+      })
+      .execute();
+
+    revalidateTag('groupsData');
+    revalidateTag('ungroupedProposals');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to create group:', error);
+    return { success: false, error };
+  }
 }
 
 /**

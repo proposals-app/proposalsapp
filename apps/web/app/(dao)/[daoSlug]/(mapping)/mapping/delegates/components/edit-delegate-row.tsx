@@ -9,8 +9,17 @@ import {
   unmapVoterFromDelegate,
   deleteDelegate,
 } from '../actions';
-import FuzzyDiscourseUserSearch from './fuzzy-discourse-user-search';
-import FuzzyVoterSearch from './fuzzy-voter-search';
+import {
+  FuzzyDiscourseUserSearch,
+  FuzzyVoterSearch,
+} from '../../components/ui/search';
+import {
+  MappingTableRow,
+  MappingTableCell,
+  MappingTableActionCell,
+  Button,
+  Badge,
+} from '../../components/ui';
 
 interface EditDelegateRowProps {
   delegate: Selectable<Delegate>;
@@ -105,29 +114,45 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
   };
 
   return (
-    <tr className='border-b border-neutral-200 dark:border-neutral-700'>
-      <td className='px-6 py-4 text-sm font-medium whitespace-nowrap text-neutral-900 dark:text-neutral-100'>
-        {delegate.id}
-      </td>
-      <td className='px-6 py-4'>
+    <MappingTableRow>
+      <MappingTableCell>
+        <Badge variant='neutral'>{delegate.id}</Badge>
+      </MappingTableCell>
+      <MappingTableCell>
         <div className='space-y-2'>
-          {currentDiscourseUsers.map((user) => (
-            <div
-              className='flex items-center justify-between rounded-md bg-neutral-100 p-2 dark:bg-neutral-700'
-              key={user.id}
-            >
-              <span className='text-sm text-neutral-900 dark:text-neutral-100'>
-                {user.username}
-              </span>{' '}
-              <button
-                onClick={() => handleUnmapDiscourseUser(user.id)}
-                className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
-                disabled={isSaving || isDeleting}
-              >
-                Unmap
-              </button>
-            </div>
-          ))}
+          <div className='mb-2 flex items-center justify-between'>
+            <h4 className='font-medium text-neutral-900 dark:text-neutral-100'>
+              Discourse Users ({currentDiscourseUsers?.length || 0}):
+            </h4>
+          </div>
+          <div className='max-h-[300px] overflow-y-auto'>
+            {currentDiscourseUsers.length > 0 ? (
+              <div className='divide-y divide-neutral-200 rounded-md border border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700'>
+                {currentDiscourseUsers.map((user) => (
+                  <div
+                    className='flex items-center justify-between p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                    key={user.id}
+                  >
+                    <span className='text-sm text-neutral-900 dark:text-neutral-100'>
+                      {user.username}
+                    </span>
+                    <Button
+                      onClick={() => handleUnmapDiscourseUser(user.id)}
+                      variant='danger'
+                      disabled={isSaving || isDeleting}
+                      className='h-8 min-w-[80px] shrink-0 px-2 py-0'
+                    >
+                      Unmap
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className='py-2 text-center text-neutral-500 dark:text-neutral-400'>
+                No discourse users mapped
+              </div>
+            )}
+          </div>
           <FuzzyDiscourseUserSearch
             daoSlug={daoSlug}
             excludeUserIds={currentDiscourseUsers.map((user) => user.id)}
@@ -135,57 +160,81 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
             isLoading={isSaving || isDeleting}
           />
         </div>
-      </td>
-      <td className='px-6 py-4'>
+      </MappingTableCell>
+      <MappingTableCell>
         <div className='space-y-2'>
-          {currentVoters.map((voter) => (
-            <div
-              className='flex items-center justify-between rounded-md bg-neutral-100 p-2 dark:bg-neutral-700'
-              key={voter.id}
-            >
-              <div className='text-sm text-neutral-900 dark:text-neutral-100'>
-                <div>{voter.address}</div>
-                {voter.ens && (
-                  <div className='text-xs text-neutral-500 dark:text-neutral-400'>
-                    {voter.ens}
+          <div className='mb-2 flex items-center justify-between'>
+            <h4 className='font-medium text-neutral-900 dark:text-neutral-100'>
+              Voters ({currentVoters?.length || 0}):
+            </h4>
+          </div>
+          <div className='max-h-[300px] overflow-y-auto'>
+            {currentVoters.length > 0 ? (
+              <div className='divide-y divide-neutral-200 rounded-md border border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700'>
+                {currentVoters.map((voter) => (
+                  <div
+                    className='flex items-center justify-between p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                    key={voter.id}
+                  >
+                    <div className='overflow-hidden text-sm text-neutral-900 dark:text-neutral-100'>
+                      <div className='truncate font-mono' title={voter.address}>
+                        {voter.address}
+                      </div>
+                      {voter.ens && (
+                        <div
+                          className='truncate text-xs text-neutral-500 dark:text-neutral-400'
+                          title={voter.ens}
+                        >
+                          {voter.ens}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      onClick={() => handleUnmapVoter(voter.id)}
+                      variant='danger'
+                      disabled={isSaving || isDeleting}
+                      className='ml-2 h-8 min-w-[80px] shrink-0 px-2 py-0'
+                    >
+                      Unmap
+                    </Button>
                   </div>
-                )}
+                ))}
               </div>
-              <button
-                onClick={() => handleUnmapVoter(voter.id)}
-                className='focus:ring-opacity-50 rounded-md bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
-                disabled={isSaving || isDeleting}
-              >
-                Unmap
-              </button>
-            </div>
-          ))}
+            ) : (
+              <div className='py-2 text-center text-neutral-500 dark:text-neutral-400'>
+                No voters mapped
+              </div>
+            )}
+          </div>
           <FuzzyVoterSearch
             excludeVoterIds={currentVoters.map((voter) => voter.id)}
             onSelectVoter={handleMapVoter}
             isLoading={isSaving || isDeleting}
           />
         </div>
-      </td>
-      <td className='px-6 py-4 text-sm font-medium whitespace-nowrap'>
-        <div className='flex gap-2'>
-          <button
+      </MappingTableCell>
+      <MappingTableActionCell>
+        <div className='flex flex-wrap gap-2'>
+          <Button
             onClick={onCancel}
-            className='focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-100 focus:ring-2 focus:ring-neutral-500 disabled:opacity-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+            variant='outline'
             disabled={isSaving || isDeleting}
+            className='min-w-[80px]'
           >
             Close
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleDeleteDelegate}
-            className='focus:ring-opacity-50 w-full rounded-md border border-red-500 bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 disabled:opacity-50'
+            variant='danger'
             disabled={isSaving || isDeleting}
+            isLoading={isDeleting}
+            className='min-w-[80px]'
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </button>
+            Delete
+          </Button>
         </div>
-      </td>
-    </tr>
+      </MappingTableActionCell>
+    </MappingTableRow>
   );
 };
 
@@ -215,50 +264,93 @@ export const DelegateRow = ({
   }
 
   return (
-    <tr
-      key={delegate.id}
-      className='border-b border-neutral-200 dark:border-neutral-700'
-    >
-      <td className='px-6 py-4 text-sm font-medium whitespace-nowrap text-neutral-900 dark:text-neutral-100'>
-        {delegate.id}
-      </td>
-      <td className='px-6 py-4'>
-        <div className='space-y-2'>
-          {discourseUsers.map((user) => (
-            <div
-              className='text-sm text-neutral-900 dark:text-neutral-100'
-              key={user.id}
-            >
-              {user.username}
-            </div>
-          ))}
-        </div>
-      </td>
-      <td className='px-6 py-4'>
-        <div className='space-y-2'>
-          {voters.map((voter) => (
-            <div
-              className='text-sm text-neutral-900 dark:text-neutral-100'
-              key={voter.id}
-            >
-              <div className='font-mono'>{voter.address}</div>
-              {voter.ens && (
-                <div className='text-xs text-neutral-500 dark:text-neutral-400'>
-                  {voter.ens}
+    <MappingTableRow key={delegate.id}>
+      <MappingTableCell>
+        <Badge variant='neutral'>{delegate.id}</Badge>
+      </MappingTableCell>
+      <MappingTableCell>
+        <div>
+          {discourseUsers.length > 0 ? (
+            <div>
+              <div className='mb-2 flex items-center gap-2'>
+                <span className='text-sm font-medium text-neutral-600 dark:text-neutral-400'>
+                  {discourseUsers.length} user
+                  {discourseUsers.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className='max-h-[200px] overflow-y-auto'>
+                <div className='divide-y divide-neutral-200 rounded-md border border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700'>
+                  {discourseUsers.map((user) => (
+                    <div
+                      className='flex items-center p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                      key={user.id}
+                    >
+                      <span className='text-sm text-neutral-900 dark:text-neutral-100'>
+                        {user.username}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
-          ))}
+          ) : (
+            <div className='text-sm text-neutral-500 dark:text-neutral-400'>
+              No discourse users mapped
+            </div>
+          )}
         </div>
-      </td>
-      <td className='px-6 py-4 text-sm font-medium whitespace-nowrap'>
-        <button
+      </MappingTableCell>
+      <MappingTableCell>
+        <div>
+          {voters.length > 0 ? (
+            <div>
+              <div className='mb-2 flex items-center gap-2'>
+                <span className='text-sm font-medium text-neutral-600 dark:text-neutral-400'>
+                  {voters.length} voter{voters.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className='max-h-[200px] overflow-y-auto'>
+                <div className='divide-y divide-neutral-200 rounded-md border border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700'>
+                  {voters.map((voter) => (
+                    <div
+                      className='p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                      key={voter.id}
+                    >
+                      <div
+                        className='truncate font-mono text-xs text-neutral-900 dark:text-neutral-100'
+                        title={voter.address}
+                      >
+                        {voter.address}
+                      </div>
+                      {voter.ens && (
+                        <div
+                          className='truncate text-xs text-neutral-500 dark:text-neutral-400'
+                          title={voter.ens}
+                        >
+                          {voter.ens}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className='text-sm text-neutral-500 dark:text-neutral-400'>
+              No voters mapped
+            </div>
+          )}
+        </div>
+      </MappingTableCell>
+      <MappingTableActionCell>
+        <Button
           onClick={() => setIsEditing(true)}
-          className='focus:ring-opacity-50 border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent w-full rounded-md border px-4 py-2 text-sm font-medium text-white focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+          variant='primary'
+          className='min-w-[120px]'
         >
           Edit Mappings
-        </button>
-      </td>
-    </tr>
+        </Button>
+      </MappingTableActionCell>
+    </MappingTableRow>
   );
 };
