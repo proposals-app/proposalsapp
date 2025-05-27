@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/app/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Label } from '@/app/components/ui/label';
+import { DialogFooter, DialogClose } from '@/app/components/ui/dialog';
 import { Selectable, Proposal } from '@proposalsapp/db';
 import {
   useAccount,
@@ -16,7 +16,7 @@ import {
   ARBITRUM_CORE_GOVERNOR_ABI,
   ARBITRUM_CORE_GOVERNOR_ADDRESS,
 } from '@/lib/constants';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { ATTRIBUTION_TEXT } from '../../vote-button';
 import { Abi } from 'abitype';
 

@@ -9,9 +9,9 @@ import {
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
 import WalletProvider from './components/wallet-provider';
-import { Toaster } from '@/components/ui/sonner';
-import { SubdomainInfo } from '@/components/subdomain-info';
 import { firaSans, firaSansCondensed, firaMono } from '../lib/fonts';
+import { Toaster } from './components/ui/sonner';
+import { SubdomainInfo } from './components/ui/subdomain-info';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://proposals.app'),

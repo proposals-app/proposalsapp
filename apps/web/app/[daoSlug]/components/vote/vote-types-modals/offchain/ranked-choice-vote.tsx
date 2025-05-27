@@ -5,11 +5,11 @@ import { createPortal } from 'react-dom';
 import snapshot from '@snapshot-labs/snapshot.js';
 import { Web3Provider } from '@ethersproject/providers';
 import { useAccount, useWalletClient } from 'wagmi';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/app/components/ui/button';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Label } from '@/app/components/ui/label';
+import { Checkbox } from '@/app/components/ui/checkbox';
+import { DialogFooter, DialogClose } from '@/app/components/ui/dialog';
 import { GripVertical } from 'lucide-react';
 import {
   DndContext,
