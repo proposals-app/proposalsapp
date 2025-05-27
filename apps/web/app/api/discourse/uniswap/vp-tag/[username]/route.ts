@@ -40,6 +40,7 @@ export async function GET(
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers':
           'Content-Type, Discourse-Logged-In, Discourse-Present',
+        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
       },
     }
   );
@@ -63,6 +64,7 @@ export function OPTIONS(request: Request) {
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers':
         'Content-Type, Discourse-Logged-In, Discourse-Present',
+      'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
     },
   });
 }
