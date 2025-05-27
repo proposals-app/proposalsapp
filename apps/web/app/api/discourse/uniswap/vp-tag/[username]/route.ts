@@ -9,7 +9,6 @@ export async function GET(
     'https://proposalapp-test.discourse.group',
     'https://discourse.proposal.vote',
   ];
-
   const corsOrigin = allowedOrigins.includes(origin || '')
     ? origin!
     : allowedOrigins[0];
@@ -17,7 +16,6 @@ export async function GET(
   const { username } = await params;
   const searchParams = request.nextUrl.searchParams;
   const timestamp = searchParams.get('timestamp');
-
   const unixTimestamp = timestamp ? parseInt(timestamp) : null;
 
   const currentVP = Math.floor(Math.random() * 1001);
@@ -37,22 +35,22 @@ export async function GET(
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': corsOrigin,
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers':
-          'Content-Type, Discourse-Logged-In, Discourse-Present',
+          'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+        'Access-Control-Allow-Credentials': 'true',
         'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
       },
     }
   );
 }
 
-export function OPTIONS(request: Request) {
+export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin');
   const allowedOrigins = [
     'https://proposalapp-test.discourse.group',
     'https://discourse.proposal.vote',
   ];
-
   const corsOrigin = allowedOrigins.includes(origin || '')
     ? origin!
     : allowedOrigins[0];
@@ -61,10 +59,11 @@ export function OPTIONS(request: Request) {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': corsOrigin,
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers':
-        'Content-Type, Discourse-Logged-In, Discourse-Present',
-      'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+        'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
     },
   });
 }
