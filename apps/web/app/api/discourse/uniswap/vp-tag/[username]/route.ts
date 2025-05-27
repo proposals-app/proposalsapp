@@ -4,15 +4,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [
-    'https://proposalapp-test.discourse.group',
-    'https://discourse.proposal.vote',
-  ];
-  const corsOrigin = allowedOrigins.includes(origin || '')
-    ? origin!
-    : allowedOrigins[0];
-
   const { username } = await params;
   const searchParams = request.nextUrl.searchParams;
   const timestamp = searchParams.get('timestamp');
@@ -25,8 +16,8 @@ export async function GET(
 
   return new Response(
     JSON.stringify({
-      currentVP: `${currentVP} UNI`,
-      historicalVP: `${historicalVP} UNI`,
+      currentVP: currentVP,
+      historicalVP: historicalVP,
       username,
       url: 'https://arbitrum.proposals.app',
     }),
@@ -34,8 +25,8 @@ export async function GET(
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': corsOrigin,
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers':
           'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
         'Access-Control-Allow-Credentials': 'true',
@@ -45,25 +36,16 @@ export async function GET(
   );
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [
-    'https://proposalapp-test.discourse.group',
-    'https://discourse.proposal.vote',
-  ];
-  const corsOrigin = allowedOrigins.includes(origin || '')
-    ? origin!
-    : allowedOrigins[0];
-
+export async function OPTIONS() {
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': corsOrigin,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers':
         'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
       'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
+      'Access-Control-Max-Age': '86400',
     },
   });
 }
