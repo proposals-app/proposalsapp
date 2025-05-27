@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import {
   getBodyVersions,
   getFeed,
-} from '@/app/[daoSlug]/(main_page)/[groupId]/actions';
+} from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { Selectable, DiscoursePost } from '@proposalsapp/db';
 import { unstable_noStore as noStore } from 'next/cache';
