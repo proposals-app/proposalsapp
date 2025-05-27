@@ -1,76 +1,68 @@
-// app/api/discourse/uniswap/vp-tag/[username]/route.ts (or your actual path)
-import { NextRequest, NextResponse } from 'next/server';
-
-const ALLOWED_HEADERS = [
-  'Content-Type',
-  'Discourse-Logged-In',
-  'Discourse-Present',
-  'X-Requested-With',
-  'X-CSRF-Token',
-].join(', ');
+import { NextRequest } from 'next/server';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  try {
-    const { username } = await params;
-    const { searchParams } = new URL(request.url);
-    const timestamp = searchParams.get('timestamp');
-    const unixTimestamp = timestamp ? parseInt(timestamp) : null;
+  const origin = request.headers.get('origin');
+  const allowedOrigins = [
+    'https://proposalapp-test.discourse.group',
+    'https://discourse.proposal.vote',
+  ];
 
-    // Simulate fetching data based on username too if needed
-    console.log(
-      `API called for username: ${username}, timestamp: ${unixTimestamp}`
-    );
+  const corsOrigin = allowedOrigins.includes(origin || '')
+    ? origin!
+    : allowedOrigins[0];
 
-    const currentVP = Math.floor(Math.random() * 1001);
-    const historicalVP = unixTimestamp
-      ? Math.floor(Math.random() * 801)
-      : currentVP; // If no timestamp, historical might be same as current
+  const { username } = await params;
+  const searchParams = request.nextUrl.searchParams;
+  const timestamp = searchParams.get('timestamp');
 
-    return new NextResponse(
-      JSON.stringify({
-        currentVP: `${currentVP} UNI`,
-        historicalVP: `${historicalVP} UNI`,
-        url: 'https://arbitrum.proposals.app',
-        timestampProcessed: unixTimestamp,
-        usernameProcessed: username,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': ALLOWED_HEADERS,
-        },
-      }
-    );
-  } catch (error) {
-    console.error('API Error:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'Internal server error';
-    return new NextResponse(JSON.stringify({ error: errorMessage }), {
-      status: 500,
+  const unixTimestamp = timestamp ? parseInt(timestamp) : null;
+
+  const currentVP = Math.floor(Math.random() * 1001);
+  const historicalVP = unixTimestamp
+    ? Math.floor(Math.random() * 801)
+    : currentVP;
+
+  return new Response(
+    JSON.stringify({
+      currentVP: `${currentVP} UNI`,
+      historicalVP: `${historicalVP} UNI`,
+      username,
+      url: 'https://arbitrum.proposals.app',
+    }),
+    {
+      status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin,
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': ALLOWED_HEADERS,
+        'Access-Control-Allow-Headers':
+          'Content-Type, Discourse-Logged-In, Discourse-Present',
       },
-    });
-  }
+    }
+  );
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, {
+export function OPTIONS(request: Request) {
+  const origin = request.headers.get('origin');
+  const allowedOrigins = [
+    'https://proposalapp-test.discourse.group',
+    'https://discourse.proposal.vote',
+  ];
+
+  const corsOrigin = allowedOrigins.includes(origin || '')
+    ? origin!
+    : allowedOrigins[0];
+
+  return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': ALLOWED_HEADERS,
-      'Access-Control-Max-Age': '86400',
+      'Access-Control-Allow-Headers':
+        'Content-Type, Discourse-Logged-In, Discourse-Present',
     },
   });
 }
