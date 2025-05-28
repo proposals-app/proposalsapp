@@ -35,11 +35,16 @@ export const db_pool_public = new Pool({
 
 export const db_pool_arbitrum = new Pool({
   connectionString: process.env.ARBITRUM_DATABASE_URL,
+  options:"-c search_path=arbitrum",
   min: 5,
   max: 10,
   ssl: {
     rejectUnauthorized: false,
   },
+});
+
+db_pool_arbitrum.on("connect", (client) => {
+  client.query(`SET search_path TO arbitrum`);
 });
 
 const createDbPublicInstance = () => {

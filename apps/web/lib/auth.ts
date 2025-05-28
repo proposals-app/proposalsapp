@@ -9,7 +9,7 @@ import {
   resend,
 } from '@proposalsapp/emails';
 
-const INSTANCE_SLUG = process.env.WEB_INSTANCE_SLUG;
+const INSTANCE_SLUG = "arbitrum";
 
 export const auth = betterAuth({
   appName: 'proposals.app',
