@@ -42,6 +42,7 @@ lazy_static::lazy_static! {
     static ref DAO_SLUG_TO_KARMA_DAO_NAME: HashMap<&'static str, &'static str> = {
         let mut map = HashMap::new();
         map.insert("arbitrum", "arbitrum");
+        map.insert("uniswap", "uniswap");
         // Add more mappings as needed
         map
     };
@@ -77,6 +78,8 @@ async fn fetch_karma_data() -> Result<()> {
         let span = Span::current();
         span.record("dao_slug", &dao.slug);
 
+        info!("Processing dao: {}", dao.slug);
+
         if let Some(discourse) = maybe_dao_discourse {
             if let Some(karma_dao_name) = DAO_SLUG_TO_KARMA_DAO_NAME.get(dao.slug.as_str()) {
                 let mut offset = 0;
@@ -88,6 +91,8 @@ async fn fetch_karma_data() -> Result<()> {
                         "https://api.karmahq.xyz/api/dao/delegates?name={}&offset={}&order=desc&field=score&period=lifetime&pageSize={}&statuses=active,inactive,withdrawn,recognized",
                         karma_dao_name, offset, page_size
                     );
+
+                    info!("Fetching karma data for dao: {} url: {}", dao.slug, url);
 
                     let body = fetch_json_data(&client, &url, &dao.slug).await?;
                     let delegates = parse_json_data(&body, &dao.slug)?;
