@@ -156,11 +156,11 @@ export async function GET(
     }
 
     const responseBody: Record<string, string> = {
-      currentVP: formatNumberWithSuffix(totalCurrentVotingPower),
+      currentVotingPower: formatNumberWithSuffix(totalCurrentVotingPower),
     };
 
     if (parsedTimestamp) {
-      responseBody.historicalVP = formatNumberWithSuffix(
+      responseBody.historicalVotingPower = formatNumberWithSuffix(
         totalHistoricalVotingPower
       );
     }
