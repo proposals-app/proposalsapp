@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, anyhow};
 use once_cell::sync::Lazy;
-use rand::{seq::SliceRandom, thread_rng};
+use rand::seq::{IndexedRandom};
 use regex::Regex;
 use reqwest::{
     Client, StatusCode,
@@ -119,7 +119,7 @@ impl DiscourseApi {
 
     /// Selects a random user agent string.
     fn get_random_user_agent() -> &'static str {
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         USER_AGENTS
             .choose(&mut rng)
             .expect("USER_AGENTS array should not be empty")
