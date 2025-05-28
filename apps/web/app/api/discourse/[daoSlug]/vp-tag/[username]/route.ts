@@ -49,8 +49,6 @@ export async function GET(
     }
     parsedTimestamp = new Date(timestampNum * 1000);
     if (isNaN(parsedTimestamp.getTime())) {
-      // This secondary check might be redundant if parseInt handles non-numeric strings well,
-      // but it's a good safeguard for the Date constructor.
       return NextResponse.json(
         {
           error:
@@ -81,7 +79,6 @@ export async function GET(
       .selectAll()
       .executeTakeFirstOrThrow();
 
-    // dtdu means delegateToDiscourseUser records
     const dtduRecords = await db.public
       .selectFrom('delegateToDiscourseUser')
       .where('delegateToDiscourseUser.discourseUserId', '=', discourseUser.id)
@@ -140,7 +137,6 @@ export async function GET(
     let totalHistoricalVotingPower = 0;
 
     for (const address of voterAddresses) {
-      // Get current voting power (latest entry)
       const currentVpEntry = await db.public
         .selectFrom('votingPower')
         .where('votingPower.voter', '=', address)
@@ -153,7 +149,6 @@ export async function GET(
         totalCurrentVotingPower += Math.floor(currentVpEntry.votingPower);
       }
 
-      // Get historical voting power (latest entry at or before timestamp)
       if (parsedTimestamp) {
         const historicalVpEntry = await db.public
           .selectFrom('votingPower')
