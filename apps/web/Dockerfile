@@ -27,12 +27,14 @@ COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 
 # Build the project
 ARG DATABASE_URL=postgres://user:password@host:5432/database
-ARG ARBITRUM_DATABASE_URL=postgres://user:password@host:5432/database
+ARG ARBITRUM_DATABASE_URL=postgres://user:password@host:5432/database   
+ARG UNISWAP_DATABASE_URL=postgres://user:password@host:5432/database
 ARG REDIS_URL=redis://default:default@100.100.100.100:6379
 
-ENV REDIS_URL=${REDIS_URL}
 ENV DATABASE_URL=${DATABASE_URL}
 ENV ARBITRUM_DATABASE_URL=${ARBITRUM_DATABASE_URL}
+ENV UNISWAP_DATABASE_URL=${UNISWAP_DATABASE_URL}
+ENV REDIS_URL=${REDIS_URL}
 RUN yarn build-web
 
 # Use Debian Bookworm for the final stage

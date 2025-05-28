@@ -18,7 +18,7 @@ async function routeRequest(req: NextRequest, method: 'GET' | 'POST') {
   } else {
     return new NextResponse(JSON.stringify({ error: 'Invalid domain' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 }

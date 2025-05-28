@@ -182,6 +182,7 @@ export async function GET(
 
     return NextResponse.json(responseBody, { headers: HEADERS });
   } catch (error) {
+    console.error('Error fetching voting power:', error);
     return NextResponse.json(
       {
         currentVotingPower: 0,
