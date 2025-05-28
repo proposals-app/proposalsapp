@@ -4,6 +4,16 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 
 const DAO_SLUG = 'uniswap';
 
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers':
+    'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+  'Access-Control-Allow-Credentials': 'true',
+  // 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+};
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
@@ -21,7 +31,7 @@ export async function GET(
           error:
             'Invalid timestamp format. Please use a Unix timestamp (seconds).',
         },
-        { status: 400 }
+        { status: 400, headers: HEADERS }
       );
     }
     parsedTimestamp = new Date(timestampNum * 1000);
@@ -33,7 +43,7 @@ export async function GET(
           error:
             'Invalid timestamp value after parsing. Please provide a valid Unix timestamp (seconds).',
         },
-        { status: 400 }
+        { status: 400, headers: HEADERS }
       );
     }
   }
@@ -68,7 +78,7 @@ export async function GET(
     if (dtduRecords.length === 0) {
       return NextResponse.json(
         { error: 'No delegates found for this Discourse user.' },
-        { status: 400 }
+        { status: 400, headers: HEADERS }
       );
     }
 
@@ -86,7 +96,7 @@ export async function GET(
           error:
             'No voters found for the delegates associated with this Discourse user.',
         },
-        { status: 400 }
+        { status: 400, headers: HEADERS }
       );
     }
 
@@ -105,7 +115,7 @@ export async function GET(
         {
           error: 'No voter addresses found for the associated voter IDs.',
         },
-        { status: 400 }
+        { status: 400, headers: HEADERS }
       );
     }
 
@@ -157,7 +167,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(responseBody);
+    return NextResponse.json(responseBody, { headers: HEADERS });
   } catch (error) {
     console.error('Failed to fetch voting power:', error);
     // Check if the error is a Kysely NoResultError (or similar if it's wrapped)
@@ -165,12 +175,19 @@ export async function GET(
       // Kysely might not throw this name, adjust if needed. Check actual error.
       return NextResponse.json(
         { error: 'User or associated DAO data not found.' },
-        { status: 404 }
+        { status: 404, headers: HEADERS }
       );
     }
     return NextResponse.json(
       { error: 'Internal server error.' },
-      { status: 500 }
+      { status: 500, headers: HEADERS }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: HEADERS,
+  });
 }
