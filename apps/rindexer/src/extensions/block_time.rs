@@ -479,7 +479,7 @@ async fn past_scan_api_request(api_url: &str, api_key: &str, block_number: u64) 
 mod request_tests {
     use super::*;
     use chrono::{Duration, NaiveDate, NaiveTime};
-    use rand::prelude::*;
+    use rand::{prelude::*, rng};
     use serial_test::serial;
     use std::time::Instant;
     use tokio::task::JoinSet;
@@ -685,7 +685,7 @@ mod request_tests {
     async fn test_intensive_concurrency_all_networks_sequential() -> Result<()> {
         let networks = ["ethereum", "arbitrum", "optimism", "polygon"]; // Include all networks for more comprehensive test
         let num_tasks_per_network = 100;
-        let mut rng = rand::thread_rng();
+        let mut rng = rng();
 
         for network in networks {
             println!("Starting intensive test for network: {}", network);
@@ -732,7 +732,7 @@ mod request_tests {
             let network_start_time = Instant::now();
 
             for i in 0..num_tasks_per_network {
-                let offset: i64 = rng.gen_range(-100_000..=100_000);
+                let offset: i64 = rng.random_range(-100_000..=100_000);
 
                 let target_block_number = if offset >= 0 {
                     current_block.checked_add(offset as u64)
