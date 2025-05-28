@@ -156,13 +156,11 @@ export async function GET(
     }
 
     const responseBody: Record<string, string> = {
-      username,
-      daoSlug: DAO_SLUG,
-      currentVotingPower: formatNumberWithSuffix(totalCurrentVotingPower),
+      currentVP: formatNumberWithSuffix(totalCurrentVotingPower),
     };
 
     if (parsedTimestamp) {
-      responseBody.historicalVotingPower = formatNumberWithSuffix(
+      responseBody.historicalVP = formatNumberWithSuffix(
         totalHistoricalVotingPower
       );
     }
