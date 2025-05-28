@@ -172,18 +172,12 @@ export async function GET(
 
     return NextResponse.json(responseBody, { headers: HEADERS });
   } catch (error) {
-    console.error('Failed to fetch voting power:', error);
-    // Check if the error is a Kysely NoResultError (or similar if it's wrapped)
-    if (error instanceof Error && error.name === 'NoResultError') {
-      // Kysely might not throw this name, adjust if needed. Check actual error.
-      return NextResponse.json(
-        { error: 'User or associated DAO data not found.' },
-        { status: 404, headers: HEADERS }
-      );
-    }
     return NextResponse.json(
-      { error: 'Internal server error.' },
-      { status: 500, headers: HEADERS }
+      {
+        currentVotingPower: 0,
+        historicalVotingPower: 0,
+      },
+      { headers: HEADERS }
     );
   }
 }
