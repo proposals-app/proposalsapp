@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Bell, Mail, RefreshCw } from 'lucide-react';
-import { Session } from '@/lib/auth';
+import { Session } from '@/lib/auth/arbitrum_auth';
 import { useRouter } from 'next/navigation';
 import { saveSettings, SettingsData } from './../actions';
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { authClient } from '@/lib/auth-client';
-import { Session } from '@/lib/auth';
+import { authClient } from '@/lib/auth/auth-client';
+import { Session } from '@/lib/auth/arbitrum_auth';
 import { Mail, Trash2, RefreshCw } from 'lucide-react';
 
 interface AccountManagementProps {

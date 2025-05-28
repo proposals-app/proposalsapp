@@ -1,6 +1,6 @@
 'use client';
 
-import { signIn, emailOtp } from '@/lib/auth-client';
+import { signIn, emailOtp } from '@/lib/auth/auth-client';
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail } from 'lucide-react';

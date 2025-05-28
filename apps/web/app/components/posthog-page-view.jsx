@@ -3,7 +3,7 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { usePostHog } from 'posthog-js/react';
-import { useSession } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth/auth-client';
 
 export function PostHogIdentifier() {
   const posthog = usePostHog();

@@ -30,7 +30,7 @@ import { getDelegateByDiscourseUser } from './components/feed/actions';
 import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
 
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/arbitrum_auth';
 import { headers } from 'next/headers';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { groupIdSchema } from '@/lib/validations';

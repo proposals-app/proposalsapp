@@ -2,7 +2,7 @@ import { getGroups, getTotalVotingPower } from '../[daoSlug]/actions';
 import { GroupList } from '../[daoSlug]/components/group-list';
 import { MarkAllAsReadButton } from '../[daoSlug]/components/mark-all-as-read';
 import { Suspense } from 'react';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/arbitrum_auth';
 import { headers } from 'next/headers';
 import { ActiveGroupItem } from '../[daoSlug]/components/group-items/active-item';
 import { UniswapSummaryHeader } from './components/uniswap-summary-header';

@@ -2,7 +2,7 @@
 
 import { LogOutIcon } from 'lucide-react';
 import { usePostHog } from 'posthog-js/react';
-import { signOut } from '@/lib/auth-client';
+import { signOut } from '@/lib/auth/auth-client';
 import { useRouter } from 'next/navigation';
 
 export const SignOutButton = () => {

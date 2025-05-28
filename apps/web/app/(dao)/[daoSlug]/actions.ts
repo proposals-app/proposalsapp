@@ -3,7 +3,7 @@
 import { AsyncReturnType } from '@/lib/utils';
 import { db, sql } from '@proposalsapp/db';
 import { ProposalGroupItem } from '@/lib/types';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/arbitrum_auth';
 import { headers } from 'next/headers';
 import { revalidateTag } from 'next/cache';
 import { daoIdSchema, daoSlugSchema } from '@/lib/validations';

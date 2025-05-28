@@ -9,12 +9,10 @@ import {
   resend,
 } from '@proposalsapp/emails';
 
-const INSTANCE_SLUG = "arbitrum";
-
 export const auth = betterAuth({
   appName: 'proposals.app',
-  database: dbPool[INSTANCE_SLUG as keyof typeof db],
-  trustedOrigins: [`https://${INSTANCE_SLUG}.proposals.app`],
+  database: dbPool.uniswap,
+  trustedOrigins: [`https://uniswap.proposals.app`],
 
   plugins: [
     emailOTP({
@@ -117,7 +115,7 @@ export const auth = betterAuth({
             .execute();
 
           if (allGroups)
-            await db[INSTANCE_SLUG as keyof typeof db]
+            await db.uniswap
               .insertInto('userProposalGroupLastRead')
               .values(
                 allGroups.map((group) => ({
