@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@proposalsapp/db';
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { horizontalListSortingStrategy } from '@dnd-kit/sortable';
 
 const DAO_SLUG = 'uniswap';
+const IGNORED_USERS = ['admin', 'system'];
 
 const HEADERS = {
   'Content-Type': 'application/json',
@@ -20,6 +20,16 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
+
+  if (IGNORED_USERS.includes(username)) {
+    return NextResponse.json(
+      {
+        error: 'Access denied for this user.',
+      },
+      { status: 403, headers: HEADERS }
+    );
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const timestampStr = searchParams.get('timestamp');
 
