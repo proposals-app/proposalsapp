@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@proposalsapp/db';
 import { formatNumberWithSuffix } from '@/lib/utils';
+import { horizontalListSortingStrategy } from '@dnd-kit/sortable';
 
 const DAO_SLUG = 'uniswap';
 
@@ -77,8 +78,11 @@ export async function GET(
 
     if (dtduRecords.length === 0) {
       return NextResponse.json(
-        { error: 'No delegates found for this Discourse user.' },
-        { status: 400, headers: HEADERS }
+        {
+          currentVotingPower: 0,
+          historicalVotingPower: 0,
+        },
+        { headers: HEADERS }
       );
     }
 
@@ -93,10 +97,10 @@ export async function GET(
     if (dtvRecords.length === 0) {
       return NextResponse.json(
         {
-          error:
-            'No voters found for the delegates associated with this Discourse user.',
+          currentVotingPower: 0,
+          historicalVotingPower: 0,
         },
-        { status: 400, headers: HEADERS }
+        { headers: HEADERS }
       );
     }
 
@@ -113,9 +117,10 @@ export async function GET(
     if (voterAddresses.length === 0) {
       return NextResponse.json(
         {
-          error: 'No voter addresses found for the associated voter IDs.',
+          currentVotingPower: 0,
+          historicalVotingPower: 0,
         },
-        { status: 400, headers: HEADERS }
+        { headers: HEADERS }
       );
     }
 
