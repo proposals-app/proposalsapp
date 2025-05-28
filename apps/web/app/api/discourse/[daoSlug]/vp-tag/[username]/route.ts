@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@proposalsapp/db';
 import { formatNumberWithSuffix } from '@/lib/utils';
 
-const DAO_SLUG = 'uniswap';
-const IGNORED_USERS = ['admin', 'system'];
+const IGNORED_USERS: Record<string, string[]> = {
+  uniswap: ['admin', 'system'],
+};
 
 const HEADERS = {
   'Content-Type': 'application/json',
@@ -12,16 +13,17 @@ const HEADERS = {
   'Access-Control-Allow-Headers':
     'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
   'Access-Control-Allow-Credentials': 'true',
-  // 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+  'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
 };
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ username: string }> }
+  { params }: { params: Promise<{ daoSlug: string; username: string }> }
 ) {
-  const { username } = await params;
+  const { username, daoSlug } = await params;
 
-  if (IGNORED_USERS.includes(username)) {
+  const ignoredUsersForDao = IGNORED_USERS[daoSlug] || [];
+  if (ignoredUsersForDao.includes(username)) {
     return NextResponse.json(
       {
         error: 'Access denied for this user.',
@@ -60,22 +62,22 @@ export async function GET(
   }
 
   try {
-    const uniswapDao = await db.public
+    const dao = await db.public
       .selectFrom('dao')
-      .where('dao.slug', '=', DAO_SLUG)
+      .where('dao.slug', '=', daoSlug)
       .selectAll()
       .executeTakeFirstOrThrow();
 
-    const uniswapDiscourse = await db.public
+    const daoDiscourse = await db.public
       .selectFrom('daoDiscourse')
-      .where('daoDiscourse.daoId', '=', uniswapDao.id)
+      .where('daoDiscourse.daoId', '=', dao.id)
       .selectAll()
       .executeTakeFirstOrThrow();
 
     const discourseUser = await db.public
       .selectFrom('discourseUser')
       .where('discourseUser.username', '=', username)
-      .where('discourseUser.daoDiscourseId', '=', uniswapDiscourse.id)
+      .where('discourseUser.daoDiscourseId', '=', daoDiscourse.id)
       .selectAll()
       .executeTakeFirstOrThrow();
 
@@ -142,7 +144,7 @@ export async function GET(
       const currentVpEntry = await db.public
         .selectFrom('votingPower')
         .where('votingPower.voter', '=', address)
-        .where('votingPower.daoId', '=', uniswapDao.id)
+        .where('votingPower.daoId', '=', dao.id)
         .orderBy('votingPower.timestamp', 'desc')
         .select('votingPower.votingPower')
         .executeTakeFirst();
@@ -156,7 +158,7 @@ export async function GET(
         const historicalVpEntry = await db.public
           .selectFrom('votingPower')
           .where('votingPower.voter', '=', address)
-          .where('votingPower.daoId', '=', uniswapDao.id)
+          .where('votingPower.daoId', '=', dao.id)
           .where('votingPower.timestamp', '<=', parsedTimestamp)
           .orderBy('votingPower.timestamp', 'desc')
           .select('votingPower.votingPower')
