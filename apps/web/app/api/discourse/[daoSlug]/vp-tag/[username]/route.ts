@@ -16,6 +16,14 @@ const HEADERS = {
   'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
 };
 
+const emptyResponse = NextResponse.json(
+  {
+    currentVotingPower: 0,
+    historicalVotingPower: 0,
+  },
+  { headers: HEADERS }
+);
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ daoSlug: string; username: string }> }
@@ -77,7 +85,11 @@ export async function GET(
       .where('discourseUser.username', '=', username)
       .where('discourseUser.daoDiscourseId', '=', daoDiscourse.id)
       .selectAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+
+    if (!discourseUser) {
+      return emptyResponse;
+    }
 
     const dtduRecords = await db.public
       .selectFrom('delegateToDiscourseUser')
@@ -86,13 +98,7 @@ export async function GET(
       .execute();
 
     if (dtduRecords.length === 0) {
-      return NextResponse.json(
-        {
-          currentVotingPower: 0,
-          historicalVotingPower: 0,
-        },
-        { headers: HEADERS }
-      );
+      return emptyResponse;
     }
 
     const delegateIds = dtduRecords.map((record) => record.delegateId);
@@ -104,13 +110,7 @@ export async function GET(
       .execute();
 
     if (dtvRecords.length === 0) {
-      return NextResponse.json(
-        {
-          currentVotingPower: 0,
-          historicalVotingPower: 0,
-        },
-        { headers: HEADERS }
-      );
+      return emptyResponse;
     }
 
     const voterIds = dtvRecords.map((record) => record.voterId);
@@ -124,13 +124,7 @@ export async function GET(
     const voterAddresses = voters.map((v) => v.address);
 
     if (voterAddresses.length === 0) {
-      return NextResponse.json(
-        {
-          currentVotingPower: 0,
-          historicalVotingPower: 0,
-        },
-        { headers: HEADERS }
-      );
+      return emptyResponse;
     }
 
     let totalCurrentVotingPower = 0;
@@ -180,13 +174,7 @@ export async function GET(
     return NextResponse.json(responseBody, { headers: HEADERS });
   } catch (error) {
     console.error('Error fetching voting power:', error);
-    return NextResponse.json(
-      {
-        currentVotingPower: 0,
-        historicalVotingPower: 0,
-      },
-      { headers: HEADERS }
-    );
+    return emptyResponse;
   }
 }
 
