@@ -37,8 +37,8 @@ pub async fn initialize_db() -> Result<()> {
     let mut opt = sea_orm::ConnectOptions::new(database_url);
     opt.max_connections(25)
         .min_connections(5)
-        .connect_timeout(Duration::from_secs(5))
-        .acquire_timeout(Duration::from_secs(8))
+        .connect_timeout(Duration::from_secs(30))
+        .acquire_timeout(Duration::from_secs(30))
         .idle_timeout(Duration::from_secs(10 * 60))
         .max_lifetime(Duration::from_secs(30 * 60))
         .sqlx_logging(false);

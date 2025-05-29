@@ -16,7 +16,7 @@
     "react-dom": "19.1.0",
     "react-email": "4.0.15",
     "resend": "^4.5.1",
-    "tailwindcss": "^4.1.7"
+    "tailwindcss": "^4.1.8"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
