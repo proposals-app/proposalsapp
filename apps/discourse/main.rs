@@ -17,7 +17,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{task::JoinSet, time::interval_at};
-use tracing::{Instrument, debug, error, info, instrument, warn};
+use tracing::{Instrument, error, info, instrument, warn};
 use utils::tracing::setup_otel;
 
 mod db_handler;
@@ -33,7 +33,6 @@ const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
 
 const HEALTH_CHECK_PORT: u16 = 3000;
-const BETTERSTACK_HEARTBEAT_ENV: &str = "BETTERSTACK_KEY";
 
 pub const MAX_PAGES_PER_RUN: u32 = 1000; // Safety break for pagination loops
 pub const RECENT_LOOKBACK_HOURS: i64 = 2; // How far back to look for "recent" items
@@ -86,6 +85,18 @@ async fn main() -> Result<()> {
         }
         .instrument(tracing::info_span!("health_check_server")),
     );
+
+    let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
+    let client = Client::new();
+    tokio::spawn(async move {
+        loop {
+            match client.get(uptime_key.clone()).send().await {
+                Ok(_) => info!("Uptime ping sent successfully"),
+                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
 
     // --- Initialize API Clients and Indexers ---
     let dao_discourses = dao_discourse::Entity::find()
@@ -232,49 +243,6 @@ async fn main() -> Result<()> {
     // and wait for it to finish (which it won't unless the process is killed)
     if let Err(e) = server_handle.await {
         error!(error = ?e, "Health check server task finished with an error.");
-    }
-
-    // --- Spawn Uptime Heartbeat Task ---
-    if let Ok(heartbeat_url) = std::env::var(BETTERSTACK_HEARTBEAT_ENV) {
-        if !heartbeat_url.is_empty() {
-            info!(url = %heartbeat_url, "Starting Better Uptime heartbeat task.");
-            let heartbeat_client = shared_http_client.clone();
-            indexer_tasks.spawn(
-                async move {
-                    let start_delay = tokio::time::Instant::now() + Duration::from_secs(5);
-                    let mut interval = interval_at(start_delay, Duration::from_secs(30)); // Send every 30s
-                    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-                    loop {
-                        tokio::select! {
-                             _ = interval.tick() => {
-                                  match heartbeat_client.get(&heartbeat_url).send().await {
-                                        Ok(response) if response.status().is_success() => {
-                                             debug!("Uptime heartbeat sent successfully.");
-                                        }
-                                        Ok(response) => {
-                                             warn!(status = %response.status(), "Uptime heartbeat request failed with unexpected status.");
-                                        }
-                                        Err(e) => {
-                                             warn!(error = ?e, "Failed to send uptime heartbeat.");
-                                        }
-                                   }
-                             }
-                        }
-                    }
-                }
-                .instrument(tracing::info_span!("heartbeat_task")),
-            );
-        } else {
-            warn!(
-                "{} environment variable is set but empty. Skipping uptime heartbeat task.",
-                BETTERSTACK_HEARTBEAT_ENV
-            );
-        }
-    } else {
-        warn!(
-            "{} environment variable not set. Skipping uptime heartbeat task.",
-            BETTERSTACK_HEARTBEAT_ENV
-        );
     }
 
     // The spawned tasks (indexers and heartbeat) and the health check server
