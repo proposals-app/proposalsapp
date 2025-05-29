@@ -6,7 +6,7 @@ use crate::{
     indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer},
 };
 use anyhow::{Context, Result};
-use axum::{Router, routing::get};
+use axum::Router;
 use dotenv::dotenv;
 use proposalsapp_db::models::dao_discourse;
 use reqwest::Client;
@@ -31,8 +31,6 @@ const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_secs(60 * 60);
 
 const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
-
-const HEALTH_CHECK_PORT: u16 = 3000;
 
 pub const MAX_PAGES_PER_RUN: u32 = 1000; // Safety break for pagination loops
 pub const RECENT_LOOKBACK_HOURS: i64 = 2; // How far back to look for "recent" items
@@ -61,30 +59,16 @@ async fn main() -> Result<()> {
 
     info!("Database initialized.");
 
-    // --- Start Health Check Server ---
-    let server_handle = tokio::spawn(
-        async move {
-            let app = Router::new().route("/health", get(|| async { "OK" }));
-            let bind_addr = format!("0.0.0.0:{}", HEALTH_CHECK_PORT);
-            info!(address = %bind_addr, "Starting health check server");
-
-            let listener = match tokio::net::TcpListener::bind(&bind_addr).await {
-                Ok(l) => l,
-                Err(e) => {
-                    error!(error = ?e, address = %bind_addr, "Failed to bind health check server");
-                    return; // Exit task if binding fails
-                }
-            };
-
-            let server = axum::serve(listener, app);
-
-            if let Err(e) = server.await {
-                error!(error = ?e, "Health check server error occurred");
-            }
-            info!("Health check server shut down.");
+    // Start health check server
+    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        info!(address = %addr, "Starting health check server");
+        if let Err(e) = axum::serve(listener, app).await {
+            error!(error = %e, "Health check server error");
         }
-        .instrument(tracing::info_span!("health_check_server")),
-    );
+    });
 
     let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
     let client = Client::new();
@@ -110,7 +94,6 @@ async fn main() -> Result<()> {
         warn!("No enabled DAO Discourse configurations found. Indexer will idle.");
         // Wait for server task to potentially exit if binding failed, otherwise it runs indefinitely.
         // The main loop below will not be entered.
-        let _ = server_handle.await;
         return Ok(());
     }
 
@@ -238,23 +221,6 @@ async fn main() -> Result<()> {
             .instrument(tracing::info_span!("recent_updates_task", dao = %dao_name)),
         );
     }
-
-    // Keep the health check server task running indefinitely
-    // and wait for it to finish (which it won't unless the process is killed)
-    if let Err(e) = server_handle.await {
-        error!(error = ?e, "Health check server task finished with an error.");
-    }
-
-    // The spawned tasks (indexers and heartbeat) and the health check server
-    // are now running indefinitely. The main function will effectively
-    // complete here, but the tokio runtime will keep running as long as
-    // there are active, non-finishing tasks.
-
-    // opentelemetry::global::shutdown_tracer_provider(); // This might prevent metrics export on
-    // SIGTERM
-
-    // Note: With shutdown logic removed, Ctrl+C/SIGTERM will terminate the process directly.
-    // Tasks are not gracefully shut down.
 
     Ok(())
 }
