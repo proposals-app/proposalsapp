@@ -12,14 +12,6 @@ import axios from "axios";
 
 config();
 
-const app = express();
-const port = 3000;
-
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.send("OK");
-});
-
 export type ProposalItem = {
   type: "proposal";
   name: string;
@@ -543,9 +535,16 @@ const sendUptimePing = async () => {
 
 setInterval(sendUptimePing, 10 * 1000);
 
+const app = express();
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 // Start server
-app.listen(port, () => {
-  console.log(`Email service listening on port ${port}`);
+app.listen(3000, () => {
+  console.log(`Email service listening on port 3000`);
 });
 
 export { app };

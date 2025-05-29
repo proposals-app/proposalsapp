@@ -39,7 +39,7 @@ export const db_pool_public = new Pool({
 
 export const db_pool_arbitrum = new Pool({
   connectionString: process.env.ARBITRUM_DATABASE_URL,
-  options:"-c search_path=arbitrum",
+  options: "-c search_path=arbitrum",
   min: 5,
   max: 10,
   ssl: {
@@ -49,7 +49,7 @@ export const db_pool_arbitrum = new Pool({
 
 export const db_pool_uniswap = new Pool({
   connectionString: process.env.UNISWAP_DATABASE_URL,
-  options:"-c search_path=uniswap",
+  options: "-c search_path=uniswap",
   min: 5,
   max: 10,
   ssl: {
@@ -83,11 +83,7 @@ const createDbArbitrumInstance = () => {
     dialect: new PostgresDialect({
       pool: db_pool_arbitrum,
     }),
-    plugins: [
-      new CamelCasePlugin(),
-      new DeduplicateJoinsPlugin(),
-      new ParseJSONResultsPlugin(),
-    ],
+    plugins: [new DeduplicateJoinsPlugin(), new ParseJSONResultsPlugin()],
   });
 };
 
