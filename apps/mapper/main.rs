@@ -3,7 +3,6 @@
 use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
-use metrics::Metrics;
 use once_cell::sync::OnceCell;
 use reqwest::Client;
 use sea_orm::DatabaseConnection;
@@ -13,7 +12,6 @@ use utils::tracing::setup_otel;
 
 mod grouper;
 mod karma;
-mod metrics;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
@@ -44,7 +42,6 @@ async fn main() -> Result<()> {
 
     info!("Application starting up");
     initialize_db().await?;
-    Metrics::init();
 
     // Start health check server
     let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
@@ -65,7 +62,10 @@ async fn main() -> Result<()> {
             if let Err(e) = grouper::run_group_task().await {
                 error!(error = %e, "Grouper task runtime error");
             }
-            info!("Grouper task completed, sleeping for {} seconds", interval.as_secs());
+            info!(
+                "Grouper task completed, sleeping for {} seconds",
+                interval.as_secs()
+            );
             tokio::time::sleep(interval).await;
         }
     });
@@ -78,12 +78,15 @@ async fn main() -> Result<()> {
             if let Err(e) = karma::run_karma_task().await {
                 error!(error = %e, "Karma task runtime error");
             }
-            info!("Karma task completed, sleeping for {} seconds", interval.as_secs());
+            info!(
+                "Karma task completed, sleeping for {} seconds",
+                interval.as_secs()
+            );
             tokio::time::sleep(interval).await;
         }
     });
 
-    // // Uptime ping task
+    // Uptime ping task
     let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
     let client = Client::new();
     let uptime_handle = tokio::spawn(async move {

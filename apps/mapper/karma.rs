@@ -1,3 +1,4 @@
+use crate::DB;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
@@ -6,7 +7,7 @@ use rand;
 use reqwest::Client;
 use sea_orm::{
     ActiveValue::NotSet,
-    ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
+    ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait,
     prelude::{Expr, Uuid},
 };
 use serde::Deserialize;
@@ -16,8 +17,6 @@ use tokio::{
     time::{Instant, sleep},
 };
 use tracing::{Span, info, instrument, warn};
-
-use crate::{DB, metrics::METRICS};
 
 #[derive(Debug, Deserialize)]
 struct KarmaFullApiResponse {
@@ -29,7 +28,7 @@ struct KarmaApiResponseData {
     delegates: Vec<KarmaDelegate>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 struct KarmaDelegate {
     #[serde(rename = "publicAddress")]
     public_address: String,
@@ -52,20 +51,8 @@ lazy_static::lazy_static! {
     };
 }
 
-pub async fn run_karma_task() -> Result<()> {
-    let start_time = Instant::now();
-    fetch_karma_data().await?;
-    METRICS
-        .get()
-        .unwrap()
-        .karma_fetch_duration
-        .record(start_time.elapsed().as_secs_f64(), &[]);
-
-    Ok(())
-}
-
 #[instrument]
-async fn fetch_karma_data() -> Result<()> {
+pub async fn run_karma_task() -> Result<()> {
     let client = Client::new();
     let daos = fetch_daos_with_discourse().await?;
 
@@ -93,7 +80,7 @@ async fn fetch_karma_data() -> Result<()> {
                     let delegates = parse_json_data(&body, &dao.slug)?;
 
                     if delegates.is_empty() {
-                        break; // No more delegates to fetch
+                        break;
                     }
 
                     all_delegates.extend(delegates);
@@ -105,12 +92,6 @@ async fn fetch_karma_data() -> Result<()> {
                     let address: Address = delegate.public_address.parse()?;
                     delegate.public_address = address.to_checksum(None);
                 }
-
-                METRICS
-                    .get()
-                    .unwrap()
-                    .karma_delegates_processed
-                    .add(all_delegates.len() as u64, &[]);
 
                 let delegates_with_forum_handle: Vec<&KarmaDelegate> = all_delegates
                     .iter()
@@ -416,12 +397,17 @@ fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
 
 #[instrument(skip( dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
 async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_discourse_id: Uuid, forum_handle: &str) -> Result<()> {
-    let start_time = Instant::now();
+    let txn = DB
+        .get()
+        .unwrap()
+        .begin()
+        .await
+        .context("Failed to start transaction")?;
 
     // Check if the voter exists
     let mut voter: Option<voter::Model> = voter::Entity::find()
         .filter(voter::Column::Address.eq(delegate_data.public_address.clone()))
-        .one(DB.get().unwrap())
+        .one(&txn)
         .await
         .with_context(|| {
             format!(
@@ -440,7 +426,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             updated_at: Set(Utc::now().naive_utc()),
         };
         let last_insert_id = voter::Entity::insert(new_voter)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -456,14 +442,13 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             avatar: None,
             updated_at: Utc::now().naive_utc(),
         });
-        METRICS.get().unwrap().db_inserts.add(1, &[]);
     }
 
     // Check if the discourse user exists by dao_discourse_id and forum_handle
     let discourse_user: Option<discourse_user::Model> = discourse_user::Entity::find()
         .filter(Expr::cust("LOWER(username)").eq(forum_handle.to_lowercase()))
         .filter(discourse_user::Column::DaoDiscourseId.eq(dao_discourse_id))
-        .one(DB.get().unwrap())
+        .one(&txn)
         .await
         .with_context(|| {
             format!(
@@ -477,6 +462,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             "Discourse user not found for forum handle: {} and dao_discourse_id: {}",
             forum_handle, dao_discourse_id
         );
+        txn.rollback().await?;
         return Ok(());
     }
 
@@ -491,7 +477,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             .filter(delegate_to_voter::Column::VoterId.eq(voter.id))
             .inner_join(delegate::Entity)
             .filter(delegate::Column::DaoId.eq(dao.id))
-            .one(DB.get().unwrap())
+            .one(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -513,7 +499,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
                 .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user.id))
                 .inner_join(delegate::Entity)
                 .filter(delegate::Column::DaoId.eq(dao.id))
-                .one(DB.get().unwrap())
+                .one(&txn)
                 .await
                 .with_context(|| {
                     format!(
@@ -537,7 +523,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             dao_id: Set(dao.id),
         };
         let last_insert_id = delegate::Entity::insert(new_delegate)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| format!("Failed to insert new delegate for dao_id: {}", dao.id))?
             .last_insert_id;
@@ -554,7 +540,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
     let existing_dtv = delegate_to_voter::Entity::find()
         .filter(delegate_to_voter::Column::DelegateId.eq(delegate.id))
         .filter(delegate_to_voter::Column::VoterId.eq(voter_id))
-        .one(DB.get().unwrap())
+        .one(&txn)
         .await
         .with_context(|| {
             format!(
@@ -569,7 +555,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
         let mut active_dtv = dtv.into_active_model();
         active_dtv.period_end = Set(one_hour_later);
         delegate_to_voter::Entity::update(active_dtv)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -583,7 +569,6 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             voter_id = voter_id.to_string(),
             "Updated delegate_to_voter mapping"
         );
-        METRICS.get().unwrap().db_updates.add(1, &[]);
     } else {
         // Insert new delegate_to_voter mapping
         let new_dtv = delegate_to_voter::ActiveModel {
@@ -597,7 +582,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             created_at: Set(now),
         };
         delegate_to_voter::Entity::insert(new_dtv)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -611,14 +596,13 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             voter_id = voter_id.to_string(),
             "Created new delegate_to_voter mapping"
         );
-        METRICS.get().unwrap().db_inserts.add(1, &[]);
     }
 
     // Insert or update the delegate_to_discourse_user mapping
     let existing_dtdu = delegate_to_discourse_user::Entity::find()
         .filter(delegate_to_discourse_user::Column::DelegateId.eq(delegate.id))
         .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user_id))
-        .one(DB.get().unwrap())
+        .one(&txn)
         .await
         .with_context(|| {
             format!(
@@ -634,7 +618,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
         active_dtdu.period_end = Set(one_hour_later);
         active_dtdu.verified = Set(delegate_data.is_forum_verified);
         delegate_to_discourse_user::Entity::update(active_dtdu)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -648,7 +632,6 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             discourse_user_id = discourse_user_id.to_string(),
             "Updated delegate_to_discourse_user mapping"
         );
-        METRICS.get().unwrap().db_updates.add(1, &[]);
     } else {
         // Insert new delegate_to_discourse_user mapping
         let new_dtdu = delegate_to_discourse_user::ActiveModel {
@@ -662,7 +645,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             created_at: Set(now),
         };
         delegate_to_discourse_user::Entity::insert(new_dtdu)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -676,14 +659,9 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             discourse_user_id = discourse_user_id.to_string(),
             "Created new delegate_to_discourse_user mapping"
         );
-        METRICS.get().unwrap().db_inserts.add(1, &[]);
     }
 
-    METRICS
-        .get()
-        .unwrap()
-        .db_query_duration
-        .record(start_time.elapsed().as_secs_f64(), &[]);
+    txn.commit().await?;
 
     Ok(())
 }
