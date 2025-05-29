@@ -13,7 +13,7 @@ import axios from "axios";
 config();
 
 const app = express();
-const port = process.env.PORT || 3002;
+const port = 3000;
 
 // Health check endpoint
 app.get("/health", (req, res) => {

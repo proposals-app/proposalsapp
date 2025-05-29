@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
     // --- Start Health Check Server ---
     let server_handle = tokio::spawn(
         async move {
-            let app = Router::new().route("/", get(|| async { "OK" }));
+            let app = Router::new().route("/health", get(|| async { "OK" }));
             let bind_addr = format!("0.0.0.0:{}", HEALTH_CHECK_PORT);
             info!(address = %bind_addr, "Starting health check server");
 

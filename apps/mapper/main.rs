@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
     Metrics::init();
 
     // Start health check server
-    let app = Router::new().route("/", axum::routing::get(|| async { "OK" }));
+    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
     let server_handle = tokio::spawn(async move {

@@ -1,5 +1,6 @@
 use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
 use anyhow::{Context, Result};
+use axum::Router;
 use dotenv::dotenv;
 use extensions::{db_extension::initialize_db, snapshot_api::initialize_snapshot_api};
 use reqwest::Client;
@@ -64,6 +65,16 @@ async fn main() -> Result<()> {
                 Err(e) => warn!(error = %e, "Failed to send uptime ping"),
             }
             tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
+
+    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        info!(address = %addr, "Starting health check server");
+        if let Err(e) = axum::serve(listener, app).await {
+            error!(error = %e, "Health check server error");
         }
     });
 
