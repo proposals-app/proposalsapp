@@ -4837,7 +4837,7 @@ __metadata:
     "@synthetixio/synpress": "npm:^4.1.0"
     "@tailwindcss/postcss": "npm:^4.1.8"
     "@tailwindcss/typography": "npm:^0.5.16"
-    "@tanstack/react-query": "npm:^5.77.2"
+    "@tanstack/react-query": "npm:^5.79.0"
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
@@ -4902,7 +4902,7 @@ __metadata:
     tailwind-merge: "npm:^3.3.0"
     tailwindcss: "npm:^4.1.8"
     tailwindcss-animate: "npm:1.0.7"
-    tw-animate-css: "npm:^1.3.1"
+    tw-animate-css: "npm:^1.3.2"
     typescript: "npm:^5.8.3"
     unified: "npm:^11.0.5"
     uuid: "npm:^11.1.0"
@@ -6910,21 +6910,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.77.2":
-  version: 5.77.2
-  resolution: "@tanstack/query-core@npm:5.77.2"
-  checksum: 10c0/2c83a23f61443de054250f35f596345d0ed4731b2bf4218f2acbef224255d0d9a1e41547e56ec58db4da5a97942cdd829c5d7c3906fc4a23857dd16f4d4608de
+"@tanstack/query-core@npm:5.79.0":
+  version: 5.79.0
+  resolution: "@tanstack/query-core@npm:5.79.0"
+  checksum: 10c0/614c9f4dc7cb4df9c6804f67a76e2d580af5fa7b25505c2e3c5137bfa40d2005a1a96606c9f8e533754c78722e23708948760104a460fd8bc06df990fea42afb
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.77.2":
-  version: 5.77.2
-  resolution: "@tanstack/react-query@npm:5.77.2"
+"@tanstack/react-query@npm:^5.79.0":
+  version: 5.79.0
+  resolution: "@tanstack/react-query@npm:5.79.0"
   dependencies:
-    "@tanstack/query-core": "npm:5.77.2"
+    "@tanstack/query-core": "npm:5.79.0"
   peerDependencies:
     react: ^18 || ^19
-  checksum: 10c0/949d866ca8e1264ab506c7ac5ae11a596103a2f0c5cbf46022a22d256951791e330a8f126011cc6a73831514f889b87de11063d04f14014038375ae5a7ad3556
+  checksum: 10c0/f1d440075b7f8e7738cd4f26a87a089c0efaf282e633cfb9db249ef20068d5f4f14c9d990a304b96df183bffc8839ee579853fef212c213510c425b8092630be
   languageName: node
   linkType: hard
 
@@ -24156,10 +24156,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tw-animate-css@npm:^1.3.1":
-  version: 1.3.1
-  resolution: "tw-animate-css@npm:1.3.1"
-  checksum: 10c0/fd43e681ecc7b05e357dd753a9d13805bef4d1beb19a9d96eaa9495c1615f65e7d5b0af1aab3a221898e82c1ac331e3f65d61c535f939053ea04a0d900c2b93a
+"tw-animate-css@npm:^1.3.2":
+  version: 1.3.2
+  resolution: "tw-animate-css@npm:1.3.2"
+  checksum: 10c0/0cdac9936f1f8e9889118212d12d5aa1a29ef08bebc14906e6cbc4c46eae3bdd0aaba26f3a148a41b007da08380ed127db39d713a19b6d84ce5b7be170f238b0
   languageName: node
   linkType: hard
 

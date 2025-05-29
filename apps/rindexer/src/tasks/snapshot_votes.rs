@@ -389,7 +389,7 @@ async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64>
     let timestamp = vote::Entity::find()
         .select_only()
         .column_as(
-            Expr::cust("COALESCE(MAX(created_at), '1970-01-01 00:00:00')"),
+            Expr::cust("COALESCE(MAX(created_at::TIMESTAMPTZ), '1970-01-01 00:00:00+00')"),
             "max_timestamp",
         )
         .filter(vote::Column::GovernorId.eq(governor_id))
