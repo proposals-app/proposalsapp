@@ -30,6 +30,10 @@ FROM node:22-alpine
 WORKDIR /app
 ARG APP_NAME
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable && corepack prepare yarn@4 --activate
 
 # Copy only necessary files

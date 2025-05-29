@@ -5,7 +5,7 @@ use crate::{
     discourse_api::DiscourseApi,
     indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer},
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Error, Result};
 use axum::Router;
 use dotenv::dotenv;
 use proposalsapp_db::models::dao_discourse;
@@ -47,11 +47,9 @@ lazy_static::lazy_static! {
 #[instrument]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let _otel_guard = setup_otel()
-        .await
-        .context("Failed to setup OpenTelemetry")?;
+    let _otel = setup_otel().await?;
 
-    info!("Discourse Indexer application starting up...");
+    info!("Application starting up");
 
     initialize_db()
         .await
@@ -63,7 +61,7 @@ async fn main() -> Result<()> {
     let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
+    let health_server_handle = tokio::spawn(async move {
         info!(address = %addr, "Starting health check server");
         if let Err(e) = axum::serve(listener, app).await {
             error!(error = %e, "Health check server error");
@@ -72,7 +70,7 @@ async fn main() -> Result<()> {
 
     let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
     let client = Client::new();
-    tokio::spawn(async move {
+    let uptime_handle = tokio::spawn(async move {
         loop {
             match client.get(uptime_key.clone()).send().await {
                 Ok(_) => info!("Uptime ping sent successfully"),
@@ -92,13 +90,27 @@ async fn main() -> Result<()> {
 
     if dao_discourses.is_empty() {
         warn!("No enabled DAO Discourse configurations found. Indexer will idle.");
-        // Wait for server task to potentially exit if binding failed, otherwise it runs indefinitely.
-        // The main loop below will not be entered.
+        // Keep the health server and uptime ping running even if no DAOs are configured
+        info!("Running indefinitely with health server and uptime ping only");
+
+        tokio::select! {
+            result = health_server_handle => {
+                error!("Health server task completed unexpectedly: {:?}", result);
+            }
+            result = uptime_handle => {
+                error!("Uptime task completed unexpectedly: {:?}", result);
+            }
+            _ = tokio::signal::ctrl_c() => {
+                info!("Received Ctrl+C, shutting down gracefully");
+            }
+        }
+
+        info!("Application shutting down");
         return Ok(());
     }
 
     let shared_http_client = Arc::new(Client::new());
-    let mut indexer_tasks = JoinSet::new();
+    let mut indexer_tasks: JoinSet<Result<_, Error>> = JoinSet::new();
 
     for (dao_config, dao_details_vec) in dao_discourses {
         // Assuming one DAO per dao_discourse record
@@ -222,6 +234,38 @@ async fn main() -> Result<()> {
         );
     }
 
+    info!("All indexer tasks started, application running indefinitely");
+
+    // Wait for any task to complete or for shutdown signal
+    tokio::select! {
+        result = health_server_handle => {
+            error!("Health server task completed unexpectedly: {:?}", result);
+        }
+        result = uptime_handle => {
+            error!("Uptime task completed unexpectedly: {:?}", result);
+        }
+        result = indexer_tasks.join_next() => {
+            match result {
+                Some(Ok(Ok(()))) => {
+                    error!("Indexer task completed unexpectedly (success)");
+                }
+                Some(Ok(Err(e))) => {
+                    error!("Indexer task completed with error: {:?}", e);
+                }
+                Some(Err(e)) => {
+                    error!("Indexer task panicked: {:?}", e);
+                }
+                None => {
+                    error!("All indexer tasks completed unexpectedly");
+                }
+            }
+        }
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received Ctrl+C, shutting down gracefully");
+        }
+    }
+
+    info!("Application shutting down");
     Ok(())
 }
 

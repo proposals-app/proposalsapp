@@ -1,5 +1,4 @@
 #![warn(unused_extern_crates)]
-
 use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
@@ -17,7 +16,6 @@ pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
-
     let mut opt = sea_orm::ConnectOptions::new(database_url);
     opt.max_connections(25)
         .min_connections(5)
@@ -26,11 +24,9 @@ pub async fn initialize_db() -> Result<()> {
         .idle_timeout(Duration::from_secs(10 * 60))
         .max_lifetime(Duration::from_secs(30 * 60))
         .sqlx_logging(false);
-
     let db = sea_orm::Database::connect(opt)
         .await
         .context("Failed to connect to the database")?;
-
     DB.set(db)
         .map_err(|_| anyhow::anyhow!("Failed to set database connection"))
 }
@@ -39,7 +35,6 @@ pub async fn initialize_db() -> Result<()> {
 async fn main() -> Result<()> {
     dotenv().ok();
     let _otel = setup_otel().await?;
-
     info!("Application starting up");
     initialize_db().await?;
 
@@ -47,7 +42,8 @@ async fn main() -> Result<()> {
     let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
+
+    let health_server_handle = tokio::spawn(async move {
         info!(address = %addr, "Starting health check server");
         if let Err(e) = axum::serve(listener, app).await {
             error!(error = %e, "Health check server error");
@@ -99,5 +95,27 @@ async fn main() -> Result<()> {
         }
     });
 
+    info!("All tasks started, application running indefinitely");
+
+    // Option 1: Wait for any task to complete (if one fails, shutdown gracefully)
+    tokio::select! {
+        result = health_server_handle => {
+            error!("Health server task completed unexpectedly: {:?}", result);
+        }
+        result = grouper_handle => {
+            error!("Grouper task completed unexpectedly: {:?}", result);
+        }
+        result = karma_handle => {
+            error!("Karma task completed unexpectedly: {:?}", result);
+        }
+        result = uptime_handle => {
+            error!("Uptime task completed unexpectedly: {:?}", result);
+        }
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received Ctrl+C, shutting down gracefully");
+        }
+    }
+
+    info!("Application shutting down");
     Ok(())
 }

@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     python3 \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=planner /app/recipe.json recipe.json
@@ -43,6 +44,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdw-dev \
     build-essential \
     python3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Build the project
@@ -61,6 +63,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdw-dev \
     build-essential \
     python3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
