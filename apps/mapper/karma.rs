@@ -11,7 +11,10 @@ use sea_orm::{
 };
 use serde::Deserialize;
 use std::collections::HashMap;
-use tokio::time::{Instant, sleep};
+use tokio::{
+    sync::Mutex,
+    time::{Instant, sleep},
+};
 use tracing::{Span, info, instrument, warn};
 
 use crate::{DB, metrics::METRICS};
@@ -154,38 +157,196 @@ async fn fetch_daos_with_discourse() -> Result<Vec<(dao::Model, Option<dao_disco
         })
 }
 
-async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
-    const MAX_RETRIES: u32 = 5;
-    const INITIAL_RETRY_DELAY: Duration = Duration::seconds(1);
-    const MAX_RETRY_DELAY: Duration = Duration::seconds(5 * 60);
+// Static rate limit tracking
+lazy_static::lazy_static! {
+    static ref RATE_LIMIT_STATE: Mutex<RateLimitState> = Mutex::new(RateLimitState {
+        remaining: 100, // Default high value
+        reset_at: Instant::now(),
+        last_updated: Instant::now(),
+    });
+}
 
+#[derive(Debug, Clone)]
+struct RateLimitState {
+    remaining: u32,
+    reset_at: Instant,
+    last_updated: Instant,
+}
+
+// Constants for rate limiting and retries
+const MAX_RETRIES: u32 = 5;
+const INITIAL_RETRY_DELAY: Duration = Duration::seconds(1);
+const MAX_RETRY_DELAY: Duration = Duration::seconds(5 * 60);
+const RATE_LIMIT_THRESHOLD: u32 = 5; // Threshold to start being cautious
+const RATE_LIMIT_STALE_DURATION: std::time::Duration = std::time::Duration::from_secs(60); // Consider rate limit info stale after 60s
+const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// Extract rate limit information from response headers
+fn extract_rate_limit_info(headers: &reqwest::header::HeaderMap, now: Instant) -> (Option<u32>, Option<Instant>) {
+    // Extract remaining requests
+    let remaining = headers
+        .get("x-ratelimit-remaining")
+        .or_else(|| headers.get("X-RateLimit-Remaining"))
+        .or_else(|| headers.get("ratelimit-remaining"))
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| val.parse::<u32>().ok());
+
+    // Extract reset time
+    let reset_at = if let Some(reset_seconds) = headers
+        .get("x-ratelimit-reset")
+        .or_else(|| headers.get("X-RateLimit-Reset"))
+        .or_else(|| headers.get("ratelimit-reset"))
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| val.parse::<u64>().ok())
+    {
+        Some(now + std::time::Duration::from_secs(reset_seconds))
+    } else if let Some(reset_timestamp) = headers
+        .get("x-ratelimit-reset-at")
+        .or_else(|| headers.get("X-RateLimit-Reset-At"))
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| chrono::DateTime::parse_from_rfc3339(val).ok())
+    {
+        let now_utc = Utc::now();
+        if reset_timestamp > now_utc {
+            let duration_until_reset = reset_timestamp.signed_duration_since(now_utc);
+            Some(now + std::time::Duration::from_secs(duration_until_reset.num_seconds() as u64))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    (remaining, reset_at)
+}
+
+/// Calculate retry delay with exponential backoff and optional jitter
+fn calculate_retry_delay(retry_delay: Duration, add_jitter: bool) -> std::time::Duration {
+    let base_delay = retry_delay.num_seconds() as u64;
+    let delay = if add_jitter {
+        // Add up to 30% jitter to avoid thundering herd problem
+        let jitter = (rand::random::<f64>() * 0.3 * base_delay as f64) as u64;
+        base_delay + jitter
+    } else {
+        base_delay
+    };
+
+    std::time::Duration::from_secs(delay)
+}
+
+/// Check if we need to wait for rate limit reset
+async fn check_rate_limit(dao_slug: &str) -> bool {
+    let rate_limit_state = RATE_LIMIT_STATE.lock().await;
+    let now = Instant::now();
+
+    // If rate limit info is fresh and we're close to the limit
+    if now.duration_since(rate_limit_state.last_updated) < RATE_LIMIT_STALE_DURATION && rate_limit_state.remaining <= RATE_LIMIT_THRESHOLD {
+        // If reset time is in the future, wait until then
+        if rate_limit_state.reset_at > now {
+            let wait_duration = rate_limit_state.reset_at.duration_since(now);
+
+            // Add a small buffer to ensure reset has occurred
+            let wait_duration_with_buffer = wait_duration + std::time::Duration::from_secs(1);
+
+            info!(
+                "Proactively waiting for rate limit reset for DAO: {}. Remaining: {}, waiting for {:?}",
+                dao_slug, rate_limit_state.remaining, wait_duration_with_buffer
+            );
+
+            // Clone the data we need before dropping the lock
+            let wait_time = wait_duration_with_buffer;
+
+            // Release the lock before sleeping
+            drop(rate_limit_state);
+            sleep(wait_time).await;
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Update rate limit state from response headers
+async fn update_rate_limit_state(headers: &reqwest::header::HeaderMap, dao_slug: &str) {
+    let mut rate_limit_state = RATE_LIMIT_STATE.lock().await;
+    let now = Instant::now();
+    rate_limit_state.last_updated = now;
+
+    let (remaining, reset_at) = extract_rate_limit_info(headers, now);
+
+    // Update remaining requests if available
+    if let Some(remaining_val) = remaining {
+        rate_limit_state.remaining = remaining_val;
+
+        // Log if we're getting close to the limit
+        if remaining_val <= RATE_LIMIT_THRESHOLD {
+            info!(
+                "Rate limit getting low for DAO: {}. Remaining: {}",
+                dao_slug, remaining_val
+            );
+        }
+    }
+
+    // Update reset time if available
+    if let Some(reset_time) = reset_at {
+        rate_limit_state.reset_at = reset_time;
+    }
+}
+
+/// Handle rate limit exceeded (429 status code)
+async fn handle_rate_limit_exceeded(headers: &reqwest::header::HeaderMap, retry_delay: Duration, retry_count: u32, dao_slug: &str) -> std::time::Duration {
+    // Get retry-after value or calculate a reasonable delay
+    let retry_after = headers
+        .get("retry-after")
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| val.parse::<u64>().ok())
+        .unwrap_or_else(|| calculate_retry_delay(retry_delay, true).as_secs());
+
+    warn!(
+        "Rate limit exceeded for DAO: {}. Status: 429. Retry-After: {} seconds. (Attempt {}/{})",
+        dao_slug,
+        retry_after,
+        retry_count + 1,
+        MAX_RETRIES
+    );
+
+    // Update rate limit state to reflect we're at the limit
+    {
+        let mut rate_limit_state = RATE_LIMIT_STATE.lock().await;
+        rate_limit_state.remaining = 0;
+        rate_limit_state.reset_at = Instant::now() + std::time::Duration::from_secs(retry_after);
+    }
+
+    std::time::Duration::from_secs(retry_after)
+}
+
+/// Main function to fetch JSON data with improved rate limiting
+async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
     let mut retry_count = 0;
     let mut retry_delay = INITIAL_RETRY_DELAY;
 
     loop {
-        let response = match client
-            .get(url)
-            .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .await
-        {
+        // Check if we need to wait for rate limit reset before making the request
+        check_rate_limit(dao_slug).await;
+
+        // Make the request
+        let response = match client.get(url).timeout(REQUEST_TIMEOUT).send().await {
             Ok(res) => res,
             Err(e) if e.is_timeout() || e.is_connect() => {
                 if retry_count < MAX_RETRIES {
+                    let delay = calculate_retry_delay(retry_delay, false);
                     warn!(
-                        "Network error for DAO: {}. Error: {}. Retrying in {:?}... (Attempt {}/{})\n",
+                        "Network error for DAO: {}. Error: {}. Retrying in {:?}... (Attempt {}/{})",
                         dao_slug,
                         e,
-                        retry_delay,
+                        delay,
                         retry_count + 1,
                         MAX_RETRIES
                     );
-                    sleep(std::time::Duration::from_secs(
-                        retry_delay.num_seconds() as u64
-                    ))
-                    .await;
+
+                    sleep(delay).await;
                     retry_count += 1;
-                    retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY); // Exponential backoff with cap
+                    retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
                     continue;
                 } else {
                     return Err(anyhow::anyhow!(
@@ -201,54 +362,41 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
         let status = response.status();
         let headers = response.headers().clone();
 
+        // Update rate limit state from headers (for any response)
+        update_rate_limit_state(&headers, dao_slug).await;
+
+        // Handle response based on status code
         if status.is_success() {
+            // Successfully got the data
             return response.text().await.with_context(|| {
                 format!(
                     "Failed to read JSON response body for DAO: {}. Status: {}, URL: {}",
                     dao_slug, status, url
                 )
             });
+        } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS && retry_count < MAX_RETRIES {
+            // Handle 429 Too Many Requests
+            let delay = handle_rate_limit_exceeded(&headers, retry_delay, retry_count, dao_slug).await;
+            sleep(delay).await;
+            retry_count += 1;
+            retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
         } else if status.is_server_error() && retry_count < MAX_RETRIES {
             // Handle 5xx server errors with exponential backoff
+            let delay = calculate_retry_delay(retry_delay, true);
             warn!(
-                "Server error for DAO: {}. Status: {}. Retrying in {:?}... (Attempt {}/{})\n",
+                "Server error for DAO: {}. Status: {}. Retrying in {:?}... (Attempt {}/{})",
                 dao_slug,
                 status,
-                retry_delay,
-                retry_count + 1,
-                MAX_RETRIES
-            );
-            sleep(std::time::Duration::from_secs(
-                retry_delay.num_seconds() as u64
-            ))
-            .await;
-            retry_count += 1;
-            retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY); // Exponential backoff with cap
-        } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS && retry_count < MAX_RETRIES {
-            // Handle 429 Too Many Requests with Retry-After header if available
-            let retry_after = headers
-                .get("retry-after")
-                .and_then(|val| val.to_str().ok())
-                .and_then(|val| val.parse::<u64>().ok())
-                .unwrap_or_else(|| {
-                    // If Retry-After header is missing or invalid, use exponential backoff with jitter
-                    let base_delay = retry_delay.num_seconds() as u64;
-                    let jitter = (rand::random::<f64>() * 0.3 * base_delay as f64) as u64; // Add up to 30% jitter
-                    base_delay + jitter
-                });
-
-            warn!(
-                "Rate limit exceeded for DAO: {}. Status: 429. Retry-After: {} seconds. (Attempt {}/{})\n",
-                dao_slug,
-                retry_after,
+                delay,
                 retry_count + 1,
                 MAX_RETRIES
             );
 
-            sleep(std::time::Duration::from_secs(retry_after)).await;
+            sleep(delay).await;
             retry_count += 1;
-            retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY); // Increase for next potential retry
+            retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
         } else {
+            // Other error status codes
             let headers_str = format!("{:?}", headers);
             return Err(anyhow::anyhow!(
                 "Failed to fetch JSON data for DAO: {}. Status: {}, URL: {}, Headers: {}",
