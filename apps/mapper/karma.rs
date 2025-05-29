@@ -11,6 +11,7 @@ use sea_orm::{
 use serde::Deserialize;
 use std::collections::HashMap;
 use tokio::time::{Instant, sleep};
+use rand;
 use tracing::{Span, error, info, instrument, warn};
 
 use crate::{DB, metrics::METRICS};
@@ -163,8 +164,9 @@ async fn fetch_daos_with_discourse() -> Result<Vec<(dao::Model, Option<dao_disco
 }
 
 async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
-    const MAX_RETRIES: u32 = 3;
+    const MAX_RETRIES: u32 = 5;
     const INITIAL_RETRY_DELAY: Duration = Duration::seconds(1);
+    const MAX_RETRY_DELAY: Duration = Duration::seconds(60);
 
     let mut retry_count = 0;
     let mut retry_delay = INITIAL_RETRY_DELAY;
@@ -180,7 +182,7 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
             Err(e) if e.is_timeout() || e.is_connect() => {
                 if retry_count < MAX_RETRIES {
                     warn!(
-                        "Network error for DAO: {}. Error: {}. Retrying in {:?}... (Attempt {}/{})",
+                        "Network error for DAO: {}. Error: {}. Retrying in {:?}... (Attempt {}/{})\n",
                         dao_slug,
                         e,
                         retry_delay,
@@ -192,7 +194,7 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
                     ))
                     .await;
                     retry_count += 1;
-                    retry_delay = retry_delay * 2; // Exponential backoff
+                    retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY); // Exponential backoff with cap
                     continue;
                 } else {
                     return Err(anyhow::anyhow!(
@@ -216,8 +218,9 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
                 )
             });
         } else if status.is_server_error() && retry_count < MAX_RETRIES {
+            // Handle 5xx server errors with exponential backoff
             warn!(
-                "Server error for DAO: {}. Status: {}. Retrying in {:?}... (Attempt {}/{})",
+                "Server error for DAO: {}. Status: {}. Retrying in {:?}... (Attempt {}/{})\n",
                 dao_slug,
                 status,
                 retry_delay,
@@ -229,7 +232,31 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
             ))
             .await;
             retry_count += 1;
-            retry_delay = retry_delay * 2; // Exponential backoff
+            retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY); // Exponential backoff with cap
+        } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS && retry_count < MAX_RETRIES {
+            // Handle 429 Too Many Requests with Retry-After header if available
+            let retry_after = headers
+                .get("retry-after")
+                .and_then(|val| val.to_str().ok())
+                .and_then(|val| val.parse::<u64>().ok())
+                .unwrap_or_else(|| {
+                    // If Retry-After header is missing or invalid, use exponential backoff with jitter
+                    let base_delay = retry_delay.num_seconds() as u64;
+                    let jitter = (rand::random::<f64>() * 0.3 * base_delay as f64) as u64; // Add up to 30% jitter
+                    base_delay + jitter
+                });
+
+            warn!(
+                "Rate limit exceeded for DAO: {}. Status: 429. Retry-After: {} seconds. (Attempt {}/{})\n",
+                dao_slug,
+                retry_after,
+                retry_count + 1,
+                MAX_RETRIES
+            );
+
+            sleep(std::time::Duration::from_secs(retry_after)).await;
+            retry_count += 1;
+            retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY); // Increase for next potential retry
         } else {
             let headers_str = format!("{:?}", headers);
             return Err(anyhow::anyhow!(
