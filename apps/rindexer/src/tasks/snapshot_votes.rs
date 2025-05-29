@@ -13,19 +13,28 @@ use sea_orm::{
 };
 use serde::Deserialize;
 use serde_json::json;
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 use tracing::{debug, error, info, instrument, warn};
 
+// Constants
+const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
+const MAX_BATCH_SIZE: usize = 100;
+const MAX_LOOPS: usize = 10;
+const SNAPSHOT_GRAPHQL_ENDPOINT: &str = "https://hub.snapshot.org/graphql";
+
+/// Response from Snapshot GraphQL API for votes query
 #[derive(Deserialize, Debug)]
 struct SnapshotVotesResponse {
     data: Option<SnapshotVoteData>,
 }
 
+/// Container for votes data in the GraphQL response
 #[derive(Deserialize, Debug)]
 struct SnapshotVoteData {
     votes: Option<Vec<SnapshotVote>>,
 }
 
+/// Represents a vote from Snapshot
 #[derive(Deserialize, Debug, Clone)]
 struct SnapshotVote {
     voter: String,
@@ -37,182 +46,222 @@ struct SnapshotVote {
     ipfs: String,
 }
 
+/// Reference to a Snapshot proposal
 #[derive(Deserialize, Debug, Clone)]
 struct SnapshotProposalRef {
     id: String,
+}
+
+/// Formats a list of proposal IDs into a JSON array string for GraphQL queries
+fn format_proposal_ids(proposal_ids: &[String]) -> String {
+    format!(
+        "[{}]",
+        proposal_ids
+            .iter()
+            .map(|id| format!("\"{}\"", id))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+/// Processes a vote from Snapshot and converts it to a database model
+fn process_vote(vote_data: &SnapshotVote, governor_id: Uuid, dao_id: Uuid) -> Result<Option<vote::ActiveModel>> {
+    // Parse the created timestamp
+    let created_at = match DateTime::from_timestamp(vote_data.created, 0) {
+        Some(dt) => dt.naive_utc(),
+        None => {
+            warn!(
+                voter = vote_data.voter,
+                proposal_id = vote_data.proposal.id,
+                created = vote_data.created,
+                "Invalid created timestamp for vote, skipping."
+            );
+            return Ok(None);
+        }
+    };
+
+    // Process the choice value
+    let choice_value = if vote_data.choice.is_number() {
+        match vote_data.choice.as_i64() {
+            Some(choice) => (choice - 1).into(),
+            None => {
+                warn!(
+                    voter = vote_data.voter,
+                    proposal_id = vote_data.proposal.id,
+                    choice = ?vote_data.choice,
+                    "Invalid choice value for vote, skipping."
+                );
+                return Ok(None);
+            }
+        }
+    } else {
+        vote_data.choice.clone()
+    };
+
+    // Create the vote model
+    let vote_model = vote::ActiveModel {
+        id: NotSet,
+        governor_id: Set(governor_id),
+        dao_id: Set(dao_id),
+        proposal_external_id: Set(vote_data.proposal.id.clone()),
+        voter_address: Set(vote_data.voter.clone()),
+        voting_power: Set(vote_data.vp),
+        choice: Set(choice_value),
+        reason: Set(vote_data.reason.clone()),
+        created_at: Set(created_at),
+        block_created_at: NotSet,
+        txid: Set(Some(vote_data.ipfs.clone())),
+        proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
+    };
+
+    debug!(
+        voter = vote_data.voter,
+        proposal_id = vote_data.proposal.id,
+        created_at = ?created_at,
+        "Snapshot vote processed"
+    );
+
+    Ok(Some(vote_model))
+}
+
+/// Fetches votes from Snapshot API for the given space and proposals
+async fn fetch_votes_batch(space: &str, last_vote_created: i64, proposals_str: &str) -> Result<Vec<SnapshotVote>> {
+    let graphql_query = format!(
+        r#"
+        {{
+            votes(
+                first: {batch_size},
+                orderBy: "created",
+                orderDirection: asc,
+                where: {{
+                    space: "{space}"
+                    created_gte: {last_created},
+                    proposal_in: {proposals}
+                }}
+            ) {{
+                voter
+                reason
+                choice
+                vp
+                created
+                ipfs
+                proposal {{
+                    id
+                }}
+            }}
+        }}
+        "#,
+        batch_size = 100,
+        space = space,
+        last_created = last_vote_created,
+        proposals = proposals_str
+    );
+
+    debug!(query = graphql_query, space = %space, "Fetching snapshot votes with query");
+
+    let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
+        .get()
+        .context("Snapshot API handler not initialized")?
+        .fetch(SNAPSHOT_GRAPHQL_ENDPOINT, graphql_query)
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to fetch votes from Snapshot API for space {}",
+                space
+            )
+        })?;
+
+    Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
 }
 
 #[instrument(name = "update_snapshot_votes", skip(dao_id, governor_id, space))]
 pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
     info!(space = %space, "Running task to fetch latest snapshot votes for space.");
 
+    // Get the timestamp of the latest vote we've already processed
     let mut last_vote_created = get_latest_vote_created(governor_id, dao_id).await?;
 
     // Fetch relevant proposals for this specific governor and DAO
-    let relevant_proposals_vec = get_relevant_proposals(governor_id, dao_id, last_vote_created).await?;
-    let relevant_proposals_str = format!(
-        "[{}]",
-        relevant_proposals_vec
-            .iter()
-            .map(|id| format!("\"{}\"", id))
-            .collect::<Vec<_>>()
-            .join(",")
-    );
+    let relevant_proposals = get_relevant_proposals(governor_id, dao_id, last_vote_created).await?;
 
     // If there are no relevant proposals, there are no votes to fetch
-    if relevant_proposals_vec.is_empty() {
+    if relevant_proposals.is_empty() {
         debug!(space = %space, "No relevant proposals found to fetch votes for. Skipping.");
         return Ok(());
     }
 
-    let mut loop_count = 0;
-    let max_loops = 10;
-    let mut processed_vote_hashes = std::collections::HashSet::new();
+    let proposals_str = format_proposal_ids(&relevant_proposals);
+    let mut processed_vote_hashes = HashSet::new();
 
     info!(
-        proposal_count = relevant_proposals_vec.len(),
+        proposal_count = relevant_proposals.len(),
         space = %space,
         "Fetching votes for relevant snapshot proposals."
     );
 
-    loop {
-        if loop_count >= max_loops {
-            info!(
-                loop_count = loop_count,
-                max_loops = max_loops,
-                space = %space,
-                "Reached maximum loop count, exiting snapshot votes update loop for space."
-            );
+    // Fetch votes in batches
+    for loop_count in 0..MAX_LOOPS {
+        // Fetch a batch of votes
+        let votes_data = match fetch_votes_batch(&space, last_vote_created, &proposals_str).await {
+            Ok(votes) => votes,
+            Err(e) => {
+                error!(error = %e, space = %space, "Failed to fetch votes batch: {}", e);
+                break;
+            }
+        };
+
+        // If no votes were returned, we're done
+        if votes_data.is_empty() {
+            info!(space = %space, "No more votes found for space, finished fetching.");
             break;
         }
 
-        let graphql_query = format!(
-            r#"
-            {{
-                votes(
-                    first: 100,
-                    orderBy: "created",
-                    orderDirection: asc,
-                    where: {{
-                        space: "{}"
-                        created_gte: {},
-                        proposal_in: {}
-                    }}
-                ) {{
-                    voter
-                    reason
-                    choice
-                    vp
-                    created
-                    ipfs
-                    proposal {{
-                        id
-                    }}
-                }}
-            }}
-            "#,
-            space, last_vote_created, relevant_proposals_str
-        );
-
-        debug!(query = graphql_query, space = %space, "Fetching snapshot votes with query");
-
-        let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
-            .get()
-            .context("Snapshot API handler not initialized")?
-            .fetch("https://hub.snapshot.org/graphql", graphql_query)
-            .await
-            .context(format!(
-                "Failed to fetch votes from Snapshot API for space {}",
-                space
-            ))?;
-
-        let votes_data: Vec<SnapshotVote> = response.data.and_then(|d| d.votes).unwrap_or_default();
-
-        if votes_data.is_empty() {
-            info!(space = %space, "No new snapshot votes to process from snapshot API, task completed for this cycle.");
-            break; // No more new votes, exit loop
-        }
-
         info!(
-            batch_size = votes_data.len(),
-            vote_created_gte = last_vote_created,
+            vote_count = votes_data.len(),
+            loop_count = loop_count,
             space = %space,
-            "Processing batch of snapshot votes"
+            "Processing batch of votes."
         );
 
-        // Monitor for unexpectedly small batches which might indicate missing votes
-        if votes_data.len() < 100 && loop_count == 0 {
-            warn!(
-                batch_size = votes_data.len(),
-                expected_size = 100,
-                space = %space,
-                "First batch smaller than expected - possible missing votes or API issues"
-            );
-        }
-
-        let mut votes = vec![];
+        // Track if we found new votes in this batch and the max timestamp
         let mut new_votes_found = false;
         let mut max_created_in_batch = last_vote_created;
 
+        // Process votes and prepare them for storage
+        let mut votes_to_store = Vec::with_capacity(votes_data.len());
+
         for vote_data in &votes_data {
-            // Skip votes we've already processed (deduplication for same timestamp)
-            if processed_vote_hashes.contains(&vote_data.ipfs) {
-                debug!(ipfs = vote_data.ipfs, "Skipping already processed vote");
+            // Skip votes we've already processed in this batch
+            let vote_hash = format!(
+                "{}-{}-{}",
+                vote_data.proposal.id, vote_data.voter, vote_data.ipfs
+            );
+            if processed_vote_hashes.contains(&vote_hash) {
                 continue;
             }
+            processed_vote_hashes.insert(vote_hash);
 
-            // Only process votes that are actually newer than our last processed timestamp
+            // Update tracking variables
             if vote_data.created > last_vote_created {
                 new_votes_found = true;
             }
-
-            let created_at = DateTime::from_timestamp(vote_data.created, 0)
-                .context("Invalid created timestamp")?
-                .naive_utc();
-
-            let choice_value = if vote_data.choice.is_number() {
-                (vote_data
-                    .choice
-                    .as_i64()
-                    .ok_or_else(|| anyhow::anyhow!("Invalid choice value"))?
-                    - 1)
-                .into()
-            } else {
-                vote_data.choice.clone()
-            };
-
-            let vote_model = vote::ActiveModel {
-                id: NotSet,
-                governor_id: Set(governor_id),
-                dao_id: Set(dao_id),
-                proposal_external_id: Set(vote_data.proposal.id.clone()),
-                voter_address: Set(vote_data.voter.clone()),
-                voting_power: Set(vote_data.vp),
-                choice: Set(choice_value),
-                reason: Set(vote_data.reason.clone()),
-                created_at: Set(created_at),
-                block_created_at: NotSet, // Block number is not relevant for snapshot votes
-                txid: Set(Some(vote_data.ipfs.clone())),
-                proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
-            };
-
-            votes.push(vote_model);
-            processed_vote_hashes.insert(vote_data.ipfs.clone());
             max_created_in_batch = max_created_in_batch.max(vote_data.created);
-            debug!(voter = vote_data.voter, proposal_id = vote_data.proposal.id, created_at = ?created_at, "Snapshot vote created");
+
+            // Process the vote and add it to the storage batch if valid
+            if let Ok(Some(vote_model)) = process_vote(vote_data, governor_id, dao_id) {
+                votes_to_store.push(vote_model);
+            }
         }
 
-        let votes_count = votes.len();
-        if !votes.is_empty() {
-            store_votes(votes, governor_id).await?;
-            info!(
-                space = %space,
-                processed_votes = votes_count,
-                raw_batch_size = votes_data.len(),
-                "Batch of snapshot votes stored."
-            );
-        } else {
-            warn!(
+        // Store the votes in the database
+        let votes_count = votes_to_store.len();
+        if !votes_to_store.is_empty() {
+            match store_votes(votes_to_store, governor_id).await {
+                Ok(_) => debug!(vote_count = votes_count, space = %space, "Stored votes for space"),
+                Err(e) => error!(error = %e, space = %space, "Failed to store votes: {}", e),
+            }
+        } else if !votes_data.is_empty() {
+            debug!(
                 space = %space,
                 raw_batch_size = votes_data.len(),
                 "No votes to store after processing - all may have been duplicates or filtered"
@@ -241,23 +290,19 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
                 "Incremented timestamp to avoid infinite loop"
             );
         }
-
-        loop_count += 1;
     }
 
     info!(
         space = %space,
-        total_loops = loop_count,
         final_timestamp = last_vote_created,
         "Successfully updated snapshot votes from snapshot API."
     );
 
-    if loop_count >= max_loops {
-        warn!(
-            space = %space,
-            max_loops = max_loops,
-            "Reached maximum loop count - there may be more votes to process in next cycle"
-        );
+    // After fetching all votes, check if we need to refresh votes for closed shutter proposals
+    if let Err(e) = refresh_closed_shutter_votes(dao_id, governor_id, space.clone()).await {
+        error!(error = %e, space = %space, "Failed to refresh votes for closed shutter proposals: {}", e);
+    } else {
+        debug!(space = %space, "Refreshed votes for closed shutter proposals");
     }
 
     Ok(())
@@ -329,20 +374,23 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
             }
         }
 
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        tokio::time::sleep(REFRESH_INTERVAL).await;
     }
 }
 
+/// Gets the timestamp of the latest vote created for a specific governor and DAO
+/// Returns Unix timestamp (seconds since epoch) or 0 if no votes exist
 #[instrument(name = "get_latest_vote_created", skip_all)]
 async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64> {
     let db = DB.get().context("DB not initialized")?;
-    
-    // Use a direct query to get the max timestamp, which is more efficient
+
+    // Use a direct query with COALESCE to handle the case when no votes exist
+    // This is more efficient than fetching the model and handling the Option in Rust
     let timestamp = vote::Entity::find()
         .select_only()
         .column_as(
             Expr::cust("COALESCE(MAX(created_at), '1970-01-01 00:00:00')"),
-            "max_timestamp"
+            "max_timestamp",
         )
         .filter(vote::Column::GovernorId.eq(governor_id))
         .filter(vote::Column::DaoId.eq(dao_id))
@@ -352,10 +400,12 @@ async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64>
         .map_or(0, |(dt,)| dt.timestamp());
 
     debug!(
+        governor_id = %governor_id,
+        dao_id = %dao_id,
         last_created_timestamp = timestamp,
         "Latest vote created timestamp retrieved from DB."
     );
-    
+
     Ok(timestamp)
 }
 
@@ -364,9 +414,9 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
     let db = DB.get().context("DB not initialized")?;
 
     let last_vote_created_datetime = DateTime::<Utc>::from_timestamp(last_vote_created, 0).context("Invalid last vote created timestamp")?;
-    // Fetch proposals created up to three years ago - some proposals might still get votes after a long
+    // Fetch proposals created up to 1 year ago - some proposals might still get votes after a long
     // time
-    let three_years_ago_datetime = last_vote_created_datetime - Duration::from_secs(3 * 52 * 7 * 24 * 60 * 60);
+    let one_year_ago_datetime = last_vote_created_datetime - Duration::from_secs(1 * 52 * 7 * 24 * 60 * 60);
 
     let relevant_proposals = proposal::Entity::find()
         .select()
@@ -380,7 +430,7 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
                 .add(proposal::Column::EndAt.gt((last_vote_created_datetime - Duration::from_secs(7 * 24 * 60 * 60)).naive_utc())), // Include proposals that ended within last week
         )
         // Fetch proposals that started within the last three years
-        .filter(proposal::Column::StartAt.gt(three_years_ago_datetime.naive_utc()))
+        .filter(proposal::Column::StartAt.gt(one_year_ago_datetime.naive_utc()))
         .order_by(proposal::Column::EndAt, Order::Asc)
         .limit(500) // Increased limit to catch more proposals
         .all(db)
@@ -394,7 +444,7 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
     info!(
         proposal_ids_count = ids.len(),
         last_vote_created_timestamp = last_vote_created,
-        lookback_duration_days = 3 * 365,
+        lookback_duration_days = 1 * 365,
         "Relevant proposals retrieved from DB with expanded filtering."
     );
     Ok(ids)
@@ -475,6 +525,53 @@ async fn refresh_closed_shutter_votes(dao_id: Uuid, governor_id: Uuid, space: St
     Ok(())
 }
 
+/// Fetches votes for a specific proposal from Snapshot API
+async fn fetch_proposal_votes_batch(proposal_external_id: &str, skip: usize, batch_size: usize) -> Result<Vec<SnapshotVote>> {
+    let graphql_query = format!(
+        r#"
+        {{
+            votes(
+                first: {batch_size},
+                skip: {skip},
+                orderBy: "created",
+                orderDirection: asc,
+                where: {{
+                    proposal: "{proposal_id}"
+                }}
+            ) {{
+                voter
+                reason
+                choice
+                vp
+                created
+                ipfs
+                proposal {{
+                    id
+                }}
+            }}
+        }}"#,
+        batch_size = batch_size,
+        skip = skip,
+        proposal_id = proposal_external_id
+    );
+
+    debug!(proposal_external_id = %proposal_external_id, "Fetching vote batch for proposal");
+
+    let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
+        .get()
+        .context("Snapshot API handler not initialized")?
+        .fetch(SNAPSHOT_GRAPHQL_ENDPOINT, graphql_query)
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to fetch votes from Snapshot API for proposal {}",
+                proposal_external_id
+            )
+        })?;
+
+    Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
+}
+
 #[instrument(
     name = "refresh_votes_for_proposal",
     skip(governor_id, dao_id),
@@ -482,109 +579,62 @@ async fn refresh_closed_shutter_votes(dao_id: Uuid, governor_id: Uuid, space: St
 )]
 async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
     info!(proposal_external_id = %proposal_external_id, "Fetching all votes for proposal.");
+
     let mut current_skip = 0;
-    const BATCH_SIZE: usize = 1000;
     let mut all_votes_data: Vec<SnapshotVote> = Vec::new();
 
+    // Fetch all votes for the proposal in batches
     loop {
-        let graphql_query = format!(
-            r#"
-            {{
-                votes(
-                    first: {},
-                    skip: {},
-                    orderBy: "created",
-                    orderDirection: asc,
-                    where: {{
-                        proposal: "{}"
-                    }}
-                ) {{
-                    voter
-                    reason
-                    choice
-                    vp
-                    created
-                    ipfs
-                    proposal {{
-                        id
-                    }}
-                }}
-            }}"#,
-            BATCH_SIZE, current_skip, proposal_external_id
-        );
+        let votes_batch = fetch_proposal_votes_batch(proposal_external_id, current_skip, MAX_BATCH_SIZE).await?;
 
-        debug!(proposal_external_id = %proposal_external_id, query = graphql_query, "Fetching vote batch for proposal");
-
-        let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
-            .get()
-            .context("Snapshot API handler not initialized")?
-            .fetch("https://hub.snapshot.org/graphql", graphql_query)
-            .await
-            .context(format!(
-                "Failed to fetch votes from Snapshot API for proposal {}",
-                proposal_external_id
-            ))?;
-
-        let mut votes_data: Vec<SnapshotVote> = response.data.and_then(|d| d.votes).unwrap_or_default();
-
-        if votes_data.is_empty() {
+        if votes_batch.is_empty() {
             debug!(proposal_external_id = %proposal_external_id, "No more votes found for proposal, finished fetching.");
-            break; // No more votes for this proposal
+            break;
         }
 
+        let batch_size = votes_batch.len();
         info!(
-            batch_size = votes_data.len(),
+            batch_size = batch_size,
             skip = current_skip,
             proposal_external_id = %proposal_external_id,
             "Processing batch of votes for proposal."
         );
-        all_votes_data.append(&mut votes_data);
-        current_skip += BATCH_SIZE;
+
+        all_votes_data.extend(votes_batch);
+        current_skip += MAX_BATCH_SIZE;
     }
 
-    if !all_votes_data.is_empty() {
-        let mut votes_to_store = vec![];
-        for vote_data in &all_votes_data {
-            let created_at = DateTime::from_timestamp(vote_data.created, 0)
-                .context("Invalid created timestamp")?
-                .naive_utc();
+    if all_votes_data.is_empty() {
+        info!(proposal_external_id = %proposal_external_id, "No votes found for proposal.");
+        return Ok(());
+    }
 
-            let choice_value = if vote_data.choice.is_number() {
-                (vote_data
-                    .choice
-                    .as_i64()
-                    .ok_or_else(|| anyhow::anyhow!("Invalid choice value"))?
-                    - 1)
-                .into()
-            } else {
-                vote_data.choice.clone()
-            };
+    // Process all votes
+    let mut votes_to_store = Vec::with_capacity(all_votes_data.len());
+    let mut processed_count = 0;
 
-            let vote_model = vote::ActiveModel {
-                id: NotSet,
-                governor_id: Set(governor_id),
-                dao_id: Set(dao_id),
-                proposal_external_id: Set(vote_data.proposal.id.clone()),
-                voter_address: Set(vote_data.voter.clone()),
-                voting_power: Set(vote_data.vp),
-                choice: Set(choice_value),
-                reason: Set(vote_data.reason.clone()),
-                created_at: Set(created_at),
-                block_created_at: NotSet,
-                txid: Set(Some(vote_data.ipfs.clone())),
-                proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
-            };
-
+    for vote_data in &all_votes_data {
+        if let Ok(Some(vote_model)) = process_vote(vote_data, governor_id, dao_id) {
             votes_to_store.push(vote_model);
-            debug!(voter = vote_data.voter, proposal_id = vote_data.proposal.id, created_at = ?created_at, "Snapshot vote created");
+            processed_count += 1;
         }
+    }
 
-        if !votes_to_store.is_empty() {
-            store_votes(votes_to_store, governor_id).await?;
-            info!(proposal_external_id = %proposal_external_id, "Stored/Updated votes for proposal.");
-        }
+    // Store processed votes
+    if !votes_to_store.is_empty() {
+        store_votes(votes_to_store, governor_id).await?;
+        info!(
+            proposal_external_id = %proposal_external_id,
+            total_votes = all_votes_data.len(),
+            processed_votes = processed_count,
+            "Stored/Updated votes for proposal."
+        );
     } else {
-        info!(proposal_external_id = %proposal_external_id, "No votes found in total for proposal.");
+        warn!(
+            proposal_external_id = %proposal_external_id,
+            total_votes = all_votes_data.len(),
+            "Found votes but none were valid for processing."
+        );
     }
 
     Ok(())

@@ -11,17 +11,25 @@ use serde_json::json;
 use std::time::Duration;
 use tracing::{debug, error, info, instrument};
 
-#[derive(Deserialize)]
+// Constants
+const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
+const BATCH_SIZE: usize = 10;
+const SNAPSHOT_GRAPHQL_ENDPOINT: &str = "https://hub.snapshot.org/graphql";
+
+/// Response from Snapshot GraphQL API for proposals query
+#[derive(Deserialize, Debug)]
 struct SnapshotProposalsResponse {
     data: Option<SnapshotProposalData>,
 }
 
-#[derive(Deserialize)]
+/// Container for proposals data in the GraphQL response
+#[derive(Deserialize, Debug)]
 struct SnapshotProposalData {
     proposals: Vec<SnapshotProposal>,
 }
 
-#[derive(Clone, Deserialize)]
+/// Represents a proposal from Snapshot
+#[derive(Clone, Deserialize, Debug)]
 struct SnapshotProposal {
     id: String,
     author: String,
@@ -43,106 +51,119 @@ struct SnapshotProposal {
     ipfs: String,
 }
 
-#[instrument(
-    name = "update_snapshot_proposals",
-    skip(dao_id, governor_id, space)
-)]
+/// Fetches a batch of proposals from Snapshot API for a given space
+async fn fetch_proposals_batch(space: &str, skip: usize, batch_size: usize) -> Result<Vec<SnapshotProposal>> {
+    let graphql_query = format!(
+        r#"
+        {{
+            proposals(
+                first: {batch_size},
+                skip: {skip},
+                orderBy: "created",
+                orderDirection: asc,
+                where: {{
+                    space: "{space}"
+                }}
+            ) {{
+                id
+                author
+                title
+                body
+                discussion
+                choices
+                scores
+                scores_total
+                scores_state
+                privacy
+                created
+                start
+                end
+                quorum
+                link
+                state
+                flagged
+                type
+                ipfs
+            }}
+        }}"#,
+        batch_size = batch_size,
+        skip = skip,
+        space = space
+    );
+
+    debug!(space = %space, "Fetching snapshot proposals batch");
+
+    let response: SnapshotProposalsResponse = SNAPSHOT_API_HANDLER
+        .get()
+        .context("Snapshot API handler not initialized")?
+        .fetch(SNAPSHOT_GRAPHQL_ENDPOINT, graphql_query)
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to fetch proposals from Snapshot API for space {}",
+                space
+            )
+        })?;
+
+    Ok(response.data.map(|d| d.proposals).unwrap_or_default())
+}
+
+#[instrument(name = "update_snapshot_proposals", skip(dao_id, governor_id, space))]
 pub async fn update_snapshot_proposals(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
     info!(space = %space, "Running task to fetch latest snapshot proposals for space.");
 
     // Continuously refresh all proposals in a paginated way
     let mut current_skip = 0;
-    const BATCH_SIZE: usize = 10;
+    let mut total_processed = 0;
 
     loop {
-        let graphql_query = format!(
-            r#"
-            {{
-                proposals(
-                    first: {},
-                    skip: {},
-                    orderBy: "created",
-                    orderDirection: asc,
-                    where: {{
-                        space: "{}"
-                    }}
-                ) {{
-                    id
-                    author
-                    title
-                    body
-                    discussion
-                    choices
-                    scores
-                    scores_total
-                    scores_state
-                    privacy
-                    created
-                    start
-                    end
-                    quorum
-                    link
-                    state
-                    flagged
-                    type
-                    ipfs
-                }}
-            }}"#,
-            BATCH_SIZE, current_skip, space
-        );
+        // Fetch a batch of proposals
+        let proposals_data = match fetch_proposals_batch(&space, current_skip, BATCH_SIZE).await {
+            Ok(proposals) => proposals,
+            Err(e) => {
+                error!(error = %e, space = %space, "Failed to fetch proposals batch: {}", e);
+                break;
+            }
+        };
 
-        debug!(
-            query = graphql_query,
-            "Fetching snapshot proposals with query"
-        );
-
-        let response: SnapshotProposalsResponse = SNAPSHOT_API_HANDLER
-            .get()
-            .context("Snapshot API handler not initialized")?
-            .fetch("https://hub.snapshot.org/graphql", graphql_query)
-            .await
-            .context("Failed to fetch proposals from Snapshot API")?;
-
-        let proposals_data = response.data.map(|d| d.proposals).unwrap_or_default();
-
+        // If no proposals were returned, we're done
         if proposals_data.is_empty() {
-            info!(
-                "No more proposals to process from snapshot API for space {}, task completed for this cycle.",
-                space
-            );
+            info!(space = %space, "No more proposals to process, task completed for this cycle.");
             break;
         }
 
+        let batch_size = proposals_data.len();
         info!(
-            batch_size = proposals_data.len(),
+            batch_size = batch_size,
             skip = current_skip,
-            space = space,
+            space = %space,
             "Processing batch of snapshot proposals"
         );
 
+        // Process each proposal in the batch
+        let mut batch_success_count = 0;
         for proposal_data in &proposals_data {
-            // Use a match expression to handle the Result from to_active_model
             match proposal_data.to_active_model(governor_id, dao_id) {
-                Ok(proposal_model) => {
-                    // Use a match expression to handle the Result from store_proposal
-                    match store_proposal(proposal_model).await {
-                        Ok(_) => debug!(proposal_id = proposal_data.id, "Snapshot proposal stored"),
-                        Err(e) => error!(proposal_id = proposal_data.id, error = %e, "Failed to store snapshot proposal"),
+                Ok(proposal_model) => match store_proposal(proposal_model).await {
+                    Ok(_) => {
+                        debug!(proposal_id = %proposal_data.id, "Snapshot proposal stored");
+                        batch_success_count += 1;
                     }
-                }
-                Err(e) => error!(proposal_id = proposal_data.id, error = %e, "Failed to convert snapshot proposal to active model"),
+                    Err(e) => error!(proposal_id = %proposal_data.id, error = %e, "Failed to store snapshot proposal"),
+                },
+                Err(e) => error!(proposal_id = %proposal_data.id, error = %e, "Failed to convert snapshot proposal to active model"),
             }
         }
 
-        // Only advance skip if we processed a full batch or if the batch size was less than BATCH_SIZE
-        // (meaning it was the last batch)
-        if proposals_data.len() < BATCH_SIZE {
-            info!(
-                "Finished processing all proposals for space {} in this cycle.",
-                space
-            );
-            break;
-        }
+        total_processed += batch_success_count;
+        info!(
+            space = %space,
+            batch_size = batch_size,
+            batch_success = batch_success_count,
+            total_processed = total_processed,
+            "Processed batch of snapshot proposals"
+        );
+
         current_skip += BATCH_SIZE;
     }
 
@@ -283,6 +304,6 @@ pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
             }
         }
 
-        tokio::time::sleep(Duration::from_secs(60)).await;
+        tokio::time::sleep(REFRESH_INTERVAL).await;
     }
 }

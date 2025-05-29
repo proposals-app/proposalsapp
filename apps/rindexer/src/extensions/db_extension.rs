@@ -6,7 +6,7 @@ use chrono::Utc;
 use once_cell::sync::{Lazy, OnceCell};
 use proposalsapp_db::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
 use rindexer::provider::RindexerProvider;
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
@@ -124,7 +124,6 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
-    let txn = db.begin().await?;
 
     // Extract indexer ID and external ID from the proposal
     let governor_id = proposal
@@ -144,7 +143,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
                 .add(proposal::Column::ExternalId.eq(external_id.clone()))
                 .add(proposal::Column::GovernorId.eq(governor_id)),
         )
-        .one(&txn)
+        .one(db)
         .await?;
 
     if let Some(existing) = existing_proposal {
@@ -238,14 +237,12 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
                 .unwrap_or(existing.governor_id)),
         };
 
-        proposal::Entity::update(active_model).exec(&txn).await?;
+        proposal::Entity::update(active_model).exec(db).await?;
         info!(proposal_id = %existing.id, external_id = %external_id, "Proposal updated successfully");
     } else {
         // Insert new proposal
         debug!(external_id = %external_id, "Inserting new proposal");
-        let inserted_proposal = proposal::Entity::insert(proposal.clone())
-            .exec(&txn)
-            .await?;
+        let inserted_proposal = proposal::Entity::insert(proposal.clone()).exec(db).await?;
         info!(proposal_id = %inserted_proposal.last_insert_id, external_id = %external_id, "Proposal inserted successfully");
 
         // Fetch governor to check its type
@@ -256,7 +253,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
             .ok_or_else(|| anyhow::anyhow!("Missing governor_id for governor lookup"))?;
         let governor = dao_governor::Entity::find()
             .filter(dao_governor::Column::Id.eq(governor_id_to_find))
-            .one(&txn)
+            .one(db)
             .await?;
         let governor_model = governor.ok_or_else(|| anyhow::anyhow!("Governor not found with id: {}", governor_id_to_find))?;
 
@@ -273,13 +270,12 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
                 status: Set("PENDING".into()),
                 created_at: NotSet,
             })
-            .exec(&txn)
+            .exec(db)
             .await?;
             debug!("Snapshot discussion details job enqueued");
         }
     }
 
-    txn.commit().await?;
     Ok(())
 }
 
@@ -288,7 +284,6 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
-    let txn = db.begin().await?;
 
     let proposal_external_ids: Vec<String> = votes
         .iter()
@@ -296,7 +291,6 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
         .collect();
 
     if proposal_external_ids.is_empty() {
-        txn.rollback().await?;
         return Err(anyhow::anyhow!(
             "No proposal_external_ids provided in votes"
         ));
@@ -305,7 +299,7 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
     let proposals_result = proposal::Entity::find()
         .filter(proposal::Column::ExternalId.is_in(proposal_external_ids.clone()))
         .filter(proposal::Column::GovernorId.eq(governor_id))
-        .all(&txn)
+        .all(db)
         .await?;
 
     let proposal_map: HashMap<String, proposal::Model> = proposals_result
@@ -319,12 +313,11 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
         .collect();
 
     if voter_addresses.is_empty() {
-        txn.rollback().await?;
         return Err(anyhow::anyhow!("No voter_addresses provided in votes"));
     }
 
     let voter_address_set: HashSet<String> = voter_addresses.into_iter().collect();
-    store_voters(&txn, voter_address_set).await?;
+    store_voters(voter_address_set).await?;
 
     let mut vote_active_models = Vec::new();
     for vote in votes.clone() {
@@ -375,17 +368,15 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
                 ])
                 .to_owned(),
             )
-            .exec(&txn)
+            .exec(db)
             .await;
 
         if let Err(err) = result {
-            txn.rollback().await?;
             error!(error = %err, "Failed to insert vote chunk, transaction rolled back.");
             return Err(err.into());
         }
     }
 
-    txn.commit().await?;
     info!("Successfully stored {} votes in chunk.", votes.len());
     Ok(())
 }
@@ -401,12 +392,11 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
-    let txn = db.begin().await?;
 
     for chunk in delegations.chunks(BATCH_SIZE) {
         let insert_result = delegation::Entity::insert_many(chunk.to_vec())
             .on_conflict(OnConflict::new().do_nothing().to_owned())
-            .exec(&txn)
+            .exec(db)
             .await;
 
         if let Err(e) = insert_result {
@@ -418,7 +408,6 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
         }
     }
 
-    txn.commit().await?;
     info!("Successfully processed {} delegations.", total_delegations);
     Ok(())
 }
@@ -434,12 +423,11 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
-    let txn = db.begin().await?;
 
     for chunk in voting_powers.chunks(BATCH_SIZE) {
         let insert_result = voting_power::Entity::insert_many(chunk.to_vec())
             .on_conflict(OnConflict::new().do_nothing().to_owned())
-            .exec(&txn)
+            .exec(db)
             .await;
 
         if let Err(e) = insert_result {
@@ -451,7 +439,6 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
         }
     }
 
-    txn.commit().await?;
     info!(
         "Successfully processed {} voting powers.",
         total_voting_powers
@@ -459,8 +446,12 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
     Ok(())
 }
 
-#[instrument(name = "db_store_voters", skip(txn, voter_addresses), fields(voter_address_count = voter_addresses.len()))]
-async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String>) -> Result<()> {
+#[instrument(name = "db_store_voters", skip(voter_addresses), fields(voter_address_count = voter_addresses.len()))]
+async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
+    let db = DB
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
+
     // Get the provider once at the beginning to reuse throughout the function
     let provider = get_ethereum_provider().await;
 
@@ -472,7 +463,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         // Fetch existing voters with address and ens
         let existing_voters_models: Vec<voter::Model> = voter::Entity::find()
             .filter(voter::Column::Address.is_in(addresses_chunk.to_vec()))
-            .all(txn)
+            .all(db)
             .await?;
 
         // Create a HashMap of existing voters for quick lookup
@@ -693,7 +684,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         if !voters_to_insert.is_empty() {
             let insert_result = voter::Entity::insert_many(voters_to_insert)
                 .on_conflict(OnConflict::new().do_nothing().to_owned())
-                .exec(txn)
+                .exec(db)
                 .await;
             if let Err(e) = insert_result {
                 if !e.to_string().contains("None of the records are inserted") {
@@ -707,7 +698,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         // Perform bulk update for existing voters with new ENS and/or Avatar
         if !voters_to_update.is_empty() {
             for voter_update in voters_to_update.into_iter() {
-                let update_result = voter::Entity::update(voter_update).exec(txn).await;
+                let update_result = voter::Entity::update(voter_update).exec(db).await;
                 if let Err(e) = update_result {
                     error!(error = %e, "Failed to update voter ENS/Avatar");
                 } else {
