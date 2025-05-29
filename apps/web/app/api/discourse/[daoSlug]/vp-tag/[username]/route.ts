@@ -91,21 +91,19 @@ export async function GET(
       return emptyResponse;
     }
 
-    const dtduRecords = await db.public
+    const dtdu = await db.public
       .selectFrom('delegateToDiscourseUser')
       .where('delegateToDiscourseUser.discourseUserId', '=', discourseUser.id)
       .select(['delegateId'])
-      .execute();
+      .executeTakeFirst();
 
-    if (dtduRecords.length === 0) {
+    if (!dtdu) {
       return emptyResponse;
     }
 
-    const delegateIds = dtduRecords.map((record) => record.delegateId);
-
     const dtvRecords = await db.public
       .selectFrom('delegateToVoter')
-      .where('delegateToVoter.delegateId', 'in', delegateIds)
+      .where('delegateToVoter.delegateId', '=', dtdu.delegateId)
       .select(['voterId'])
       .execute();
 
