@@ -2,6 +2,7 @@ use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use proposalsapp_db::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
+use rand;
 use reqwest::Client;
 use sea_orm::{
     ActiveValue::NotSet,
@@ -11,8 +12,7 @@ use sea_orm::{
 use serde::Deserialize;
 use std::collections::HashMap;
 use tokio::time::{Instant, sleep};
-use rand;
-use tracing::{Span, error, info, instrument, warn};
+use tracing::{Span, info, instrument, warn};
 
 use crate::{DB, metrics::METRICS};
 
@@ -50,24 +50,15 @@ lazy_static::lazy_static! {
 }
 
 pub async fn run_karma_task() -> Result<()> {
-    let interval = Duration::minutes(30);
-    let mut next_tick = Instant::now() + std::time::Duration::from_secs(interval.num_seconds() as u64);
+    let start_time = Instant::now();
+    fetch_karma_data().await?;
+    METRICS
+        .get()
+        .unwrap()
+        .karma_fetch_duration
+        .record(start_time.elapsed().as_secs_f64(), &[]);
 
-    loop {
-        let start_time = Instant::now();
-        if let Err(e) = fetch_karma_data().await {
-            error!(error = %e, "Error fetching karma data");
-            METRICS.get().unwrap().karma_fetch_errors.add(1, &[]);
-        }
-        METRICS
-            .get()
-            .unwrap()
-            .karma_fetch_duration
-            .record(start_time.elapsed().as_secs_f64(), &[]);
-
-        sleep(next_tick.saturating_duration_since(Instant::now())).await;
-        next_tick += std::time::Duration::from_secs(interval.num_seconds() as u64);
-    }
+    Ok(())
 }
 
 #[instrument]
@@ -166,7 +157,7 @@ async fn fetch_daos_with_discourse() -> Result<Vec<(dao::Model, Option<dao_disco
 async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
     const MAX_RETRIES: u32 = 5;
     const INITIAL_RETRY_DELAY: Duration = Duration::seconds(1);
-    const MAX_RETRY_DELAY: Duration = Duration::seconds(60);
+    const MAX_RETRY_DELAY: Duration = Duration::seconds(5 * 60);
 
     let mut retry_count = 0;
     let mut retry_delay = INITIAL_RETRY_DELAY;

@@ -1,26 +1,14 @@
 use crate::{DB, metrics::METRICS};
 use anyhow::{Context, Result};
-use chrono::Duration;
 use proposalsapp_db::models::{dao_discourse, discourse_topic, job_queue, proposal, proposal_group};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, prelude::Uuid};
-use std::time::Duration as StdDuration;
-use tokio::time::{Instant, sleep};
+use tokio::time::Instant;
 use tracing::{Span, error, info, instrument, warn};
 use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalItem, ProposalJobData, TopicItem};
 
 pub async fn run_group_task() -> Result<()> {
-    let interval = Duration::minutes(1);
-    let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);
-
-    loop {
-        if let Err(e) = process_jobs().await {
-            error!(error = %e, "Error processing jobs");
-            METRICS.get().unwrap().job_processing_errors.add(1, &[]);
-        }
-
-        sleep(next_tick.saturating_duration_since(Instant::now())).await;
-        next_tick += StdDuration::from_secs(interval.num_seconds() as u64);
-    }
+    process_jobs().await?;
+    Ok(())
 }
 
 #[instrument(, fields(job_count = 0))]

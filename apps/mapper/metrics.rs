@@ -18,7 +18,6 @@ pub struct Metrics {
 
     // Karma Metrics
     pub karma_fetch_duration: Histogram<f64>,
-    pub karma_fetch_errors: Counter<u64>,
     pub karma_delegates_processed: Counter<u64>,
 }
 
@@ -73,12 +72,6 @@ impl Metrics {
                 .f64_histogram("mapper_karma_fetch_duration_seconds")
                 .with_description("Duration of Karma data fetching in seconds")
                 .with_unit("seconds")
-                .build(),
-
-            karma_fetch_errors: meter
-                .u64_counter("mapper_karma_fetch_errors_total")
-                .with_description("Total number of Karma fetch errors")
-                .with_unit("errors")
                 .build(),
 
             karma_delegates_processed: meter

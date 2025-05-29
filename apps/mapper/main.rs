@@ -58,14 +58,28 @@ async fn main() -> Result<()> {
     });
 
     let grouper_handle = tokio::spawn(async move {
-        if let Err(e) = grouper::run_group_task().await {
-            error!(error = %e, "Grouper task runtime error");
+        // Run the grouper task every 1 minute
+        let interval = Duration::from_secs(60);
+        loop {
+            info!("Running grouper task");
+            if let Err(e) = grouper::run_group_task().await {
+                error!(error = %e, "Grouper task runtime error");
+            }
+            info!("Grouper task completed, sleeping for {} seconds", interval.as_secs());
+            tokio::time::sleep(interval).await;
         }
     });
 
     let karma_handle = tokio::spawn(async move {
-        if let Err(e) = karma::run_karma_task().await {
-            error!(error = %e, "Karma task runtime error");
+        // Run the karma task every 30 minutes
+        let interval = Duration::from_secs(30 * 60);
+        loop {
+            info!("Running karma task");
+            if let Err(e) = karma::run_karma_task().await {
+                error!(error = %e, "Karma task runtime error");
+            }
+            info!("Karma task completed, sleeping for {} seconds", interval.as_secs());
+            tokio::time::sleep(interval).await;
         }
     });
 
