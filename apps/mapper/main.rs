@@ -101,14 +101,10 @@ async fn main() -> Result<()> {
 
     // Wait for Ctrl+C or SIGTERM
     let ctrl_c = tokio::signal::ctrl_c();
-    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).expect("Failed to set up SIGTERM handler");
 
     tokio::select! {
         _ = ctrl_c => {
             info!("Received Ctrl+C, shutting down...");
-        }
-        _ = sigterm.recv() => {
-            info!("Received SIGTERM, shutting down...");
         }
     }
 
