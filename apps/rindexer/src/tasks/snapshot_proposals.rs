@@ -44,7 +44,7 @@ struct SnapshotProposal {
 }
 
 #[instrument(
-    name = "tasks_update_snapshot_proposals",
+    name = "update_snapshot_proposals",
     skip(dao_id, governor_id, space)
 )]
 pub async fn update_snapshot_proposals(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
@@ -223,7 +223,7 @@ impl SnapshotProposal {
     }
 }
 
-#[instrument(name = "tasks_run_periodic_snapshot_proposals_update", skip_all)]
+#[instrument(name = "run_periodic_snapshot_proposals_update", skip_all)]
 pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
     info!("Starting periodic task for fetching latest snapshot proposals.");
 

@@ -3,18 +3,18 @@ use crate::extensions::{
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{Context, Result};
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use futures::{StreamExt, stream};
 use proposalsapp_db::models::{proposal, vote};
 use sea_orm::{
     ActiveValue::NotSet,
-    ColumnTrait, Condition, EntityOrSelect, EntityTrait, FromQueryResult, Order, QueryFilter, QueryOrder, QuerySelect, Set, Value,
+    ColumnTrait, Condition, EntityOrSelect, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, Set, Value,
     prelude::{Expr, Uuid},
 };
 use serde::Deserialize;
 use serde_json::json;
 use std::time::Duration;
-use tracing::{debug, error,warn, info, instrument};
+use tracing::{debug, error, info, instrument, warn};
 
 #[derive(Deserialize, Debug)]
 struct SnapshotVotesResponse {
@@ -42,7 +42,7 @@ struct SnapshotProposalRef {
     id: String,
 }
 
-#[instrument(name = "tasks_update_snapshot_votes", skip(dao_id, governor_id, space))]
+#[instrument(name = "update_snapshot_votes", skip(dao_id, governor_id, space))]
 pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
     info!(space = %space, "Running task to fetch latest snapshot votes for space.");
 
@@ -222,7 +222,10 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
         // Only advance timestamp if we found new votes, otherwise we might be in an infinite loop
         if new_votes_found {
             last_vote_created = max_created_in_batch;
-            debug!(new_last_vote_created = last_vote_created, "Advanced last vote created timestamp");
+            debug!(
+                new_last_vote_created = last_vote_created,
+                "Advanced last vote created timestamp"
+            );
         } else {
             // If no new votes found, increment by 1 to avoid infinite loop on same timestamp
             warn!(
@@ -233,7 +236,10 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
                 "No new votes found in batch - incrementing timestamp to avoid infinite loop. This may indicate missing votes."
             );
             last_vote_created += 1;
-            debug!(incremented_last_vote_created = last_vote_created, "Incremented timestamp to avoid infinite loop");
+            debug!(
+                incremented_last_vote_created = last_vote_created,
+                "Incremented timestamp to avoid infinite loop"
+            );
         }
 
         loop_count += 1;
@@ -257,7 +263,7 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
     Ok(())
 }
 
-#[instrument(name = "tasks_run_periodic_snapshot_votes_update", skip_all)]
+#[instrument(name = "run_periodic_snapshot_votes_update", skip_all)]
 pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
     info!("Starting periodic task for fetching latest snapshot votes.");
 
@@ -327,42 +333,39 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
     }
 }
 
-#[derive(FromQueryResult)]
-struct LastCreatedValue {
-    last_created: Option<NaiveDateTime>,
-}
-
-#[instrument(name = "tasks_get_latest_vote_created", skip_all)]
+#[instrument(name = "get_latest_vote_created", skip_all)]
 async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64> {
     let db = DB.get().context("DB not initialized")?;
-
-    let last_vote = vote::Entity::find()
+    
+    // Use a direct query to get the max timestamp, which is more efficient
+    let timestamp = vote::Entity::find()
         .select_only()
-        .column_as(vote::Column::CreatedAt.max(), "last_created")
+        .column_as(
+            Expr::cust("COALESCE(MAX(created_at), '1970-01-01 00:00:00')"),
+            "max_timestamp"
+        )
         .filter(vote::Column::GovernorId.eq(governor_id))
         .filter(vote::Column::DaoId.eq(dao_id))
-        .into_model::<LastCreatedValue>()
+        .into_tuple::<(DateTime<Utc>,)>()
         .one(db)
-        .await?;
-
-    let timestamp = last_vote
-        .and_then(|v| v.last_created)
-        .map(|dt| dt.and_utc().timestamp())
-        .unwrap_or(0);
+        .await?
+        .map_or(0, |(dt,)| dt.timestamp());
 
     debug!(
         last_created_timestamp = timestamp,
         "Latest vote created timestamp retrieved from DB."
     );
+    
     Ok(timestamp)
 }
 
-#[instrument(name = "tasks_get_relevant_proposals", skip_all)]
+#[instrument(name = "get_relevant_proposals", skip_all)]
 async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_created: i64) -> Result<Vec<String>> {
     let db = DB.get().context("DB not initialized")?;
 
     let last_vote_created_datetime = DateTime::<Utc>::from_timestamp(last_vote_created, 0).context("Invalid last vote created timestamp")?;
-    // Fetch proposals created up to three years ago - some proposals might still get votes after a long time
+    // Fetch proposals created up to three years ago - some proposals might still get votes after a long
+    // time
     let three_years_ago_datetime = last_vote_created_datetime - Duration::from_secs(3 * 52 * 7 * 24 * 60 * 60);
 
     let relevant_proposals = proposal::Entity::find()
@@ -374,7 +377,7 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
         .filter(
             Condition::any()
                 .add(proposal::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
-                .add(proposal::Column::EndAt.gt((last_vote_created_datetime - Duration::from_secs(7 * 24 * 60 * 60)).naive_utc())) // Include proposals that ended within last week
+                .add(proposal::Column::EndAt.gt((last_vote_created_datetime - Duration::from_secs(7 * 24 * 60 * 60)).naive_utc())), // Include proposals that ended within last week
         )
         // Fetch proposals that started within the last three years
         .filter(proposal::Column::StartAt.gt(three_years_ago_datetime.naive_utc()))
@@ -397,7 +400,7 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
     Ok(ids)
 }
 
-#[instrument(name = "tasks_refresh_shutter_votes", skip(dao_id, governor_id, space))]
+#[instrument(name = "refresh_shutter_votes", skip(dao_id, governor_id, space))]
 async fn refresh_closed_shutter_votes(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
     info!(dao_id = %dao_id, governor_id = %governor_id, space = %space, "Running task to refresh votes for closed shutter proposals (24-hour window).");
 
@@ -473,7 +476,7 @@ async fn refresh_closed_shutter_votes(dao_id: Uuid, governor_id: Uuid, space: St
 }
 
 #[instrument(
-    name = "tasks_refresh_votes_for_proposal",
+    name = "refresh_votes_for_proposal",
     skip(governor_id, dao_id),
     fields(proposal_external_id)
 )]
