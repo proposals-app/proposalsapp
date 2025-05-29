@@ -534,6 +534,7 @@ runScheduledJobs();
 // Send uptime ping every 10 seconds
 const sendUptimePing = async () => {
   try {
+    console.log("Sending uptime ping...");
     await axios.get(`${process.env.BETTERSTACK_KEY}`);
   } catch (error) {
     console.error("Error sending uptime ping:", error);
