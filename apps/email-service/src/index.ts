@@ -1,7 +1,7 @@
 import express from "express";
 import { config } from "dotenv";
 import cron from "node-cron";
-import { db, Kysely, DB } from "@proposalsapp/db"; // Import Kysely and DB
+import { db } from "@proposalsapp/db";
 import {
   NewProposalEmailTemplate,
   NewDiscussionEmailTemplate,
@@ -101,8 +101,14 @@ export async function checkNewProposals() {
         continue;
       }
 
+      if (!(dao.slug in db)) {
+        throw new Error(
+          `Database schema for DAO slug '${dao.slug}' is not configured or found.`,
+        );
+      }
+
       // Get users who have enabled new proposal notifications from the specific web schema
-      const users = await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+      const users = await db[dao.slug as keyof typeof db]
         .selectFrom("user")
         .select(["id", "email"])
         .where("emailSettingsNewProposals", "=", true)
@@ -112,8 +118,8 @@ export async function checkNewProposals() {
         if (!user.email) continue;
 
         // Check if notification already sent in the specific web schema
-        const existingNotification = await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
-          .selectFrom("userNotification") // Use unprefixed table name
+        const existingNotification = await db[dao.slug as keyof typeof db]
+          .selectFrom("userNotification")
           .selectAll()
           .where((eb) =>
             eb.and([
@@ -150,8 +156,8 @@ export async function checkNewProposals() {
 
           // Record notification in the specific web schema
 
-          await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.arbitrum)
-            .insertInto("userNotification") // Use unprefixed table name
+          await db[dao.slug as keyof typeof db]
+            .insertInto("userNotification")
             .values({
               userId: user.id,
               type: "EMAIL_ENDING_PROPOSAL",
@@ -279,9 +285,15 @@ export async function checkNewDiscussions() {
         continue;
       }
 
+      if (!(dao.slug in db)) {
+        throw new Error(
+          `Database schema for DAO slug '${dao.slug}' is not configured or found.`,
+        );
+      }
+
       // Get users who have enabled new discussion notifications from the specific web schema
-      const users = await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
-        .selectFrom("user") // Use unprefixed table name
+      const users = await db[dao.slug as keyof typeof db]
+        .selectFrom("user")
         .select(["id", "email"])
         .where("emailSettingsNewDiscussions", "=", true)
         .execute();
@@ -290,8 +302,10 @@ export async function checkNewDiscussions() {
         if (!user.email) continue;
 
         // Check if notification was already sent in the specific web schema
-        const existingNotification = await (dao.slug === 'arbitrum' ? db.arbitrum : db.public)
-          .selectFrom("userNotification") // Use unprefixed table name
+        const existingNotification = await (
+          dao.slug === "arbitrum" ? db.arbitrum : db.public
+        )
+          .selectFrom("userNotification")
           .selectAll()
           .where((eb) =>
             eb.and([
@@ -330,8 +344,8 @@ export async function checkNewDiscussions() {
 
           // Record notification in the specific web schema
 
-          await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
-            .insertInto("userNotification") // Use unprefixed table name
+          await db[dao.slug as keyof typeof db]
+            .insertInto("userNotification")
             .values({
               userId: user.id,
               type: "EMAIL_NEW_DISCUSSION",
@@ -414,8 +428,14 @@ export async function checkEndingProposals() {
         continue;
       }
 
+      if (!(dao.slug in db)) {
+        throw new Error(
+          `Database schema for DAO slug '${dao.slug}' is not configured or found.`,
+        );
+      }
+
       // Get users who have enabled ending proposal notifications from the specific web schema
-      const users = await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+      const users = await db[dao.slug as keyof typeof db]
         .selectFrom("user") // Use unprefixed table name
         .select(["id", "email"])
         .where("emailSettingsEndingProposals", "=", true)
@@ -425,7 +445,9 @@ export async function checkEndingProposals() {
         if (!user.email) continue;
 
         // Check if notification already sent in the specific web schema
-        const existingNotification = await (dao.slug === 'arbitrum' ? db.arbitrum : db.public)
+        const existingNotification = await (
+          dao.slug === "arbitrum" ? db.arbitrum : db.public
+        )
           .selectFrom("userNotification") // Use unprefixed table name
           .selectAll()
           .where((eb) =>
@@ -462,7 +484,7 @@ export async function checkEndingProposals() {
 
           // Record notification in the specific web schema
 
-          await (dao.slug in db ? db[dao.slug as keyof typeof db] : db.public)
+          await db[dao.slug as keyof typeof db]
             .insertInto("userNotification") // Use unprefixed table name
             .values({
               userId: user.id,
