@@ -6,7 +6,7 @@ use extensions::{db_extension::initialize_db, snapshot_api::initialize_snapshot_
 use reqwest::Client;
 use rindexer::{GraphqlOverrideSettings, IndexingDetails, StartDetails, event::callback_registry::TraceCallbackRegistry, start_rindexer};
 use std::{env, time::Duration};
-use tasks::{block_times::run_periodic_block_times_update, onchain_proposals_updates::run_periodic_proposal_state_update, snapshot_proposals::run_periodic_snapshot_proposals_update, snapshot_votes::run_periodic_snapshot_votes_update};
+use tasks::{onchain_proposals_updates::run_periodic_proposal_state_update, snapshot_proposals::run_periodic_snapshot_proposals_update, snapshot_votes::run_periodic_snapshot_votes_update};
 use tracing::{error, info, instrument, warn};
 use utils::tracing::setup_otel;
 
@@ -45,12 +45,6 @@ async fn main() -> Result<()> {
     let proposal_state_handle = tokio::spawn(async {
         if let Err(e) = run_periodic_proposal_state_update().await {
             error!("Error in periodic proposal state update task: {:?}", e);
-        }
-    });
-
-    let block_times_handle = tokio::spawn(async {
-        if let Err(e) = run_periodic_block_times_update().await {
-            error!("Error in periodic block times update task: {:?}", e);
         }
     });
 
@@ -119,9 +113,6 @@ async fn main() -> Result<()> {
         }
         result = proposal_state_handle => {
             error!("Proposal state task completed unexpectedly: {:?}", result);
-        }
-        result = block_times_handle => {
-            error!("Block times task completed unexpectedly: {:?}", result);
         }
         result = rindexer_handle => {
             error!("Rindexer task completed unexpectedly: {:?}", result);
