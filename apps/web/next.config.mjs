@@ -17,7 +17,12 @@ const nextConfig = {
       },
     },
   },
-  allowedDevOrigins: ['arbitrum.localhost', 'localhost'],
+  allowedDevOrigins: [
+    'arbitrum.localhost',
+    'uniswap.localhost',
+    'localhost',
+    '*.localhost',
+  ],
   rewrites: () => {
     return [
       // PostHog rewrites need to come first to ensure they're not caught by the catch-all subdomain rewrite
@@ -44,18 +49,23 @@ const nextConfig = {
     reactCompiler: true,
     viewTransition: true,
     useCache: true,
-    dynamicIO: true,
-    // cacheHandlers: { default: resolve('./cache-handler.mjs') },
+    // dynamicIO: true,
+    cacheHandlers: { default: resolve('./cache-handler.mjs') },
     serverActions: {
       bodySizeLimit: '10mb',
     },
   },
+
   images: {
     minimumCacheTTL: 3600,
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost',
       },
     ],
   },
@@ -70,4 +80,6 @@ const nextConfig = {
   },
 };
 
-export default withSerwist(nextConfig);
+export default nextConfig;
+
+//export default withSerwist(nextConfig);

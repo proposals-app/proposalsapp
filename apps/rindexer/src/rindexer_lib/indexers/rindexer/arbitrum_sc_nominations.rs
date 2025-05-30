@@ -7,11 +7,8 @@ use crate::{
     },
     rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations::arbitrum_sc_nominations_contract,
 };
-use ethers::{
-    types::U256,
-    utils::{hex::ToHex, to_checksum},
-};
-use proposalsapp_db_indexer::models::{proposal, sea_orm_active_enums::ProposalState};
+use alloy::{hex::ToHexExt, primitives::U256};
+use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState};
 use regex::Regex;
 use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error, rindexer_info};
 use sea_orm::{
@@ -67,10 +64,10 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 let url_regex = Regex::new(r"Security Council Election #(\d+)").unwrap();
 
                 for result in results.clone() {
-                    let proposal_id = result.event_data.proposal_id;
-                    let block_number = result.tx_information.block_number.as_u64();
+                    let proposal_id = result.event_data.proposalId;
+                    let block_number = result.tx_information.block_number.to::<u64>();
 
-                    let arbitrum_sc_nominations_governor = arbitrum_sc_nominations_contract("arbitrum");
+                    let arbitrum_sc_nominations_governor = arbitrum_sc_nominations_contract("arbitrum").await;
 
                     let created_at = match estimate_timestamp("arbitrum", block_number).await {
                         Ok(ts) => ts,
@@ -80,18 +77,18 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
-                    let start_at = match estimate_timestamp("ethereum", result.event_data.start_block.as_u64()).await {
+                    let start_at = match estimate_timestamp("ethereum", result.event_data.startBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
-                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, start_block = %result.event_data.start_block, "Failed to estimate start_at timestamp");
+                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, start_block = %result.event_data.startBlock, "Failed to estimate start_at timestamp");
                             continue;
                         }
                     };
 
-                    let end_at = match estimate_timestamp("ethereum", result.event_data.end_block.as_u64()).await {
+                    let end_at = match estimate_timestamp("ethereum", result.event_data.endBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
-                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, end_block = %result.event_data.end_block, "Failed to estimate end_at timestamp");
+                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, end_block = %result.event_data.endBlock, "Failed to estimate end_at timestamp");
                             continue;
                         }
                     };
@@ -129,7 +126,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     };
 
                     let proposal_snapshot_block_result = arbitrum_sc_nominations_governor
-                        .proposal_snapshot(proposal_id)
+                        .proposalSnapshot(proposal_id)
                         .call()
                         .await;
                     let quorum_result = match proposal_snapshot_block_result {
@@ -146,8 +143,8 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     };
 
                     let quorum = match quorum_result {
-                        Ok(r) => r.as_u128() as f64 / (10.0f64.powi(18)),
-                        Err(_) => U256::from(0).as_u128() as f64 / (10.0f64.powi(18)),
+                        Ok(r) => r.to::<u128>() as f64 / (10.0f64.powi(18)),
+                        Err(_) => U256::from(0).to::<u128>() as f64 / (10.0f64.powi(18)),
                     };
 
                     let proposal = proposal::ActiveModel {
@@ -165,17 +162,17 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         start_at: Set(start_at),
                         end_at: Set(end_at),
                         block_created_at: Set(Some(block_number as i32)),
-                        block_start_at: Set(Some(result.event_data.start_block.as_u64() as i32)),
-                        block_end_at: Set(Some(result.event_data.end_block.as_u64() as i32)),
+                        block_start_at: Set(Some(result.event_data.startBlock.to::<u64>() as i32)),
+                        block_end_at: Set(Some(result.event_data.endBlock.to::<u64>() as i32)),
                         metadata: Set(json!({"vote_type":"sc_nominations"}).into()),
-                        txid: Set(Some(result.tx_information.transaction_hash.encode_hex())),
+                        txid: Set(Some(result.tx_information.transaction_hash.to_string())),
                         governor_id: Set(get_governor_id().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
-                        author: Set(Some(to_checksum(&result.event_data.proposer, None))),
+                        author: Set(Some(result.event_data.proposer.to_string())),
                     };
 
                     store_proposal(proposal).await;
-                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposal_id, "ArbitrumSCNominations Proposal stored");
+                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumSCNominations Proposal stored");
                 }
 
                 info!(
@@ -191,7 +188,8 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
         )
         .await,
     )
-    .register(manifest_path, registry);
+    .register(manifest_path, registry)
+    .await;
 }
 
 #[instrument(
@@ -220,7 +218,8 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
         )
         .await,
     )
-    .register(manifest_path, registry);
+    .register(manifest_path, registry)
+    .await;
 }
 
 #[instrument(

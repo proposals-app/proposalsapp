@@ -1,12 +1,15 @@
-use crate::rindexer_lib::typings::networks::get_ethereum_provider_cache;
+use crate::rindexer_lib::typings::networks::get_ethereum_provider;
+use alloy::primitives::Address;
+use alloy_ens::ProviderEnsExt;
 use anyhow::{Context, Result};
-use ethers::{providers::Middleware, types::Address};
+use chrono::Utc;
 use once_cell::sync::{Lazy, OnceCell};
-use proposalsapp_db_indexer::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction, EntityTrait, InsertResult, QueryFilter, Set, TransactionTrait, prelude::Uuid, sea_query::OnConflict};
+use proposalsapp_db::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
+use rindexer::provider::RindexerProvider;
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
 use std::{
     collections::{HashMap, HashSet},
-    sync::Mutex,
+    sync::{Arc, Mutex},
     time::Duration,
 };
 use tracing::{debug, error, info, instrument, warn};
@@ -34,8 +37,8 @@ pub async fn initialize_db() -> Result<()> {
     let mut opt = sea_orm::ConnectOptions::new(database_url);
     opt.max_connections(25)
         .min_connections(5)
-        .connect_timeout(Duration::from_secs(5))
-        .acquire_timeout(Duration::from_secs(8))
+        .connect_timeout(Duration::from_secs(30))
+        .acquire_timeout(Duration::from_secs(30))
         .idle_timeout(Duration::from_secs(10 * 60))
         .max_lifetime(Duration::from_secs(30 * 60))
         .sqlx_logging(false);
@@ -121,7 +124,6 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
-    let txn = db.begin().await?;
 
     // Extract indexer ID and external ID from the proposal
     let governor_id = proposal
@@ -141,7 +143,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
                 .add(proposal::Column::ExternalId.eq(external_id.clone()))
                 .add(proposal::Column::GovernorId.eq(governor_id)),
         )
-        .one(&txn)
+        .one(db)
         .await?;
 
     if let Some(existing) = existing_proposal {
@@ -235,14 +237,12 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
                 .unwrap_or(existing.governor_id)),
         };
 
-        proposal::Entity::update(active_model).exec(&txn).await?;
+        proposal::Entity::update(active_model).exec(db).await?;
         info!(proposal_id = %existing.id, external_id = %external_id, "Proposal updated successfully");
     } else {
         // Insert new proposal
         debug!(external_id = %external_id, "Inserting new proposal");
-        let inserted_proposal = proposal::Entity::insert(proposal.clone())
-            .exec(&txn)
-            .await?;
+        let inserted_proposal = proposal::Entity::insert(proposal.clone()).exec(db).await?;
         info!(proposal_id = %inserted_proposal.last_insert_id, external_id = %external_id, "Proposal inserted successfully");
 
         // Fetch governor to check its type
@@ -253,7 +253,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
             .ok_or_else(|| anyhow::anyhow!("Missing governor_id for governor lookup"))?;
         let governor = dao_governor::Entity::find()
             .filter(dao_governor::Column::Id.eq(governor_id_to_find))
-            .one(&txn)
+            .one(db)
             .await?;
         let governor_model = governor.ok_or_else(|| anyhow::anyhow!("Governor not found with id: {}", governor_id_to_find))?;
 
@@ -270,13 +270,12 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
                 status: Set("PENDING".into()),
                 created_at: NotSet,
             })
-            .exec(&txn)
+            .exec(db)
             .await?;
             debug!("Snapshot discussion details job enqueued");
         }
     }
 
-    txn.commit().await?;
     Ok(())
 }
 
@@ -285,7 +284,6 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
-    let txn = db.begin().await?;
 
     let proposal_external_ids: Vec<String> = votes
         .iter()
@@ -293,7 +291,6 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
         .collect();
 
     if proposal_external_ids.is_empty() {
-        txn.rollback().await?;
         return Err(anyhow::anyhow!(
             "No proposal_external_ids provided in votes"
         ));
@@ -302,7 +299,7 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
     let proposals_result = proposal::Entity::find()
         .filter(proposal::Column::ExternalId.is_in(proposal_external_ids.clone()))
         .filter(proposal::Column::GovernorId.eq(governor_id))
-        .all(&txn)
+        .all(db)
         .await?;
 
     let proposal_map: HashMap<String, proposal::Model> = proposals_result
@@ -316,12 +313,11 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
         .collect();
 
     if voter_addresses.is_empty() {
-        txn.rollback().await?;
         return Err(anyhow::anyhow!("No voter_addresses provided in votes"));
     }
 
     let voter_address_set: HashSet<String> = voter_addresses.into_iter().collect();
-    store_voters(&txn, voter_address_set).await?;
+    store_voters(voter_address_set).await?;
 
     let mut vote_active_models = Vec::new();
     for vote in votes.clone() {
@@ -372,17 +368,15 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
                 ])
                 .to_owned(),
             )
-            .exec(&txn)
+            .exec(db)
             .await;
 
         if let Err(err) = result {
-            txn.rollback().await?;
             error!(error = %err, "Failed to insert vote chunk, transaction rolled back.");
             return Err(err.into());
         }
     }
 
-    txn.commit().await?;
     info!("Successfully stored {} votes in chunk.", votes.len());
     Ok(())
 }
@@ -398,27 +392,22 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
-    let txn = db.begin().await?;
 
     for chunk in delegations.chunks(BATCH_SIZE) {
-        let result = delegation::Entity::insert_many(chunk.to_vec())
+        let insert_result = delegation::Entity::insert_many(chunk.to_vec())
             .on_conflict(OnConflict::new().do_nothing().to_owned())
-            .exec(&txn)
+            .exec(db)
             .await;
 
-        if let Err(err) = result {
-            error!(error = %err, count = chunk.len(), "Failed to insert delegation chunk, rolling back transaction.");
-            txn.rollback().await?;
-            return Err(err.into());
+        if let Err(e) = insert_result {
+            if !e.to_string().contains("None of the records are inserted") {
+                error!(error = %e, "Bulk insert of new delegations failed");
+            }
         } else {
-            debug!(
-                count = chunk.len(),
-                "Delegation chunk inserted successfully."
-            );
+            debug!(count = ?insert_result.as_ref(), "Bulk insert of new delegations completed");
         }
     }
 
-    txn.commit().await?;
     info!("Successfully processed {} delegations.", total_delegations);
     Ok(())
 }
@@ -434,27 +423,22 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
-    let txn = db.begin().await?;
 
     for chunk in voting_powers.chunks(BATCH_SIZE) {
-        let result = voting_power::Entity::insert_many(chunk.to_vec())
+        let insert_result = voting_power::Entity::insert_many(chunk.to_vec())
             .on_conflict(OnConflict::new().do_nothing().to_owned())
-            .exec(&txn)
+            .exec(db)
             .await;
 
-        if let Err(err) = result {
-            error!(error = %err, count = chunk.len(), "Failed to insert/update voting power chunk, rolling back transaction.");
-            txn.rollback().await?;
-            return Err(err.into());
+        if let Err(e) = insert_result {
+            if !e.to_string().contains("None of the records are inserted") {
+                error!(error = %e, "Bulk insert of new voting powers failed");
+            }
         } else {
-            debug!(
-                count = chunk.len(),
-                "Voting power chunk processed successfully."
-            );
+            debug!(count = ?insert_result.as_ref(), "Bulk insert of new voting powers completed");
         }
     }
 
-    txn.commit().await?;
     info!(
         "Successfully processed {} voting powers.",
         total_voting_powers
@@ -462,10 +446,14 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
     Ok(())
 }
 
-#[instrument(name = "db_store_voters", skip(txn, voter_addresses), fields(voter_address_count = voter_addresses.len()))]
-async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String>) -> Result<()> {
+#[instrument(name = "db_store_voters", skip(voter_addresses), fields(voter_address_count = voter_addresses.len()))]
+async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
+    let db = DB
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
+
     // Get the provider once at the beginning to reuse throughout the function
-    let provider = get_ethereum_provider_cache().get_inner_provider();
+    let provider = get_ethereum_provider().await;
 
     for addresses_chunk in voter_addresses
         .into_iter()
@@ -475,7 +463,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         // Fetch existing voters with address and ens
         let existing_voters_models: Vec<voter::Model> = voter::Entity::find()
             .filter(voter::Column::Address.is_in(addresses_chunk.to_vec()))
-            .all(txn)
+            .all(db)
             .await?;
 
         // Create a HashMap of existing voters for quick lookup
@@ -490,6 +478,18 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         for address in addresses_chunk {
             if let Some(existing_voter) = existing_voters_map.get(address) {
                 // Voter exists, check and update ENS and Avatar if needed
+
+                // Check if updated_at is older than 24 hours
+                let twenty_four_hours_ago = Utc::now() - Duration::from_secs(24 * 60 * 60);
+                if existing_voter.updated_at > twenty_four_hours_ago.naive_utc() {
+                    // Voter was updated recently, skip ENS lookup
+                    debug!(
+                        address = address,
+                        "Voter updated recently, skipping ENS lookup"
+                    );
+                    continue;
+                }
+
                 let addr_clone = address.clone();
 
                 // Safely convert address string to Address type
@@ -518,7 +518,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                 if let Ok(fetched_ens) = ens_result {
                     let mut needs_update = false;
                     let mut updated_ens: Option<String> = None;
-                    let mut updated_avatar: Option<String> = None;
+                    // let mut updated_avatar: Option<String> = None;
 
                     if existing_voter.ens != Some(fetched_ens.clone()) {
                         debug!(
@@ -532,35 +532,35 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                     }
 
                     // Try to resolve avatar with timeout
-                    let avatar_result = match tokio::time::timeout(
-                        std::time::Duration::from_secs(5),
-                        isolated_avatar_resolve(fetched_ens.clone(), addr_clone.clone(), provider.clone()),
-                    )
-                    .await
-                    {
-                        Ok(result) => result,
-                        Err(_) => {
-                            debug!(
-                                address = addr_clone,
-                                ens = fetched_ens,
-                                "Avatar resolution timed out"
-                            );
-                            Err(anyhow::anyhow!("Avatar resolution timed out"))
-                        }
-                    };
+                    // let avatar_result = match tokio::time::timeout(
+                    //     std::time::Duration::from_secs(5),
+                    //     isolated_avatar_resolve(fetched_ens.clone(), addr_clone.clone(), provider.clone()),
+                    // )
+                    // .await
+                    // {
+                    //     Ok(result) => result,
+                    //     Err(_) => {
+                    //         debug!(
+                    //             address = addr_clone,
+                    //             ens = fetched_ens,
+                    //             "Avatar resolution timed out"
+                    //         );
+                    //         Err(anyhow::anyhow!("Avatar resolution timed out"))
+                    //     }
+                    // };
 
-                    if let Ok(avatar_url) = avatar_result {
-                        if existing_voter.avatar != Some(avatar_url.clone()) {
-                            debug!(
-                                address = address,
-                                old_avatar = existing_voter.avatar,
-                                new_avatar = avatar_url,
-                                "Updating avatar for address"
-                            );
-                            updated_avatar = Some(avatar_url);
-                            needs_update = true;
-                        }
-                    }
+                    // if let Ok(avatar_url) = avatar_result {
+                    //     if existing_voter.avatar != Some(avatar_url.clone()) {
+                    //         debug!(
+                    //             address = address,
+                    //             old_avatar = existing_voter.avatar,
+                    //             new_avatar = avatar_url,
+                    //             "Updating avatar for address"
+                    //         );
+                    //         updated_avatar = Some(avatar_url);
+                    //         needs_update = true;
+                    //     }
+                    // }
 
                     if needs_update {
                         let mut voter_active_model = voter::ActiveModel {
@@ -568,13 +568,14 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                             address: NotSet,
                             ens: NotSet,
                             avatar: NotSet,
+                            updated_at: Set(Utc::now().naive_utc()),
                         };
                         if let Some(ens) = updated_ens {
                             voter_active_model.ens = Set(Some(ens));
                         }
-                        if let Some(avatar) = updated_avatar {
-                            voter_active_model.avatar = Set(Some(avatar));
-                        }
+                        // if let Some(avatar) = updated_avatar {
+                        //     voter_active_model.avatar = Set(Some(avatar));
+                        // }
                         voters_to_update.push(voter_active_model);
                     }
                 } else if let Err(e) = ens_result {
@@ -596,6 +597,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                             address: Set(address.clone()),
                             ens: NotSet,
                             avatar: NotSet,
+                            updated_at: Set(Utc::now().naive_utc()),
                         });
                         continue; // Continue to the next address
                     }
@@ -617,6 +619,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                             address: Set(address.clone()),
                             ens: NotSet,
                             avatar: NotSet,
+                            updated_at: Set(Utc::now().naive_utc()),
                         });
                         continue;
                     }
@@ -624,36 +627,44 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 
                 if let Ok(ens) = ens_result {
                     // Try to resolve avatar with timeout
-                    let avatar_result = match tokio::time::timeout(
-                        std::time::Duration::from_secs(5),
-                        isolated_avatar_resolve(ens.clone(), addr_clone.clone(), provider.clone()),
-                    )
-                    .await
-                    {
-                        Ok(result) => result,
-                        Err(_) => {
-                            debug!(
-                                address = addr_clone,
-                                ens = ens,
-                                "Avatar resolution timed out for new voter"
-                            );
-                            Err(anyhow::anyhow!("Avatar resolution timed out"))
-                        }
-                    };
+                    // let avatar_result = match tokio::time::timeout(
+                    //     std::time::Duration::from_secs(5),
+                    //     isolated_avatar_resolve(ens.clone(), addr_clone.clone(), provider.clone()),
+                    // )
+                    // .await
+                    // {
+                    //     Ok(result) => result,
+                    //     Err(_) => {
+                    //         debug!(
+                    //             address = addr_clone,
+                    //             ens = ens,
+                    //             "Avatar resolution timed out for new voter"
+                    //         );
+                    //         Err(anyhow::anyhow!("Avatar resolution timed out"))
+                    //     }
+                    // };
 
-                    let avatar = match avatar_result {
-                        Ok(avatar_url) => Some(avatar_url),
-                        Err(e) => {
-                            debug!(address = addr_clone, ens = ens, error = %e, "Avatar resolution error for new voter");
-                            None
-                        }
-                    };
+                    // let avatar = match avatar_result {
+                    //     Ok(avatar_url) => Some(avatar_url),
+                    //     Err(e) => {
+                    //         debug!(address = addr_clone, ens = ens, error = %e, "Avatar resolution error for new
+                    // voter");         None
+                    //     }
+                    // };
 
+                    // voters_to_insert.push(voter::ActiveModel {
+                    //     id: NotSet,
+                    //     address: Set(address.clone()),
+                    //     ens: Set(Some(ens)),
+                    //     avatar: Set(avatar),
+                    // });
+                    //
                     voters_to_insert.push(voter::ActiveModel {
                         id: NotSet,
                         address: Set(address.clone()),
                         ens: Set(Some(ens)),
-                        avatar: Set(avatar),
+                        avatar: NotSet,
+                        updated_at: Set(Utc::now().naive_utc()),
                     });
                 } else if let Err(e) = ens_result {
                     debug!(address = addr_clone, error = %e, "ENS lookup failed for new voter");
@@ -663,6 +674,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
                         address: Set(address.clone()),
                         ens: NotSet,
                         avatar: NotSet,
+                        updated_at: Set(Utc::now().naive_utc()),
                     });
                 }
             }
@@ -672,10 +684,12 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         if !voters_to_insert.is_empty() {
             let insert_result = voter::Entity::insert_many(voters_to_insert)
                 .on_conflict(OnConflict::new().do_nothing().to_owned())
-                .exec(txn)
+                .exec(db)
                 .await;
             if let Err(e) = insert_result {
-                error!(error = %e, "Bulk insert of new voters failed");
+                if !e.to_string().contains("None of the records are inserted") {
+                    error!(error = %e, "Bulk insert of new voters failed");
+                }
             } else {
                 debug!(count = ?insert_result.as_ref(), "Bulk insert of new voters completed");
             }
@@ -684,7 +698,7 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
         // Perform bulk update for existing voters with new ENS and/or Avatar
         if !voters_to_update.is_empty() {
             for voter_update in voters_to_update.into_iter() {
-                let update_result = voter::Entity::update(voter_update).exec(txn).await;
+                let update_result = voter::Entity::update(voter_update).exec(db).await;
                 if let Err(e) = update_result {
                     error!(error = %e, "Failed to update voter ENS/Avatar");
                 } else {
@@ -698,9 +712,9 @@ async fn store_voters(txn: &DatabaseTransaction, voter_addresses: HashSet<String
 }
 
 #[instrument(name = "db_isolated_ens_lookup", skip(address, provider, addr_string), fields(address = %address))]
-async fn isolated_ens_lookup<M: Middleware + 'static>(address: Address, addr_string: String, provider: M) -> Result<String> {
+async fn isolated_ens_lookup(address: Address, addr_string: String, provider: Arc<RindexerProvider>) -> Result<String> {
     // Spawn a task to isolate potential panics
-    match tokio::task::spawn(async move { provider.lookup_address(address).await }).await {
+    match tokio::task::spawn(async move { provider.lookup_address(&address).await }).await {
         Ok(result) => match result {
             Ok(ens) => {
                 debug!(ens_name = ens, "ENS lookup successful");
@@ -723,31 +737,31 @@ async fn isolated_ens_lookup<M: Middleware + 'static>(address: Address, addr_str
     }
 }
 
-#[instrument(name = "db_isolated_avatar_resolve", skip(ens, provider, addr_string), fields(ens_name = ens))]
-async fn isolated_avatar_resolve<M: Middleware + 'static>(ens: String, addr_string: String, provider: M) -> Result<String> {
-    // Spawn a task to isolate potential panics
-    match tokio::task::spawn(async move { provider.resolve_avatar(&ens).await }).await {
-        Ok(result) => match result {
-            Ok(avatar) => {
-                debug!(avatar_url = %avatar, "Avatar resolution successful");
-                Ok(avatar.to_string())
-            }
-            Err(e) => {
-                debug!(error = %e, "Avatar resolution error");
-                Err(anyhow::anyhow!("Avatar resolution error: {}", e))
-            }
-        },
-        Err(e) => {
-            warn!(
-                address = addr_string,
-                error = %e,
-                "Task error during avatar resolution"
-            );
-            // This happens if the task panicked
-            Err(anyhow::anyhow!(
-                "Task error during avatar resolution: {}",
-                e
-            ))
-        }
-    }
-}
+// #[instrument(name = "db_isolated_avatar_resolve", skip(ens, provider, addr_string),
+// fields(ens_name = ens))] async fn isolated_avatar_resolve(ens: String, addr_string: String,
+// provider: Arc<RindexerProvider>) -> Result<String> {     // Spawn a task to isolate potential
+// panics     match tokio::task::spawn(async move { provider.resolve_avatar(&ens).await }).await {
+//         Ok(result) => match result {
+//             Ok(avatar) => {
+//                 debug!(avatar_url = %avatar, "Avatar resolution successful");
+//                 Ok(avatar.to_string())
+//             }
+//             Err(e) => {
+//                 debug!(error = %e, "Avatar resolution error");
+//                 Err(anyhow::anyhow!("Avatar resolution error: {}", e))
+//             }
+//         },
+//         Err(e) => {
+//             warn!(
+//                 address = addr_string,
+//                 error = %e,
+//                 "Task error during avatar resolution"
+//             );
+//             // This happens if the task panicked
+//             Err(anyhow::anyhow!(
+//                 "Task error during avatar resolution: {}",
+//                 e
+//             ))
+//         }
+//     }
+// }

@@ -5,10 +5,10 @@ use crate::{
     discourse_api::DiscourseApi,
     indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer},
 };
-use anyhow::{Context, Result};
-use axum::{Router, routing::get};
+use anyhow::{Context, Error, Result};
+use axum::Router;
 use dotenv::dotenv;
-use proposalsapp_db_indexer::models::dao_discourse;
+use proposalsapp_db::models::dao_discourse;
 use reqwest::Client;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, prelude::Uuid};
 use std::{
@@ -16,8 +16,8 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{signal, sync::watch, task::JoinSet, time::interval_at};
-use tracing::{Instrument, debug, error, info, instrument, warn};
+use tokio::{task::JoinSet, time::interval_at};
+use tracing::{Instrument, error, info, instrument, warn};
 use utils::tracing::setup_otel;
 
 mod db_handler;
@@ -31,9 +31,6 @@ const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_secs(60 * 60);
 
 const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
-
-const HEALTH_CHECK_PORT: u16 = 3000;
-const BETTERSTACK_HEARTBEAT_ENV: &str = "BETTERSTACK_KEY";
 
 pub const MAX_PAGES_PER_RUN: u32 = 1000; // Safety break for pagination loops
 pub const RECENT_LOOKBACK_HOURS: i64 = 2; // How far back to look for "recent" items
@@ -50,11 +47,9 @@ lazy_static::lazy_static! {
 #[instrument]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let _otel_guard = setup_otel()
-        .await
-        .context("Failed to setup OpenTelemetry")?;
+    let _otel = setup_otel().await?;
 
-    info!("Discourse Indexer application starting up...");
+    info!("Application starting up");
 
     initialize_db()
         .await
@@ -62,64 +57,60 @@ async fn main() -> Result<()> {
 
     info!("Database initialized.");
 
-    // --- Shutdown Signal Handling ---
-    let (shutdown_tx, shutdown_rx) = watch::channel(());
-    let mut shutdown_rx_clone = shutdown_rx.clone();
-
-    // --- Start Health Check Server ---
-    let server_handle = tokio::spawn(
-        async move {
-            let app = Router::new().route("/", get(|| async { "OK" }));
-            let bind_addr = format!("0.0.0.0:{}", HEALTH_CHECK_PORT);
-            info!(address = %bind_addr, "Starting health check server");
-
-            let listener = match tokio::net::TcpListener::bind(&bind_addr).await {
-                Ok(l) => l,
-                Err(e) => {
-                    error!(error = ?e, address = %bind_addr, "Failed to bind health check server");
-                    return; // Exit task if binding fails
-                }
-            };
-
-            let server = axum::serve(listener, app).with_graceful_shutdown(async move {
-                shutdown_rx_clone.changed().await.ok();
-                info!("Health check server received shutdown signal.");
-            });
-
-            if let Err(e) = server.await {
-                error!(error = ?e, "Health check server error occurred");
-            }
-            info!("Health check server shut down.");
+    // Start health check server
+    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let health_server_handle = tokio::spawn(async move {
+        info!(address = %addr, "Starting health check server");
+        if let Err(e) = axum::serve(listener, app).await {
+            error!(error = %e, "Health check server error");
         }
-        .instrument(tracing::info_span!("health_check_server")),
-    );
+    });
+
+    let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
+    let client = Client::new();
+    let uptime_handle = tokio::spawn(async move {
+        loop {
+            match client.get(uptime_key.clone()).send().await {
+                Ok(_) => info!("Uptime ping sent successfully"),
+                Err(e) => warn!("Failed to send uptime ping: {:?}", e),
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
 
     // --- Initialize API Clients and Indexers ---
     let dao_discourses = dao_discourse::Entity::find()
         .filter(dao_discourse::Column::Enabled.eq(true))
-        .find_with_related(proposalsapp_db_indexer::models::dao::Entity)
+        .find_with_related(proposalsapp_db::models::dao::Entity)
         .all(db())
         .await
         .context("Failed to fetch enabled DAO Discourse configurations with DAO names")?;
 
     if dao_discourses.is_empty() {
         warn!("No enabled DAO Discourse configurations found. Indexer will idle.");
-        // Wait for shutdown signal if no DAOs are configured
+        // Keep the health server and uptime ping running even if no DAOs are configured
+        info!("Running indefinitely with health server and uptime ping only");
+
         tokio::select! {
-             _ = signal::ctrl_c() => { info!("Received Ctrl+C signal while idle."); },
-             res = wait_for_sigterm() => { if res.is_ok() { info!("Received SIGTERM signal while idle."); } }
+            result = health_server_handle => {
+                error!("Health server task completed unexpectedly: {:?}", result);
+            }
+            result = uptime_handle => {
+                error!("Uptime task completed unexpectedly: {:?}", result);
+            }
+            _ = tokio::signal::ctrl_c() => {
+                info!("Received Ctrl+C, shutting down gracefully");
+            }
         }
-        shutdown_tx.send(()).ok(); // Notify server to shutdown
-        // Wait for server task completion
-        if let Err(e) = server_handle.await {
-            error!(error = ?e, "Error joining health check server task during idle shutdown");
-        }
-        // No need for double question mark '??' here
+
+        info!("Application shutting down");
         return Ok(());
     }
 
     let shared_http_client = Arc::new(Client::new());
-    let mut indexer_tasks = JoinSet::new();
+    let mut indexer_tasks: JoinSet<Result<_, Error>> = JoinSet::new();
 
     for (dao_config, dao_details_vec) in dao_discourses {
         // Assuming one DAO per dao_discourse record
@@ -151,7 +142,6 @@ async fn main() -> Result<()> {
         let user_idx_full = user_indexer.clone();
         let topic_idx_full = topic_indexer.clone();
         let rev_idx_full = revision_indexer.clone();
-        let mut shutdown_rx_full = shutdown_rx.clone();
 
         indexer_tasks.spawn(
             async move {
@@ -163,14 +153,9 @@ async fn main() -> Result<()> {
 
                 loop {
                     tokio::select! {
-                        biased; // Prioritize shutdown check
-                        _ = shutdown_rx_full.changed() => {
-                             info!(task = %task_name, "Received shutdown signal. Exiting full refresh loop.");
-                             break;
-                        }
-                        _ = interval.tick() => {
-                             info!(task = %task_name, "Running full refresh cycle...");
-                             let cycle_start = Instant::now();
+                               _ = interval.tick() => {
+                                    info!(task = %task_name, "Running full refresh cycle...");
+                                    let cycle_start = Instant::now();
 
                              // Define indexer futures
                              let cat_fut = cat_idx_full.update_all_categories(dao_id_full);
@@ -206,7 +191,6 @@ async fn main() -> Result<()> {
         let user_idx_recent = user_indexer.clone();
         let topic_idx_recent = topic_indexer.clone();
         let rev_idx_recent = revision_indexer.clone();
-        let mut shutdown_rx_recent = shutdown_rx.clone();
 
         indexer_tasks.spawn(
             async move {
@@ -218,11 +202,6 @@ async fn main() -> Result<()> {
 
                 loop {
                     tokio::select! {
-                         biased;
-                         _ = shutdown_rx_recent.changed() => {
-                             info!(task = %task_name, "Received shutdown signal. Exiting recent updates loop.");
-                             break;
-                         }
                         _ = interval.tick() => {
                              info!(task = %task_name, "Running recent updates cycle...");
                              let cycle_start = Instant::now();
@@ -253,101 +232,40 @@ async fn main() -> Result<()> {
             }
             .instrument(tracing::info_span!("recent_updates_task", dao = %dao_name)),
         );
-    } // End loop through DAO configs
-
-    // --- Spawn Uptime Heartbeat Task ---
-    if let Ok(heartbeat_url) = std::env::var(BETTERSTACK_HEARTBEAT_ENV) {
-        if !heartbeat_url.is_empty() {
-            info!(url = %heartbeat_url, "Starting Better Uptime heartbeat task.");
-            let heartbeat_client = shared_http_client.clone();
-            let mut shutdown_rx_heartbeat = shutdown_rx.clone();
-            indexer_tasks.spawn(
-                async move {
-                    let start_delay = tokio::time::Instant::now() + Duration::from_secs(5);
-                    let mut interval = interval_at(start_delay, Duration::from_secs(30)); // Send every 30s
-                    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-                    loop {
-                        tokio::select! {
-                             biased;
-                             _ = shutdown_rx_heartbeat.changed() => {
-                                  info!("Received shutdown signal. Exiting heartbeat loop.");
-                                  break;
-                             }
-                             _ = interval.tick() => {
-                                   match heartbeat_client.get(&heartbeat_url).send().await {
-                                        Ok(response) if response.status().is_success() => {
-                                             debug!("Uptime heartbeat sent successfully.");
-                                        }
-                                        Ok(response) => {
-                                             warn!(status = %response.status(), "Uptime heartbeat request failed with unexpected status.");
-                                        }
-                                        Err(e) => {
-                                             warn!(error = ?e, "Failed to send uptime heartbeat.");
-                                        }
-                                   }
-                             }
-                        }
-                    }
-                }
-                .instrument(tracing::info_span!("heartbeat_task")),
-            );
-        } else {
-            warn!(
-                "{} environment variable is set but empty. Skipping uptime heartbeat task.",
-                BETTERSTACK_HEARTBEAT_ENV
-            );
-        }
-    } else {
-        warn!(
-            "{} environment variable not set. Skipping uptime heartbeat task.",
-            BETTERSTACK_HEARTBEAT_ENV
-        );
     }
 
-    // --- Wait for Shutdown Signal ---
-    info!("All indexer tasks initialized. Waiting for shutdown signal (Ctrl+C or SIGTERM)...");
+    info!("All indexer tasks started, application running indefinitely");
+
+    // Wait for any task to complete or for shutdown signal
     tokio::select! {
-         res = signal::ctrl_c() => {
-            if let Err(e) = res {
-                error!(error = ?e, "Failed to listen for Ctrl+C signal");
-            } else {
-                info!("Received Ctrl+C signal.");
+        result = health_server_handle => {
+            error!("Health server task completed unexpectedly: {:?}", result);
+        }
+        result = uptime_handle => {
+            error!("Uptime task completed unexpectedly: {:?}", result);
+        }
+        result = indexer_tasks.join_next() => {
+            match result {
+                Some(Ok(Ok(()))) => {
+                    error!("Indexer task completed unexpectedly (success)");
+                }
+                Some(Ok(Err(e))) => {
+                    error!("Indexer task completed with error: {:?}", e);
+                }
+                Some(Err(e)) => {
+                    error!("Indexer task panicked: {:?}", e);
+                }
+                None => {
+                    error!("All indexer tasks completed unexpectedly");
+                }
             }
-         },
-         res = wait_for_sigterm() => {
-             if res.is_ok() {
-                 info!("Received SIGTERM signal.");
-             }
-             // Error already logged in wait_for_sigterm
-         }
-    }
-
-    // --- Initiate Graceful Shutdown ---
-    info!("Initiating graceful shutdown...");
-    // Send shutdown signal to all tasks
-    shutdown_tx
-        .send(())
-        .expect("Failed to send shutdown signal");
-
-    // Wait for the health check server to shut down
-    info!("Waiting for health check server to shut down...");
-    if let Err(e) = server_handle.await {
-        error!(error = ?e, "Error waiting for health check server task.");
-    } else {
-        info!("Health check server task completed.");
-    }
-
-    // Wait for all indexer tasks to complete
-    info!("Waiting for indexer tasks to complete...");
-    while let Some(result) = indexer_tasks.join_next().await {
-        match result {
-            Ok(_) => debug!("Indexer task completed successfully."),
-            Err(e) => error!(error = ?e, "Indexer task failed (panic or cancellation)."),
+        }
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received Ctrl+C, shutting down gracefully");
         }
     }
 
-    info!("All tasks finished. Discourse Indexer application shut down gracefully.");
-    opentelemetry::global::shutdown_tracer_provider(); // Ensure tracer provider shuts down
+    info!("Application shutting down");
     Ok(())
 }
 
@@ -361,28 +279,5 @@ fn log_indexer_result(task_description: &str, result: &Result<()>) {
             // Log the full error chain using `{:?}`
             error!(error = ?e, "{} update failed.", task_description);
         }
-    }
-}
-
-// Helper function to wait for SIGTERM signal
-async fn wait_for_sigterm() -> std::io::Result<()> {
-    #[cfg(unix)]
-    {
-        match signal::unix::signal(signal::unix::SignalKind::terminate()) {
-            Ok(mut stream) => {
-                stream.recv().await;
-                Ok(())
-            }
-            Err(e) => {
-                error!(error = ?e, "Failed to listen for SIGTERM signal.");
-                Err(e)
-            }
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        // On non-Unix platforms, SIGTERM doesn't exist, wait indefinitely
-        std::future::pending::<()>().await; // Wait forever
-        Ok(())
     }
 }

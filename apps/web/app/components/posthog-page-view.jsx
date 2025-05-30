@@ -1,11 +1,11 @@
 'use client';
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { useEffect } from 'react';
 import { usePostHog } from 'posthog-js/react';
-import { useSession } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth/auth-client';
 
-function PostHogIdentifier() {
+export function PostHogIdentifier() {
   const posthog = usePostHog();
   const { data } = useSession();
 
@@ -14,9 +14,11 @@ function PostHogIdentifier() {
       posthog.identify(data.user.id, { email: data.user.email });
     }
   }, [data, posthog]);
+
+  return null;
 }
 
-function PostHogPageView() {
+export function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const posthog = usePostHog();
@@ -32,13 +34,4 @@ function PostHogPageView() {
   }, [pathname, searchParams, posthog]);
 
   return null;
-}
-
-export default function SuspendedPostHogPageView() {
-  return (
-    <Suspense>
-      <PostHogIdentifier />
-      <PostHogPageView />
-    </Suspense>
-  );
 }

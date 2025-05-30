@@ -4,19 +4,19 @@ version = "1.0.0"
 edition = "2024"
 
 [dependencies]
+alloy = { workspace = true, features = ["full"] }
+alloy-ens = { workspace = true, features = ["contract", "provider"] }
 anyhow = { workspace = true }
+axum = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
-ethers = { workspace = true, features = ["rustls", "openssl"] }
 futures = { workspace = true }
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
-proposalsapp-db-indexer = { workspace = true }
+proposalsapp-db = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
-reqwest-middleware = { workspace = true }
-reqwest-retry = { workspace = true }
 rindexer = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
@@ -31,7 +31,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serial_test = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-tokio-retry = { workspace = true }
 tracing = { workspace = true }
 utils = { workspace = true }
 

@@ -4,32 +4,30 @@
 @config '../tailwind.config.mjs';
 
 @layer utilities {
-  /* Default Theme (when data-theme is null) */
-  :root:not([data-theme]) {
-    --for-400: #87ff42;
-    --for-600: #56b200;
-    --abstain-400: #ffdc42;
-    --abstain-600: #ffbc1f;
-    --against-400: #ff5842;
-    --against-600: #ff4242;
+  /* Default Theme */
+  [data-theme='default'] {
+    --for-400: #10b981;
+    --for-600: #059669;
+    --abstain-400: #f59e0b;
+    --abstain-600: #d97706;
+    --against-400: #ef4444;
+    --against-600: #dc2626;
     --neutral-50: #f9fafb;
-    --neutral-100: #f4f5f6;
-    --neutral-200: #e1e6e9;
-    --neutral-300: #ced6da;
-    --neutral-350: #b3bfc6;
-    --neutral-400: #96a6b0;
-    --neutral-450: #80949f;
-    --neutral-500: #637783;
-    --neutral-550: #566771;
-    --neutral-600: #47555d;
-    --neutral-650: #414e56;
-    --neutral-700: #374249;
-    --neutral-800: #21272b;
-    --neutral-900: #14181a;
-    --neutral-950: #0d1011;
-    --brand-accent: #12aaff;
-    --brand-accent-bright: #12aaff;
-    --brand-accent-darker: #0088cc;
+    --neutral-100: #f3f4f6;
+    --neutral-200: #e5e7eb;
+    --neutral-300: #d1d5db;
+    --neutral-350: #b5bac1;
+    --neutral-400: #9ca3af;
+    --neutral-450: #8691a3;
+    --neutral-500: #6b7280;
+    --neutral-550: #5d6570;
+    --neutral-600: #4b5563;
+    --neutral-650: #444d5a;
+    --neutral-700: #374151;
+    --neutral-800: #1f2937;
+    --neutral-900: #111827;
+    --neutral-950: #030712;
+    --brand-accent: #6366f1;
   }
 
   /* Arbitrum Theme */
@@ -58,8 +56,8 @@
     --brand-accent: #12aaff;
   }
 
-  /* Optimism Theme */
-  [data-theme='optimism'] {
+  /* Uniswap Theme */
+  [data-theme='uniswap'] {
     --for-400: #87ff42;
     --for-600: #56b200;
     --abstain-400: #ffdc42;
@@ -81,62 +79,7 @@
     --neutral-800: #2b2122;
     --neutral-900: #1a1415;
     --neutral-950: #110d0e;
-    --brand-accent-bright: #ff0522;
-    --brand-accent-darker: #ff0522;
-  }
-
-  /* Safe Theme */
-  [data-theme='safe'] {
-    --for-400: #87ff42;
-    --for-600: #56b200;
-    --abstain-400: #ffdc42;
-    --abstain-600: #ffbc1f;
-    --against-400: #ff5842;
-    --against-600: #ff4242;
-    --neutral-50: #f9fbfa;
-    --neutral-100: #f4f6f5;
-    --neutral-200: #e1e9e5;
-    --neutral-300: #cedad4;
-    --neutral-350: #b3c6bc;
-    --neutral-400: #96b0a2;
-    --neutral-450: #809f8f;
-    --neutral-500: #638371;
-    --neutral-550: #567163;
-    --neutral-600: #475d51;
-    --neutral-650: #41564a;
-    --neutral-700: #37493f;
-    --neutral-800: #212b26;
-    --neutral-900: #141a17;
-    --neutral-950: #0d110f;
-    --brand-accent-bright: #12ff80;
-    --brand-accent-darker: #00b460;
-  }
-
-  /* Polygon Theme */
-  [data-theme='polygon'] {
-    --for-400: #87ff42;
-    --for-600: #56b200;
-    --abstain-400: #ffdc42;
-    --abstain-600: #ffbc1f;
-    --against-400: #ff5842;
-    --against-600: #ff4242;
-    --neutral-50: #faf9fb;
-    --neutral-100: #f5f4f6;
-    --neutral-200: #e4e1e9;
-    --neutral-300: #d3ceda;
-    --neutral-350: #bbb3c6;
-    --neutral-400: #a096b0;
-    --neutral-450: #8d809f;
-    --neutral-500: #6f6383;
-    --neutral-550: #615671;
-    --neutral-600: #50475d;
-    --neutral-650: #494156;
-    --neutral-700: #3e3749;
-    --neutral-800: #25212b;
-    --neutral-900: #16141a;
-    --neutral-950: #0f0d11;
-    --brand-accent-bright: #6600ff;
-    --brand-accent-darker: #36007b;
+    --brand-accent: #ff0522;
   }
 }
 
@@ -201,9 +144,9 @@
   --sidebar-accent-foreground: oklch(0.2 0 0);
   --sidebar-border: oklch(0.92 0 0);
   --sidebar-ring: oklch(0.71 0 0);
-  --font-sans: 'Fira Sans', sans-serif;
-  --font-serif: 'Fira Sans Condensed', sans-serif;
-  --font-mono: 'Fira Mono', monospace;
+  --font-sans: var(--font-fira-sans), sans-serif;
+  --font-serif: var(--font-fira-sans-condensed), sans-serif;
+  --font-mono: var(--font-fira-mono), monospace;
   --radius: 0rem;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 0% / 0);
   --shadow-xs: 0px 1px 0px 0px hsl(0 0% 0% / 0);
@@ -252,9 +195,9 @@
   --sidebar-accent-foreground: oklch(0.99 0 0);
   --sidebar-border: oklch(1 0 0);
   --sidebar-ring: oklch(0.44 0 0);
-  --font-sans: 'Fira Sans', sans-serif;
-  --font-serif: 'Fira Sans Condensed', sans-serif;
-  --font-mono: 'Fira Mono', monospace;
+  --font-sans: var(--font-fira-sans), sans-serif;
+  --font-serif: var(--font-fira-sans-condensed), sans-serif;
+  --font-mono: var(--font-fira-mono), monospace;
   --radius: 0rem;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 0% / 0);
   --shadow-xs: 0px 1px 0px 0px hsl(0 0% 0% / 0);

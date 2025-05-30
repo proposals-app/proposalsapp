@@ -10,12 +10,10 @@ chrono = { workspace = true }
 dotenv = { workspace = true }
 fancy-regex = { workspace = true }
 futures = { workspace = true }
-html-escape = { workspace = true }
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
 oneshot = { workspace = true }
-opentelemetry = { workspace = true }
-proposalsapp-db-indexer = { workspace = true }
+proposalsapp-db = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls", "cookies"] }
@@ -34,11 +32,6 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full", "sync"] }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = [
-    "registry",
-    "env-filter",
-    "json",
-] }
 utils = { workspace = true }
 
 [[bin]]

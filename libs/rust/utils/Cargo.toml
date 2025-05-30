@@ -5,15 +5,10 @@ edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
-async-trait = { workspace = true }
-backtrace = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
-futures = { workspace = true }
-once_cell = { workspace = true }
 opentelemetry = { workspace = true, features = ["trace", "metrics"] }
 opentelemetry-appender-tracing = { workspace = true }
-opentelemetry-http = { workspace = true }
 opentelemetry-otlp = { workspace = true, features = [
     "logs",
     "metrics",
@@ -22,18 +17,15 @@ opentelemetry-otlp = { workspace = true, features = [
     "reqwest-client",
     "reqwest-rustls",
 ] }
-opentelemetry-proto = { workspace = true }
-opentelemetry-semantic-conventions = { workspace = true }
 opentelemetry_sdk = { workspace = true, features = [
     "rt-tokio",
     "logs",
     "metrics",
     "trace",
 ] }
-proposalsapp-db-indexer = { workspace = true }
+proposalsapp-db = { workspace = true }
 pyroscope = { workspace = true }
 pyroscope_pprofrs = { workspace = true }
-reqwest = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
     "runtime-tokio-rustls",

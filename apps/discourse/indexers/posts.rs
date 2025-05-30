@@ -7,7 +7,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use futures::stream::{self, StreamExt};
-use proposalsapp_db_indexer::models::discourse_post;
+use proposalsapp_db::models::discourse_post;
 use reqwest::Client;
 use sea_orm::{
     ColumnTrait, Condition, EntityTrait, QueryFilter,

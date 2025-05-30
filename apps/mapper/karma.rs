@@ -1,19 +1,22 @@
+use crate::DB;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use proposalsapp_db_indexer::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
+use proposalsapp_db::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
+use rand;
 use reqwest::Client;
 use sea_orm::{
     ActiveValue::NotSet,
-    ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set,
+    ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set, TransactionTrait,
     prelude::{Expr, Uuid},
 };
 use serde::Deserialize;
 use std::collections::HashMap;
-use tokio::time::{Instant, sleep};
-use tracing::{Span, error, info, instrument, warn};
-
-use crate::{DB, metrics::METRICS};
+use tokio::{
+    sync::Mutex,
+    time::{Instant, sleep},
+};
+use tracing::{Span, info, instrument, warn};
 
 #[derive(Debug, Deserialize)]
 struct KarmaFullApiResponse {
@@ -25,7 +28,7 @@ struct KarmaApiResponseData {
     delegates: Vec<KarmaDelegate>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 struct KarmaDelegate {
     #[serde(rename = "publicAddress")]
     public_address: String,
@@ -42,40 +45,22 @@ lazy_static::lazy_static! {
     static ref DAO_SLUG_TO_KARMA_DAO_NAME: HashMap<&'static str, &'static str> = {
         let mut map = HashMap::new();
         map.insert("arbitrum", "arbitrum");
+        map.insert("uniswap", "uniswap");
         // Add more mappings as needed
         map
     };
 }
 
-pub async fn run_karma_task() -> Result<()> {
-    let interval = Duration::minutes(30);
-    let mut next_tick = Instant::now() + std::time::Duration::from_secs(interval.num_seconds() as u64);
-
-    loop {
-        let start_time = Instant::now();
-        if let Err(e) = fetch_karma_data().await {
-            error!(error = %e, "Error fetching karma data");
-            METRICS.get().unwrap().karma_fetch_errors.add(1, &[]);
-        }
-        METRICS
-            .get()
-            .unwrap()
-            .karma_fetch_duration
-            .record(start_time.elapsed().as_secs_f64(), &[]);
-
-        sleep(next_tick.saturating_duration_since(Instant::now())).await;
-        next_tick += std::time::Duration::from_secs(interval.num_seconds() as u64);
-    }
-}
-
 #[instrument]
-async fn fetch_karma_data() -> Result<()> {
+pub async fn run_karma_task() -> Result<()> {
     let client = Client::new();
     let daos = fetch_daos_with_discourse().await?;
 
     for (dao, maybe_dao_discourse) in daos {
         let span = Span::current();
         span.record("dao_slug", &dao.slug);
+
+        info!("Processing dao: {}", dao.slug);
 
         if let Some(discourse) = maybe_dao_discourse {
             if let Some(karma_dao_name) = DAO_SLUG_TO_KARMA_DAO_NAME.get(dao.slug.as_str()) {
@@ -89,11 +74,13 @@ async fn fetch_karma_data() -> Result<()> {
                         karma_dao_name, offset, page_size
                     );
 
+                    info!("Fetching karma data for dao: {} url: {}", dao.slug, url);
+
                     let body = fetch_json_data(&client, &url, &dao.slug).await?;
                     let delegates = parse_json_data(&body, &dao.slug)?;
 
                     if delegates.is_empty() {
-                        break; // No more delegates to fetch
+                        break;
                     }
 
                     all_delegates.extend(delegates);
@@ -105,12 +92,6 @@ async fn fetch_karma_data() -> Result<()> {
                     let address: Address = delegate.public_address.parse()?;
                     delegate.public_address = address.to_checksum(None);
                 }
-
-                METRICS
-                    .get()
-                    .unwrap()
-                    .karma_delegates_processed
-                    .add(all_delegates.len() as u64, &[]);
 
                 let delegates_with_forum_handle: Vec<&KarmaDelegate> = all_delegates
                     .iter()
@@ -157,37 +138,196 @@ async fn fetch_daos_with_discourse() -> Result<Vec<(dao::Model, Option<dao_disco
         })
 }
 
-async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
-    const MAX_RETRIES: u32 = 3;
-    const INITIAL_RETRY_DELAY: Duration = Duration::seconds(1);
+// Static rate limit tracking
+lazy_static::lazy_static! {
+    static ref RATE_LIMIT_STATE: Mutex<RateLimitState> = Mutex::new(RateLimitState {
+        remaining: 100, // Default high value
+        reset_at: Instant::now(),
+        last_updated: Instant::now(),
+    });
+}
 
+#[derive(Debug, Clone)]
+struct RateLimitState {
+    remaining: u32,
+    reset_at: Instant,
+    last_updated: Instant,
+}
+
+// Constants for rate limiting and retries
+const MAX_RETRIES: u32 = 5;
+const INITIAL_RETRY_DELAY: Duration = Duration::seconds(1);
+const MAX_RETRY_DELAY: Duration = Duration::seconds(5 * 60);
+const RATE_LIMIT_THRESHOLD: u32 = 5; // Threshold to start being cautious
+const RATE_LIMIT_STALE_DURATION: std::time::Duration = std::time::Duration::from_secs(60); // Consider rate limit info stale after 60s
+const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// Extract rate limit information from response headers
+fn extract_rate_limit_info(headers: &reqwest::header::HeaderMap, now: Instant) -> (Option<u32>, Option<Instant>) {
+    // Extract remaining requests
+    let remaining = headers
+        .get("x-ratelimit-remaining")
+        .or_else(|| headers.get("X-RateLimit-Remaining"))
+        .or_else(|| headers.get("ratelimit-remaining"))
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| val.parse::<u32>().ok());
+
+    // Extract reset time
+    let reset_at = if let Some(reset_seconds) = headers
+        .get("x-ratelimit-reset")
+        .or_else(|| headers.get("X-RateLimit-Reset"))
+        .or_else(|| headers.get("ratelimit-reset"))
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| val.parse::<u64>().ok())
+    {
+        Some(now + std::time::Duration::from_secs(reset_seconds))
+    } else if let Some(reset_timestamp) = headers
+        .get("x-ratelimit-reset-at")
+        .or_else(|| headers.get("X-RateLimit-Reset-At"))
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| chrono::DateTime::parse_from_rfc3339(val).ok())
+    {
+        let now_utc = Utc::now();
+        if reset_timestamp > now_utc {
+            let duration_until_reset = reset_timestamp.signed_duration_since(now_utc);
+            Some(now + std::time::Duration::from_secs(duration_until_reset.num_seconds() as u64))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    (remaining, reset_at)
+}
+
+/// Calculate retry delay with exponential backoff and optional jitter
+fn calculate_retry_delay(retry_delay: Duration, add_jitter: bool) -> std::time::Duration {
+    let base_delay = retry_delay.num_seconds() as u64;
+    let delay = if add_jitter {
+        // Add up to 30% jitter to avoid thundering herd problem
+        let jitter = (rand::random::<f64>() * 0.3 * base_delay as f64) as u64;
+        base_delay + jitter
+    } else {
+        base_delay
+    };
+
+    std::time::Duration::from_secs(delay)
+}
+
+/// Check if we need to wait for rate limit reset
+async fn check_rate_limit(dao_slug: &str) -> bool {
+    let rate_limit_state = RATE_LIMIT_STATE.lock().await;
+    let now = Instant::now();
+
+    // If rate limit info is fresh and we're close to the limit
+    if now.duration_since(rate_limit_state.last_updated) < RATE_LIMIT_STALE_DURATION && rate_limit_state.remaining <= RATE_LIMIT_THRESHOLD {
+        // If reset time is in the future, wait until then
+        if rate_limit_state.reset_at > now {
+            let wait_duration = rate_limit_state.reset_at.duration_since(now);
+
+            // Add a small buffer to ensure reset has occurred
+            let wait_duration_with_buffer = wait_duration + std::time::Duration::from_secs(1);
+
+            info!(
+                "Proactively waiting for rate limit reset for DAO: {}. Remaining: {}, waiting for {:?}",
+                dao_slug, rate_limit_state.remaining, wait_duration_with_buffer
+            );
+
+            // Clone the data we need before dropping the lock
+            let wait_time = wait_duration_with_buffer;
+
+            // Release the lock before sleeping
+            drop(rate_limit_state);
+            sleep(wait_time).await;
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Update rate limit state from response headers
+async fn update_rate_limit_state(headers: &reqwest::header::HeaderMap, dao_slug: &str) {
+    let mut rate_limit_state = RATE_LIMIT_STATE.lock().await;
+    let now = Instant::now();
+    rate_limit_state.last_updated = now;
+
+    let (remaining, reset_at) = extract_rate_limit_info(headers, now);
+
+    // Update remaining requests if available
+    if let Some(remaining_val) = remaining {
+        rate_limit_state.remaining = remaining_val;
+
+        // Log if we're getting close to the limit
+        if remaining_val <= RATE_LIMIT_THRESHOLD {
+            info!(
+                "Rate limit getting low for DAO: {}. Remaining: {}",
+                dao_slug, remaining_val
+            );
+        }
+    }
+
+    // Update reset time if available
+    if let Some(reset_time) = reset_at {
+        rate_limit_state.reset_at = reset_time;
+    }
+}
+
+/// Handle rate limit exceeded (429 status code)
+async fn handle_rate_limit_exceeded(headers: &reqwest::header::HeaderMap, retry_delay: Duration, retry_count: u32, dao_slug: &str) -> std::time::Duration {
+    // Get retry-after value or calculate a reasonable delay
+    let retry_after = headers
+        .get("retry-after")
+        .and_then(|val| val.to_str().ok())
+        .and_then(|val| val.parse::<u64>().ok())
+        .unwrap_or_else(|| calculate_retry_delay(retry_delay, true).as_secs());
+
+    warn!(
+        "Rate limit exceeded for DAO: {}. Status: 429. Retry-After: {} seconds. (Attempt {}/{})",
+        dao_slug,
+        retry_after,
+        retry_count + 1,
+        MAX_RETRIES
+    );
+
+    // Update rate limit state to reflect we're at the limit
+    {
+        let mut rate_limit_state = RATE_LIMIT_STATE.lock().await;
+        rate_limit_state.remaining = 0;
+        rate_limit_state.reset_at = Instant::now() + std::time::Duration::from_secs(retry_after);
+    }
+
+    std::time::Duration::from_secs(retry_after)
+}
+
+/// Main function to fetch JSON data with improved rate limiting
+async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
     let mut retry_count = 0;
     let mut retry_delay = INITIAL_RETRY_DELAY;
 
     loop {
-        let response = match client
-            .get(url)
-            .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .await
-        {
+        // Check if we need to wait for rate limit reset before making the request
+        check_rate_limit(dao_slug).await;
+
+        // Make the request
+        let response = match client.get(url).timeout(REQUEST_TIMEOUT).send().await {
             Ok(res) => res,
             Err(e) if e.is_timeout() || e.is_connect() => {
                 if retry_count < MAX_RETRIES {
+                    let delay = calculate_retry_delay(retry_delay, false);
                     warn!(
                         "Network error for DAO: {}. Error: {}. Retrying in {:?}... (Attempt {}/{})",
                         dao_slug,
                         e,
-                        retry_delay,
+                        delay,
                         retry_count + 1,
                         MAX_RETRIES
                     );
-                    sleep(std::time::Duration::from_secs(
-                        retry_delay.num_seconds() as u64
-                    ))
-                    .await;
+
+                    sleep(delay).await;
                     retry_count += 1;
-                    retry_delay = retry_delay * 2; // Exponential backoff
+                    retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
                     continue;
                 } else {
                     return Err(anyhow::anyhow!(
@@ -203,29 +343,41 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
         let status = response.status();
         let headers = response.headers().clone();
 
+        // Update rate limit state from headers (for any response)
+        update_rate_limit_state(&headers, dao_slug).await;
+
+        // Handle response based on status code
         if status.is_success() {
+            // Successfully got the data
             return response.text().await.with_context(|| {
                 format!(
                     "Failed to read JSON response body for DAO: {}. Status: {}, URL: {}",
                     dao_slug, status, url
                 )
             });
+        } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS && retry_count < MAX_RETRIES {
+            // Handle 429 Too Many Requests
+            let delay = handle_rate_limit_exceeded(&headers, retry_delay, retry_count, dao_slug).await;
+            sleep(delay).await;
+            retry_count += 1;
+            retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
         } else if status.is_server_error() && retry_count < MAX_RETRIES {
+            // Handle 5xx server errors with exponential backoff
+            let delay = calculate_retry_delay(retry_delay, true);
             warn!(
                 "Server error for DAO: {}. Status: {}. Retrying in {:?}... (Attempt {}/{})",
                 dao_slug,
                 status,
-                retry_delay,
+                delay,
                 retry_count + 1,
                 MAX_RETRIES
             );
-            sleep(std::time::Duration::from_secs(
-                retry_delay.num_seconds() as u64
-            ))
-            .await;
+
+            sleep(delay).await;
             retry_count += 1;
-            retry_delay = retry_delay * 2; // Exponential backoff
+            retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
         } else {
+            // Other error status codes
             let headers_str = format!("{:?}", headers);
             return Err(anyhow::anyhow!(
                 "Failed to fetch JSON data for DAO: {}. Status: {}, URL: {}, Headers: {}",
@@ -245,12 +397,17 @@ fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
 
 #[instrument(skip( dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
 async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_discourse_id: Uuid, forum_handle: &str) -> Result<()> {
-    let start_time = Instant::now();
+    let txn = DB
+        .get()
+        .unwrap()
+        .begin()
+        .await
+        .context("Failed to start transaction")?;
 
     // Check if the voter exists
     let mut voter: Option<voter::Model> = voter::Entity::find()
         .filter(voter::Column::Address.eq(delegate_data.public_address.clone()))
-        .one(DB.get().unwrap())
+        .one(&txn)
         .await
         .with_context(|| {
             format!(
@@ -266,9 +423,10 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             address: Set(delegate_data.public_address.clone()),
             ens: Set(delegate_data.ens_name.clone()),
             avatar: NotSet,
+            updated_at: Set(Utc::now().naive_utc()),
         };
         let last_insert_id = voter::Entity::insert(new_voter)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -282,15 +440,15 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             address: delegate_data.public_address.clone(),
             ens: delegate_data.ens_name.clone(),
             avatar: None,
+            updated_at: Utc::now().naive_utc(),
         });
-        METRICS.get().unwrap().db_inserts.add(1, &[]);
     }
 
     // Check if the discourse user exists by dao_discourse_id and forum_handle
     let discourse_user: Option<discourse_user::Model> = discourse_user::Entity::find()
         .filter(Expr::cust("LOWER(username)").eq(forum_handle.to_lowercase()))
         .filter(discourse_user::Column::DaoDiscourseId.eq(dao_discourse_id))
-        .one(DB.get().unwrap())
+        .one(&txn)
         .await
         .with_context(|| {
             format!(
@@ -304,6 +462,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             "Discourse user not found for forum handle: {} and dao_discourse_id: {}",
             forum_handle, dao_discourse_id
         );
+        txn.rollback().await?;
         return Ok(());
     }
 
@@ -318,7 +477,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             .filter(delegate_to_voter::Column::VoterId.eq(voter.id))
             .inner_join(delegate::Entity)
             .filter(delegate::Column::DaoId.eq(dao.id))
-            .one(DB.get().unwrap())
+            .one(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -340,7 +499,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
                 .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user.id))
                 .inner_join(delegate::Entity)
                 .filter(delegate::Column::DaoId.eq(dao.id))
-                .one(DB.get().unwrap())
+                .one(&txn)
                 .await
                 .with_context(|| {
                     format!(
@@ -364,7 +523,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             dao_id: Set(dao.id),
         };
         let last_insert_id = delegate::Entity::insert(new_delegate)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| format!("Failed to insert new delegate for dao_id: {}", dao.id))?
             .last_insert_id;
@@ -381,7 +540,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
     let existing_dtv = delegate_to_voter::Entity::find()
         .filter(delegate_to_voter::Column::DelegateId.eq(delegate.id))
         .filter(delegate_to_voter::Column::VoterId.eq(voter_id))
-        .one(DB.get().unwrap())
+        .one(&txn)
         .await
         .with_context(|| {
             format!(
@@ -396,7 +555,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
         let mut active_dtv = dtv.into_active_model();
         active_dtv.period_end = Set(one_hour_later);
         delegate_to_voter::Entity::update(active_dtv)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -410,7 +569,6 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             voter_id = voter_id.to_string(),
             "Updated delegate_to_voter mapping"
         );
-        METRICS.get().unwrap().db_updates.add(1, &[]);
     } else {
         // Insert new delegate_to_voter mapping
         let new_dtv = delegate_to_voter::ActiveModel {
@@ -424,7 +582,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             created_at: Set(now),
         };
         delegate_to_voter::Entity::insert(new_dtv)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -438,14 +596,13 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             voter_id = voter_id.to_string(),
             "Created new delegate_to_voter mapping"
         );
-        METRICS.get().unwrap().db_inserts.add(1, &[]);
     }
 
     // Insert or update the delegate_to_discourse_user mapping
     let existing_dtdu = delegate_to_discourse_user::Entity::find()
         .filter(delegate_to_discourse_user::Column::DelegateId.eq(delegate.id))
         .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user_id))
-        .one(DB.get().unwrap())
+        .one(&txn)
         .await
         .with_context(|| {
             format!(
@@ -461,7 +618,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
         active_dtdu.period_end = Set(one_hour_later);
         active_dtdu.verified = Set(delegate_data.is_forum_verified);
         delegate_to_discourse_user::Entity::update(active_dtdu)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -475,7 +632,6 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             discourse_user_id = discourse_user_id.to_string(),
             "Updated delegate_to_discourse_user mapping"
         );
-        METRICS.get().unwrap().db_updates.add(1, &[]);
     } else {
         // Insert new delegate_to_discourse_user mapping
         let new_dtdu = delegate_to_discourse_user::ActiveModel {
@@ -489,7 +645,7 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             created_at: Set(now),
         };
         delegate_to_discourse_user::Entity::insert(new_dtdu)
-            .exec(DB.get().unwrap())
+            .exec(&txn)
             .await
             .with_context(|| {
                 format!(
@@ -503,14 +659,9 @@ async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_di
             discourse_user_id = discourse_user_id.to_string(),
             "Created new delegate_to_discourse_user mapping"
         );
-        METRICS.get().unwrap().db_inserts.add(1, &[]);
     }
 
-    METRICS
-        .get()
-        .unwrap()
-        .db_query_duration
-        .record(start_time.elapsed().as_secs_f64(), &[]);
+    txn.commit().await?;
 
     Ok(())
 }

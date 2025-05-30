@@ -1,8 +1,8 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // Common schemas
-export const daoSlugSchema = z.literal('arbitrum', {
-  message: 'DAO slug must be arbitrum.',
+export const daoSlugSchema = z.literal(['arbitrum', 'uniswap'], {
+  message: 'DAO slug must be valid.',
 });
 export const daoIdSchema = z
   .string()
@@ -27,19 +27,15 @@ export const voterAddressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/, {
 
 export const settingsSchema = z.object({
   newDiscussions: z.boolean({
-    required_error: 'New discussions setting is required.',
-    invalid_type_error: 'New discussions setting must be a boolean.',
+    error: 'New discussions setting is required.',
   }),
   newProposals: z.boolean({
-    required_error: 'New proposals setting is required.',
-    invalid_type_error: 'New proposals setting must be a boolean.',
+    error: 'New proposals setting is required.',
   }),
   endingProposals: z.boolean({
-    required_error: 'Ending proposals setting is required.',
-    invalid_type_error: 'Ending proposals setting must be a boolean.',
+    error: 'Ending proposals setting is required.',
   }),
   isOnboarded: z.boolean({
-    required_error: 'Onboarded status is required.',
-    invalid_type_error: 'Onboarded status must be a boolean.',
+    error: 'Onboarded status is required.',
   }),
 });

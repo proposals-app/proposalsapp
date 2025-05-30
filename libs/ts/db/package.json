@@ -1,0 +1,26 @@
+{
+  "name": "@proposalsapp/db",
+  "version": "1.0.0",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "kysely": "0.28.2",
+    "pg": "8.16.0"
+  },
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.8",
+    "@types/dotenv": "^8.2.3",
+    "@types/pg": "8",
+    "kysely-codegen": "0.18.5",
+    "kysely-ctl": "^0.13.1",
+    "typescript": "^5.8.3"
+  },
+  "main": "./src/index.ts",
+  "scripts": {
+    "db:gen": "yarn db:gen:rust && yarn db:gen:ts",
+    "db:gen:rust": "sea-orm-cli generate entity -v --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/db/src/models",
+    "db:gen:ts": "kysely-codegen --default-schema=public --default-schema=arbitrum --url \"env(DATABASE_URL)\" --camel-case --runtime-enums --out-file ./src/kysely_db.ts",
+    "db:migrate": "kysely migrate latest",
+    "db:seed": "yarn kysely seed run"
+  },
+  "type": "module"
+}

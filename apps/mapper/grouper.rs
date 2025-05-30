@@ -1,31 +1,12 @@
-use crate::{DB, metrics::METRICS};
+use crate::DB;
 use anyhow::{Context, Result};
-use chrono::Duration;
-use proposalsapp_db_indexer::models::{dao_discourse, discourse_topic, job_queue, proposal, proposal_group};
+use proposalsapp_db::models::{dao_discourse, discourse_topic, job_queue, proposal, proposal_group};
 use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, prelude::Uuid};
-use std::time::Duration as StdDuration;
-use tokio::time::{Instant, sleep};
 use tracing::{Span, error, info, instrument, warn};
 use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalItem, ProposalJobData, TopicItem};
 
+#[instrument()]
 pub async fn run_group_task() -> Result<()> {
-    let interval = Duration::minutes(1);
-    let mut next_tick = Instant::now() + StdDuration::from_secs(interval.num_seconds() as u64);
-
-    loop {
-        if let Err(e) = process_jobs().await {
-            error!(error = %e, "Error processing jobs");
-            METRICS.get().unwrap().job_processing_errors.add(1, &[]);
-        }
-
-        sleep(next_tick.saturating_duration_since(Instant::now())).await;
-        next_tick += StdDuration::from_secs(interval.num_seconds() as u64);
-    }
-}
-
-#[instrument(, fields(job_count = 0))]
-async fn process_jobs() -> Result<()> {
-    let start_time = Instant::now();
     let pending_jobs = job_queue::Entity::find()
         .filter(
             job_queue::Column::Status
@@ -40,11 +21,6 @@ async fn process_jobs() -> Result<()> {
         .await
         .context("Failed to fetch pending jobs")?;
 
-    METRICS
-        .get()
-        .unwrap()
-        .job_queue_size
-        .add(pending_jobs.len() as i64, &[]);
     Span::current().record("job_count", pending_jobs.len());
 
     for job in pending_jobs {
@@ -73,17 +49,12 @@ async fn process_jobs() -> Result<()> {
                 let job_id = job.id;
                 let mut job: job_queue::ActiveModel = job.into();
                 job.status = Set("COMPLETED".to_string());
-                if let Err(e) = job_queue::Entity::update(job).exec(DB.get().unwrap()).await {
-                    error!(
-                        error = %e,
-                        job_id = job_id,
-                        "Failed to update job status"
-                    );
-                    METRICS.get().unwrap().db_updates.add(1, &[]);
-                } else {
-                    info!(job_id = job_id, "Job completed successfully");
-                    METRICS.get().unwrap().job_processed_total.add(1, &[]);
-                }
+                job_queue::Entity::update(job)
+                    .exec(DB.get().unwrap())
+                    .await
+                    .context("Failed to update job status for job")?;
+
+                info!(job_id = job_id, "Job completed successfully");
             }
             Err(e) => {
                 error!(
@@ -91,24 +62,15 @@ async fn process_jobs() -> Result<()> {
                     job_id = job.id,
                     "Job processing failed"
                 );
-                METRICS.get().unwrap().job_processing_errors.add(1, &[]);
             }
         }
     }
-
-    METRICS
-        .get()
-        .unwrap()
-        .job_processing_duration
-        .record(start_time.elapsed().as_secs_f64(), &[]);
 
     Ok(())
 }
 
 #[instrument(fields(job_id = job_id, discourse_topic_id = %discourse_topic_id))]
 async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Result<()> {
-    let start_time = Instant::now();
-
     info!(
         job_id = job_id,
         discourse_topic_id = %discourse_topic_id,
@@ -190,26 +152,16 @@ async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Re
                 created_at: NotSet,
             };
 
-            if let Err(e) = proposal_group::Entity::insert(new_group)
+            proposal_group::Entity::insert(new_group)
                 .exec(DB.get().unwrap())
                 .await
-            {
-                error!(
-                    error = %e,
-                    job_id = job_id,
-                    discourse_topic_id = %discourse_topic_id,
-                    "Failed to create proposal group"
-                );
-                METRICS.get().unwrap().db_inserts.add(1, &[]);
-                return Ok(());
-            }
+                .context("Failed to create proposal group")?;
 
             info!(
                 job_id = job_id,
                 discourse_topic_id = %discourse_topic_id,
                 "Created new proposal group"
             );
-            METRICS.get().unwrap().db_inserts.add(1, &[]);
         } else {
             error!(
                 job_id = job_id,
@@ -219,12 +171,6 @@ async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Re
             );
         }
     }
-
-    METRICS
-        .get()
-        .unwrap()
-        .db_query_duration
-        .record(start_time.elapsed().as_secs_f64(), &[]);
 
     info!(
         job_id = job_id,
@@ -257,8 +203,6 @@ async fn check_topic_already_mapped(topic: discourse_topic::Model) -> Result<boo
 
 #[instrument(fields(job_id = job_id, proposal_id = %proposal_id))]
 async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result<()> {
-    let start_time = Instant::now();
-
     info!(
         job_id = job_id,
         proposal_id = %proposal_id,
@@ -408,7 +352,6 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
                             discourse_topic_id = %topic.id,
                             "Added snapshot proposal to existing group"
                         );
-                        METRICS.get().unwrap().db_updates.add(1, &[]);
                     } else {
                         info!(
                             job_id = job_id,
@@ -445,12 +388,6 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
             "No discussion_url provided in the proposal"
         );
     }
-
-    METRICS
-        .get()
-        .unwrap()
-        .db_query_duration
-        .record(start_time.elapsed().as_secs_f64(), &[]);
 
     info!(
         job_id = job_id,
