@@ -14,8 +14,9 @@ use futures::{StreamExt, stream};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
 use sea_orm::{
+    ActiveModelTrait,
     ActiveValue::{self, NotSet},
-    ConnectionTrait, Set,
+    ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect, Set,
     prelude::Uuid,
 };
 use serde_json::json;
@@ -424,6 +425,87 @@ pub async fn arbitrum_treasury_governor_handlers(manifest_path: &PathBuf, regist
     proposal_extended_handler(manifest_path, registry).await;
     vote_cast_handler(manifest_path, registry).await;
     info!("Arbitrum Treasury Governor handlers registered.");
+}
+
+#[instrument(
+    name = "arbitrum_treasury_governor_update_active_proposals_end_time",
+    skip_all
+)]
+pub async fn update_active_proposals_end_time() -> Result<()> {
+    let governor_id = match get_governor_id() {
+        Some(id) => id,
+        None => {
+            error!("Failed to get governor ID for Arbitrum Treasury");
+            return Err(anyhow::anyhow!(
+                "Failed to get governor ID for Arbitrum Treasury"
+            ));
+        }
+    };
+
+    let db = DB.get().unwrap();
+
+    // Get all active proposals for this governor
+    let active_proposals = proposal::Entity::find()
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
+        .all(db)
+        .await
+        .context("Failed to fetch active proposals")?;
+
+    if active_proposals.is_empty() {
+        return Ok(());
+    }
+
+    info!(
+        governor = "ARBITRUM_TREASURY",
+        active_proposals_count = active_proposals.len(),
+        "Updating end times for active proposals"
+    );
+
+    for proposal in active_proposals {
+        let proposal_id = proposal.external_id.clone();
+        let block_end_at = match proposal.block_end_at {
+            Some(block) => block as u64,
+            None => {
+                error!(proposal_id = %proposal_id, "Missing block_end_at for proposal");
+                continue;
+            }
+        };
+
+        // Re-fetch the end time based on the block
+        let new_end_at = match estimate_timestamp("ethereum", block_end_at).await {
+            Ok(ts) => ts,
+            Err(e) => {
+                error!(proposal_id = %proposal_id, block_number = block_end_at, error = %e, "Failed to estimate new end_at timestamp");
+                continue;
+            }
+        };
+
+        // Only update if the end time has changed
+        if new_end_at != proposal.end_at {
+            debug!(
+                proposal_id = %proposal_id,
+                old_end_at = ?proposal.end_at,
+                new_end_at = ?new_end_at,
+                "Updating proposal end time"
+            );
+
+            // Update the proposal with the new end time
+            let mut proposal_active_model: proposal::ActiveModel = proposal.clone().into();
+            proposal_active_model.end_at = Set(new_end_at);
+
+            if let Err(e) = proposal_active_model.update(db).await {
+                error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal end time");
+            }
+        }
+    }
+
+    info!(
+        governor = "ARBITRUM_TREASURY",
+        "Successfully updated end times for active proposals"
+    );
+
+    Ok(())
 }
 
 fn extract_title(description: &str) -> String {

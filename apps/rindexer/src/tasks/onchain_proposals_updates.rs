@@ -1,4 +1,7 @@
-use crate::extensions::db_extension::DB;
+use crate::{
+    extensions::db_extension::DB,
+    rindexer_lib::indexers::rindexer::{arbitrum_core_governor, arbitrum_treasury_governor},
+};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
@@ -7,7 +10,7 @@ use std::collections::HashMap;
 use tokio::time;
 use tracing::{debug, error, info, instrument, warn};
 
-#[instrument(name = "tasks_update_ended_proposals_state", skip_all)]
+#[instrument(name = "update_ended_proposals_state", skip_all)]
 pub async fn update_ended_proposals_state() -> Result<()> {
     info!("Running task to update ended on-chain proposals state.");
     let db: &DatabaseConnection = DB.get().context("DB not initialized")?;
@@ -61,7 +64,7 @@ pub async fn update_ended_proposals_state() -> Result<()> {
     Ok(())
 }
 
-#[instrument(name = "tasks_calculate_final_proposal_state", skip(proposal, votes), fields(proposal_id = proposal.external_id))]
+#[instrument(name = "calculate_final_proposal_state", skip(proposal, votes), fields(proposal_id = proposal.external_id))]
 /// Calculates the final state of a proposal based on votes and quorum, considering configured
 /// quorum choices.
 async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<vote::Model>) -> Result<ProposalState> {
@@ -171,13 +174,21 @@ async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<
     }
 }
 
-#[instrument(name = "tasks_run_periodic_proposal_state_update", skip_all)]
+#[instrument(name = "run_periodic_proposal_state_update", skip_all)]
 pub async fn run_periodic_proposal_state_update() -> Result<()> {
     info!("Starting periodic task for proposal state updates.");
     let mut interval = time::interval(time::Duration::from_secs(60));
 
     loop {
         interval.tick().await;
+
+        arbitrum_core_governor::update_active_proposals_end_time()
+            .await
+            .context("Failed to update active proposals end time for arbitrum_core_governor")?;
+        arbitrum_treasury_governor::update_active_proposals_end_time()
+            .await
+            .context("Failed to update active proposals end time for arbitrum_treasury_governor")?;
+
         match update_ended_proposals_state().await {
             Ok(_) => {
                 info!("Successfully updated ended proposals state in periodic task.");
