@@ -11,7 +11,7 @@
     "npm": "^11.4.1",
     "postmark": "^4.0.5",
     "prettier": "^3.5.3",
-    "prettier-plugin-tailwindcss": "0.6.11",
+    "prettier-plugin-tailwindcss": "0.6.12",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-email": "4.0.15",

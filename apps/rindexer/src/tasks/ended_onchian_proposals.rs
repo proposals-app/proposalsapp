@@ -14,6 +14,7 @@ pub async fn update_ended_proposals_state() -> Result<()> {
 
     let active_proposals = proposal::Entity::find()
         .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
+        .filter(proposal::Column::EndAt.lt(Utc::now().naive_utc()))
         .all(db)
         .await?;
 
@@ -28,42 +29,32 @@ pub async fn update_ended_proposals_state() -> Result<()> {
     );
 
     for proposal in active_proposals {
-        if proposal.end_at <= Utc::now().naive_utc() {
-            info!(
-                proposal_id = proposal.external_id,
-                proposal_name = proposal.name,
-                proposal_end_at = ?proposal.end_at,
-                "Proposal end time reached. Calculating final state."
-            );
+        info!(
+            proposal_id = proposal.external_id,
+            proposal_name = proposal.name,
+            proposal_end_at = ?proposal.end_at,
+            "Proposal end time reached. Calculating final state."
+        );
 
-            let votes = vote::Entity::find()
-                .filter(vote::Column::ProposalId.eq(proposal.id))
-                .all(db)
-                .await?;
+        let votes = vote::Entity::find()
+            .filter(vote::Column::ProposalId.eq(proposal.id))
+            .all(db)
+            .await?;
 
-            let final_state = calculate_final_proposal_state(&proposal, &votes).await?;
+        let final_state = calculate_final_proposal_state(&proposal, &votes).await?;
 
-            let mut proposal_active_model: proposal::ActiveModel = proposal.clone().into();
-            proposal_active_model.proposal_state = Set(final_state.clone());
-            proposal::Entity::update(proposal_active_model)
-                .exec(db)
-                .await?;
+        let mut proposal_active_model: proposal::ActiveModel = proposal.clone().into();
+        proposal_active_model.proposal_state = Set(final_state.clone());
+        proposal::Entity::update(proposal_active_model)
+            .exec(db)
+            .await?;
 
-            info!(
-                proposal_id = proposal.external_id,
-                proposal_name = proposal.name,
-                final_state = ?final_state,
-                "Proposal state updated to final state."
-            );
-        } else {
-            debug!(
-                proposal_id = proposal.external_id,
-                proposal_name = proposal.name,
-                proposal_end_at = ?proposal.end_at,
-                current_time = ?Utc::now().naive_utc(),
-                "Proposal end time not yet reached."
-            );
-        }
+        info!(
+            proposal_id = proposal.external_id,
+            proposal_name = proposal.name,
+            final_state = ?final_state,
+            "Proposal state updated to final state."
+        );
     }
 
     info!("Task to update ended proposals state completed.");

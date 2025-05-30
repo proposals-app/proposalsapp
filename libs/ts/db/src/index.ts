@@ -83,7 +83,11 @@ const createDbArbitrumInstance = () => {
     dialect: new PostgresDialect({
       pool: db_pool_arbitrum,
     }),
-    plugins: [new DeduplicateJoinsPlugin(), new ParseJSONResultsPlugin()],
+    plugins: [
+      new CamelCasePlugin(),
+      new DeduplicateJoinsPlugin(),
+      new ParseJSONResultsPlugin(),
+    ],
   });
 };
 

@@ -77,22 +77,25 @@ async fn main() -> Result<()> {
     });
 
     // Start rindexer in a separate task
-    let path = env::current_dir().context("Failed to get current directory")?;
-    let manifest_path = path.join("rindexer.yaml");
-    let indexer_settings = StartDetails {
-        manifest_path: &manifest_path,
-        indexing_details: Some(IndexingDetails {
-            registry: register_all_handlers(&manifest_path).await,
-            trace_registry: TraceCallbackRegistry { events: vec![] },
-        }),
-        graphql_details: GraphqlOverrideSettings {
-            enabled: false,
-            override_port: None,
-        },
-    };
-
-    info!("Starting rindexer with settings: {:?}", indexer_settings);
+    info!("Starting rindexer");
     let rindexer_handle = tokio::spawn(async move {
+        let path = env::current_dir()
+            .context("Failed to get current directory")
+            .unwrap();
+        let manifest_path = path.join("rindexer.yaml");
+
+        let indexer_settings = StartDetails {
+            manifest_path: &manifest_path,
+            indexing_details: Some(IndexingDetails {
+                registry: register_all_handlers(&manifest_path).await,
+                trace_registry: TraceCallbackRegistry { events: vec![] },
+            }),
+            graphql_details: GraphqlOverrideSettings {
+                enabled: false,
+                override_port: None,
+            },
+        };
+
         if let Err(e) = start_rindexer(indexer_settings).await {
             error!("Rindexer failed: {:?}", e);
         }
