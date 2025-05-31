@@ -13,13 +13,13 @@ interface UserSettingsProps {
 export const UserSettings = ({ session }: UserSettingsProps) => {
   const router = useRouter();
   const [newDiscussions, setNewDiscussions] = useState(
-    session.user.emailSettingsNewDiscussions
+    session.user.email_settings_new_discussions
   );
   const [newProposals, setNewProposals] = useState(
-    session.user.emailSettingsNewProposals
+    session.user.email_settings_new_proposals
   );
   const [endingProposals, setEndingProposals] = useState(
-    session.user.emailSettingsEndingProposals
+    session.user.email_settings_ending_proposals
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);

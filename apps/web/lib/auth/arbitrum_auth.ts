@@ -33,24 +33,72 @@ export const auth = betterAuth({
     }),
     nextCookies(),
   ],
+  account: {
+    fields: {
+      accountId: 'account_id',
+      providerId: 'provider_id',
+      userId: 'user_id',
+      accessToken: 'access_token',
+      refreshToken: 'refresh_token',
+      idToken: 'id_token',
+      accessTokenExpiresAt: 'access_token_expires_at',
+      refreshTokenExpiresAt: 'refresh_token_expires_at',
+      scope: 'scope',
+      password: 'password',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
+  session: {
+    fields: {
+      id: 'id',
+      expiresAt: 'expires_at',
+      token: 'token',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      ipAddress: 'ip_address',
+      userAgent: 'user_agent',
+      userId: 'user_id',
+    },
+  },
+  verification: {
+    fields: {
+      id: 'id',
+      identifier: 'identifier',
+      value: 'value',
+      token: 'token',
+      expiresAt: 'expires_at',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
   user: {
+    fields: {
+      id: 'id',
+      name: 'name',
+      email: 'email',
+      emailVerified: 'email_verified',
+      image: 'image',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
     additionalFields: {
-      emailSettingsNewProposals: {
+      email_settings_new_proposals: {
         type: 'boolean',
         required: true,
         defaultValue: true,
       },
-      emailSettingsNewDiscussions: {
+      email_settings_new_discussions: {
         type: 'boolean',
         required: true,
         defaultValue: true,
       },
-      emailSettingsEndingProposals: {
+      email_settings_ending_proposals: {
         type: 'boolean',
         required: true,
         defaultValue: true,
       },
-      isOnboarded: {
+      is_onboarded: {
         type: 'boolean',
         required: true,
         defaultValue: false,

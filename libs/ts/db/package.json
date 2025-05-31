@@ -18,7 +18,7 @@
   "scripts": {
     "db:gen": "yarn db:gen:rust && yarn db:gen:ts",
     "db:gen:rust": "sea-orm-cli generate entity -v --expanded-format --with-serde both --date-time-crate chrono -o ../../rust/db/src/models",
-    "db:gen:ts": "kysely-codegen --default-schema=public --default-schema=arbitrum --url \"env(DATABASE_URL)\" --camel-case --runtime-enums --out-file ./src/kysely_db.ts",
+    "db:gen:ts": "kysely-codegen --default-schema=public --default-schema=arbitrum --dialect=postgres --url \"env(DATABASE_URL)\" --camel-case --runtime-enums --out-file ./src/kysely_db.ts",
     "db:migrate": "kysely migrate latest",
     "db:seed": "yarn kysely seed run"
   },

@@ -18,7 +18,7 @@ export default async function Page() {
 async function ProfilePage() {
   const session = await auth.api.getSession({ headers: await headers() });
 
-  if (session && session.user && !session.user.isOnboarded) {
+  if (session && session.user && !session.user.is_onboarded) {
     redirect(`/onboarding`);
   }
 

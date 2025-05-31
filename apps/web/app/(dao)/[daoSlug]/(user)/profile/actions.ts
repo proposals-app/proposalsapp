@@ -19,10 +19,10 @@ export async function saveSettings(settings: SettingsData) {
 
   await auth.api.updateUser({
     body: {
-      emailSettingsNewProposals: newProposals,
-      emailSettingsNewDiscussions: newDiscussions,
-      emailSettingsEndingProposals: endingProposals,
-      isOnboarded: isOnboarded,
+      email_settings_new_proposals: newProposals,
+      email_settings_new_discussions: newDiscussions,
+      email_settings_ending_proposals: endingProposals,
+      is_onboarded: isOnboarded,
     },
     headers: await headers(),
   });
