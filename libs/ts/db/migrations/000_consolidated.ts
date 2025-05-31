@@ -1,9 +1,15 @@
-import { sql, type Kysely } from "kysely";
+import { Kysely, sql } from "kysely";
 
 export async function up(db: Kysely<any>): Promise<void> {
-  // Create enum type
+  // --- SCHEMAS ---
+  await sql`CREATE SCHEMA IF NOT EXISTS "public";`.execute(db);
+  await sql`COMMENT ON SCHEMA "public" IS 'standard public schema';`.execute(
+    db,
+  );
+
+  // --- ENUM TYPES ---
   await db.schema
-    .createType("proposal_state")
+    .createType("public.proposal_state")
     .asEnum([
       "PENDING",
       "ACTIVE",
@@ -18,9 +24,20 @@ export async function up(db: Kysely<any>): Promise<void> {
     ])
     .execute();
 
-  // Create tables
+  // --- TABLES IN public SCHEMA ---
   await db.schema
-    .createTable("dao")
+    .createTable("public.job_queue")
+    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("type", "text", (col) => col.notNull())
+    .addColumn("data", "jsonb", (col) => col.notNull())
+    .addColumn("status", "text", (col) => col.notNull().defaultTo("PENDING"))
+    .addColumn("created_at", "timestamp", (col) =>
+      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+    )
+    .execute();
+
+  await db.schema
+    .createTable("public.dao")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -28,30 +45,27 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("slug", "text", (col) => col.notNull())
     .addColumn("picture", "text", (col) => col.notNull())
     .execute();
-
-  // Add unique constraints
+  // Indexes for dao
   await db.schema
     .createIndex("dao_name_key")
-    .on("dao")
+    .on("public.dao")
     .column("name")
     .unique()
     .execute();
-
   await db.schema
     .createIndex("dao_slug_key")
-    .on("dao")
+    .on("public.dao")
     .column("slug")
     .unique()
     .execute();
-
   await db.schema
     .createIndex("idx_dao_slug")
-    .on("dao")
+    .on("public.dao")
     .column("slug")
     .execute();
 
   await db.schema
-    .createTable("dao_discourse")
+    .createTable("public.dao_discourse")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -64,14 +78,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_dao_discourse_dao_id",
       ["dao_id"],
-      "dao",
+      "public.dao",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
 
   await db.schema
-    .createTable("dao_governor")
+    .createTable("public.dao_governor")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -84,28 +98,26 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_dao_governor_dao_id",
       ["dao_id"],
-      "dao",
+      "public.dao",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for dao_governor
+  // Indexes for dao_governor
   await db.schema
     .createIndex("governor_new_pkey")
-    .on("dao_governor")
+    .on("public.dao_governor")
     .column("id")
     .unique()
     .execute();
-
   await db.schema
     .createIndex("idx_governor_new_dao_id")
-    .on("dao_governor")
+    .on("public.dao_governor")
     .column("dao_id")
     .execute();
 
   await db.schema
-    .createTable("delegate")
+    .createTable("public.delegate")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -113,38 +125,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_delegate_dao_id",
       ["dao_id"],
-      "dao",
+      "public.dao",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
 
   await db.schema
-    .createTable("voter")
-    .addColumn("id", "uuid", (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
-    )
-    .addColumn("address", "text", (col) => col.notNull())
-    .addColumn("ens", "text")
-    .addColumn("avatar", "text")
-    .execute();
-
-  // Create unique constraint on voter.address
-  await db.schema
-    .createIndex("voter_address_key")
-    .on("voter")
-    .column("address")
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("idx_voter_address")
-    .on("voter")
-    .column("address")
-    .execute();
-
-  await db.schema
-    .createTable("discourse_user")
+    .createTable("public.discourse_user")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -164,28 +152,26 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_discourse_user_dao_discourse_id",
       ["dao_discourse_id"],
-      "dao_discourse",
+      "public.dao_discourse",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create unique index for discourse_user
+  // Indexes for discourse_user
+  await db.schema
+    .createIndex("idx_discourse_user_external_id")
+    .on("public.discourse_user")
+    .column("external_id")
+    .execute();
   await db.schema
     .createIndex("uq_discourse_user_external_id_dao_discourse_id")
-    .on("discourse_user")
+    .on("public.discourse_user")
     .columns(["external_id", "dao_discourse_id"])
     .unique()
     .execute();
 
   await db.schema
-    .createIndex("idx_discourse_user_external_id")
-    .on("discourse_user")
-    .column("external_id")
-    .execute();
-
-  await db.schema
-    .createTable("delegate_to_discourse_user")
+    .createTable("public.delegate_to_discourse_user")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -201,40 +187,62 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_delegate_to_discourse_user_delegate_id",
       ["delegate_id"],
-      "delegate",
+      "public.delegate",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
       "fk_delegate_to_discourse_user_discourse_user_id",
       ["discourse_user_id"],
-      "discourse_user",
+      "public.discourse_user",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for delegate_to_discourse_user
+  // Indexes for delegate_to_discourse_user
   await db.schema
     .createIndex("idx_delegate_to_discourse_user_delegate_id")
-    .on("delegate_to_discourse_user")
+    .on("public.delegate_to_discourse_user")
     .column("delegate_id")
     .execute();
-
   await db.schema
     .createIndex("idx_delegate_to_discourse_user_discourse_user_id")
-    .on("delegate_to_discourse_user")
+    .on("public.delegate_to_discourse_user")
     .column("discourse_user_id")
     .execute();
-
   await db.schema
     .createIndex("idx_delegate_to_discourse_user_period")
-    .on("delegate_to_discourse_user")
+    .on("public.delegate_to_discourse_user")
     .columns(["period_start", "period_end"])
     .execute();
 
   await db.schema
-    .createTable("delegate_to_voter")
+    .createTable("public.voter")
+    .addColumn("id", "uuid", (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+    )
+    .addColumn("address", "text", (col) => col.notNull())
+    .addColumn("ens", "text")
+    .addColumn("avatar", "text")
+    .addColumn("updated_at", "timestamp", (col) =>
+      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+    )
+    .execute();
+  // Indexes for voter
+  await db.schema
+    .createIndex("idx_voter_address")
+    .on("public.voter")
+    .column("address")
+    .execute();
+  await db.schema
+    .createIndex("voter_address_key")
+    .on("public.voter")
+    .column("address")
+    .unique()
+    .execute();
+
+  await db.schema
+    .createTable("public.delegate_to_voter")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -250,40 +258,37 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_delegate_to_voter_delegate_id",
       ["delegate_id"],
-      "delegate",
+      "public.delegate",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
       "fk_delegate_to_voter_voter_id",
       ["voter_id"],
-      "voter",
+      "public.voter",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for delegate_to_voter
+  // Indexes for delegate_to_voter
   await db.schema
     .createIndex("idx_delegate_to_voter_delegate_id")
-    .on("delegate_to_voter")
+    .on("public.delegate_to_voter")
     .column("delegate_id")
     .execute();
-
+  await db.schema
+    .createIndex("idx_delegate_to_voter_period")
+    .on("public.delegate_to_voter")
+    .columns(["period_start", "period_end"])
+    .execute();
   await db.schema
     .createIndex("idx_delegate_to_voter_voter_id")
-    .on("delegate_to_voter")
+    .on("public.delegate_to_voter")
     .column("voter_id")
     .execute();
 
   await db.schema
-    .createIndex("idx_delegate_to_voter_period")
-    .on("delegate_to_voter")
-    .columns(["period_start", "period_end"])
-    .execute();
-
-  await db.schema
-    .createTable("delegation")
+    .createTable("public.delegation")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -298,58 +303,51 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_delegation_dao_id",
       ["dao_id"],
-      "dao",
+      "public.dao",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for delegation
+  // Indexes for delegation
+  await db.schema
+    .createIndex("idx_delegation_block")
+    .on("public.delegation")
+    .column("block")
+    .execute();
+  await db.schema
+    .createIndex("idx_delegation_delegate")
+    .on("public.delegation")
+    .column("delegate")
+    .execute();
+  await db.schema
+    .createIndex("idx_delegation_delegate_block")
+    .on("public.delegation")
+    .columns(["delegate", "block"])
+    .execute();
+  await db.schema
+    .createIndex("idx_delegation_delegate_timestamp")
+    .on("public.delegation")
+    .columns(["delegate", "timestamp"])
+    .execute();
+  await db.schema
+    .createIndex("idx_delegation_delegator")
+    .on("public.delegation")
+    .column("delegator")
+    .execute();
+  await db.schema
+    .createIndex("idx_delegation_timestamp")
+    .on("public.delegation")
+    .column("timestamp")
+    .execute();
   await db.schema
     .createIndex("uq_delegation_txid")
-    .on("delegation")
+    .on("public.delegation")
     .column("txid")
     .unique()
     .execute();
 
   await db.schema
-    .createIndex("idx_delegation_block")
-    .on("delegation")
-    .column("block")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_delegation_delegate")
-    .on("delegation")
-    .column("delegate")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_delegation_delegator")
-    .on("delegation")
-    .column("delegator")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_delegation_timestamp")
-    .on("delegation")
-    .column("timestamp")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_delegation_delegate_block")
-    .on("delegation")
-    .columns(["delegate", "block"])
-    .execute();
-
-  await db.schema
-    .createIndex("idx_delegation_delegate_timestamp")
-    .on("delegation")
-    .columns(["delegate", "timestamp"])
-    .execute();
-
-  await db.schema
-    .createTable("discourse_category")
+    .createTable("public.discourse_category")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -371,28 +369,210 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_discourse_category_dao_discourse_id",
       ["dao_discourse_id"],
-      "dao_discourse",
+      "public.dao_discourse",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for discourse_category
+  // Indexes for discourse_category
+  await db.schema
+    .createIndex("idx_discourse_category_external_id")
+    .on("public.discourse_category")
+    .column("external_id")
+    .execute();
   await db.schema
     .createIndex("uq_discourse_category_external_id_dao_discourse_id")
-    .on("discourse_category")
+    .on("public.discourse_category")
     .columns(["external_id", "dao_discourse_id"])
     .unique()
     .execute();
 
   await db.schema
-    .createIndex("idx_discourse_category_external_id")
-    .on("discourse_category")
+    .createTable("public.discourse_post")
+    .addColumn("id", "uuid", (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+    )
+    .addColumn("external_id", "integer", (col) => col.notNull())
+    .addColumn("name", "text")
+    .addColumn("username", "text", (col) => col.notNull())
+    .addColumn("created_at", "timestamp", (col) => col.notNull())
+    .addColumn("cooked", "text")
+    .addColumn("post_number", "integer", (col) => col.notNull())
+    .addColumn("post_type", "integer", (col) => col.notNull())
+    .addColumn("updated_at", "timestamp", (col) => col.notNull())
+    .addColumn("reply_count", "integer", (col) => col.notNull())
+    .addColumn("reply_to_post_number", "integer")
+    .addColumn("quote_count", "integer", (col) => col.notNull())
+    .addColumn("incoming_link_count", "integer", (col) => col.notNull())
+    .addColumn("reads", "integer", (col) => col.notNull())
+    .addColumn("readers_count", "integer", (col) => col.notNull())
+    .addColumn("score", "float8", (col) => col.notNull()) // double precision -> float8
+    .addColumn("topic_id", "integer", (col) => col.notNull())
+    .addColumn("topic_slug", "text", (col) => col.notNull())
+    .addColumn("display_username", "text")
+    .addColumn("primary_group_name", "text")
+    .addColumn("flair_name", "text")
+    .addColumn("flair_url", "text")
+    .addColumn("flair_bg_color", "text")
+    .addColumn("flair_color", "text")
+    .addColumn("version", "integer", (col) => col.notNull())
+    .addColumn("user_id", "integer", (col) => col.notNull())
+    .addColumn("dao_discourse_id", "uuid", (col) => col.notNull())
+    .addColumn("can_view_edit_history", "boolean", (col) =>
+      col.notNull().defaultTo(false),
+    )
+    .addColumn("deleted", "boolean", (col) => col.notNull().defaultTo(false))
+    .addForeignKeyConstraint(
+      "fk_discourse_post_dao_discourse_id",
+      ["dao_discourse_id"],
+      "public.dao_discourse",
+      ["id"],
+      (cb) => cb.onDelete("cascade"),
+    )
+    .execute();
+  // Indexes for discourse_post
+  await db.schema
+    .createIndex("idx_discourse_post_external_id")
+    .on("public.discourse_post")
     .column("external_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_discourse_post_topic_dao_discourse_post_number")
+    .on("public.discourse_post")
+    .columns(["topic_id", "dao_discourse_id", "post_number"])
+    .execute();
+  await db.schema
+    .createIndex("idx_discourse_post_topic_id")
+    .on("public.discourse_post")
+    .column("topic_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_discourse_post_user_id")
+    .on("public.discourse_post")
+    .column("user_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_discourse_post_version")
+    .on("public.discourse_post")
+    .column("version")
+    .execute();
+  await db.schema
+    .createIndex("uq_discourse_post_external_id_dao_discourse_id")
+    .on("public.discourse_post")
+    .columns(["external_id", "dao_discourse_id"])
+    .unique()
     .execute();
 
   await db.schema
-    .createTable("discourse_topic")
+    .createTable("public.discourse_post_like")
+    .addColumn("id", "uuid", (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+    )
+    .addColumn("external_discourse_post_id", "integer", (col) => col.notNull())
+    .addColumn("external_user_id", "integer", (col) => col.notNull())
+    .addColumn("created_at", "timestamp", (col) => col.notNull())
+    .addColumn("dao_discourse_id", "uuid", (col) => col.notNull())
+    .addForeignKeyConstraint(
+      "fk_discourse_post_like_dao_discourse_id",
+      ["dao_discourse_id"],
+      "public.dao_discourse",
+      ["id"],
+      (cb) => cb.onDelete("cascade"),
+    )
+    .execute();
+  // Indexes for discourse_post_like
+  await db.schema
+    .createIndex("idx_discourse_post_like_created_at")
+    .on("public.discourse_post_like")
+    .column("created_at")
+    .execute();
+  await db.schema
+    .createIndex("idx_discourse_post_like_external_user_id")
+    .on("public.discourse_post_like")
+    .column("external_user_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_external_discourse_post_like_post_id")
+    .on("public.discourse_post_like")
+    .column("external_discourse_post_id")
+    .execute();
+  await db.schema
+    .createIndex("uq_external_discourse_post_like_post_user_dao")
+    .on("public.discourse_post_like")
+    .columns([
+      "external_discourse_post_id",
+      "external_user_id",
+      "dao_discourse_id",
+    ])
+    .unique()
+    .execute();
+
+  await db.schema
+    .createTable("public.discourse_post_revision")
+    .addColumn("id", "uuid", (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
+    )
+    .addColumn("discourse_post_id", "uuid", (col) => col.notNull())
+    .addColumn("external_post_id", "integer", (col) => col.notNull())
+    .addColumn("version", "integer", (col) => col.notNull())
+    .addColumn("created_at", "timestamp", (col) => col.notNull())
+    .addColumn("username", "text", (col) => col.notNull())
+    .addColumn("body_changes", "text", (col) => col.notNull())
+    .addColumn("edit_reason", "text")
+    .addColumn("dao_discourse_id", "uuid", (col) => col.notNull())
+    .addColumn("title_changes", "text")
+    .addColumn("cooked_body_before", "text")
+    .addColumn("cooked_title_before", "text")
+    .addColumn("cooked_body_after", "text")
+    .addColumn("cooked_title_after", "text")
+    .addForeignKeyConstraint(
+      "fk_discourse_post_revision_dao_discourse_id",
+      ["dao_discourse_id"],
+      "public.dao_discourse",
+      ["id"],
+      (cb) => cb.onDelete("cascade"),
+    )
+    .addForeignKeyConstraint(
+      "fk_discourse_post_revision_discourse_post_id",
+      ["discourse_post_id"],
+      "public.discourse_post",
+      ["id"],
+      (cb) => cb.onDelete("cascade"),
+    )
+    .execute();
+  // Indexes for discourse_post_revision
+  await db.schema
+    .createIndex("idx_discourse_post_revision_discourse_post_id")
+    .on("public.discourse_post_revision")
+    .column("discourse_post_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_discourse_post_revision_external_post_id")
+    .on("public.discourse_post_revision")
+    .column("external_post_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_discourse_post_revision_version")
+    .on("public.discourse_post_revision")
+    .column("version")
+    .execute();
+  await db.schema
+    .createIndex(
+      "uq_discourse_post_revision_external_post_id_version_dao_discour",
+    )
+    .on("public.discourse_post_revision")
+    .columns(["external_post_id", "version", "dao_discourse_id"])
+    .unique()
+    .execute();
+  await db.schema
+    .createIndex("uq_discourse_post_revision_post_version")
+    .on("public.discourse_post_revision")
+    .columns(["discourse_post_id", "version"])
+    .unique()
+    .execute();
+
+  await db.schema
+    .createTable("public.discourse_topic")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -417,227 +597,36 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_discourse_topic_dao_discourse_id",
       ["dao_discourse_id"],
-      "dao_discourse",
+      "public.dao_discourse",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for discourse_topic
-  await db.schema
-    .createIndex("uq_discourse_topic_external_id_dao_discourse_id")
-    .on("discourse_topic")
-    .columns(["external_id", "dao_discourse_id"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_topic_external_id")
-    .on("discourse_topic")
-    .column("external_id")
-    .execute();
-
+  // Indexes for discourse_topic
   await db.schema
     .createIndex("idx_discourse_topic_category_id")
-    .on("discourse_topic")
+    .on("public.discourse_topic")
     .column("category_id")
     .execute();
-
   await db.schema
-    .createTable("discourse_post")
-    .addColumn("id", "uuid", (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
-    )
-    .addColumn("external_id", "integer", (col) => col.notNull())
-    .addColumn("name", "text")
-    .addColumn("username", "text", (col) => col.notNull())
-    .addColumn("created_at", "timestamp", (col) => col.notNull())
-    .addColumn("cooked", "text")
-    .addColumn("post_number", "integer", (col) => col.notNull())
-    .addColumn("post_type", "integer", (col) => col.notNull())
-    .addColumn("updated_at", "timestamp", (col) => col.notNull())
-    .addColumn("reply_count", "integer", (col) => col.notNull())
-    .addColumn("reply_to_post_number", "integer")
-    .addColumn("quote_count", "integer", (col) => col.notNull())
-    .addColumn("incoming_link_count", "integer", (col) => col.notNull())
-    .addColumn("reads", "integer", (col) => col.notNull())
-    .addColumn("readers_count", "integer", (col) => col.notNull())
-    .addColumn("score", "float8", (col) => col.notNull())
-    .addColumn("topic_id", "integer", (col) => col.notNull())
-    .addColumn("topic_slug", "text", (col) => col.notNull())
-    .addColumn("display_username", "text")
-    .addColumn("primary_group_name", "text")
-    .addColumn("flair_name", "text")
-    .addColumn("flair_url", "text")
-    .addColumn("flair_bg_color", "text")
-    .addColumn("flair_color", "text")
-    .addColumn("version", "integer", (col) => col.notNull())
-    .addColumn("user_id", "integer", (col) => col.notNull())
-    .addColumn("dao_discourse_id", "uuid", (col) => col.notNull())
-    .addColumn("can_view_edit_history", "boolean", (col) =>
-      col.notNull().defaultTo(false),
-    )
-    .addColumn("deleted", "boolean", (col) => col.notNull().defaultTo(false))
-    .addForeignKeyConstraint(
-      "fk_discourse_post_dao_discourse_id",
-      ["dao_discourse_id"],
-      "dao_discourse",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
-    )
+    .createIndex("idx_discourse_topic_external_id")
+    .on("public.discourse_topic")
+    .column("external_id")
     .execute();
-
-  // Create indexes for discourse_post
   await db.schema
-    .createIndex("uq_discourse_post_external_id_dao_discourse_id")
-    .on("discourse_post")
+    .createIndex("idx_discourse_topic_external_id_dao_discourse_id")
+    .on("public.discourse_topic")
+    .columns(["external_id", "dao_discourse_id"])
+    .execute();
+  await db.schema
+    .createIndex("uq_discourse_topic_external_id_dao_discourse_id")
+    .on("public.discourse_topic")
     .columns(["external_id", "dao_discourse_id"])
     .unique()
     .execute();
 
   await db.schema
-    .createIndex("idx_discourse_post_external_id")
-    .on("discourse_post")
-    .column("external_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_post_topic_id")
-    .on("discourse_post")
-    .column("topic_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_post_user_id")
-    .on("discourse_post")
-    .column("user_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_post_version")
-    .on("discourse_post")
-    .column("version")
-    .execute();
-
-  await db.schema
-    .createTable("discourse_post_like")
-    .addColumn("id", "uuid", (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
-    )
-    .addColumn("external_discourse_post_id", "integer", (col) => col.notNull())
-    .addColumn("external_user_id", "integer", (col) => col.notNull())
-    .addColumn("created_at", "timestamp", (col) => col.notNull())
-    .addColumn("dao_discourse_id", "uuid", (col) => col.notNull())
-    .addForeignKeyConstraint(
-      "fk_discourse_post_like_dao_discourse_id",
-      ["dao_discourse_id"],
-      "dao_discourse",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
-    )
-    .execute();
-
-  // Create indexes for discourse_post_like
-  await db.schema
-    .createIndex("uq_external_discourse_post_like_post_user_dao")
-    .on("discourse_post_like")
-    .columns([
-      "external_discourse_post_id",
-      "external_user_id",
-      "dao_discourse_id",
-    ])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_post_like_created_at")
-    .on("discourse_post_like")
-    .column("created_at")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_external_discourse_post_like_post_id")
-    .on("discourse_post_like")
-    .column("external_discourse_post_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_post_like_external_user_id")
-    .on("discourse_post_like")
-    .column("external_user_id")
-    .execute();
-
-  await db.schema
-    .createTable("discourse_post_revision")
-    .addColumn("id", "uuid", (col) =>
-      col.primaryKey().defaultTo(sql`gen_random_uuid()`),
-    )
-    .addColumn("discourse_post_id", "uuid", (col) => col.notNull())
-    .addColumn("external_post_id", "integer", (col) => col.notNull())
-    .addColumn("version", "integer", (col) => col.notNull())
-    .addColumn("created_at", "timestamp", (col) => col.notNull())
-    .addColumn("username", "text", (col) => col.notNull())
-    .addColumn("body_changes", "text", (col) => col.notNull())
-    .addColumn("edit_reason", "text")
-    .addColumn("dao_discourse_id", "uuid", (col) => col.notNull())
-    .addColumn("title_changes", "text")
-    .addColumn("cooked_body_before", "text")
-    .addColumn("cooked_title_before", "text")
-    .addColumn("cooked_body_after", "text")
-    .addColumn("cooked_title_after", "text")
-    .addForeignKeyConstraint(
-      "fk_discourse_post_revision_dao_discourse_id",
-      ["dao_discourse_id"],
-      "dao_discourse",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
-    )
-    .addForeignKeyConstraint(
-      "fk_discourse_post_revision_discourse_post_id",
-      ["discourse_post_id"],
-      "discourse_post",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
-    )
-    .execute();
-
-  // Create indexes for discourse_post_revision
-  await db.schema
-    .createIndex("uq_discourse_post_revision_post_version")
-    .on("discourse_post_revision")
-    .columns(["discourse_post_id", "version"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex(
-      "uq_discourse_post_revision_external_post_id_version_dao_discour",
-    )
-    .on("discourse_post_revision")
-    .columns(["external_post_id", "version", "dao_discourse_id"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_post_revision_discourse_post_id")
-    .on("discourse_post_revision")
-    .column("discourse_post_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_post_revision_external_post_id")
-    .on("discourse_post_revision")
-    .column("external_post_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_discourse_post_revision_version")
-    .on("discourse_post_revision")
-    .column("version")
-    .execute();
-
-  await db.schema
-    .createTable("proposal")
+    .createTable("public.proposal")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -647,8 +636,10 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("url", "text", (col) => col.notNull())
     .addColumn("discussion_url", "text")
     .addColumn("choices", "jsonb", (col) => col.notNull().defaultTo("[]"))
-    .addColumn("quorum", "float8", (col) => col.notNull())
-    .addColumn("proposal_state", sql`proposal_state`, (col) => col.notNull())
+    .addColumn("quorum", "float8", (col) => col.notNull()) // double precision -> float8
+    .addColumn("proposal_state", sql`public.proposal_state`, (col) =>
+      col.notNull(),
+    )
     .addColumn("marked_spam", "boolean", (col) =>
       col.notNull().defaultTo(false),
     )
@@ -661,69 +652,79 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("dao_id", "uuid", (col) => col.notNull())
     .addColumn("author", "text")
     .addColumn("governor_id", "uuid", (col) => col.notNull())
+    .addColumn("block_start_at", "integer")
+    .addColumn("block_end_at", "integer")
     .addForeignKeyConstraint(
       "fk_proposal_dao_id",
       ["dao_id"],
-      "dao",
+      "public.dao",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
       "fk_proposal_governor_id",
       ["governor_id"],
-      "dao_governor",
+      "public.dao_governor",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for proposal
+  // Indexes for proposal
+  await db.schema
+    .createIndex("idx_proposal_block_end_at")
+    .on("public.proposal")
+    .column("block_end_at")
+    .execute();
+  await db.schema
+    .createIndex("idx_proposal_block_start_at")
+    .on("public.proposal")
+    .column("block_start_at")
+    .execute();
+  await db.schema
+    .createIndex("idx_proposal_external_id_governor_id")
+    .on("public.proposal")
+    .columns(["external_id", "governor_id"])
+    .execute();
+  await db.schema
+    .createIndex("idx_proposal_new_dao_id")
+    .on("public.proposal")
+    .column("dao_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_proposal_new_governor_id")
+    .on("public.proposal")
+    .column("governor_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_proposal_new_proposal_state")
+    .on("public.proposal")
+    .column("proposal_state")
+    .execute();
+  await db.schema
+    .createIndex("idx_proposal_new_time_end")
+    .on("public.proposal")
+    .column("end_at")
+    .execute();
+  await db.schema
+    .createIndex("idx_proposal_new_time_start")
+    .on("public.proposal")
+    .column("start_at")
+    .execute();
   await db.schema
     .createIndex("proposal_new_pkey")
-    .on("proposal")
+    .on("public.proposal")
     .column("id")
     .unique()
     .execute();
-
   await db.schema
     .createIndex("proposal_new_txid_key")
-    .on("proposal")
+    .on("public.proposal")
     .column("txid")
     .unique()
     .execute();
 
   await db.schema
-    .createIndex("idx_proposal_new_dao_id")
-    .on("proposal")
-    .column("dao_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_proposal_new_governor_id")
-    .on("proposal")
-    .column("governor_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_proposal_new_time_start")
-    .on("proposal")
-    .column("start_at")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_proposal_new_time_end")
-    .on("proposal")
-    .column("end_at")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_proposal_new_proposal_state")
-    .on("proposal")
-    .column("proposal_state")
-    .execute();
-
-  await db.schema
-    .createTable("proposal_group")
+    .createTable("public.proposal_group")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
@@ -736,27 +737,31 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_proposal_group_dao_id",
       ["dao_id"],
-      "dao",
+      "public.dao",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create index for proposal_group
+  // Indexes for proposal_group
+  await db.schema
+    .createIndex("idx_proposal_group_dao_id")
+    .on("public.proposal_group")
+    .column("dao_id")
+    .execute();
   await db.schema
     .createIndex("idx_proposal_group_items")
-    .on("proposal_group")
+    .on("public.proposal_group")
     .column("items")
     .execute();
 
   await db.schema
-    .createTable("vote")
+    .createTable("public.vote")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
     .addColumn("voter_address", "text", (col) => col.notNull())
     .addColumn("choice", "jsonb", (col) => col.notNull().defaultTo("[]"))
-    .addColumn("voting_power", "float8", (col) => col.notNull())
+    .addColumn("voting_power", "float8", (col) => col.notNull()) // double precision -> float8
     .addColumn("reason", "text")
     .addColumn("created_at", "timestamp", (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
@@ -768,81 +773,90 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn("dao_id", "uuid", (col) => col.notNull())
     .addColumn("governor_id", "uuid", (col) => col.notNull())
     .addForeignKeyConstraint(
-      "fk_vote_proposal_id",
-      ["proposal_id"],
-      "proposal",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
-    )
-    .addForeignKeyConstraint(
       "fk_vote_dao_id",
       ["dao_id"],
-      "dao",
+      "public.dao",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
       "fk_vote_governor_id",
       ["governor_id"],
-      "dao_governor",
+      "public.dao_governor",
+      ["id"],
+      (cb) => cb.onDelete("cascade"),
+    )
+    .addForeignKeyConstraint(
+      "fk_vote_proposal_id",
+      ["proposal_id"],
+      "public.proposal",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
       "fk_vote_voter_address",
       ["voter_address"],
-      "voter",
+      "public.voter",
       ["address"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for vote
+  // Indexes for vote
+  await db.schema
+    .createIndex("idx_vote_created_at")
+    .on("public.vote")
+    .column("created_at")
+    .execute();
+  await db.schema
+    .createIndex("idx_vote_external_id_governor_id")
+    .on("public.vote")
+    .columns(["proposal_external_id", "governor_id"])
+    .execute();
+  await db.schema
+    .createIndex("idx_vote_new_dao_id")
+    .on("public.vote")
+    .column("dao_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_vote_new_governor_id")
+    .on("public.vote")
+    .column("governor_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_vote_new_proposal_id")
+    .on("public.vote")
+    .column("proposal_id")
+    .execute();
+  await db.schema
+    .createIndex("idx_vote_new_voter_address")
+    .on("public.vote")
+    .column("voter_address")
+    .execute();
+  await db.schema
+    .createIndex("idx_vote_proposal_id_voter_address")
+    .on("public.vote")
+    .columns(["proposal_id", "voter_address"])
+    .execute();
+  await db.schema
+    .createIndex("unique_vote_new")
+    .on("public.vote")
+    .columns(["proposal_id", "voter_address", "created_at"])
+    .unique()
+    .execute();
   await db.schema
     .createIndex("vote_new_pkey")
-    .on("vote")
+    .on("public.vote")
     .column("id")
     .unique()
     .execute();
 
   await db.schema
-    .createIndex("unique_vote_new")
-    .on("vote")
-    .columns(["proposal_id", "voter_address", "created_at"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createIndex("idx_vote_new_proposal_id")
-    .on("vote")
-    .column("proposal_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_vote_new_dao_id")
-    .on("vote")
-    .column("dao_id")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_vote_new_voter_address")
-    .on("vote")
-    .column("voter_address")
-    .execute();
-
-  await db.schema
-    .createIndex("idx_vote_new_governor_id")
-    .on("vote")
-    .column("governor_id")
-    .execute();
-
-  await db.schema
-    .createTable("voting_power")
+    .createTable("public.voting_power")
     .addColumn("id", "uuid", (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`),
     )
     .addColumn("voter", "text", (col) => col.notNull())
-    .addColumn("voting_power", "float8", (col) => col.notNull())
+    .addColumn("voting_power", "float8", (col) => col.notNull()) // double precision -> float8
     .addColumn("dao_id", "uuid", (col) => col.notNull())
     .addColumn("timestamp", "timestamp", (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
@@ -852,84 +866,85 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addForeignKeyConstraint(
       "fk_voting_power_dao_id",
       ["dao_id"],
-      "dao",
+      "public.dao",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .execute();
-
-  // Create indexes for voting_power
-  await db.schema
-    .createIndex("uq_voting_power_txid")
-    .on("voting_power")
-    .column("txid")
-    .unique()
-    .execute();
-
+  // Indexes for voting_power
   await db.schema
     .createIndex("idx_voting_power_block")
-    .on("voting_power")
+    .on("public.voting_power")
     .column("block")
     .execute();
-
+  await db.schema
+    .createIndex("idx_voting_power_dao_id_voter_timestamp_voting_power")
+    .on("public.voting_power")
+    .columns(["dao_id", "voter", "timestamp", "voting_power"])
+    .execute();
+  await db.schema
+    .createIndex("idx_voting_power_dao_voter_ts_desc")
+    .on("public.voting_power")
+    .columns(["dao_id", "voter", "timestamp desc"])
+    .execute();
   await db.schema
     .createIndex("idx_voting_power_timestamp")
-    .on("voting_power")
+    .on("public.voting_power")
     .column("timestamp")
     .execute();
-
   await db.schema
     .createIndex("idx_voting_power_voter")
-    .on("voting_power")
+    .on("public.voting_power")
     .column("voter")
     .execute();
-
   await db.schema
     .createIndex("idx_voting_power_voter_block")
-    .on("voting_power")
+    .on("public.voting_power")
     .columns(["voter", "block"])
     .execute();
-
   await db.schema
     .createIndex("idx_voting_power_voter_timestamp")
-    .on("voting_power")
+    .on("public.voting_power")
     .columns(["voter", "timestamp"])
     .execute();
-
   await db.schema
-    .createTable("job_queue")
-    .addColumn("id", "serial", (col) => col.primaryKey())
-    .addColumn("type", "text", (col) => col.notNull())
-    .addColumn("data", "jsonb", (col) => col.notNull())
-    .addColumn("status", "text", (col) => col.notNull().defaultTo("PENDING"))
-    .addColumn("created_at", "timestamp", (col) =>
-      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
-    )
+    .createIndex("uq_voting_power_txid")
+    .on("public.voting_power")
+    .column("txid")
+    .unique()
     .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  // Drop the main tables
-  await db.schema.dropTable("job_queue").execute();
-  await db.schema.dropTable("voting_power").execute();
-  await db.schema.dropTable("vote").execute();
-  await db.schema.dropTable("proposal_group").execute();
-  await db.schema.dropTable("proposal").execute();
-  await db.schema.dropTable("discourse_post_revision").execute();
-  await db.schema.dropTable("discourse_post_like").execute();
-  await db.schema.dropTable("discourse_post").execute();
-  await db.schema.dropTable("discourse_topic").execute();
-  await db.schema.dropTable("discourse_category").execute();
-  await db.schema.dropTable("delegation").execute();
-  await db.schema.dropTable("delegate_to_voter").execute();
-  await db.schema.dropTable("delegate_to_discourse_user").execute();
-  await db.schema.dropTable("discourse_user").execute();
-  await db.schema.dropTable("voter").execute();
-  await db.schema.dropTable("delegate").execute();
-  await db.schema.dropTable("dao_governor").execute();
-  await db.schema.dropTable("dao_discourse").execute();
-  await db.schema.dropTable("dao").execute();
+  // --- DROP TABLES (Reverse order of creation, considering dependencies) ---
 
-  // Drop enum types
-  await db.schema.dropType("proposal_state").execute();
+  // public schema tables (children first)
+  await db.schema.dropTable("public.voting_power").ifExists().execute();
+  await db.schema.dropTable("public.vote").ifExists().execute();
+  await db.schema.dropTable("public.proposal_group").ifExists().execute();
+  await db.schema.dropTable("public.proposal").ifExists().execute();
+  await db.schema
+    .dropTable("public.discourse_post_revision")
+    .ifExists()
+    .execute();
+  await db.schema.dropTable("public.discourse_post_like").ifExists().execute();
+  await db.schema.dropTable("public.discourse_post").ifExists().execute();
+  await db.schema.dropTable("public.discourse_topic").ifExists().execute();
+  await db.schema.dropTable("public.discourse_category").ifExists().execute();
+  await db.schema.dropTable("public.delegate_to_voter").ifExists().execute();
+  await db.schema
+    .dropTable("public.delegate_to_discourse_user")
+    .ifExists()
+    .execute();
+  await db.schema.dropTable("public.discourse_user").ifExists().execute();
+  await db.schema.dropTable("public.voter").ifExists().execute();
+  await db.schema.dropTable("public.delegation").ifExists().execute();
+  await db.schema.dropTable("public.delegate").ifExists().execute();
+  await db.schema.dropTable("public.dao_governor").ifExists().execute();
+  await db.schema.dropTable("public.dao_discourse").ifExists().execute();
+  await db.schema.dropTable("public.dao").ifExists().execute();
+  await db.schema.dropTable("public.job_queue").ifExists().execute();
+
+  // --- DROP ENUM TYPES ---
+  await db.schema.dropType("public.proposal_state").ifExists().execute();
 }
