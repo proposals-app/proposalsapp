@@ -2396,10 +2396,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.27.0, @eslint/js@npm:^9.27.0":
-  version: 9.27.0
-  resolution: "@eslint/js@npm:9.27.0"
-  checksum: 10c0/79b219ceda79182732954b52f7a494f49995a9a6419c7ae0316866e324d3706afeb857e1306bb6f35a4caaf176a5174d00228fc93d36781a570d32c587736564
+"@eslint/js@npm:9.28.0, @eslint/js@npm:^9.28.0":
+  version: 9.28.0
+  resolution: "@eslint/js@npm:9.28.0"
+  checksum: 10c0/5a6759542490dd9f778993edfbc8d2f55168fd0f7336ceed20fe3870c65499d72fc0bca8d1ae00ea246b0923ea4cba2e0758a8a5507a3506ddcf41c92282abb8
   languageName: node
   linkType: hard
 
@@ -4737,7 +4737,7 @@ __metadata:
     axios: "npm:^1.9.0"
     dotenv: "npm:^16.5.0"
     express: "npm:^5.1.0"
-    node-cron: "npm:^4.0.7"
+    node-cron: "npm:^4.1.0"
     supertest: "npm:^7.1.1"
     tsx: "npm:^4.19.4"
     typescript: "npm:^5.8.3"
@@ -4811,7 +4811,7 @@ __metadata:
     "@dnd-kit/sortable": "npm:^10.0.0"
     "@dnd-kit/utilities": "npm:^3.2.2"
     "@eslint/eslintrc": "npm:^3.3.1"
-    "@eslint/js": "npm:^9.27.0"
+    "@eslint/js": "npm:^9.28.0"
     "@ladle/react": "npm:^5.0.3"
     "@neshca/cache-handler": "npm:^1.9.0"
     "@next/eslint-plugin-next": "npm:^15.3.3"
@@ -4861,7 +4861,7 @@ __metadata:
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
     echarts: "npm:^5.6.0"
-    eslint: "npm:^9.27.0"
+    eslint: "npm:^9.28.0"
     eslint-config-next: "npm:^15.3.3"
     eslint-config-prettier: "npm:^10.1.5"
     eslint-plugin-prettier: "npm:^5.4.1"
@@ -4879,7 +4879,8 @@ __metadata:
     ollama-ai-provider: "npm:^1.2.0"
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.4"
-    posthog-js: "npm:^1.248.1"
+    posthog-js: "npm:^1.249.0"
+    posthog-node: "npm:^4.18.0"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.8"
     prettier-plugin-merge: "npm:^0.7.4"
@@ -4896,7 +4897,7 @@ __metadata:
     rehype-stringify: "npm:^10.0.1"
     remark-gfm: "npm:^4.0.1"
     serwist: "npm:^9.0.14"
-    sonner: "npm:^2.0.3"
+    sonner: "npm:^2.0.4"
     start-server-and-test: "npm:^2.0.12"
     superjson: "npm:^2.2.2"
     tailwind-merge: "npm:^3.3.0"
@@ -12793,9 +12794,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.27.0":
-  version: 9.27.0
-  resolution: "eslint@npm:9.27.0"
+"eslint@npm:^9.28.0":
+  version: 9.28.0
+  resolution: "eslint@npm:9.28.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.12.1"
@@ -12803,7 +12804,7 @@ __metadata:
     "@eslint/config-helpers": "npm:^0.2.1"
     "@eslint/core": "npm:^0.14.0"
     "@eslint/eslintrc": "npm:^3.3.1"
-    "@eslint/js": "npm:9.27.0"
+    "@eslint/js": "npm:9.28.0"
     "@eslint/plugin-kit": "npm:^0.3.1"
     "@humanfs/node": "npm:^0.16.6"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
@@ -12839,7 +12840,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/135d301e37cd961000a9c1d3f0e1863bed29a61435dfddedba3db295973193024382190fd8790a8de83777d10f450082a29eaee8bc9ce0fb1bc1f2b0bb882280
+  checksum: 10c0/513ea7e69d88a0905d4ed35cef3a8f31ebce7ca9f2cdbda3474495c63ad6831d52357aad65094be7a144d6e51850980ced7d25efb807e8ab06a427241f7cd730
   languageName: node
   linkType: hard
 
@@ -18773,10 +18774,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-cron@npm:^4.0.7":
-  version: 4.0.7
-  resolution: "node-cron@npm:4.0.7"
-  checksum: 10c0/fceafcda2da4e1c8958c89fec8cd5e6416cf0bfdebb7c9c91c3f6f2df7720b403eaa14f3ab39e311539caad7bd353dda91f3b825934e4f727a3d3f263bbc7965
+"node-cron@npm:^4.1.0":
+  version: 4.1.0
+  resolution: "node-cron@npm:4.1.0"
+  checksum: 10c0/41aa0a66ac3988ea5dcc4eea7f61c57e2266c8b18bfaee4527145406fe568a300803b37446a45fe45e735571eaed42f6f1c359c8b455a2f20a04d214cc561249
   languageName: node
   linkType: hard
 
@@ -20447,9 +20448,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.248.1":
-  version: 1.248.1
-  resolution: "posthog-js@npm:1.248.1"
+"posthog-js@npm:^1.249.0":
+  version: 1.249.0
+  resolution: "posthog-js@npm:1.249.0"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -20463,7 +20464,16 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/a4bc8d7fbc03cdbdffdc3449c5c39ef5d8c5cbbd4e3fa15464d748374bedb79a8353c59db23a177ab279047d1652315cc0b9f9b6c2f27d2f72ae1999dce50c61
+  checksum: 10c0/dc420ed5ce70d92dbc7c48a0952f6052625467387912c5eb82929a038d323924d39f7ee50f739d472bdf54a9e54e20c09e4888768515ba7ca48dec041a4073d6
+  languageName: node
+  linkType: hard
+
+"posthog-node@npm:^4.18.0":
+  version: 4.18.0
+  resolution: "posthog-node@npm:4.18.0"
+  dependencies:
+    axios: "npm:^1.8.2"
+  checksum: 10c0/aa30427599d15b98357b5a88096a8b38b0812c71af49eb54fce0a46164521c247c3b064973931c3471cf84cb7f0e391bfc5d6174cd038f75f8c02cb8a9626cff
   languageName: node
   linkType: hard
 
@@ -22774,13 +22784,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sonner@npm:^2.0.3":
-  version: 2.0.3
-  resolution: "sonner@npm:2.0.3"
+"sonner@npm:^2.0.4":
+  version: 2.0.4
+  resolution: "sonner@npm:2.0.4"
   peerDependencies:
     react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-  checksum: 10c0/59f84142f7a692dd1ec90e6df2003a70ff0b325eaef1d5dd17ad250e7f992b71053824f1a7ab3912f8c4caa5ce30523a096b5f5108b3e8ae13f906048691aca1
+  checksum: 10c0/b4936b4e97ac0f6e325b0ccf77ec982e56374017f44de54f41fe647929c151d1e7b4c616b553b3231aae5e09d94b55f6b1eba2fbf4faafa4d4a554b06cc494a5
   languageName: node
   linkType: hard
 

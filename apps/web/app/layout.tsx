@@ -1,16 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '@/styles/globals.css';
-import { PHProvider } from './components/posthog-provider';
-import {
-  PostHogIdentifier,
-  PostHogPageView,
-} from './components/posthog-page-view';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
 import WalletProvider from './components/wallet-provider';
 import { firaSans, firaSansCondensed, firaMono } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
+import { PostHogProvider } from './components/posthog-provider';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://proposals.app'),
@@ -51,27 +47,21 @@ export default async function Layout({
         <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
-        <Suspense>
-          <WebVitals />
-        </Suspense>
-        <Suspense>
-          <PostHogIdentifier />
-        </Suspense>
-        <Suspense>
-          <PostHogPageView />
-        </Suspense>
-        <Suspense>
-          <NuqsAdapter>
-            <PHProvider>
+        <PostHogProvider>
+          <Suspense>
+            <WebVitals />
+          </Suspense>
+          <Suspense>
+            <NuqsAdapter>
               <WalletProvider>
                 <main>
                   <Suspense>{children}</Suspense>
                 </main>
                 <Toaster />
               </WalletProvider>
-            </PHProvider>
-          </NuqsAdapter>
-        </Suspense>
+            </NuqsAdapter>
+          </Suspense>
+        </PostHogProvider>
       </body>
     </html>
   );
