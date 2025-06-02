@@ -27,19 +27,10 @@ export const VoteSegment = ({
     tw={'h-full'}
     style={{
       width: `${width}%`,
-      backgroundColor: color,
       marginRight: 1,
-      // ...(isAggregated
-      //   ? {
-      //       background: `repeating-linear-gradient(
-      //               90deg,
-      //               ${color} 0px,
-      //               ${color} 1px,
-      //               transparent 1px,
-      //               transparent 2px
-      //             )`,
-      //     }
-      //   : { backgroundColor: color, marginRight: 1 }),
+      background: isAggregated
+        ? `repeating-linear-gradient(90deg, ${color} 0px, ${color} 1px, transparent 1px, transparent 2px)`
+        : color,
     }}
   />
 );
