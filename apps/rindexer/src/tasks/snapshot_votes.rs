@@ -135,7 +135,7 @@ async fn fetch_votes_batch(space: &str, last_vote_created: i64, proposals_str: &
                 orderDirection: asc,
                 where: {{
                     space: "{space}"
-                    created_gte: {last_created},
+                    created_gt: {last_created},
                     proposal_in: {proposals}
                 }}
             ) {{
