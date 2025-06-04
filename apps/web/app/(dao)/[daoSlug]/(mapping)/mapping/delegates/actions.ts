@@ -128,72 +128,105 @@ export async function fuzzySearchDiscourseUsers(
   searchTerm: string,
   excludeUserIds: string[] = []
 ): Promise<Selectable<DiscourseUser>[]> {
-  'use cache';
-  cacheTag(`fuzzy-discourse-${searchTerm}`);
+  // Remove 'use cache' directive to ensure fresh results each time
+  // This ensures the search functionality works properly
 
-  if (!searchTerm.trim()) {
+  // Validate inputs
+  if (!searchTerm || !searchTerm.trim() || !daoSlug) {
+    console.log('Invalid search term or daoSlug:', { searchTerm, daoSlug });
     return [];
   }
 
-  const dao = await db.public
-    .selectFrom('dao')
-    .where('slug', '=', daoSlug)
-    .selectAll()
-    .executeTakeFirstOrThrow();
+  try {
+    const dao = await db.public
+      .selectFrom('dao')
+      .where('slug', '=', daoSlug)
+      .selectAll()
+      .executeTakeFirstOrThrow();
 
-  const daoDiscourse = await db.public
-    .selectFrom('daoDiscourse')
-    .where('daoId', '=', dao.id)
-    .selectAll()
-    .executeTakeFirst();
+    const daoDiscourse = await db.public
+      .selectFrom('daoDiscourse')
+      .where('daoId', '=', dao.id)
+      .selectAll()
+      .executeTakeFirst();
 
-  if (!daoDiscourse) {
+    if (!daoDiscourse) {
+      console.log('No daoDiscourse found for dao:', daoSlug);
+      return [];
+    }
+
+    let query = db.public
+      .selectFrom('discourseUser')
+      .where('daoDiscourseId', '=', daoDiscourse.id);
+
+    if (excludeUserIds.length > 0) {
+      query = query.where('id', 'not in', excludeUserIds);
+    }
+
+    const allDiscourseUsers = await query.selectAll().execute();
+    console.log(`Found ${allDiscourseUsers.length} discourse users for search`);
+
+    if (allDiscourseUsers.length === 0) {
+      return [];
+    }
+
+    const fuse = new Fuse(allDiscourseUsers, {
+      keys: ['username', 'name'],
+      threshold: 0.3,
+    });
+
+    const results = fuse.search(searchTerm).map((result) => result.item);
+    console.log(
+      `Search for "${searchTerm}" returned ${results.length} results`
+    );
+    return results;
+  } catch (error) {
+    console.error('Error in fuzzySearchDiscourseUsers:', error);
     return [];
   }
-
-  let query = db.public
-    .selectFrom('discourseUser')
-    .where('daoDiscourseId', '=', daoDiscourse.id);
-
-  if (excludeUserIds.length > 0) {
-    query = query.where('id', 'not in', excludeUserIds);
-  }
-
-  const allDiscourseUsers = await query.selectAll().execute();
-
-  const fuse = new Fuse(allDiscourseUsers, {
-    keys: ['username', 'name'],
-    threshold: 0.3,
-  });
-
-  return fuse.search(searchTerm).map((result) => result.item);
 }
 
 export async function fuzzySearchVoters(
   searchTerm: string,
   excludeVoterIds: string[] = []
 ): Promise<Selectable<Voter>[]> {
-  'use cache';
-  cacheTag(`fuzzy-voter-${searchTerm}`);
+  // Remove 'use cache' directive to ensure fresh results each time
+  // This ensures the search functionality works properly
 
-  if (!searchTerm.trim()) {
+  // Validate inputs
+  if (!searchTerm || !searchTerm.trim()) {
+    console.log('Invalid search term:', { searchTerm });
     return [];
   }
 
-  let query = db.public.selectFrom('voter');
+  try {
+    let query = db.public.selectFrom('voter');
 
-  if (excludeVoterIds.length > 0) {
-    query = query.where('id', 'not in', excludeVoterIds);
+    if (excludeVoterIds.length > 0) {
+      query = query.where('id', 'not in', excludeVoterIds);
+    }
+
+    const allVoters = await query.selectAll().execute();
+    console.log(`Found ${allVoters.length} voters for search`);
+
+    if (allVoters.length === 0) {
+      return [];
+    }
+
+    const fuse = new Fuse(allVoters, {
+      keys: ['address', 'ens'],
+      threshold: 0.3,
+    });
+
+    const results = fuse.search(searchTerm).map((result) => result.item);
+    console.log(
+      `Search for "${searchTerm}" returned ${results.length} results`
+    );
+    return results;
+  } catch (error) {
+    console.error('Error in fuzzySearchVoters:', error);
+    return [];
   }
-
-  const allVoters = await query.selectAll().execute();
-
-  const fuse = new Fuse(allVoters, {
-    keys: ['address', 'ens'],
-    threshold: 0.3,
-  });
-
-  return fuse.search(searchTerm).map((result) => result.item);
 }
 
 export async function mapDiscourseUserToDelegate(

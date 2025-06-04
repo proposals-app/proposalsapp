@@ -44,6 +44,8 @@ export async function getNonVoters(proposalId: string) {
   'use cache';
   cacheLife('minutes');
 
+  const NON_VOTER_SELECT_LIMIT = 50000; //50k VP
+
   type DelegateToVoterLink = {
     voterId: string;
     delegateId: string;
@@ -271,7 +273,9 @@ export async function getNonVoters(proposalId: string) {
   return {
     totalNumberOfNonVoters: nonVoters.length,
     totalVotingPower,
-    nonVoters: nonVoters.filter((nv) => nv.votingPowerAtStart > 5000),
+    nonVoters: nonVoters.filter(
+      (nv) => nv.votingPowerAtStart > NON_VOTER_SELECT_LIMIT
+    ),
   };
 }
 

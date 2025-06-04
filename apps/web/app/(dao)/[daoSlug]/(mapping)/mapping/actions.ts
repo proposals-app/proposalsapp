@@ -200,89 +200,102 @@ export async function fuzzySearchItems(
   searchTerm: string,
   daoSlug: string
 ): Promise<FuzzySearchResult[]> {
-  'use cache';
-  cacheTag(`fuzzy-group-${searchTerm}`);
+  // Remove 'use cache' directive to ensure fresh results each time
+  // This ensures the search functionality works properly
 
-  const dao = await db.public
-    .selectFrom('dao')
-    .where('slug', '=', daoSlug)
-    .selectAll()
-    .executeTakeFirstOrThrow();
-
-  const daoDiscourse = await db.public
-    .selectFrom('daoDiscourse')
-    .where('daoId', '=', dao.id)
-    .selectAll()
-    .executeTakeFirst();
-
-  if (!searchTerm.trim() || !daoDiscourse) {
+  // Validate search term and dao slug
+  if (!searchTerm || !searchTerm.trim() || !daoSlug) {
+    console.log('Invalid search term or daoSlug:', { searchTerm, daoSlug });
     return [];
   }
 
-  const [proposals, topics] = await Promise.all([
-    db.public
-      .selectFrom('proposal')
-      .where('markedSpam', '=', false)
-      .where('proposal.daoId', '=', dao.id)
-      .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
-      .select([
-        'proposal.id',
-        'proposal.externalId',
-        'proposal.governorId',
-        'proposal.name as proposalName',
-        'daoGovernor.name as governorName',
-      ])
-      .execute(),
-    db.public
-      .selectFrom('discourseTopic')
-      .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
-      .leftJoin(
-        'daoDiscourse',
-        'daoDiscourse.id',
-        'discourseTopic.daoDiscourseId'
-      )
-      .select([
-        'discourseTopic.id',
-        'discourseTopic.externalId',
-        'discourseTopic.daoDiscourseId',
-        'title',
-        'daoDiscourse.discourseBaseUrl',
-      ])
-      .execute(),
-  ]);
+  try {
+    const dao = await db.public
+      .selectFrom('dao')
+      .where('slug', '=', daoSlug)
+      .selectAll()
+      .executeTakeFirstOrThrow();
 
-  const allItems: (Omit<FuzzySearchResult, 'score'> & { score?: number })[] = [
-    ...proposals.map((p) => ({
-      name: p.proposalName,
-      type: 'proposal' as const,
-      external_id: p.externalId,
-      governor_id: p.governorId,
-      indexerName: p.governorName ?? 'unknown',
-    })),
-    ...topics.map((t) => ({
-      name: t.title,
-      type: 'topic' as const,
-      external_id: String(t.externalId),
-      dao_discourse_id: t.daoDiscourseId,
-      indexerName: t.discourseBaseUrl ?? 'unknown',
-    })),
-  ];
+    const daoDiscourse = await db.public
+      .selectFrom('daoDiscourse')
+      .where('daoId', '=', dao.id)
+      .selectAll()
+      .executeTakeFirst();
 
-  if (allItems.length === 0) return [];
+    if (!daoDiscourse) {
+      console.log('No daoDiscourse found for dao:', daoSlug);
+      return [];
+    }
 
-  const fuse = new Fuse(allItems, {
-    keys: ['name'],
-    threshold: 0.5,
-    includeScore: true,
-  });
+    const [proposals, topics] = await Promise.all([
+      db.public
+        .selectFrom('proposal')
+        .where('markedSpam', '=', false)
+        .where('proposal.daoId', '=', dao.id)
+        .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
+        .select([
+          'proposal.id',
+          'proposal.externalId',
+          'proposal.governorId',
+          'proposal.name as proposalName',
+          'daoGovernor.name as governorName',
+        ])
+        .execute(),
+      db.public
+        .selectFrom('discourseTopic')
+        .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
+        .leftJoin(
+          'daoDiscourse',
+          'daoDiscourse.id',
+          'discourseTopic.daoDiscourseId'
+        )
+        .select([
+          'discourseTopic.id',
+          'discourseTopic.externalId',
+          'discourseTopic.daoDiscourseId',
+          'title',
+          'daoDiscourse.discourseBaseUrl',
+        ])
+        .execute(),
+    ]);
 
-  return fuse
-    .search(searchTerm)
-    .slice(0, 100)
-    .map((result) => ({
-      ...result.item,
-      score: result.score ?? 1.0,
-    }));
+    const allItems: (Omit<FuzzySearchResult, 'score'> & { score?: number })[] =
+      [
+        ...proposals.map((p) => ({
+          name: p.proposalName,
+          type: 'proposal' as const,
+          external_id: p.externalId,
+          governor_id: p.governorId,
+          indexerName: p.governorName ?? 'unknown',
+        })),
+        ...topics.map((t) => ({
+          name: t.title,
+          type: 'topic' as const,
+          external_id: String(t.externalId),
+          dao_discourse_id: t.daoDiscourseId,
+          indexerName: t.discourseBaseUrl ?? 'unknown',
+        })),
+      ];
+
+    if (allItems.length === 0) return [];
+
+    const fuse = new Fuse(allItems, {
+      keys: ['name'],
+      threshold: 0.5,
+      includeScore: true,
+    });
+
+    return fuse
+      .search(searchTerm)
+      .slice(0, 100)
+      .map((result) => ({
+        ...result.item,
+        score: result.score ?? 1.0,
+      }));
+  } catch (error) {
+    console.error('Error in fuzzySearchItems:', error);
+    return [];
+  }
 }
 /**
  * Saves updated groups to the database

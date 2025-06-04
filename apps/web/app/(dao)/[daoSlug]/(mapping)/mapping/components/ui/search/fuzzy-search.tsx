@@ -38,15 +38,29 @@ export const FuzzySearch = <T extends object>({
     async (term: string) => {
       if (!term.trim()) {
         setSearchResults([]);
+        setDropdownVisible(false);
         return;
       }
 
       setSearchLoading(true);
       try {
+        console.log(`Executing search for term: "${term}"`);
         const results = await onSearch(term);
+        console.log(`Search returned ${results.length} results`, results);
+
         setSearchResults(results);
-        // Only show dropdown if we have results or a message to display
+        // Always show dropdown with results or no results message
         setDropdownVisible(true);
+
+        // Force a re-render to ensure the dropdown is visible
+        setTimeout(() => {
+          if (results.length > 0) {
+            console.log(
+              'Search results available, ensuring dropdown is visible'
+            );
+            setDropdownVisible(true);
+          }
+        }, 0);
       } catch (error) {
         console.error('Search failed', error);
         setSearchResults([]);
@@ -66,6 +80,13 @@ export const FuzzySearch = <T extends object>({
       return;
     }
 
+    // Always show dropdown with loading state when typing
+    setDropdownVisible(true);
+    setSearchLoading(true);
+
+    // Log that we're searching
+    console.log(`Searching for: "${searchTerm}"`);
+
     const timer = setTimeout(() => {
       handleSearch(searchTerm);
     }, 300); // Wait 300ms after typing stops
@@ -76,7 +97,9 @@ export const FuzzySearch = <T extends object>({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Only handle click outside if the dropdown is visible
       if (
+        dropdownVisible &&
         containerRef.current &&
         !containerRef.current.contains(event.target as Node)
       ) {
@@ -90,7 +113,7 @@ export const FuzzySearch = <T extends object>({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [dropdownVisible]);
 
   const handleSelect = (item: T) => {
     onSelect(item);
@@ -99,34 +122,8 @@ export const FuzzySearch = <T extends object>({
     setDropdownVisible(false);
   };
 
-  // Calculate position for the dropdown
-  const getDropdownPosition = () => {
-    if (!inputRef.current) return {};
-
-    const rect = inputRef.current.getBoundingClientRect();
-    const scrollX = window.scrollX || document.documentElement.scrollLeft;
-    const scrollY = window.scrollY || document.documentElement.scrollTop;
-
-    // Check if there's enough space below the input
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const contentHeight = Math.min(searchResults.length * 38, 240); // Approximate height
-
-    // Position above if not enough space below
-    if (spaceBelow < contentHeight && rect.top > contentHeight) {
-      return {
-        bottom: window.innerHeight - rect.top - scrollY,
-        left: rect.left + scrollX,
-        maxWidth: containerRef.current?.offsetWidth,
-      };
-    }
-
-    // Default position below
-    return {
-      top: rect.bottom + scrollY,
-      left: rect.left + scrollX,
-      maxWidth: containerRef.current?.offsetWidth,
-    };
-  };
+  // We don't need a complex position calculation anymore
+  // The dropdown will be positioned using CSS classes instead
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -139,16 +136,21 @@ export const FuzzySearch = <T extends object>({
         className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:shadow-neutral-950'
         disabled={isLoading}
         onFocus={() => {
-          if (searchTerm.trim() && searchResults.length > 0) {
+          // Show dropdown on focus if there's a search term
+          if (searchTerm.trim()) {
             setDropdownVisible(true);
+            // Re-run search if we have a term but no results yet
+            if (searchResults.length === 0 && !searchLoading) {
+              handleSearch(searchTerm);
+            }
           }
         }}
       />
       {dropdownVisible && (
         <div
           ref={dropdownRef}
-          className='fixed z-50 mt-1 rounded-md border border-neutral-300 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-neutral-950'
-          style={getDropdownPosition()}
+          className='absolute top-full left-0 z-[9999] mt-1 w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-neutral-950'
+          style={{ maxHeight: '300px' }}
         >
           {searchLoading ? (
             <p className='px-4 py-2 text-center text-neutral-500 dark:text-neutral-400'>
@@ -159,7 +161,7 @@ export const FuzzySearch = <T extends object>({
               {noResultsMessage}
             </p>
           ) : (
-            <ul className='scrollbar-thin scrollbar-thumb-rounded scrollbar-track-transparent scrollbar-thumb-neutral-400 dark:scrollbar-thumb-neutral-600 max-h-60 min-w-[300px] overflow-y-auto'>
+            <ul className='scrollbar-thin scrollbar-thumb-rounded scrollbar-track-transparent scrollbar-thumb-neutral-400 dark:scrollbar-thumb-neutral-600 max-h-60 overflow-y-auto py-1'>
               {searchResults.map((item, index) => (
                 <li
                   key={index}
