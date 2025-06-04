@@ -77,4 +77,6 @@ const nextConfig = {
   },
 };
 
-export default withSerwist(nextConfig);
+export default nextConfig;
+// If you need Serwist support, uncomment the following line:
+// export default withSerwist(nextConfig);

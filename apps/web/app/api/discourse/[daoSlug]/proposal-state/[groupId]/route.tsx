@@ -7,9 +7,9 @@ import { TimelineEventType } from '@/lib/types';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ groupId: string }> }
+  { params }: { params: Promise<{ daoSlug: string; groupId: string }> }
 ) {
-  const { groupId } = await params;
+  const { daoSlug, groupId } = await params;
 
   const feedData = await getFeed(
     groupId,
