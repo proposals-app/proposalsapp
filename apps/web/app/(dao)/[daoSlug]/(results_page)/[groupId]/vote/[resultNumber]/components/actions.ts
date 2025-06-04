@@ -91,7 +91,7 @@ export async function getNonVoters(proposalId: string) {
     .where('vp.daoId', '=', daoId)
     .where('vp.votingPower', '>', 0)
     .where('vp.timestamp', '<=', startAt)
-    .orderBy('vp.voter', 'asc')
+
     .orderBy('vp.timestamp', 'desc')
     .distinctOn(['vp.voter'])
     .select([
