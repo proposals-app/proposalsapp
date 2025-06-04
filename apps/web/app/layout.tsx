@@ -8,19 +8,46 @@ import { firaSans, firaSansCondensed, firaMono } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/posthog-provider';
 
+const APP_NAME = 'proposals.app';
+const APP_DEFAULT_TITLE = 'proposals.app';
+const APP_TITLE_TEMPLATE = '%s - proposals.app';
+const APP_DESCRIPTION =
+  'The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://proposals.app'),
-  title: 'proposals.app',
-  applicationName: 'proposals.app',
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  icons: ['favicon.ico'],
+  description: APP_DESCRIPTION,
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'proposals.app',
+    title: APP_DEFAULT_TITLE,
+    // startUpImage: [],
   },
-  description:
-    'The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.',
-  icons: ['favicon.ico'],
-  manifest: '/manifest.json',
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: 'website',
+    siteName: APP_NAME,
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary',
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
