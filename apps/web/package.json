@@ -92,7 +92,7 @@
     "@types/postcss-load-config": "^3.0.1",
     "@types/prettier": "^3.0.0",
     "@types/react": "^19.1.6",
-    "@types/react-dom": "^19.1.5",
+    "@types/react-dom": "^19.1.6",
     "@types/react-virtualized": "^9",
     "@types/uuid": "^10",
     "@typescript-eslint/eslint-plugin": "^8.33.1",
