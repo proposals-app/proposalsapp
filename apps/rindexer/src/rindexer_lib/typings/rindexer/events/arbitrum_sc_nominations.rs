@@ -18,7 +18,7 @@ use alloy::sol_types::{SolEvent, SolEventInterface, SolType};
 use rindexer::{
     FutureExt, PostgresClient, async_trait,
     event::{
-        callback_registry::{EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult, EventResult, TxInformation},
+        callback_registry::{EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult, EventResult, HasTxInformation, TxInformation},
         contract_setup::{ContractInformation, NetworkContract},
     },
     generate_random_id,
@@ -43,12 +43,24 @@ pub struct ContenderAddedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for ContenderAddedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type InitializedData = RindexerArbitrumSCNominationsGen::Initialized;
 
 #[derive(Debug, Clone)]
 pub struct InitializedResult {
     pub event_data: InitializedData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for InitializedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type NewNomineeData = RindexerArbitrumSCNominationsGen::NewNominee;
@@ -59,12 +71,24 @@ pub struct NewNomineeResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for NewNomineeResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type NomineeExcludedData = RindexerArbitrumSCNominationsGen::NomineeExcluded;
 
 #[derive(Debug, Clone)]
 pub struct NomineeExcludedResult {
     pub event_data: NomineeExcludedData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for NomineeExcludedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type NomineeVetterChangedData = RindexerArbitrumSCNominationsGen::NomineeVetterChanged;
@@ -75,12 +99,24 @@ pub struct NomineeVetterChangedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for NomineeVetterChangedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type OwnershipTransferredData = RindexerArbitrumSCNominationsGen::OwnershipTransferred;
 
 #[derive(Debug, Clone)]
 pub struct OwnershipTransferredResult {
     pub event_data: OwnershipTransferredData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for OwnershipTransferredResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type ProposalCanceledData = RindexerArbitrumSCNominationsGen::ProposalCanceled;
@@ -91,12 +127,24 @@ pub struct ProposalCanceledResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for ProposalCanceledResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type ProposalCreatedData = RindexerArbitrumSCNominationsGen::ProposalCreated;
 
 #[derive(Debug, Clone)]
 pub struct ProposalCreatedResult {
     pub event_data: ProposalCreatedData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for ProposalCreatedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type ProposalExecutedData = RindexerArbitrumSCNominationsGen::ProposalExecuted;
@@ -107,12 +155,24 @@ pub struct ProposalExecutedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for ProposalExecutedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type ProposalThresholdSetData = RindexerArbitrumSCNominationsGen::ProposalThresholdSet;
 
 #[derive(Debug, Clone)]
 pub struct ProposalThresholdSetResult {
     pub event_data: ProposalThresholdSetData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for ProposalThresholdSetResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type QuorumNumeratorUpdatedData = RindexerArbitrumSCNominationsGen::QuorumNumeratorUpdated;
@@ -123,12 +183,24 @@ pub struct QuorumNumeratorUpdatedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for QuorumNumeratorUpdatedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type VoteCastData = RindexerArbitrumSCNominationsGen::VoteCast;
 
 #[derive(Debug, Clone)]
 pub struct VoteCastResult {
     pub event_data: VoteCastData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for VoteCastResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type VoteCastForContenderData = RindexerArbitrumSCNominationsGen::VoteCastForContender;
@@ -139,12 +211,24 @@ pub struct VoteCastForContenderResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for VoteCastForContenderResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type VoteCastWithParamsData = RindexerArbitrumSCNominationsGen::VoteCastWithParams;
 
 #[derive(Debug, Clone)]
 pub struct VoteCastWithParamsResult {
     pub event_data: VoteCastWithParamsData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for VoteCastWithParamsResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type VotingDelaySetData = RindexerArbitrumSCNominationsGen::VotingDelaySet;
@@ -155,12 +239,24 @@ pub struct VotingDelaySetResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for VotingDelaySetResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type VotingPeriodSetData = RindexerArbitrumSCNominationsGen::VotingPeriodSet;
 
 #[derive(Debug, Clone)]
 pub struct VotingPeriodSetResult {
     pub event_data: VotingPeriodSetData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for VotingPeriodSetResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;

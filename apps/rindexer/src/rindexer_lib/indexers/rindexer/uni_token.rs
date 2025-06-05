@@ -193,7 +193,7 @@ async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut 
     .await;
 }
 
-pub async fn uni_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
+pub async fn uni_token_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     delegate_changed_handler(manifest_path, registry).await;
     delegate_votes_changed_handler(manifest_path, registry).await;
 }

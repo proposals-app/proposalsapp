@@ -18,7 +18,7 @@ use alloy::sol_types::{SolEvent, SolEventInterface, SolType};
 use rindexer::{
     FutureExt, PostgresClient, async_trait,
     event::{
-        callback_registry::{EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult, EventResult, TxInformation},
+        callback_registry::{EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult, EventResult, HasTxInformation, TxInformation},
         contract_setup::{ContractInformation, NetworkContract},
     },
     generate_random_id,
@@ -43,12 +43,24 @@ pub struct ApprovalResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for ApprovalResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type DelegateChangedData = RindexerUNITokenGen::DelegateChanged;
 
 #[derive(Debug, Clone)]
 pub struct DelegateChangedResult {
     pub event_data: DelegateChangedData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for DelegateChangedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type DelegateVotesChangedData = RindexerUNITokenGen::DelegateVotesChanged;
@@ -59,6 +71,12 @@ pub struct DelegateVotesChangedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for DelegateVotesChangedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type MinterChangedData = RindexerUNITokenGen::MinterChanged;
 
 #[derive(Debug, Clone)]
@@ -67,12 +85,24 @@ pub struct MinterChangedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for MinterChangedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type TransferData = RindexerUNITokenGen::Transfer;
 
 #[derive(Debug, Clone)]
 pub struct TransferResult {
     pub event_data: TransferData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for TransferResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;

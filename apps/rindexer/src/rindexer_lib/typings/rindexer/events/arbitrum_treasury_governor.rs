@@ -18,7 +18,7 @@ use alloy::sol_types::{SolEvent, SolEventInterface, SolType};
 use rindexer::{
     FutureExt, PostgresClient, async_trait,
     event::{
-        callback_registry::{EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult, EventResult, TxInformation},
+        callback_registry::{EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult, EventResult, HasTxInformation, TxInformation},
         contract_setup::{ContractInformation, NetworkContract},
     },
     generate_random_id,
@@ -43,12 +43,24 @@ pub struct InitializedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for InitializedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type LateQuorumVoteExtensionSetData = RindexerArbitrumTreasuryGovernorGen::LateQuorumVoteExtensionSet;
 
 #[derive(Debug, Clone)]
 pub struct LateQuorumVoteExtensionSetResult {
     pub event_data: LateQuorumVoteExtensionSetData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for LateQuorumVoteExtensionSetResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type OwnershipTransferredData = RindexerArbitrumTreasuryGovernorGen::OwnershipTransferred;
@@ -59,12 +71,24 @@ pub struct OwnershipTransferredResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for OwnershipTransferredResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type ProposalCanceledData = RindexerArbitrumTreasuryGovernorGen::ProposalCanceled;
 
 #[derive(Debug, Clone)]
 pub struct ProposalCanceledResult {
     pub event_data: ProposalCanceledData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for ProposalCanceledResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type ProposalCreatedData = RindexerArbitrumTreasuryGovernorGen::ProposalCreated;
@@ -75,12 +99,24 @@ pub struct ProposalCreatedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for ProposalCreatedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type ProposalExecutedData = RindexerArbitrumTreasuryGovernorGen::ProposalExecuted;
 
 #[derive(Debug, Clone)]
 pub struct ProposalExecutedResult {
     pub event_data: ProposalExecutedData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for ProposalExecutedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type ProposalExtendedData = RindexerArbitrumTreasuryGovernorGen::ProposalExtended;
@@ -91,12 +127,24 @@ pub struct ProposalExtendedResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for ProposalExtendedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type ProposalQueuedData = RindexerArbitrumTreasuryGovernorGen::ProposalQueued;
 
 #[derive(Debug, Clone)]
 pub struct ProposalQueuedResult {
     pub event_data: ProposalQueuedData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for ProposalQueuedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type ProposalThresholdSetData = RindexerArbitrumTreasuryGovernorGen::ProposalThresholdSet;
@@ -107,12 +155,24 @@ pub struct ProposalThresholdSetResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for ProposalThresholdSetResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type QuorumNumeratorUpdatedData = RindexerArbitrumTreasuryGovernorGen::QuorumNumeratorUpdated;
 
 #[derive(Debug, Clone)]
 pub struct QuorumNumeratorUpdatedResult {
     pub event_data: QuorumNumeratorUpdatedData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for QuorumNumeratorUpdatedResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type TimelockChangeData = RindexerArbitrumTreasuryGovernorGen::TimelockChange;
@@ -123,12 +183,24 @@ pub struct TimelockChangeResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for TimelockChangeResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type VoteCastData = RindexerArbitrumTreasuryGovernorGen::VoteCast;
 
 #[derive(Debug, Clone)]
 pub struct VoteCastResult {
     pub event_data: VoteCastData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for VoteCastResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 pub type VoteCastWithParamsData = RindexerArbitrumTreasuryGovernorGen::VoteCastWithParams;
@@ -139,6 +211,12 @@ pub struct VoteCastWithParamsResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for VoteCastWithParamsResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type VotingDelaySetData = RindexerArbitrumTreasuryGovernorGen::VotingDelaySet;
 
 #[derive(Debug, Clone)]
@@ -147,12 +225,24 @@ pub struct VotingDelaySetResult {
     pub tx_information: TxInformation,
 }
 
+impl HasTxInformation for VotingDelaySetResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
+}
+
 pub type VotingPeriodSetData = RindexerArbitrumTreasuryGovernorGen::VotingPeriodSet;
 
 #[derive(Debug, Clone)]
 pub struct VotingPeriodSetResult {
     pub event_data: VotingPeriodSetData,
     pub tx_information: TxInformation,
+}
+
+impl HasTxInformation for VotingPeriodSetResult {
+    fn tx_information(&self) -> &TxInformation {
+        &self.tx_information
+    }
 }
 
 type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
