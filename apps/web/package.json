@@ -30,7 +30,7 @@
     "@tanstack/react-query": "^5.80.6",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@vercel/og": "^0.6.8",
-    "@vercel/otel": "^1.12.0",
+    "@vercel/otel": "^1.13.0",
     "ai": "^4.3.16",
     "babel-plugin-react-compiler": "19.1.0-rc.2",
     "better-auth": "^1.2.8",
@@ -61,7 +61,7 @@
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-virtualized": "^9.22.6",
-    "redis": "^5.5.5",
+    "redis": "^5.5.6",
     "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "satori": "^0.14.0",
@@ -72,9 +72,9 @@
     "unified": "^11.0.5",
     "uuid": "^11.1.0",
     "viem": "^2.30.6",
-    "wagmi": "^2.15.5",
+    "wagmi": "^2.15.6",
     "web-push": "^3.6.7",
-    "zod": "^3.25.51"
+    "zod": "^3.25.56"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

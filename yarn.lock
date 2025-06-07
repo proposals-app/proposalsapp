@@ -1572,15 +1572,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@coinbase/wallet-sdk@npm:4.3.0":
-  version: 4.3.0
-  resolution: "@coinbase/wallet-sdk@npm:4.3.0"
+"@coinbase/wallet-sdk@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@coinbase/wallet-sdk@npm:4.3.3"
   dependencies:
     "@noble/hashes": "npm:^1.4.0"
     clsx: "npm:^1.2.1"
     eventemitter3: "npm:^5.0.1"
     preact: "npm:^10.24.2"
-  checksum: 10c0/39e38ab6f84e34d8a61b9baf3fb69ad20b497d6844fe3f0cb1496e89bbb990066a6e8d68446f90054394eee840f3a452330ffbb015adabc34400f36a3ef03364
+  checksum: 10c0/528cbc62f42c151c45c61c4c73e120d6b98d88f5858edbc8cf50f3d96030103b5b0ae53415e2aa80d455a1be660d1f0dc73672aa64636359bd55aa25b0faea60
   languageName: node
   linkType: hard
 
@@ -4712,7 +4712,7 @@ __metadata:
     "@proposalsapp/emails": "npm:1.0.0"
     "@tsconfig/recommended": "npm:^1.0.8"
     "@types/dotenv": "npm:^8.2.3"
-    "@types/express": "npm:^5.0.2"
+    "@types/express": "npm:^5.0.3"
     "@types/node-cron": "npm:^3.0.11"
     "@types/supertest": "npm:^6.0.3"
     "@vitest/coverage-v8": "npm:^3.2.2"
@@ -4834,7 +4834,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": "npm:^8.33.1"
     "@typescript-eslint/parser": "npm:^8.33.1"
     "@vercel/og": "npm:^0.6.8"
-    "@vercel/otel": "npm:^1.12.0"
+    "@vercel/otel": "npm:^1.13.0"
     ai: "npm:^4.3.16"
     babel-plugin-react-compiler: "npm:19.1.0-rc.2"
     better-auth: "npm:^1.2.8"
@@ -4876,7 +4876,7 @@ __metadata:
     react-icons: "npm:^5.5.0"
     react-markdown: "npm:^10.1.0"
     react-virtualized: "npm:^9.22.6"
-    redis: "npm:^5.5.5"
+    redis: "npm:^5.5.6"
     rehype-stringify: "npm:^10.0.1"
     remark-gfm: "npm:^4.0.1"
     satori: "npm:^0.14.0"
@@ -4892,9 +4892,9 @@ __metadata:
     unified: "npm:^11.0.5"
     uuid: "npm:^11.1.0"
     viem: "npm:^2.30.6"
-    wagmi: "npm:^2.15.5"
+    wagmi: "npm:^2.15.6"
     web-push: "npm:^3.6.7"
-    zod: "npm:^3.25.51"
+    zod: "npm:^3.25.56"
   languageName: unknown
   linkType: soft
 
@@ -5584,48 +5584,48 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redis/bloom@npm:5.5.5":
-  version: 5.5.5
-  resolution: "@redis/bloom@npm:5.5.5"
+"@redis/bloom@npm:5.5.6":
+  version: 5.5.6
+  resolution: "@redis/bloom@npm:5.5.6"
   peerDependencies:
-    "@redis/client": ^5.5.5
-  checksum: 10c0/db936e35ef7fe20be7edc0d264463d464e943a0fb686ef6b3fcd71f9ccf3ab6c10d04f1f680efcb7dc73ae72d6c55965882a3e1e66c1149eaef917110af0d91b
+    "@redis/client": ^5.5.6
+  checksum: 10c0/1e50b2c94000b15e9555409692738e6acba796a469a0163e0abf2d2e0bc82304cd52dc4c2ad4f56bcc169030694f0777ab589548f7a47c55f09e5237a81bff95
   languageName: node
   linkType: hard
 
-"@redis/client@npm:5.5.5":
-  version: 5.5.5
-  resolution: "@redis/client@npm:5.5.5"
+"@redis/client@npm:5.5.6":
+  version: 5.5.6
+  resolution: "@redis/client@npm:5.5.6"
   dependencies:
     cluster-key-slot: "npm:1.1.2"
-  checksum: 10c0/152fe500b6745d4e7599208de8aef3c66783a4eec07ac000a05f89466442c2a2e04f559ce63be55eda8804c124380b683838bb89474abb9a863c724f40eb5525
+  checksum: 10c0/92527c088410211aaa6038b38b4604bd930c9db3761603215b8ff025571f6ccdf6f93508c6de83b4e4caf76fedbf1e33ea0e72bfbe8a7bcff84d92f8b5d0af53
   languageName: node
   linkType: hard
 
-"@redis/json@npm:5.5.5":
-  version: 5.5.5
-  resolution: "@redis/json@npm:5.5.5"
+"@redis/json@npm:5.5.6":
+  version: 5.5.6
+  resolution: "@redis/json@npm:5.5.6"
   peerDependencies:
-    "@redis/client": ^5.5.5
-  checksum: 10c0/cb4c4f4b6f00a79e710b1469be128f1af7b4ae854949ae46871fce076b1431240990466cab9c4f01816284ec2f7e755ef51b88e098f4fc41b2b728df144ae67d
+    "@redis/client": ^5.5.6
+  checksum: 10c0/142fc10510ab0392848662ea88244fa7d9cacbc8d746bd2dae4eb325227106a14e2f40256b790b2ded45c90bf9822fca2d5d4463e8e1a2176a1f6eff9f9666cb
   languageName: node
   linkType: hard
 
-"@redis/search@npm:5.5.5":
-  version: 5.5.5
-  resolution: "@redis/search@npm:5.5.5"
+"@redis/search@npm:5.5.6":
+  version: 5.5.6
+  resolution: "@redis/search@npm:5.5.6"
   peerDependencies:
-    "@redis/client": ^5.5.5
-  checksum: 10c0/706bb258f0d98f5617eb38e918418813dffd82528e8dd140d623de7c40f042b20527a9d43f644b2346165b61bca6467c68d5feef7b017e232608c65c237bbdb4
+    "@redis/client": ^5.5.6
+  checksum: 10c0/9f4516a23dcbb0bbcad3deecc9a39412bac24a1648eadccfae0c4710fc9f829728bbbe2774bfc2fe3bd8d61bd2e2c974183d3a37fa7c7f0a949a6c844da633c7
   languageName: node
   linkType: hard
 
-"@redis/time-series@npm:5.5.5":
-  version: 5.5.5
-  resolution: "@redis/time-series@npm:5.5.5"
+"@redis/time-series@npm:5.5.6":
+  version: 5.5.6
+  resolution: "@redis/time-series@npm:5.5.6"
   peerDependencies:
-    "@redis/client": ^5.5.5
-  checksum: 10c0/4c9c7824abdbf2ffed8d6108a35235b0e258c7d446f9e35674598872f31942588f30219944defbb570050606048b4e85d7a42540cd63b609165e651de0143f75
+    "@redis/client": ^5.5.6
+  checksum: 10c0/7a30965bfdb104de383cd9ccf11e7850fdb45721c9159628b8b787d892871821df40ac6e041eee6695bbcf150e536ba9900a1b6e68485f75f10e8cbbb374fb27
   languageName: node
   linkType: hard
 
@@ -7339,14 +7339,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express@npm:^5.0.2":
-  version: 5.0.2
-  resolution: "@types/express@npm:5.0.2"
+"@types/express@npm:^5.0.3":
+  version: 5.0.3
+  resolution: "@types/express@npm:5.0.3"
   dependencies:
     "@types/body-parser": "npm:*"
     "@types/express-serve-static-core": "npm:^5.0.0"
     "@types/serve-static": "npm:*"
-  checksum: 10c0/300575201753e0f0e0a3fa113b60f58a78d88a237639a44fdb2834e48350f9d1bf017c2dd6c6411c0e89e470a813535e4dda7b753438b362260a25b91c79f582
+  checksum: 10c0/f0fbc8daa7f40070b103cf4d020ff1dd08503477d866d1134b87c0390bba71d5d7949cb8b4e719a81ccba89294d8e1573414e6dcbb5bb1d097a7b820928ebdef
   languageName: node
   linkType: hard
 
@@ -8231,18 +8231,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vercel/otel@npm:^1.12.0":
-  version: 1.12.0
-  resolution: "@vercel/otel@npm:1.12.0"
+"@vercel/otel@npm:^1.13.0":
+  version: 1.13.0
+  resolution: "@vercel/otel@npm:1.13.0"
   peerDependencies:
-    "@opentelemetry/api": ^1.7.0
-    "@opentelemetry/api-logs": "*"
-    "@opentelemetry/instrumentation": "*"
-    "@opentelemetry/resources": ^1.19.0
-    "@opentelemetry/sdk-logs": "*"
-    "@opentelemetry/sdk-metrics": ^1.19.0
-    "@opentelemetry/sdk-trace-base": ^1.19.0
-  checksum: 10c0/37ad87c02c22e32b0c8b5573564923853824a8842858c7e7ac66ecb4695ed78f0fb023125420505d861181cce65671da0a214f81faee3ae14a58b3f3699edf63
+    "@opentelemetry/api": ">=1.7.0 <2.0.0"
+    "@opentelemetry/api-logs": ">=0.46.0 <0.200.0"
+    "@opentelemetry/instrumentation": ">=0.46.0 <0.200.0"
+    "@opentelemetry/resources": ">=1.19.0 <2.0.0"
+    "@opentelemetry/sdk-logs": ">=0.46.0 <0.200.0"
+    "@opentelemetry/sdk-metrics": ">=1.19.0 <2.0.0"
+    "@opentelemetry/sdk-trace-base": ">=1.19.0 <2.0.0"
+  checksum: 10c0/720e1fd7efa3882fc147ec749d78e861d2d0644184838947c5754a8fa4e29d59e201ca54649dac4c4b75f4d932c8b62711e94f8fecd3176a96fc380eb7dd9437
   languageName: node
   linkType: hard
 
@@ -8393,30 +8393,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wagmi/connectors@npm:5.8.4":
-  version: 5.8.4
-  resolution: "@wagmi/connectors@npm:5.8.4"
+"@wagmi/connectors@npm:5.8.5":
+  version: 5.8.5
+  resolution: "@wagmi/connectors@npm:5.8.5"
   dependencies:
-    "@coinbase/wallet-sdk": "npm:4.3.0"
+    "@coinbase/wallet-sdk": "npm:4.3.3"
     "@metamask/sdk": "npm:0.32.0"
     "@safe-global/safe-apps-provider": "npm:0.18.6"
     "@safe-global/safe-apps-sdk": "npm:9.1.0"
     "@walletconnect/ethereum-provider": "npm:2.21.1"
     cbw-sdk: "npm:@coinbase/wallet-sdk@3.9.3"
   peerDependencies:
-    "@wagmi/core": 2.17.2
+    "@wagmi/core": 2.17.3
     typescript: ">=5.0.4"
     viem: 2.x
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/4d7acaca05b460964ddd6f9c4db93a4f994758373fca1ada4f3b904a93d4f22c693e848eb0a26331905677c1a9e486f2f1eab68ecc0d05bff3ea6d278e8e09e3
+  checksum: 10c0/d00dbeefe090a2dd740594d560108998cee4ce02e789e4a3b591a742b3622a7a47f2504e0e1c72315935696fbda26446c496491972dcdde1e1b3f2173ceb2b8d
   languageName: node
   linkType: hard
 
-"@wagmi/core@npm:2.17.2":
-  version: 2.17.2
-  resolution: "@wagmi/core@npm:2.17.2"
+"@wagmi/core@npm:2.17.3":
+  version: 2.17.3
+  resolution: "@wagmi/core@npm:2.17.3"
   dependencies:
     eventemitter3: "npm:5.0.1"
     mipd: "npm:0.0.7"
@@ -8430,7 +8430,7 @@ __metadata:
       optional: true
     typescript:
       optional: true
-  checksum: 10c0/1f28545efa1e740f9b9253139de8df58e9b0b5d6c0c9259e0f9ba2999947816d0ab9ae18e88f995a131beb94c8443fede49b753147ab8d6bb191f53984d2a524
+  checksum: 10c0/128875066323c87242293cfe5b22fe596dd8a55c79efeb2a7b36b6a1acd549e217cdb30215119bd203580b71118cd197274eed83c120dce5846b1894140b79be
   languageName: node
   linkType: hard
 
@@ -21763,16 +21763,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis@npm:^5.5.5":
-  version: 5.5.5
-  resolution: "redis@npm:5.5.5"
+"redis@npm:^5.5.6":
+  version: 5.5.6
+  resolution: "redis@npm:5.5.6"
   dependencies:
-    "@redis/bloom": "npm:5.5.5"
-    "@redis/client": "npm:5.5.5"
-    "@redis/json": "npm:5.5.5"
-    "@redis/search": "npm:5.5.5"
-    "@redis/time-series": "npm:5.5.5"
-  checksum: 10c0/3978cb71e1e462d9497408ab1048f345f2510035f00e130dc97d751e2fdb07bee3cf89ed07e3faacaae352328443a2401afcb141723d69eb9589ce3146ae7777
+    "@redis/bloom": "npm:5.5.6"
+    "@redis/client": "npm:5.5.6"
+    "@redis/json": "npm:5.5.6"
+    "@redis/search": "npm:5.5.6"
+    "@redis/time-series": "npm:5.5.6"
+  checksum: 10c0/e9a9f92545524dc33fba41b8a966a66b4c0ffd99944b9dd45931e2fdbc312f996361f96d1fe83321b32faed3da5aff40027e57f7515f423c9249cb44142fe543
   languageName: node
   linkType: hard
 
@@ -25660,12 +25660,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wagmi@npm:^2.15.5":
-  version: 2.15.5
-  resolution: "wagmi@npm:2.15.5"
+"wagmi@npm:^2.15.6":
+  version: 2.15.6
+  resolution: "wagmi@npm:2.15.6"
   dependencies:
-    "@wagmi/connectors": "npm:5.8.4"
-    "@wagmi/core": "npm:2.17.2"
+    "@wagmi/connectors": "npm:5.8.5"
+    "@wagmi/core": "npm:2.17.3"
     use-sync-external-store: "npm:1.4.0"
   peerDependencies:
     "@tanstack/react-query": ">=5.0.0"
@@ -25675,7 +25675,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/a887e93b14202c6e24bebe48fec6c6142203dd881222fca0254d2cb14a0e0a6dd9acb7eb550ce3f22f1b75214e7da17a2f91951decbe77f2f250326330240b04
+  checksum: 10c0/ecdbb177b8a18827e5b0bddcaf3af5147f43662eb85db1964d76f657c89211ee3c56e0565747d175143664a676c43b497d55446a1e31997d50f908f82b3ab472
   languageName: node
   linkType: hard
 
@@ -26513,10 +26513,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25.51":
-  version: 3.25.51
-  resolution: "zod@npm:3.25.51"
-  checksum: 10c0/6fc708a45b0d44282c18da4c93f4d42336a884a42487031b40bacb7e8c5a2e539b7993d3ccba75f445df78050f05ff4e34110ffe03d2c3fcbe557c7fe7c1350a
+"zod@npm:^3.25.56":
+  version: 3.25.56
+  resolution: "zod@npm:3.25.56"
+  checksum: 10c0/3800f01d4b1df932b91354eb1e648f69cc7e5561549e6d2bf83827d930a5f33bbf92926099445f6fc1ebb64ca9c6513ef9ae5e5409cfef6325f354bcf6fc9a24
   languageName: node
   linkType: hard
 
