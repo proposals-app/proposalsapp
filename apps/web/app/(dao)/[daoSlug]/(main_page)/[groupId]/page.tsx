@@ -17,7 +17,7 @@ import { Timeline } from './components/timeline/timeline';
 import { Suspense } from 'react';
 import { LoadingMenuBar } from './components/menubar/loading-menu-bar';
 import { InitiallyPosted } from './components/body/initially-posted';
-import { Header } from '../../components/header';
+import { Header } from '../../components/header/header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 import { PostedRevisions } from './components/body/posted-revision';
 import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';

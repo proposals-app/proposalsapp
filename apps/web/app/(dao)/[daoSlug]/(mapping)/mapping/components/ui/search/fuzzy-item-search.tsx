@@ -2,7 +2,7 @@
 
 import { fuzzySearchItems, type FuzzySearchResult } from '../../../actions';
 import FuzzySearch from './fuzzy-search';
-import Badge from '../badge';
+import { Badge } from '@/app/components/ui/badge';
 
 interface FuzzyItemSearchProps {
   daoSlug: string;

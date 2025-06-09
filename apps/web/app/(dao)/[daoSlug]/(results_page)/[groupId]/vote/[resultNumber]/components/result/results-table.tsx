@@ -14,7 +14,7 @@ import type {
 } from '@/lib/results_processing';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import superjson, { type SuperJSONResult } from 'superjson';
-import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author-voter';
+import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-voter';
 import {
   Select,
   SelectContent,

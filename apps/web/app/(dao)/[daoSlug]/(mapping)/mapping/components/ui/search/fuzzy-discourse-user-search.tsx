@@ -3,7 +3,7 @@
 import type { DiscourseUser, Selectable } from '@proposalsapp/db';
 import { fuzzySearchDiscourseUsers } from '../../../delegates/actions';
 import FuzzySearch from './fuzzy-search';
-import Badge from '../badge';
+import { Badge } from '@/app/components/ui/badge';
 
 interface FuzzyDiscourseUserSearchProps {
   daoSlug: string;

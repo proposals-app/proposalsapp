@@ -5,7 +5,7 @@ import {
   getGroup,
   getGroupHeader,
 } from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/actions';
-import { Header } from '@/app/(dao)/[daoSlug]/components/header';
+import { Header } from '@/app/(dao)/[daoSlug]/components/header/header';
 import { Suspense } from 'react';
 import Loading from './loading';
 

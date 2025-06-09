@@ -1,4 +1,4 @@
-import { BasicEvent } from '@/app/components/timeline/shared';
+import { BasicEvent } from '@/app/(dao)/[daoSlug]/components/timeline/shared';
 import type { TimelineEventType } from '@/lib/types';
 
 interface BasicProps {

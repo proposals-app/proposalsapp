@@ -71,11 +71,21 @@ const nextConfig = {
     ],
   },
 
-  webpack(config) {
+  webpack(config, { isServer }) {
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack'],
     });
+
+    // Handle @resvg/resvg-js native binaries
+    if (isServer) {
+      config.externals.push({
+        '@resvg/resvg-js': '@resvg/resvg-js',
+      });
+    } else {
+      // For client-side, exclude the entire package
+      config.resolve.alias['@resvg/resvg-js'] = false;
+    }
 
     return config;
   },

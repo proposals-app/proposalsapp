@@ -3,7 +3,7 @@
 import type { Selectable, Voter } from '@proposalsapp/db';
 import { fuzzySearchVoters } from '../../../delegates/actions';
 import FuzzySearch from './fuzzy-search';
-import Badge from '../badge';
+import { Badge } from '@/app/components/ui/badge';
 
 interface FuzzyVoterSearchProps {
   excludeVoterIds?: string[];

@@ -8,7 +8,7 @@ import type { VoteSegmentData } from '@/lib/types';
 import {
   SegmentedQuorumBar,
   VoteSegment,
-} from '@/app/components/vote-result/shared';
+} from '@/app/(dao)/[daoSlug]/components/vote-result/shared';
 
 interface BasicVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
@@ -113,33 +113,31 @@ export const BasicVote = ({ result, expanded = true }: BasicVoteProps) => {
       {/* Top Bar (Vote Distribution) */}
       <div className='flex h-4 w-full overflow-hidden bg-neutral-100 dark:bg-neutral-700'>
         {isBasicVote
-          ? // Order: For, Abstain, Against
-          [forIndex, abstainIndex, againstIndex]
-            .filter((index) => index !== -1) // Filter out choices not present
-            .map((choiceIndex) => {
-              return voteSegments[choiceIndex.toString()]?.map(
-                (segment, index) => (
-                  <VoteSegment
-                    key={`dist-${choiceIndex}-${index}`}
-                    color={choiceColors[choiceIndex]}
-                    width={(segment.votingPower / totalVotingPower) * 100}
-                    isAggregated={segment.isAggregated}
-                  />
-                )
-              );
-            })
-          : // Only show winning choice for non-basic votes (if winning choice exists)
-          winningChoice.choiceIndex !== -1 &&
-          voteSegments[winningChoice.choiceIndex.toString()]?.map(
-            (segment, index) => (
-              <VoteSegment
-                key={`dist-winning-${index}`}
-                color={choiceColors[winningChoice.choiceIndex]}
-                width={(segment.votingPower / totalVotingPower) * 100}
-                isAggregated={segment.isAggregated}
-              />
-            )
-          )}
+          ? [forIndex, abstainIndex, againstIndex]
+              .filter((index) => index !== -1) // Filter out choices not present
+              .map((choiceIndex) => {
+                return voteSegments[choiceIndex.toString()]?.map(
+                  (segment, index) => (
+                    <VoteSegment
+                      key={`dist-${choiceIndex}-${index}`}
+                      color={choiceColors[choiceIndex]}
+                      width={(segment.votingPower / totalVotingPower) * 100}
+                      isAggregated={segment.isAggregated}
+                    />
+                  )
+                );
+              })
+          : winningChoice.choiceIndex !== -1 &&
+            voteSegments[winningChoice.choiceIndex.toString()]?.map(
+              (segment, index) => (
+                <VoteSegment
+                  key={`dist-winning-${index}`}
+                  color={choiceColors[winningChoice.choiceIndex]}
+                  width={(segment.votingPower / totalVotingPower) * 100}
+                  isAggregated={segment.isAggregated}
+                />
+              )
+            )}
       </div>
 
       {/* Vote Labels */}

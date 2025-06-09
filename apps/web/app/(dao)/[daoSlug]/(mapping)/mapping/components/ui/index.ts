@@ -1,4 +1,4 @@
-export { default as Badge } from './badge';
+export { Badge } from '@/app/components/ui/badge';
 export { default as Button } from './button';
 export { default as PageHeader } from './page-header';
 export {

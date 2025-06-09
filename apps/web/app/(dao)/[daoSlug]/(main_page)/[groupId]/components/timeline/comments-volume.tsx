@@ -1,4 +1,4 @@
-import { VolumeEvent } from '@/app/components/timeline/shared';
+import { VolumeEvent } from '@/app/(dao)/[daoSlug]/components/timeline/shared';
 
 interface CommentsVolumeProps {
   timestamp: Date;

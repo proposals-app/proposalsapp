@@ -6,7 +6,7 @@ import {
   RankedChoiceVote,
   SingleChoiceVote,
   WeightedVote,
-} from '@/app/components/vote-result/types';
+} from '@/app/(dao)/[daoSlug]/components/vote-result/types';
 import {
   ApprovalVoteStatic,
   BasicVoteStatic,
@@ -14,7 +14,7 @@ import {
   RankedChoiceVoteStatic,
   SingleChoiceVoteStatic,
   WeightedVoteStatic,
-} from '@/app/components/vote-result/static';
+} from '@/app/(dao)/[daoSlug]/components/vote-result/static';
 import type { ProcessedResults } from '@/lib/results_processing';
 import OnchainEventIcon from '@/public/assets/web/icons/onchain.svg';
 import OffchainEventIcon from '@/public/assets/web/icons/offchain.svg';

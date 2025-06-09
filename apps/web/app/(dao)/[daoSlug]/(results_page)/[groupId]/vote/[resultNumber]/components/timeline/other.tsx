@@ -1,4 +1,7 @@
-import { BasicEvent, VolumeEvent } from '@/app/components/timeline/shared';
+import {
+  BasicEvent,
+  VolumeEvent,
+} from '@/app/(dao)/[daoSlug]/components/timeline/shared';
 import { TimelineEventType } from '@/lib/types';
 
 export function VotesVolume() {

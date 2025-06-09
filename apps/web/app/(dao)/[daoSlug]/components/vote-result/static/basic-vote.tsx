@@ -68,20 +68,39 @@ export const BasicVoteStatic = ({
       >
         {/* Left section - Status indicator and text */}
         <div tw='flex items-start' style={{ gap: '12px', flex: '0 0 auto' }}>
-          {/* Green status indicator */}
-          <div
-            tw='relative flex'
-            style={{ width: '32px', height: '32px', flexShrink: '0' }}
-          >
+          {/* Green status indicator - only for active proposals */}
+          {isLive && (
             <div
-              tw='bg-[rgba(47,255,0,0.25)] rounded-full absolute'
-              style={{ width: '24px', height: '24px', top: '4px', left: '4px' }}
-            ></div>
-            <div
-              tw='bg-[#2FFF00] rounded-full absolute'
-              style={{ width: '8px', height: '8px', top: '12px', left: '12px' }}
-            ></div>
-          </div>
+              tw='relative flex'
+              style={{ width: '32px', height: '32px', flexShrink: '0' }}
+            >
+              <svg width='32' height='32' viewBox='0 0 32 32'>
+                {/* Outer pulsing ring */}
+                <circle
+                  cx='16'
+                  cy='16'
+                  r='12'
+                  fill='rgba(47,255,0,0.5)'
+                  opacity='0.7'
+                >
+                  <animate
+                    attributeName='r'
+                    values='8;12;8'
+                    dur='2s'
+                    repeatCount='indefinite'
+                  />
+                  <animate
+                    attributeName='opacity'
+                    values='0.7;0.5;0.7'
+                    dur='2s'
+                    repeatCount='indefinite'
+                  />
+                </circle>
+                {/* Inner solid dot */}
+                <circle cx='16' cy='16' r='4' fill='#2FFF00' />
+              </svg>
+            </div>
+          )}
 
           {/* Status text */}
           <div

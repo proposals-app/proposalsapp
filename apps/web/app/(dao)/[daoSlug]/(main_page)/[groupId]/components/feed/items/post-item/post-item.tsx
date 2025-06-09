@@ -16,7 +16,7 @@ import {
   getPostLikesCount,
 } from '../../actions';
 import type { FeedReturnType, GroupReturnType } from '../../../../actions';
-import { DiscourseAuthor } from '@/app/(dao)/[daoSlug]/components/author-discourse';
+import { DiscourseAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-discourse';
 import HeartIcon from '@/public/assets/web/icons/like.svg';
 import SeenIcon from '@/public/assets/web/icons/views.svg';
 import { connection } from 'next/server';

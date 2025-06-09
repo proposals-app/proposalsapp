@@ -1,4 +1,4 @@
-import { ModeToggle } from '@/app/components/theme-switch';
+import { ModeToggle } from './theme-switch';
 import Image from 'next/image';
 import Link from 'next/link';
 import List from '@/public/assets/web/icons/proposals.svg';

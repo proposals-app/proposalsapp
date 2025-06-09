@@ -6,7 +6,7 @@ import {
   RankedChoiceVoteStatic,
   SingleChoiceVoteStatic,
   WeightedVoteStatic,
-} from '@/app/components/vote-result/static';
+} from '@/app/(dao)/[daoSlug]/components/vote-result/static';
 import type { ProcessedResults } from '@/lib/results_processing';
 
 interface StaticResultCardProps {

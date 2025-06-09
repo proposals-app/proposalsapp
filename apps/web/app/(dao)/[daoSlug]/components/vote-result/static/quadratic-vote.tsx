@@ -4,13 +4,13 @@ import type { VoteSegmentData } from '@/lib/types';
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-interface WeightedVoteProps {
+interface QuadraticVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
 }
 
-export const WeightedVoteStatic = ({ result }: WeightedVoteProps) => {
+export const QuadraticVoteStatic = ({ result }: QuadraticVoteProps) => {
   const isHidden = result.hiddenVote && result.scoresState !== 'final';
 
   const finalResults = isHidden ? {} : result.finalResults || {};
@@ -34,7 +34,7 @@ export const WeightedVoteStatic = ({ result }: WeightedVoteProps) => {
 
   const timeColor = isLive && isWithin24Hours ? '#cc3d35' : '#374249';
   const onchain = result.proposal.blockCreatedAt ? true : false;
-  const statusText = isLive ? `Active Weighted vote` : `Ended Weighted vote`;
+  const statusText = isLive ? `Active Quadratic vote` : `Ended Quadratic vote`;
 
   if (isHidden) {
     return (
@@ -64,17 +64,36 @@ export const WeightedVoteStatic = ({ result }: WeightedVoteProps) => {
       >
         {/* Left section - Status indicator and text */}
         <div tw='flex items-center' style={{ gap: '8px' }}>
-          {/* Green status indicator */}
-          <div tw='relative flex' style={{ width: '24px', height: '24px' }}>
-            <div
-              tw='bg-[rgba(47,255,0,0.25)] rounded-full absolute'
-              style={{ width: '20px', height: '20px', top: '2px', left: '2px' }}
-            ></div>
-            <div
-              tw='bg-[#2FFF00] rounded-full absolute'
-              style={{ width: '8px', height: '8px', top: '8px', left: '8px' }}
-            ></div>
-          </div>
+          {/* Green status indicator - only for active proposals */}
+          {isLive && (
+            <div tw='relative flex' style={{ width: '24px', height: '24px' }}>
+              <svg width='32' height='32' viewBox='0 0 32 32'>
+                {/* Outer pulsing ring */}
+                <circle
+                  cx='16'
+                  cy='16'
+                  r='12'
+                  fill='rgba(47,255,0,0.5)'
+                  opacity='0.7'
+                >
+                  <animate
+                    attributeName='r'
+                    values='8;12;8'
+                    dur='2s'
+                    repeatCount='indefinite'
+                  />
+                  <animate
+                    attributeName='opacity'
+                    values='0.7;0.5;0.7'
+                    dur='2s'
+                    repeatCount='indefinite'
+                  />
+                </circle>
+                {/* Inner solid dot */}
+                <circle cx='16' cy='16' r='4' fill='#2FFF00' />
+              </svg>
+            </div>
+          )}
 
           {/* Status text */}
           <div tw='flex flex-col' style={{ gap: '2px', width: '140px' }}>

@@ -7,21 +7,27 @@
     },
     "TypeScript": {
       "format_on_save": "on",
-      "formatter": "auto",
+      "formatter": "prettier",
+      "prettier": {
+        "allowed": true
+      },
       "code_actions_on_format": {
         "source.fixAll.eslint": true
       }
     },
     "TSX": {
       "format_on_save": "on",
-      "formatter": "auto",
+      "formatter": "prettier",
+      "prettier": {
+        "allowed": true
+      },
       "code_actions_on_format": {
         "source.fixAll.eslint": true
       }
     },
     "JavaScript": {
       "format_on_save": "on",
-      "formatter": "auto",
+      "formatter": "prettier",
       "code_actions_on_format": {
         "source.fixAll.eslint": true
       }
@@ -88,7 +94,8 @@
     }
   },
   "prettier": {
-    "config_path": "./prettier.config.mjs"
+    "config_path": "./prettier.config.mjs",
+    "allowed": true
   },
   "eslint": {
     "config_path": "./eslint.config.mjs"

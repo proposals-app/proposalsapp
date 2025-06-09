@@ -1,4 +1,4 @@
-import { AuthorCard } from '@/app/components/author-card';
+import { AuthorCard } from './author-card';
 
 export const VoterAuthor = ({
   voterAddress,

@@ -1,4 +1,4 @@
-import { Result as SharedResult } from '@/app/components/vote-result/shared';
+import { Result as SharedResult } from '@/app/(dao)/[daoSlug]/components/vote-result/shared';
 import {
   ApprovalVote,
   BasicVote,
@@ -6,7 +6,7 @@ import {
   RankedChoiceVote,
   SingleChoiceVote,
   WeightedVote,
-} from '@/app/components/vote-result/types';
+} from '@/app/(dao)/[daoSlug]/components/vote-result/types';
 import type { ProcessedResults } from '@/lib/results_processing';
 import type { VoteSegmentData } from '@/lib/types';
 

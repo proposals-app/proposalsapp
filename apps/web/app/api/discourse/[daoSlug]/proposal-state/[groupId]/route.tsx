@@ -1,6 +1,6 @@
 import { getFeed } from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
-import { ImageResponse } from 'next/og';
+import satori from 'satori';
 import type { NextRequest } from 'next/server';
 import { StaticResultCard } from './components/results/static-result-card';
 import { TimelineEventType } from '@/lib/types';
@@ -31,10 +31,9 @@ export async function GET(
   // Extract query parameters for width, height, and debug mode
   const { searchParams } = new URL(request.url);
   // Use higher resolution defaults for better image quality
-  const width = parseInt(searchParams.get('width') || '1600', 10);
-  const height = parseInt(searchParams.get('height') || '200', 10);
+  const width = parseInt(searchParams.get('width') || '1200', 10);
+  const height = parseInt(searchParams.get('height') || '60', 10);
   const debug = searchParams.get('debug') === 'true';
-  const debugBar = searchParams.get('debugBar') === 'true';
 
   const [feedData, fonts] = await Promise.all([
     getFeed(groupId, FeedFilterEnum.VOTES, FromFilterEnum.ALL, true),
@@ -52,24 +51,22 @@ export async function GET(
       result.type === TimelineEventType.ResultEndedBasicVote ||
       result.type === TimelineEventType.ResultEndedOtherVotes
     )
-  )
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            display: 'flex',
-            width: '100%',
-            height: '100%',
-            backgroundColor: debug ? '#000000' : '#ffffff',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div style={{ color: debug ? '#ffffff' : '#000000' }}>
-            No valid result found
-          </div>
+  ) {
+    const svg = await satori(
+      <div
+        style={{
+          display: 'flex',
+          width: '100%',
+          height: '100%',
+          backgroundColor: debug ? '#000000' : '#ffffff',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ color: debug ? '#ffffff' : '#000000' }}>
+          No valid result found
         </div>
-      ),
+      </div>,
       {
         width,
         height,
@@ -90,22 +87,27 @@ export async function GET(
       }
     );
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          display: 'flex',
-          width: '100%',
-          height: '100%',
-          backgroundColor: debug ? '#000000' : 'transparent',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0',
-        }}
-      >
-        <StaticResultCard result={result.result} debugBar={debugBar} />
-      </div>
-    ),
+    return new Response(svg, {
+      headers: {
+        'Content-Type': 'image/svg+xml',
+      },
+    });
+  }
+
+  const svg = await satori(
+    <div
+      style={{
+        display: 'flex',
+        width: '100%',
+        height: '100%',
+        backgroundColor: debug ? '#000000' : 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0',
+      }}
+    >
+      <StaticResultCard result={result.result} debugBar={debug} />
+    </div>,
     {
       width,
       height,
@@ -125,4 +127,10 @@ export async function GET(
       ],
     }
   );
+
+  return new Response(svg, {
+    headers: {
+      'Content-Type': 'image/svg+xml',
+    },
+  });
 }

@@ -1,4 +1,4 @@
-import { ResultCard as SharedResultCard } from '@/app/components/vote-result/shared';
+import { ResultCard as SharedResultCard } from '@/app/(dao)/[daoSlug]/components/vote-result/shared';
 import type { ProcessedResults } from '@/lib/results_processing';
 import type { VoteSegmentData } from '@/lib/types';
 

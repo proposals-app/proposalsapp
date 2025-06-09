@@ -3,10 +3,10 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '@/styles/globals.css';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
-import WalletProvider from './components/wallet-provider';
+import WalletProvider from './components/providers/wallet-provider';
 import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
-import { PostHogProvider } from './components/posthog-provider';
+import { PostHogProvider } from './components/providers/posthog-provider';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://proposals.app'),

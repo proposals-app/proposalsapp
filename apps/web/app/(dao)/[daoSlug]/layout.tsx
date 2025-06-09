@@ -1,7 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
-import { NavBar } from './components/nav-bar';
-import SuspendedThemeProvider from '@/app/components/theme-provider';
-import Banner from '@/app/components/banner';
+import { NavBar } from './components/navigation/nav-bar';
+import SuspendedThemeProvider from '@/app/components/providers/theme-provider';
+import Banner from '@/app/components/consent/cookie-banner';
 
 export default async function DaoLayout({
   children,
@@ -14,9 +14,7 @@ export default async function DaoLayout({
   return (
     <SuspendedThemeProvider theme={daoSlug}>
       <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
-        <Suspense>
-          <NavBar daoSlug={daoSlug} />
-        </Suspense>
+        <NavBar daoSlug={daoSlug} />
         <div className='flex w-full pt-20 pl-0 md:pt-0 md:pl-20'>
           {children}
         </div>
