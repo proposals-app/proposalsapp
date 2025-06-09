@@ -1,10 +1,10 @@
-import withSerwistInit from '@serwist/next';
+// import withSerwistInit from '@serwist/next';
 import { resolve } from 'path';
 
-const _withSerwist = withSerwistInit({
-  swSrc: 'app/sw.ts',
-  swDest: 'public/sw.js',
-});
+// const _withSerwist = withSerwistInit({
+//   swSrc: 'app/sw.ts',
+//   swDest: 'public/sw.js',
+// });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

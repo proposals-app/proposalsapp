@@ -117,7 +117,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "NEXT_OTEL_VERBOSE=1 next dev --turbopack",
+    "dev": "NEXT_OTEL_VERBOSE=1 next dev",
     "scan": "next dev & npx react-scan@latest localhost:3000",
     "format": "prettier --check --config ../../prettier.config.mjs --ignore-path ../../.gitignore .",
     "format:fix": "prettier --write --config ../../prettier.config.mjs --ignore-path ../../.gitignore .",
