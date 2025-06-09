@@ -41,10 +41,20 @@ async function streamToBuffer(stream) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      chunks.push(value);
+      if (value) {
+        chunks.push(value);
+      }
     }
+  } catch (error) {
+    console.error('Error reading stream:', error);
+    throw error;
   } finally {
-    reader.releaseLock();
+    try {
+      reader.releaseLock();
+    } catch (error) {
+      // Ignore errors when releasing lock
+      console.warn('Warning: could not release reader lock:', error);
+    }
   }
 
   return Buffer.concat(chunks);
@@ -58,8 +68,12 @@ async function streamToBuffer(stream) {
 function bufferToStream(buffer) {
   return new ReadableStream({
     start(controller) {
-      controller.enqueue(buffer);
-      controller.close();
+      try {
+        controller.enqueue(new Uint8Array(buffer));
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
     },
   });
 }
@@ -111,6 +125,12 @@ const cacheHandler = {
 
     try {
       const entry = await pendingEntry;
+
+      // Check if entry and entry.value exist
+      if (!entry || !entry.value) {
+        console.warn('Cache entry or value is missing, skipping cache set');
+        return;
+      }
 
       // Serialize the ReadableStream to a buffer
       const valueBuffer = await streamToBuffer(entry.value);
