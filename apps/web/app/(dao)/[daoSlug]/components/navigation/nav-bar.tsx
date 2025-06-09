@@ -11,10 +11,10 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
     ? `assets/project-logos/${daoSlug}`
     : '/assets/logo';
 
-  const cookieStore = await cookies();
+  let theme: 'light' | 'dark' = 'dark';
 
-  const theme =
-    (cookieStore.get('theme-mode')?.value as 'light' | 'dark') ?? 'dark';
+  const cookieStore = await cookies();
+  theme = (cookieStore.get('theme-mode')?.value as 'light' | 'dark') ?? 'dark';
 
   return (
     <div className='fill-neutral-800 dark:fill-neutral-200'>

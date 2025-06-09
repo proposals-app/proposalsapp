@@ -47,21 +47,23 @@ export default async function Layout({
         <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
-        <PostHogProvider>
-          <Suspense>
-            <WebVitals />
-          </Suspense>
-          <Suspense>
-            <NuqsAdapter>
-              <WalletProvider>
-                <main>
-                  <Suspense>{children}</Suspense>
-                </main>
-                <Toaster />
-              </WalletProvider>
-            </NuqsAdapter>
-          </Suspense>
-        </PostHogProvider>
+        <Suspense>
+          <PostHogProvider>
+            <Suspense>
+              <WebVitals />
+            </Suspense>
+            <Suspense>
+              <NuqsAdapter>
+                <WalletProvider>
+                  <main>
+                    <Suspense>{children}</Suspense>
+                  </main>
+                  <Toaster />
+                </WalletProvider>
+              </NuqsAdapter>
+            </Suspense>
+          </PostHogProvider>
+        </Suspense>
       </body>
     </html>
   );

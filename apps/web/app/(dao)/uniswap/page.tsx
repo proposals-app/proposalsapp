@@ -164,22 +164,26 @@ export default async function Page() {
   // Hardcode the daoSlug for Uniswap
   const daoSlug = 'uniswap';
 
+  // Get session at the page level to avoid dynamic context issues
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
         {/* Summary Header */}
         <Suspense fallback={<LoadingHeader />}>
-          <UniswapHeader daoSlug={daoSlug} />
+          <UniswapHeader daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
         {/* Action Bar */}
         <Suspense fallback={<ActionBarSkeleton />}>
-          <ActionBar daoSlug={daoSlug} />
+          <ActionBar daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
         {/* Groups List */}
         <Suspense fallback={<LoadingGroupList />}>
-          <GroupsContent daoSlug={daoSlug} />
+          <GroupsContent daoSlug={daoSlug} userId={userId} />
         </Suspense>
       </div>
     </div>
@@ -187,10 +191,13 @@ export default async function Page() {
 }
 
 // Header component with financial data
-async function UniswapHeader({ daoSlug }: { daoSlug: string }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-
+async function UniswapHeader({
+  daoSlug,
+  userId,
+}: {
+  daoSlug: string;
+  userId?: string;
+}) {
   const result = await getGroups(daoSlug, userId);
   if (!result) return null;
 
@@ -227,10 +234,13 @@ async function UniswapHeader({ daoSlug }: { daoSlug: string }) {
 }
 
 // Action bar component
-async function ActionBar({ daoSlug }: { daoSlug: string }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-
+async function ActionBar({
+  daoSlug,
+  userId,
+}: {
+  daoSlug: string;
+  userId?: string;
+}) {
   const result = await getGroups(daoSlug, userId);
   if (!result) return null;
 
@@ -249,10 +259,13 @@ async function ActionBar({ daoSlug }: { daoSlug: string }) {
 }
 
 // Main content component
-async function GroupsContent({ daoSlug }: { daoSlug: string }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-
+async function GroupsContent({
+  daoSlug,
+  userId,
+}: {
+  daoSlug: string;
+  userId?: string;
+}) {
   const result = await getGroups(daoSlug, userId);
   if (!result) return null;
 

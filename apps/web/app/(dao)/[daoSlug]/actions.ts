@@ -8,7 +8,8 @@ import { daoIdSchema, daoSlugSchema } from '@/lib/validations';
 import { requireAuthAndDao } from '@/lib/server-actions-utils';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
-import { cache } from 'react';
+import { getFeed } from './(main_page)/[groupId]/actions';
+import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 
 export async function markAllAsRead(daoSlug: string) {
   try {
@@ -396,8 +397,7 @@ async function getUserLastReadData(
   return lastReadMap;
 }
 
-// Add React cache for request-level deduplication
-const _getGroups = cache(async (daoSlug: string, userId?: string) => {
+export async function getGroups(daoSlug: string, userId?: string) {
   daoSlugSchema.parse(daoSlug);
 
   const dao = await db.public
@@ -472,56 +472,45 @@ const _getGroups = cache(async (daoSlug: string, userId?: string) => {
     daoId: dao.id,
     groups: combinedGroups,
   };
-});
-
-// Export the cached version
-export const getGroups = _getGroups;
+}
 
 /**
  * Fetches feed data for multiple groups in parallel
  * This eliminates the N+1 query problem when rendering active groups
  */
-const _getActiveGroupsFeeds = cache(
-  async (
-    groupIds: string[],
-    daoSlug: string
-  ): Promise<Map<string, FeedData | null>> => {
-    'use cache';
-    cacheTag(`active-feeds-${daoSlug}`);
-    cacheLife('minutes');
+export async function getActiveGroupsFeeds(
+  groupIds: string[],
+  daoSlug: string
+): Promise<Map<string, FeedData | null>> {
+  'use cache';
+  cacheTag(`active-feeds-${daoSlug}`);
+  cacheLife('minutes');
 
-    if (!groupIds.length) return new Map();
+  if (!groupIds.length) return new Map();
 
-    // Import getFeed dynamically to avoid circular dependency
-    const { getFeed } = await import('./(main_page)/[groupId]/actions');
-    const { FeedFilterEnum, FromFilterEnum } = await import(
-      '@/app/searchParams'
-    );
+  // Using static imports instead of dynamic imports
 
-    // Fetch all feeds in parallel
-    const feedPromises = groupIds.map(async (groupId) => {
-      try {
-        const feedData = await getFeed(
-          groupId,
-          FeedFilterEnum.VOTES,
-          FromFilterEnum.ALL,
-          true
-        );
-        return { groupId, feedData };
-      } catch (error) {
-        console.error(`Error fetching feed for group ${groupId}:`, error);
-        return { groupId, feedData: null };
-      }
-    });
+  // Fetch all feeds in parallel
+  const feedPromises = groupIds.map(async (groupId) => {
+    try {
+      const feedData = await getFeed(
+        groupId,
+        FeedFilterEnum.VOTES,
+        FromFilterEnum.ALL,
+        true
+      );
+      return { groupId, feedData };
+    } catch (error) {
+      console.error(`Error fetching feed for group ${groupId}:`, error);
+      return { groupId, feedData: null };
+    }
+  });
 
-    const results = await Promise.all(feedPromises);
+  const results = await Promise.all(feedPromises);
 
-    // Convert to map for easy lookup
-    return new Map(results.map(({ groupId, feedData }) => [groupId, feedData]));
-  }
-);
-
-export const getActiveGroupsFeeds = _getActiveGroupsFeeds;
+  // Convert to map for easy lookup
+  return new Map(results.map(({ groupId, feedData }) => [groupId, feedData]));
+}
 
 export type GroupsReturnType = AsyncReturnType<typeof getGroups>;
 export type ActiveGroupsFeedsReturnType = AsyncReturnType<
