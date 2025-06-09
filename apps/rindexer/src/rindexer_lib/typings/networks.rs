@@ -5,6 +5,7 @@
 use alloy::{primitives::U64, transports::http::reqwest::header::HeaderMap};
 use rindexer::{
     lazy_static,
+    manifest::network::BlockPollFrequency,
     provider::{JsonRpcCachedProvider, RetryClientError, RindexerProvider, create_client},
     public_read_env_value,
 };
@@ -12,7 +13,7 @@ use std::sync::Arc;
 use tokio::sync::OnceCell;
 
 #[allow(dead_code)]
-async fn create_shadow_client(rpc_url: &str, chain_id: u64, compute_units_per_second: Option<u64>, max_block_range: Option<U64>) -> Result<Arc<JsonRpcCachedProvider>, RetryClientError> {
+async fn create_shadow_client(rpc_url: &str, chain_id: u64, compute_units_per_second: Option<u64>, block_poll_frequency: Option<BlockPollFrequency>, max_block_range: Option<U64>) -> Result<Arc<JsonRpcCachedProvider>, RetryClientError> {
     let mut header = HeaderMap::new();
     header.insert(
         "X-SHADOW-API-KEY",
@@ -26,6 +27,7 @@ async fn create_shadow_client(rpc_url: &str, chain_id: u64, compute_units_per_se
         chain_id,
         compute_units_per_second,
         max_block_range,
+        block_poll_frequency,
         header,
     )
     .await
@@ -49,6 +51,7 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 1,
                 None,
                 Some(U64::from(1000)),
+                Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
             )
             .await
@@ -70,6 +73,7 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 42161,
                 None,
                 Some(U64::from(10000)),
+                Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
             )
             .await
@@ -91,6 +95,7 @@ pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 10,
                 None,
                 Some(U64::from(10000)),
+                Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
             )
             .await
@@ -112,6 +117,7 @@ pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 137,
                 None,
                 Some(U64::from(10000)),
+                Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
             )
             .await
@@ -133,6 +139,7 @@ pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 43114,
                 None,
                 Some(U64::from(10000)),
+                Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
             )
             .await
