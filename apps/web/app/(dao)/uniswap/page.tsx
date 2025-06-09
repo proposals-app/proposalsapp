@@ -10,6 +10,7 @@ import { auth } from '@/lib/auth/uniswap_auth';
 import { headers } from 'next/headers';
 import { UniswapSummaryHeader } from './components/uniswap-summary-header';
 import { LoadingGroupList, LoadingHeader } from '../[daoSlug]/loading';
+import { SkeletonText, SkeletonButton } from '../../components/ui/skeleton';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 
@@ -171,37 +172,43 @@ export default async function Page() {
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        {/* Summary Header */}
+        {/* Enhanced Summary Header with progressive loading */}
         <Suspense fallback={<LoadingHeader />}>
-          <UniswapHeader daoSlug={daoSlug} userId={userId} />
+          <UniswapSummaryContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
-        {/* Action Bar */}
+        {/* Enhanced Action Bar with progressive loading */}
         <Suspense fallback={<ActionBarSkeleton />}>
-          <ActionBar daoSlug={daoSlug} userId={userId} />
+          <ActionBarContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
-        {/* Groups List */}
+        {/* Enhanced Groups List with progressive loading */}
         <Suspense fallback={<LoadingGroupList />}>
-          <GroupsContent daoSlug={daoSlug} userId={userId} />
+          <GroupsContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
       </div>
     </div>
   );
 }
 
-// Header component with financial data
-async function UniswapHeader({
+// Optimized header that fetches financial data and groups data in parallel
+async function UniswapSummaryContainer({
   daoSlug,
   userId,
 }: {
   daoSlug: string;
   userId?: string;
 }) {
-  const result = await getGroups(daoSlug, userId);
+  // Fetch groups data and financial data in parallel
+  const [result, tokenPrice, treasuryBalance] = await Promise.all([
+    getGroups(daoSlug, userId),
+    getTokenPrice(),
+    getTreasuryBalance(),
+  ]);
+
   if (!result) return null;
 
-  const { groups } = result;
+  const { groups, daoId } = result;
 
   // Get active and inactive groups counts
   const activeGroupsCount = groups.filter((g) => g.hasActiveProposal).length;
@@ -214,12 +221,8 @@ async function UniswapHeader({
     0
   );
 
-  // Fetch financial data in parallel
-  const [tokenPrice, treasuryBalance, totalVp] = await Promise.all([
-    getTokenPrice(),
-    getTreasuryBalance(),
-    getTotalVotingPower(result.daoId),
-  ]);
+  // Fetch total voting power
+  const totalVp = await getTotalVotingPower(daoId);
 
   return (
     <UniswapSummaryHeader
@@ -233,8 +236,8 @@ async function UniswapHeader({
   );
 }
 
-// Action bar component
-async function ActionBar({
+// Optimized action bar that only fetches what it needs
+async function ActionBarContainer({
   daoSlug,
   userId,
 }: {
@@ -258,8 +261,8 @@ async function ActionBar({
   );
 }
 
-// Main content component
-async function GroupsContent({
+// Optimized groups container with pre-fetched active feeds
+async function GroupsContainer({
   daoSlug,
   userId,
 }: {
@@ -271,13 +274,15 @@ async function GroupsContent({
 
   const { groups } = result;
 
-  // Get IDs of groups with active proposals
+  // Get IDs of groups with active proposals and fetch feeds in parallel
   const activeGroupIds = groups
     .filter((group) => group.hasActiveProposal)
     .map((group) => group.id);
 
-  // Fetch all active group feeds in parallel
-  const activeGroupsFeeds = await getActiveGroupsFeeds(activeGroupIds, daoSlug);
+  const activeGroupsFeeds =
+    activeGroupIds.length > 0
+      ? await getActiveGroupsFeeds(activeGroupIds, daoSlug)
+      : new Map();
 
   // Transform data with pre-fetched feed data
   const groupsWithInfo = groups.map((group) => {
@@ -309,12 +314,12 @@ async function GroupsContent({
   );
 }
 
-// Action bar skeleton
+// Enhanced action bar skeleton for loading state
 function ActionBarSkeleton() {
   return (
-    <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-      <div className='h-7 w-48 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
-      <div className='h-9 w-32 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
+    <div className='flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
+      <SkeletonText width='12rem' size='lg' />
+      <SkeletonButton size='md' />
     </div>
   );
 }

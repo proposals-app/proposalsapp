@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { auth } from '@/lib/auth/arbitrum_auth';
 import { headers } from 'next/headers';
 import { LoadingGroupList } from './loading';
+import { SkeletonText, SkeletonButton } from '../../components/ui/skeleton';
 
 export default async function Page({
   params,
@@ -112,12 +113,12 @@ async function GroupsContent({ daoSlug }: { daoSlug: string }) {
   );
 }
 
-// Header skeleton for loading state
+// Enhanced header skeleton for loading state
 function HeaderSkeleton() {
   return (
-    <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-      <div className='h-7 w-48 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
-      <div className='h-9 w-32 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
+    <div className='flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
+      <SkeletonText width='12rem' size='lg' />
+      <SkeletonButton size='md' />
     </div>
   );
 }

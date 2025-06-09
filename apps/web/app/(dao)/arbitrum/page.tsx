@@ -179,37 +179,43 @@ export default async function Page() {
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        {/* Summary Header */}
+        {/* Summary Header - loads financial data independently */}
         <Suspense fallback={<LoadingHeader />}>
-          <ArbitrumHeader daoSlug={daoSlug} userId={userId} />
+          <ArbitrumSummaryContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
-        {/* Action Bar */}
+        {/* Action Bar - loads groups data independently */}
         <Suspense fallback={<ActionBarSkeleton />}>
-          <ActionBar daoSlug={daoSlug} userId={userId} />
+          <ActionBarContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
-        {/* Groups List */}
+        {/* Groups List - loads with pre-fetched active feeds */}
         <Suspense fallback={<LoadingGroupList />}>
-          <GroupsContent daoSlug={daoSlug} userId={userId} />
+          <GroupsContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
       </div>
     </div>
   );
 }
 
-// Header component with financial data
-async function ArbitrumHeader({
+// Optimized header that fetches financial data and groups data in parallel
+async function ArbitrumSummaryContainer({
   daoSlug,
   userId,
 }: {
   daoSlug: string;
   userId?: string;
 }) {
-  const result = await getGroups(daoSlug, userId);
+  // Fetch groups data and financial data in parallel
+  const [result, tokenPrice, treasuryBalance] = await Promise.all([
+    getGroups(daoSlug, userId),
+    getTokenPrice(),
+    getTreasuryBalance(),
+  ]);
+
   if (!result) return null;
 
-  const { groups } = result;
+  const { groups, daoId } = result;
 
   // Get active and inactive groups counts
   const activeGroupsCount = groups.filter((g) => g.hasActiveProposal).length;
@@ -222,12 +228,38 @@ async function ArbitrumHeader({
     0
   );
 
-  // Fetch financial data in parallel
-  const [tokenPrice, treasuryBalance, totalVp] = await Promise.all([
-    getTokenPrice(),
-    getTreasuryBalance(),
-    getTotalVotingPower(result.daoId),
-  ]);
+  // Fetch total VP separately to avoid blocking the UI
+  return (
+    <Suspense fallback={<LoadingHeader />}>
+      <ArbitrumHeaderWithVP
+        activeGroupsCount={activeGroupsCount}
+        totalProposalsCount={totalProposalsCount}
+        totalTopicsCount={totalTopicsCount}
+        tokenPrice={tokenPrice}
+        treasuryBalance={treasuryBalance}
+        daoId={daoId}
+      />
+    </Suspense>
+  );
+}
+
+// Separate component for total VP to avoid blocking
+async function ArbitrumHeaderWithVP({
+  activeGroupsCount,
+  totalProposalsCount,
+  totalTopicsCount,
+  tokenPrice,
+  treasuryBalance,
+  daoId,
+}: {
+  activeGroupsCount: number;
+  totalProposalsCount: number;
+  totalTopicsCount: number;
+  tokenPrice: number | null;
+  treasuryBalance: number | null;
+  daoId: string;
+}) {
+  const totalVp = await getTotalVotingPower(daoId);
 
   return (
     <ArbitrumSummaryHeader
@@ -241,8 +273,8 @@ async function ArbitrumHeader({
   );
 }
 
-// Action bar component
-async function ActionBar({
+// Optimized action bar that only fetches what it needs
+async function ActionBarContainer({
   daoSlug,
   userId,
 }: {
@@ -266,8 +298,8 @@ async function ActionBar({
   );
 }
 
-// Main content component
-async function GroupsContent({
+// Optimized groups container with pre-fetched active feeds
+async function GroupsContainer({
   daoSlug,
   userId,
 }: {
@@ -279,13 +311,15 @@ async function GroupsContent({
 
   const { groups } = result;
 
-  // Get IDs of groups with active proposals
+  // Get IDs of groups with active proposals and fetch feeds in parallel
   const activeGroupIds = groups
     .filter((group) => group.hasActiveProposal)
     .map((group) => group.id);
 
-  // Fetch all active group feeds in parallel
-  const activeGroupsFeeds = await getActiveGroupsFeeds(activeGroupIds, daoSlug);
+  const activeGroupsFeeds =
+    activeGroupIds.length > 0
+      ? await getActiveGroupsFeeds(activeGroupIds, daoSlug)
+      : new Map();
 
   // Transform data with pre-fetched feed data
   const groupsWithInfo = groups.map((group) => {

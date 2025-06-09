@@ -1,16 +1,24 @@
+import {
+  SkeletonText,
+  SkeletonButton,
+  SkeletonAvatar,
+} from '../../components/ui/skeleton';
+
 export default function Loading() {
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
         <LoadingHeader />
-        {/* Action Bar Skeleton */}
-        <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-          <div className='h-8 w-48 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
-          <div className='h-8 w-32 animate-pulse bg-neutral-200 dark:bg-neutral-700'></div>
+
+        {/* Enhanced Action Bar Skeleton */}
+        <div className='flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
+          <SkeletonText width='12rem' size='xl' />
+          <SkeletonButton size='md' />
         </div>
-        {/* Groups List Skeleton */}
+
+        {/* Enhanced Groups List Skeleton */}
         <LoadingGroupList />
-      </div>{' '}
+      </div>
     </div>
   );
 }
@@ -134,19 +142,19 @@ export function LoadingGroupList() {
 
 export function LoadingGroupItem() {
   return (
-    <div className='flex animate-pulse space-x-4 border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-700 dark:bg-neutral-900'>
-      {/* Avatar Skeleton */}
-      <div className='h-[32px] w-[32px] rounded-full bg-neutral-200 sm:h-[40px] sm:w-[40px] dark:bg-neutral-700'></div>
+    <div className='flex space-x-4 border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-700 dark:bg-neutral-900'>
+      {/* Enhanced Avatar Skeleton */}
+      <SkeletonAvatar size='md' className='sm:h-10 sm:w-10' />
 
       <div className='flex w-full flex-col justify-center space-y-2'>
-        {/* Group Name Skeleton */}
-        <div className='h-5 w-full max-w-[192px] bg-neutral-200 dark:bg-neutral-700'></div>
-        {/* Author Name Skeleton */}
-        <div className='h-3 w-4/5 max-w-[128px] bg-neutral-200 dark:bg-neutral-700'></div>
-        {/* Meta info line (Date, Counts) Skeleton */}
+        {/* Enhanced Group Name Skeleton */}
+        <SkeletonText width='12rem' size='md' />
+        {/* Enhanced Author Name Skeleton */}
+        <SkeletonText width='8rem' size='sm' />
+        {/* Enhanced Meta info line Skeleton */}
         <div className='mt-2 flex flex-wrap gap-2'>
-          <div className='h-3 w-12 bg-neutral-200 dark:bg-neutral-700'></div>
-          <div className='h-3 w-16 bg-neutral-200 dark:bg-neutral-700'></div>
+          <SkeletonText width='3rem' size='xs' />
+          <SkeletonText width='4rem' size='xs' />
         </div>
       </div>
     </div>

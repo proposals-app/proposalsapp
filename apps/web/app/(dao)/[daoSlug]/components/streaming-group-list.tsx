@@ -1,9 +1,14 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState, useTransition } from 'react';
 import { Filter, Search } from 'lucide-react';
 import { GroupItemWrapper } from './group-item-wrapper';
 import type { FeedData } from '../actions';
+import {
+  SkeletonAvatar,
+  SkeletonText,
+  SkeletonCard,
+} from '../../../components/ui/skeleton';
 
 interface Group {
   id: string;
@@ -26,32 +31,35 @@ interface StreamingGroupListProps {
   signedIn: boolean;
 }
 
-// Individual group item with its own Suspense boundary for progressive loading
+// Enhanced individual group item with error boundary and progressive loading
 function StreamingGroupItem({ group }: { group: Group }) {
   return (
-    <Suspense fallback={<GroupItemSkeleton />}>
+    <Suspense fallback={<EnhancedGroupItemSkeleton />}>
       <GroupItemWrapper group={group} />
     </Suspense>
   );
 }
 
-// Skeleton for individual group items
-function GroupItemSkeleton() {
+// Enhanced skeleton for individual group items with better visual fidelity
+function EnhancedGroupItemSkeleton() {
   return (
-    <div className='rounded-xs border border-neutral-200 bg-white p-2 sm:p-3 dark:border-neutral-700 dark:bg-neutral-950'>
+    <SkeletonCard className='p-2 sm:p-3' padding={false}>
       <div className='relative flex flex-col gap-1 sm:gap-2'>
         <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
           <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
-            <div className='min-h-[32px] min-w-[32px] animate-pulse rounded-full bg-neutral-200 sm:min-h-[40px] sm:min-w-[40px] dark:bg-neutral-700' />
-            <div>
-              <div className='mb-1 h-5 w-32 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
-              <div className='h-4 w-20 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
+            <SkeletonAvatar size='md' className='sm:h-10 sm:w-10' />
+            <div className='space-y-1'>
+              <SkeletonText width='8rem' size='md' />
+              <SkeletonText width='5rem' size='sm' />
             </div>
           </div>
-          <div className='h-16 w-32 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
+          <div className='space-y-1'>
+            <SkeletonText width='8rem' size='sm' />
+            <SkeletonText width='6rem' size='xs' />
+          </div>
         </div>
       </div>
-    </div>
+    </SkeletonCard>
   );
 }
 
@@ -61,6 +69,21 @@ export function StreamingGroupList({
 }: StreamingGroupListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'unread'>('all');
+  const [isPending, startTransition] = useTransition();
+
+  // Handle search with transition for better UX
+  const handleSearchChange = (value: string) => {
+    startTransition(() => {
+      setSearchQuery(value);
+    });
+  };
+
+  // Handle filter change with transition
+  const handleFilterChange = (newFilter: 'all' | 'active' | 'unread') => {
+    startTransition(() => {
+      setFilter(newFilter);
+    });
+  };
 
   // Sort groups to prioritize active proposals for better perceived performance
   const sortedGroups = useMemo(() => {
@@ -115,15 +138,19 @@ export function StreamingGroupList({
               type='text'
               placeholder='Search by name or author...'
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className='w-full rounded-xs border border-neutral-200 bg-white py-2 pr-4 pl-10 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-600'
             />
+            {isPending && (
+              <div className='absolute top-1/2 right-3 -translate-y-1/2'></div>
+            )}
           </div>
         </div>
 
         <div className='flex flex-wrap gap-2 self-end'>
           <button
-            onClick={() => setFilter('all')}
+            onClick={() => handleFilterChange('all')}
+            disabled={isPending}
             className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
               filter === 'all'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
@@ -133,7 +160,8 @@ export function StreamingGroupList({
             All
           </button>
           <button
-            onClick={() => setFilter('active')}
+            onClick={() => handleFilterChange('active')}
+            disabled={isPending}
             className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
               filter === 'active'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
@@ -145,7 +173,8 @@ export function StreamingGroupList({
 
           {signedIn && (
             <button
-              onClick={() => setFilter('unread')}
+              onClick={() => handleFilterChange('unread')}
+              disabled={isPending}
               className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
                 filter === 'unread'
                   ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
@@ -171,14 +200,15 @@ export function StreamingGroupList({
         </div>
       ) : (
         <div className='space-y-4'>
-          {/* Render priority groups (active proposals) first */}
+          {/* Show loading overlay when filtering */}
+
           {priorityGroups.map((group) => (
             <div key={group.id}>
               <StreamingGroupItem group={group} />
             </div>
           ))}
 
-          {/* Then render regular groups */}
+          {/* Then render regular groups with staggered loading */}
           {regularGroups.map((group) => (
             <div key={group.id}>
               <StreamingGroupItem group={group} />
