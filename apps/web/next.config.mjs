@@ -48,9 +48,9 @@ const nextConfig = {
   skipTrailingSlashRedirect: true,
   experimental: {
     reactCompiler: true,
-    viewTransition: true,
-    useCache: true,
+    // viewTransition: true,
     // dynamicIO: true,
+    useCache: true,
     cacheHandlers: { default: resolve('./cache-handler.mjs') },
     serverActions: {
       bodySizeLimit: '10mb',
