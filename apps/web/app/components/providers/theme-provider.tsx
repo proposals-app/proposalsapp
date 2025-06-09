@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { Suspense, type ReactNode } from 'react';
+import { ViewportBackground } from './viewport-background';
 
 export default async function SuspendedThemeProvider({
   children,
@@ -31,6 +32,7 @@ export async function ThemeProvider({
 
   return (
     <div className={themeMode} data-theme={themeVariant}>
+      <ViewportBackground theme={themeVariant} mode={themeMode} />
       {children}
     </div>
   );

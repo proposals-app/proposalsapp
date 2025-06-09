@@ -119,9 +119,7 @@ export function ArbitrumSummaryHeader({
             </div>
 
             <div className='flex-1'>
-              <h1 className='text-xl font-bold text-[#28A0F0] dark:text-[#3fcbff]'>
-                Arbitrum DAO
-              </h1>
+              <h1 className='text-xl font-bold'>Arbitrum DAO</h1>
               <p className='text-xm mt-1.5 text-neutral-500 dark:text-neutral-400'>
                 Governance discussions and proposals
               </p>
@@ -176,9 +174,7 @@ export function ArbitrumSummaryHeader({
               </div>
 
               <div className='flex-1'>
-                <h1 className='text-3xl font-bold text-[#28A0F0] dark:text-[#3fcbff]'>
-                  Arbitrum DAO
-                </h1>
+                <h1 className='text-3xl font-bold'>Arbitrum DAO</h1>
                 <p className='mt-1.5 text-sm text-neutral-500 dark:text-neutral-400'>
                   Governance discussions and proposals
                 </p>
