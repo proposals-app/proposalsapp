@@ -3,9 +3,9 @@ import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins';
 import {
-  OTPEmail,
   ChangeEmailTemplate,
   DeleteAccountTemplate,
+  OTPEmail,
   resend,
 } from '@proposalsapp/emails';
 
@@ -114,7 +114,7 @@ export const auth = betterAuth({
           subject: 'Confirm Your Email Address Change',
           react: ChangeEmailTemplate({
             currentEmail: user.email,
-            newEmail: newEmail,
+            newEmail,
             verificationUrl: url,
           }),
         });

@@ -1,4 +1,7 @@
-use crate::{MAX_PAGES_PER_RUN, RECENT_LOOKBACK_HOURS, db_handler::upsert_topic, discourse_api::DiscourseApi, indexers::posts::PostIndexer, models::topics::TopicResponse};
+use crate::{
+    MAX_PAGES_PER_RUN, RECENT_LOOKBACK_HOURS, db_handler::upsert_topic,
+    discourse_api::DiscourseApi, indexers::posts::PostIndexer, models::topics::TopicResponse,
+};
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use reqwest::Client;
@@ -167,7 +170,12 @@ impl TopicIndexer {
                                 .update_posts_for_topic(dao_id_clone, topic_id_clone, priority)
                                 .await
                                 // Wrap result for joinset handling
-                                .map_err(|e| e.context(format!("Post update failed for topic {}", topic_id_clone)))
+                                .map_err(|e| {
+                                    e.context(format!(
+                                        "Post update failed for topic {}",
+                                        topic_id_clone
+                                    ))
+                                })
                         });
                     }
 
@@ -184,7 +192,9 @@ impl TopicIndexer {
                     if num_topics_on_page < per_page_api as usize && per_page_api > 0 {
                         info!(
                             page,
-                            num_topics_on_page, per_page_api, "Received fewer topics than per_page limit. Stopping pagination."
+                            num_topics_on_page,
+                            per_page_api,
+                            "Received fewer topics than per_page limit. Stopping pagination."
                         );
                         stop_pagination = true; // Signal outer loop break
                     }

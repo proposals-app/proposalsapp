@@ -23,7 +23,8 @@ pub fn get_meter() -> opentelemetry::metrics::Meter {
 
 // Construct MeterProvider for MetricsLayer
 fn init_meter_provider() -> SdkMeterProvider {
-    let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
+    let endpoint =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
 
     let exporter = opentelemetry_otlp::MetricExporter::builder()
         .with_http()
@@ -43,7 +44,8 @@ fn init_meter_provider() -> SdkMeterProvider {
 
 // Construct TracerProvider for OpenTelemetryLayer
 fn init_tracer_provider() -> TracerProvider {
-    let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
+    let endpoint =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
 
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
@@ -60,7 +62,8 @@ fn init_tracer_provider() -> TracerProvider {
 }
 
 fn init_log_provider() -> LoggerProvider {
-    let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
+    let endpoint =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
 
     let exporter = LogExporter::builder()
         .with_http()
@@ -141,7 +144,8 @@ pub async fn setup_otel() -> Result<OtelGuard> {
     info!("Setting up profiling!");
 
     // Get the OTEL_EXPORTER_OTLP_ENDPOINT and replace the port with 4040
-    let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
+    let endpoint =
+        std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("OTEL_EXPORTER_OTLP_ENDPOINT not set!");
     let base_url = endpoint
         .rsplit_once(':')
         .map_or(endpoint.clone(), |(base, _)| format!("{}:4040", base));

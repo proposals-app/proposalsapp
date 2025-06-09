@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { Button as ShadcnButton } from '@/app/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline';
 
@@ -17,6 +19,7 @@ interface ButtonProps {
 
 /**
  * A consistent button component for use across mapping interfaces
+ * Now uses the main UI button component for consistency
  */
 export const Button: React.FC<ButtonProps> = ({
   children,
@@ -28,29 +31,29 @@ export const Button: React.FC<ButtonProps> = ({
   type = 'button',
   fullWidth = false,
 }) => {
-  const getVariantClasses = () => {
+  // Map custom variants to Shadcn variants
+  const getShadcnVariant = () => {
     switch (variant) {
       case 'primary':
-        return 'border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent text-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700';
+        return 'default';
       case 'secondary':
-        return 'border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100 focus:ring-neutral-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700';
+        return 'secondary';
       case 'danger':
-        return 'border-red-500 bg-red-500 text-white hover:bg-red-600 focus:ring-red-500 dark:border-red-700 dark:bg-red-500 dark:hover:bg-red-600';
+        return 'destructive';
       case 'outline':
-        return 'border-neutral-300 bg-transparent text-neutral-900 hover:bg-neutral-100 focus:ring-neutral-500 dark:border-neutral-600 dark:text-neutral-100 dark:hover:bg-neutral-800';
+        return 'outline';
       default:
-        return 'border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent text-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700';
+        return 'default';
     }
   };
 
   return (
-    <button
+    <ShadcnButton
       type={type}
       onClick={onClick}
-      className={`focus:ring-opacity-50 rounded-md border px-4 py-2 text-sm font-medium focus:ring-2 disabled:opacity-50 ${getVariantClasses()} ${
-        fullWidth ? 'w-full' : ''
-      } ${className}`}
+      variant={getShadcnVariant()}
       disabled={disabled || isLoading}
+      className={cn(fullWidth && 'w-full', className)}
     >
       {isLoading ? (
         <div className='flex items-center justify-center'>
@@ -79,7 +82,7 @@ export const Button: React.FC<ButtonProps> = ({
       ) : (
         children
       )}
-    </button>
+    </ShadcnButton>
   );
 };
 

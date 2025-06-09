@@ -4,8 +4,8 @@ import { formatNumberWithSuffix } from '@/lib/utils';
 import { format, toZonedTime } from 'date-fns-tz';
 import * as echarts from 'echarts';
 import { useEffect, useMemo, useRef } from 'react';
-import { ProcessedResults } from '@/lib/results_processing';
-import superjson, { SuperJSONResult } from 'superjson';
+import type { ProcessedResults } from '@/lib/results_processing';
+import superjson, { type SuperJSONResult } from 'superjson';
 import type { TooltipComponentFormatterCallbackParams } from 'echarts';
 
 interface ResultsChartProps {
@@ -224,11 +224,11 @@ export function ResultsChart({ results }: ResultsChartProps) {
           type: 'line',
           step: 'end',
           stack: shouldStack ? 'QuorumTotal' : undefined,
-          lineStyle: { width: 2, color: color, opacity: 1 },
+          lineStyle: { width: 2, color, opacity: 1 },
           showSymbol: false,
-          itemStyle: { color: color, opacity: 0.9 },
-          emphasis: { itemStyle: { color: color, borderColor: color } },
-          areaStyle: shouldStack ? { opacity: 0.9, color: color } : undefined,
+          itemStyle: { color, opacity: 0.9 },
+          emphasis: { itemStyle: { color, borderColor: color } },
+          areaStyle: shouldStack ? { opacity: 0.9, color } : undefined,
           data: seriesData,
           z: zIndex,
         };
@@ -254,15 +254,13 @@ export function ResultsChart({ results }: ResultsChartProps) {
             stack: shouldStack ? 'QuorumTotalExtrapolated' : undefined, // Use a different stack
             lineStyle: {
               width: 2,
-              color: color,
+              color,
               type: 'dashed',
               opacity: 0.25,
             },
             showSymbol: false,
-            itemStyle: { color: color, opacity: 0.25 },
-            areaStyle: shouldStack
-              ? { opacity: 0.175, color: color }
-              : undefined,
+            itemStyle: { color, opacity: 0.25 },
+            areaStyle: shouldStack ? { opacity: 0.175, color } : undefined,
             data: [
               [lastTimestamp, lastValue],
               [proposalEndTime, lastValue], // Extrapolate to proposal end time

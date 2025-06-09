@@ -1,5 +1,5 @@
-import { ProposalMetadata } from '@/lib/types';
-import { Proposal, Selectable, Vote } from '@proposalsapp/db';
+import type { ProposalMetadata } from '@/lib/types';
+import type { Proposal, Selectable, Vote } from '@proposalsapp/db';
 import { format, toZonedTime } from 'date-fns-tz';
 
 export type VoteType =

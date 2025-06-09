@@ -76,7 +76,9 @@ impl RelationTrait for Relation {
             Self::DiscourseCategory => Entity::has_many(super::discourse_category::Entity).into(),
             Self::DiscoursePost => Entity::has_many(super::discourse_post::Entity).into(),
             Self::DiscoursePostLike => Entity::has_many(super::discourse_post_like::Entity).into(),
-            Self::DiscoursePostRevision => Entity::has_many(super::discourse_post_revision::Entity).into(),
+            Self::DiscoursePostRevision => {
+                Entity::has_many(super::discourse_post_revision::Entity).into()
+            }
             Self::DiscourseTopic => Entity::has_many(super::discourse_topic::Entity).into(),
             Self::DiscourseUser => Entity::has_many(super::discourse_user::Entity).into(),
         }

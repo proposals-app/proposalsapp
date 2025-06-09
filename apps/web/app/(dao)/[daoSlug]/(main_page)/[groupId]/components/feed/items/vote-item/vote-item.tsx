@@ -1,11 +1,11 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
-import { FeedReturnType, GroupReturnType } from '../../../../actions';
-import { ProcessedVote } from '@/lib/results_processing';
+import type { FeedReturnType, GroupReturnType } from '../../../../actions';
+import type { ProcessedVote } from '@/lib/results_processing';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author-voter';
-import { VotesWithVoters } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
-import { ProposalMetadata } from '@/lib/types';
+import type { VotesWithVoters } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
+import type { ProposalMetadata } from '@/lib/types';
 
 // Helper to format choice text, similar to the one in ResultsTable
 const getChoiceText = (vote: ProcessedVote, isWeighted = false): string => {

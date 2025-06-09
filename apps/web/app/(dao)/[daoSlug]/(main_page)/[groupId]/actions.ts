@@ -3,64 +3,64 @@
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import {
   DEFAULT_CHOICE_COLOR,
-  ProcessedResults,
-  ProcessedVote,
   processResultsAction,
+  type ProcessedResults,
+  type ProcessedVote,
 } from '@/lib/results_processing';
 import {
-  FeedEvent,
-  ProposalGroupItem,
-  ProposalMetadata,
   TimelineEventType,
-  VoteSegmentData,
+  type FeedEvent,
+  type ProposalGroupItem,
+  type ProposalMetadata,
+  type VoteSegmentData,
 } from '@/lib/types';
-import { AsyncReturnType } from '@/lib/utils';
+import type { AsyncReturnType } from '@/lib/utils';
 import {
-  DaoGovernor,
   db,
-  DiscoursePost,
-  DiscourseTopic,
-  Proposal,
-  ProposalGroup,
-  Selectable,
-  Vote,
+  type DaoGovernor,
+  type DiscoursePost,
+  type DiscourseTopic,
+  type Proposal,
+  type ProposalGroup,
+  type Selectable,
+  type Vote,
 } from '@proposalsapp/db';
 import { validate } from 'uuid';
 import { getDelegateByDiscourseUser } from './components/feed/actions';
 import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
 
-import { auth } from '@/lib/auth/arbitrum_auth';
-import { headers } from 'next/headers';
+import { requireAuth } from '@/lib/server-actions-utils';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { groupIdSchema } from '@/lib/validations';
 import { revalidateTag } from 'next/cache';
 
 export async function updateLastReadAt(groupId: string, daoSlug: string) {
-  groupIdSchema.parse(groupId);
+  try {
+    groupIdSchema.parse(groupId);
+    const { userId } = await requireAuth(daoSlug);
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
+    const now = new Date();
 
-  if (!userId) {
-    return;
+    await (daoSlug in db ? db[daoSlug as keyof typeof db] : db.public)
+      .insertInto('userProposalGroupLastRead')
+      .values({
+        userId,
+        proposalGroupId: groupId,
+        lastReadAt: now,
+      })
+      .onConflict((oc) =>
+        oc
+          .columns(['userId', 'proposalGroupId'])
+          .doUpdateSet({ lastReadAt: now })
+      )
+      .execute();
+
+    revalidateTag(`groups-user-${userId}-${daoSlug}`);
+  } catch (error) {
+    console.error('[updateLastReadAt] Error:', error);
+    // Silently fail for this function as it's not critical
   }
-
-  const now = new Date();
-
-  await (daoSlug in db ? db[daoSlug as keyof typeof db] : db.public)
-    .insertInto('userProposalGroupLastRead')
-    .values({
-      userId: userId,
-      proposalGroupId: groupId,
-      lastReadAt: now,
-    })
-    .onConflict((oc) =>
-      oc.columns(['userId', 'proposalGroupId']).doUpdateSet({ lastReadAt: now })
-    )
-    .execute();
-
-  revalidateTag(`groups-user-${userId}-${daoSlug}`);
 }
 
 export type SelectableProposalWithGovernor = Selectable<Proposal> & {
@@ -871,8 +871,8 @@ export async function getFeed(
           events.push({
             type: TimelineEventType.VotesVolume,
             timestamp,
-            volumes: volumes,
-            colors: colors,
+            volumes,
+            colors,
             maxVolume: maxVotes,
             volumeType: 'votes',
             metadata: {

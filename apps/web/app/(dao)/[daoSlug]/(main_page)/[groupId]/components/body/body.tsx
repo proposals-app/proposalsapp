@@ -2,14 +2,14 @@ import {
   cleanUpNodeMarkers,
   visualDomDiff,
 } from '@proposalsapp/visual-dom-diff';
-import { Diff, DIFF_EQUAL, diff_match_patch } from 'diff-match-patch';
-import { Nodes } from 'hast';
+import { DIFF_EQUAL, diff_match_patch, type Diff } from 'diff-match-patch';
+import type { Nodes } from 'hast';
 import { toDom } from 'hast-util-to-dom';
 import { JSDOM } from 'jsdom';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
 import { notFound } from 'next/navigation';
-import { BodyVersionType, GroupReturnType } from '../../actions';
+import type { BodyVersionType, GroupReturnType } from '../../actions';
 import { BodyContent } from './body-content';
 import {
   COLLAPSIBLE_STYLES,

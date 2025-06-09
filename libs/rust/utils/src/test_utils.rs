@@ -1,5 +1,7 @@
 use chrono::NaiveDateTime;
-use proposalsapp_db::models::{delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power};
+use proposalsapp_db::models::{
+    delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power,
+};
 use serde_json::Value;
 
 pub struct ExpectedProposal {
@@ -218,7 +220,10 @@ pub struct ExpectedVotingPower {
     pub txid: Option<&'static str>,
 }
 
-pub fn assert_voting_power(voting_power: &voting_power::ActiveModel, expected: &ExpectedVotingPower) {
+pub fn assert_voting_power(
+    voting_power: &voting_power::ActiveModel,
+    expected: &ExpectedVotingPower,
+) {
     assert_eq!(
         voting_power.voter.clone().take().unwrap(),
         expected.voter,

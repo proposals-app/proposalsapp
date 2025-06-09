@@ -4,7 +4,7 @@ import '@/styles/globals.css';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
 import WalletProvider from './components/wallet-provider';
-import { firaSans, firaSansCondensed, firaMono } from '../lib/fonts';
+import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/posthog-provider';
 

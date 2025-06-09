@@ -9,24 +9,24 @@ import { Button } from '@/app/components/ui/button';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Label } from '@/app/components/ui/label';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import { DialogFooter, DialogClose } from '@/app/components/ui/dialog';
+import { DialogClose, DialogFooter } from '@/app/components/ui/dialog';
 import { GripVertical } from 'lucide-react';
 import {
+  type UniqueIdentifier,
   DndContext,
+  type DragEndEvent,
   DragOverlay,
-  closestCenter,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
+  closestCenter,
   useSensor,
   useSensors,
-  type DragStartEvent,
-  type DragEndEvent,
-  UniqueIdentifier,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
+  arrayMove,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
@@ -36,9 +36,9 @@ import { cn } from '@/lib/utils';
 import { cva } from 'class-variance-authority';
 import { toast } from 'sonner';
 import {
+  type VoteModalContentProps,
   ATTRIBUTION_TEXT,
   SNAPSHOT_APP_NAME,
-  VoteModalContentProps,
 } from '../../vote-button';
 
 // Interface for state items, ensuring 'id' is UniqueIdentifier (string | number)
@@ -75,9 +75,9 @@ function RankedChoiceSortableItem({
     {
       variants: {
         dragging: {
-          over: 'ring-2 opacity-30 ring-blue-500 dark:ring-blue-400', // Style when being dragged over
+          over: 'opacity-30 ring-2 ring-blue-500 dark:ring-blue-400', // Style when being dragged over
           overlay:
-            'ring-2 ring-blue-500 bg-white shadow-lg dark:border-blue-400 dark:bg-neutral-800', // Style for the drag overlay
+            'bg-white shadow-lg ring-2 ring-blue-500 dark:border-blue-400 dark:bg-neutral-800', // Style for the drag overlay
           default:
             'border-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700/80', // Default and hover style with visible border
         },

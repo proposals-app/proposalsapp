@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useTransition, useEffect } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import SunIcon from '@/public/assets/web/icons/sun.svg';
 import MoonIcon from '@/public/assets/web/icons/moon.svg';

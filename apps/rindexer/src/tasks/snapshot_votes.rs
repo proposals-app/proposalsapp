@@ -1,5 +1,8 @@
 use crate::extensions::{
-    db_extension::{DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_votes},
+    db_extension::{
+        DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB,
+        store_votes,
+    },
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{Context, Result};
@@ -8,7 +11,8 @@ use futures::{StreamExt, stream};
 use proposalsapp_db::models::{proposal, vote};
 use sea_orm::{
     ActiveValue::NotSet,
-    ColumnTrait, Condition, EntityOrSelect, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, Set, Value,
+    ColumnTrait, Condition, EntityOrSelect, EntityTrait, Order, QueryFilter, QueryOrder,
+    QuerySelect, Set, Value,
     prelude::{Expr, Uuid},
 };
 use serde::Deserialize;
@@ -65,7 +69,11 @@ fn format_proposal_ids(proposal_ids: &[String]) -> String {
 }
 
 /// Processes a vote from Snapshot and converts it to a database model
-fn process_vote(vote_data: &SnapshotVote, governor_id: Uuid, dao_id: Uuid) -> Result<Option<vote::ActiveModel>> {
+fn process_vote(
+    vote_data: &SnapshotVote,
+    governor_id: Uuid,
+    dao_id: Uuid,
+) -> Result<Option<vote::ActiveModel>> {
     // Parse the created timestamp
     let created_at = match DateTime::from_timestamp(vote_data.created, 0) {
         Some(dt) => dt.naive_utc(),
@@ -125,7 +133,11 @@ fn process_vote(vote_data: &SnapshotVote, governor_id: Uuid, dao_id: Uuid) -> Re
 }
 
 /// Fetches votes from Snapshot API for the given space and proposals
-async fn fetch_votes_batch(space: &str, last_vote_created: i64, proposals_str: &str) -> Result<Vec<SnapshotVote>> {
+async fn fetch_votes_batch(
+    space: &str,
+    last_vote_created: i64,
+    proposals_str: &str,
+) -> Result<Vec<SnapshotVote>> {
     let graphql_query = format!(
         r#"
         {{
@@ -363,13 +375,21 @@ pub async fn run_periodic_snapshot_votes_update() -> Result<()> {
             for (dao_id, governor_id, space) in snapshot_governors {
                 info!(dao_id = %dao_id, governor_id = %governor_id, space = %space, "Updating snapshot votes for governor.");
                 match update_snapshot_votes(dao_id, governor_id, space.clone()).await {
-                    Ok(_) => debug!(governor_id = %governor_id, "Successfully updated snapshot votes for governor."),
-                    Err(e) => error!(governor_id = %governor_id, error = %e, "Failed to update snapshot votes for governor: {:?}" , e),
+                    Ok(_) => {
+                        debug!(governor_id = %governor_id, "Successfully updated snapshot votes for governor.")
+                    }
+                    Err(e) => {
+                        error!(governor_id = %governor_id, error = %e, "Failed to update snapshot votes for governor: {:?}" , e)
+                    }
                 }
 
                 match refresh_closed_shutter_votes(dao_id, governor_id, space).await {
-                    Ok(_) => debug!(governor_id = %governor_id, "Successfully refreshed shutter proposal votes for governor."),
-                    Err(e) => error!(governor_id = %governor_id, error = %e, "Failed to refresh shutter proposal votes for governor"),
+                    Ok(_) => {
+                        debug!(governor_id = %governor_id, "Successfully refreshed shutter proposal votes for governor.")
+                    }
+                    Err(e) => {
+                        error!(governor_id = %governor_id, error = %e, "Failed to refresh shutter proposal votes for governor")
+                    }
                 }
             }
         }
@@ -410,13 +430,19 @@ async fn get_latest_vote_created(governor_id: Uuid, dao_id: Uuid) -> Result<i64>
 }
 
 #[instrument(name = "get_relevant_proposals", skip_all)]
-async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_created: i64) -> Result<Vec<String>> {
+async fn get_relevant_proposals(
+    governor_id: Uuid,
+    dao_id: Uuid,
+    last_vote_created: i64,
+) -> Result<Vec<String>> {
     let db = DB.get().context("DB not initialized")?;
 
-    let last_vote_created_datetime = DateTime::<Utc>::from_timestamp(last_vote_created, 0).context("Invalid last vote created timestamp")?;
+    let last_vote_created_datetime = DateTime::<Utc>::from_timestamp(last_vote_created, 0)
+        .context("Invalid last vote created timestamp")?;
     // Fetch proposals created up to 1 year ago - some proposals might still get votes after a long
     // time
-    let one_year_ago_datetime = last_vote_created_datetime - Duration::from_secs(1 * 52 * 7 * 24 * 60 * 60);
+    let one_year_ago_datetime =
+        last_vote_created_datetime - Duration::from_secs(52 * 7 * 24 * 60 * 60);
 
     let relevant_proposals = proposal::Entity::find()
         .select()
@@ -427,7 +453,11 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
         .filter(
             Condition::any()
                 .add(proposal::Column::EndAt.gt(last_vote_created_datetime.naive_utc()))
-                .add(proposal::Column::EndAt.gt((last_vote_created_datetime - Duration::from_secs(7 * 24 * 60 * 60)).naive_utc())), // Include proposals that ended within last week
+                .add(
+                    proposal::Column::EndAt.gt((last_vote_created_datetime
+                        - Duration::from_secs(7 * 24 * 60 * 60))
+                    .naive_utc()),
+                ), // Include proposals that ended within last week
         )
         // Fetch proposals that started within the last three years
         .filter(proposal::Column::StartAt.gt(one_year_ago_datetime.naive_utc()))
@@ -444,14 +474,18 @@ async fn get_relevant_proposals(governor_id: Uuid, dao_id: Uuid, last_vote_creat
     info!(
         proposal_ids_count = ids.len(),
         last_vote_created_timestamp = last_vote_created,
-        lookback_duration_days = 1 * 365,
+        lookback_duration_days = 365,
         "Relevant proposals retrieved from DB with expanded filtering."
     );
     Ok(ids)
 }
 
 #[instrument(name = "refresh_shutter_votes", skip(dao_id, governor_id, space))]
-async fn refresh_closed_shutter_votes(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
+async fn refresh_closed_shutter_votes(
+    dao_id: Uuid,
+    governor_id: Uuid,
+    space: String,
+) -> Result<()> {
     info!(dao_id = %dao_id, governor_id = %governor_id, space = %space, "Running task to refresh votes for closed shutter proposals (24-hour window).");
 
     let db = DB.get().context("DB not initialized")?;
@@ -526,7 +560,11 @@ async fn refresh_closed_shutter_votes(dao_id: Uuid, governor_id: Uuid, space: St
 }
 
 /// Fetches votes for a specific proposal from Snapshot API
-async fn fetch_proposal_votes_batch(proposal_external_id: &str, skip: usize, batch_size: usize) -> Result<Vec<SnapshotVote>> {
+async fn fetch_proposal_votes_batch(
+    proposal_external_id: &str,
+    skip: usize,
+    batch_size: usize,
+) -> Result<Vec<SnapshotVote>> {
     let graphql_query = format!(
         r#"
         {{
@@ -577,7 +615,11 @@ async fn fetch_proposal_votes_batch(proposal_external_id: &str, skip: usize, bat
     skip(governor_id, dao_id),
     fields(proposal_external_id)
 )]
-async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
+async fn refresh_votes_for_proposal(
+    proposal_external_id: &str,
+    governor_id: Uuid,
+    dao_id: Uuid,
+) -> Result<()> {
     info!(proposal_external_id = %proposal_external_id, "Fetching all votes for proposal.");
 
     let mut current_skip = 0;
@@ -585,7 +627,8 @@ async fn refresh_votes_for_proposal(proposal_external_id: &str, governor_id: Uui
 
     // Fetch all votes for the proposal in batches
     loop {
-        let votes_batch = fetch_proposal_votes_batch(proposal_external_id, current_skip, MAX_BATCH_SIZE).await?;
+        let votes_batch =
+            fetch_proposal_votes_batch(proposal_external_id, current_skip, MAX_BATCH_SIZE).await?;
 
         if votes_batch.is_empty() {
             debug!(proposal_external_id = %proposal_external_id, "No more votes found for proposal, finished fetching.");

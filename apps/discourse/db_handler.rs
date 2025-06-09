@@ -5,8 +5,14 @@ use crate::{
 use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::OnceCell;
-use proposalsapp_db::models::{discourse_category, discourse_post, discourse_post_like, discourse_post_revision, discourse_topic, discourse_user, job_queue};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult, PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
+use proposalsapp_db::models::{
+    discourse_category, discourse_post, discourse_post_like, discourse_post_revision,
+    discourse_topic, discourse_user, job_queue,
+};
+use sea_orm::{
+    ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult,
+    PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict,
+};
 use std::time::Duration;
 use tracing::{debug, info, instrument, warn};
 use utils::types::{DiscussionJobData, JobData};
@@ -18,7 +24,8 @@ pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 /// Reads the DATABASE_URL from environment variables.
 #[instrument]
 pub async fn initialize_db() -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
+    let database_url =
+        std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = sea_orm::ConnectOptions::new(database_url);
     opt.max_connections(25)
@@ -238,16 +245,19 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
     ])
     .to_owned();
 
-    let insert_result: InsertResult<discourse_topic::ActiveModel> = discourse_topic::Entity::insert(topic_model)
-        .on_conflict(on_conflict)
-        .exec(db())
-        .await
-        .with_context(|| format!("Failed to upsert topic with external_id {}", topic.id))?;
+    let insert_result: InsertResult<discourse_topic::ActiveModel> =
+        discourse_topic::Entity::insert(topic_model)
+            .on_conflict(on_conflict)
+            .exec(db())
+            .await
+            .with_context(|| format!("Failed to upsert topic with external_id {}", topic.id))?;
 
     // If the topic was newly inserted (not updated) and belongs to a monitored category, create a job.
     if existing_topic.is_none() {
         debug!(topic_id = topic.id, "Topic was newly inserted.");
-        if let Some(monitored_category_ids) = DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id) {
+        if let Some(monitored_category_ids) =
+            DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id)
+        {
             if monitored_category_ids.contains(&topic.category_id) {
                 let internal_topic_id = insert_result.last_insert_id; // This is the internal UUID primary key
                 debug!(
@@ -263,7 +273,9 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
                 let job_model = job_queue::ActiveModel {
                     id: NotSet, // Let the database generate the UUID
                     r#type: Set(DiscussionJobData::job_type().to_string()),
-                    data: Set(serde_json::to_value(job_data).context("Failed to serialize job data")?),
+                    data: Set(
+                        serde_json::to_value(job_data).context("Failed to serialize job data")?
+                    ),
                     status: Set("PENDING".to_string()), // Use enum or const later if needed
                     created_at: NotSet,                 // Let the database set the timestamp
                 };
@@ -301,10 +313,11 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
 #[instrument(skip(post), fields(post_id = post.id, post_username = %post.username, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_post(post: &Post, dao_discourse_id: Uuid) -> Result<()> {
     // Determine if the post is considered deleted based on specific raw content patterns.
-    let mut is_deleted = post
-        .raw
-        .as_ref()
-        .is_some_and(|raw| raw == "(post deleted by author)" || raw == "<p>(post deleted by author)</p>" || raw.is_empty());
+    let mut is_deleted = post.raw.as_ref().is_some_and(|raw| {
+        raw == "(post deleted by author)"
+            || raw == "<p>(post deleted by author)</p>"
+            || raw.is_empty()
+    });
 
     let cooked_content = if is_deleted {
         NotSet

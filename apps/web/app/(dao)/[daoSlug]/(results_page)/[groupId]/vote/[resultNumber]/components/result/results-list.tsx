@@ -1,10 +1,10 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { ProcessedResults } from '@/lib/results_processing';
+import type { ProcessedResults } from '@/lib/results_processing';
 import { toZonedTime } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
 import PassedIcon from '@/public/assets/web/icons/check.svg';
 import FailedIcon from '@/public/assets/web/icons/cross.svg';
-import superjson, { SuperJSONResult } from 'superjson';
+import superjson, { type SuperJSONResult } from 'superjson';
 import { connection } from 'next/server';
 
 interface ResultsListProps {

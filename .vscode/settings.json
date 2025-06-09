@@ -1,0 +1,191 @@
+{
+  // Editor settings
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "bounded",
+  "editor.wordWrapColumn": 80,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.trimAutoWhitespace": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+
+  // Prettier settings
+  "prettier.enable": true,
+  "prettier.requireConfig": true,
+  "prettier.configPath": "./prettier.config.mjs",
+
+  // ESLint settings
+  "eslint.enable": true,
+  "eslint.format.enable": true,
+  "eslint.lintTask.enable": true,
+  "eslint.options": {
+    "overrideConfigFile": "./eslint.config.mjs"
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ],
+  "eslint.run": "onType",
+  "eslint.probe": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+
+  // TypeScript settings
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.suggest.autoImports": true,
+  "typescript.suggest.completeFunctionCalls": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+
+  // Rust settings
+  "rust-analyzer.enable": true,
+  "rust-analyzer.checkOnSave.enable": true,
+  "rust-analyzer.checkOnSave.command": "clippy",
+  "rust-analyzer.cargo.features": "all",
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.imports.granularity.group": "crate",
+  "rust-analyzer.imports.prefix": "crate",
+  "rust-analyzer.lens.enable": true,
+  "rust-analyzer.lens.methodReferences": true,
+  "rust-analyzer.lens.references": true,
+  "rust-analyzer.inlayHints.enable": true,
+  "rust-analyzer.inlayHints.chainingHints": true,
+  "rust-analyzer.inlayHints.parameterHints": true,
+  "rust-analyzer.inlayHints.typeHints": true,
+
+  // File associations
+  "files.associations": {
+    "*.rs": "rust",
+    "*.toml": "toml",
+    "*.md": "markdown",
+    "*.mjs": "javascript",
+    "*.tsx": "typescriptreact",
+    "Dockerfile*": "dockerfile",
+    "*.env*": "properties"
+  },
+
+  // Language-specific settings
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
+    "editor.semanticHighlighting.enabled": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 100
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+
+  // Search settings
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/target": true,
+    "**/.git": true,
+    "**/.next": true,
+    "**/.turbo": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/coverage": true,
+    "**/playwright-report": true,
+    "**/test-results": true,
+    "**/.cargo": true,
+    "**/apps/observe/storage": true
+  },
+
+  // File watcher settings
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/target/**": true,
+    "**/.git/**": true,
+    "**/.next/**": true,
+    "**/.turbo/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/coverage/**": true,
+    "**/playwright-report/**": true,
+    "**/test-results/**": true,
+    "**/.cargo/**": true,
+    "**/apps/observe/storage/**": true
+  },
+
+  // Extension recommendations
+  "extensions.recommendations": [
+    "rust-lang.rust-analyzer",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-typescript-next",
+    "tamasfe.even-better-toml",
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "ms-playwright.playwright"
+  ],
+
+  // Terminal settings
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.env.osx": {
+    "RUST_BACKTRACE": "1"
+  },
+
+  // Git settings
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+
+  // Explorer settings
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "${capture}.js, ${capture}.d.ts.map, ${capture}.d.ts, ${capture}.js.map",
+    "*.tsx": "${capture}.js, ${capture}.jsx",
+    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml",
+    "Cargo.toml": "Cargo.lock",
+    "*.config.js": "${capture}.config.*.js, ${capture}.config.*.mjs, ${capture}.config.*.ts",
+    "tsconfig.json": "tsconfig.*.json",
+    "tailwind.config.*": "postcss.config.*"
+  }
+}

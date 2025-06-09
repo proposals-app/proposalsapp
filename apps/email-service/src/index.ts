@@ -1,26 +1,26 @@
-import express from "express";
-import { config } from "dotenv";
-import cron from "node-cron";
-import { db } from "@proposalsapp/db";
+import { db } from '@proposalsapp/db';
 import {
-  NewProposalEmailTemplate,
-  NewDiscussionEmailTemplate,
   EndingProposalEmailTemplate,
+  NewDiscussionEmailTemplate,
+  NewProposalEmailTemplate,
   resend,
-} from "@proposalsapp/emails";
-import axios from "axios";
+} from '@proposalsapp/emails';
+import axios from 'axios';
+import { config } from 'dotenv';
+import express from 'express';
+import cron from 'node-cron';
 
 config();
 
 export type ProposalItem = {
-  type: "proposal";
+  type: 'proposal';
   name: string;
   externalId: string;
   governorId: string;
 };
 
 export type TopicItem = {
-  type: "topic";
+  type: 'topic';
   name: string;
   externalId: string;
   daoDiscourseId: string;
@@ -32,18 +32,18 @@ export async function checkNewProposals() {
   try {
     // Check for new proposals
     const newProposals = await db.public
-      .selectFrom("proposal")
+      .selectFrom('proposal')
       .selectAll()
-      .where("createdAt", ">", new Date(Date.now() - 3 * 60 * 60 * 1000))
+      .where('createdAt', '>', new Date(Date.now() - 3 * 60 * 60 * 1000))
       .execute();
 
     for (const proposal of newProposals) {
       // Check if proposal is part of a group
       const proposalGroups = await db.public
-        .selectFrom("proposalGroup")
+        .selectFrom('proposalGroup')
         .selectAll()
-        .where("daoId", "=", proposal.daoId)
-        .where("name", "!=", "UNGROUPED")
+        .where('daoId', '=', proposal.daoId)
+        .where('name', '!=', 'UNGROUPED')
         .execute();
 
       let groupId: string | undefined;
@@ -55,9 +55,9 @@ export async function checkNewProposals() {
           items.length > 0 &&
           items.some(
             (item) =>
-              item.type === "proposal" &&
+              item.type === 'proposal' &&
               item.externalId === proposal.externalId &&
-              item.governorId === proposal.governorId,
+              item.governorId === proposal.governorId
           );
         if (isInGroup) {
           groupId = group.id;
@@ -68,7 +68,7 @@ export async function checkNewProposals() {
       // If not in a group yet, wait for the next iteration
       if (!groupId) {
         console.log(
-          `Proposal ${proposal.id} is not part of a group yet, waiting for next iteration`,
+          `Proposal ${proposal.id} is not part of a group yet, waiting for next iteration`
         );
         continue;
       }
@@ -76,16 +76,16 @@ export async function checkNewProposals() {
       // Get the author information from the voter table
 
       const author = await db.public
-        .selectFrom("voter")
+        .selectFrom('voter')
         .selectAll()
-        .where("address", "=", proposal.author)
+        .where('address', '=', proposal.author)
         .executeTakeFirst();
 
       // Get the DAO name and slug
       const dao = await db.public
-        .selectFrom("dao")
+        .selectFrom('dao')
         .selectAll()
-        .where("id", "=", proposal.daoId)
+        .where('id', '=', proposal.daoId)
         .executeTakeFirst();
 
       if (!dao) {
@@ -95,15 +95,15 @@ export async function checkNewProposals() {
 
       if (!(dao.slug in db)) {
         throw new Error(
-          `Database schema for DAO slug '${dao.slug}' is not configured or found.`,
+          `Database schema for DAO slug '${dao.slug}' is not configured or found.`
         );
       }
 
       // Get users who have enabled new proposal notifications from the specific web schema
       const users = await db[dao.slug as keyof typeof db]
-        .selectFrom("user")
-        .select(["id", "email"])
-        .where("emailSettingsNewProposals", "=", true)
+        .selectFrom('user')
+        .select(['id', 'email'])
+        .where('emailSettingsNewProposals', '=', true)
         .execute();
 
       for (const user of users) {
@@ -111,14 +111,14 @@ export async function checkNewProposals() {
 
         // Check if notification already sent in the specific web schema
         const existingNotification = await db[dao.slug as keyof typeof db]
-          .selectFrom("userNotification")
+          .selectFrom('userNotification')
           .selectAll()
           .where((eb) =>
             eb.and([
-              eb("userId", "=", user.id),
-              eb("type", "=", "EMAIL_NEW_PROPOSAL"),
-              eb("targetId", "=", proposal.id),
-            ]),
+              eb('userId', '=', user.id),
+              eb('type', '=', 'EMAIL_NEW_PROPOSAL'),
+              eb('targetId', '=', proposal.id),
+            ])
           )
           .executeTakeFirst();
 
@@ -126,22 +126,22 @@ export async function checkNewProposals() {
 
         try {
           const { error } = await resend.emails.send({
-            from: "Proposals.app <notifications@proposals.app>",
+            from: 'Proposals.app <notifications@proposals.app>',
             to: [user.email],
             subject: `New proposal in ${dao.name}`,
             react: NewProposalEmailTemplate({
               proposalName: proposal.name,
               proposalUrl: `https://${dao.slug}.proposals.app/${groupId}`,
               daoName: dao.name,
-              authorAddress: author?.address ?? "",
-              authorEns: author?.ens ?? "",
+              authorAddress: author?.address ?? '',
+              authorEns: author?.ens ?? '',
             }),
           });
 
           if (error) {
             console.error(
               `Failed to send new proposal email to ${user.email}:`,
-              error,
+              error
             );
             continue;
           }
@@ -149,10 +149,10 @@ export async function checkNewProposals() {
           // Record notification in the specific web schema
 
           await db[dao.slug as keyof typeof db]
-            .insertInto("userNotification")
+            .insertInto('userNotification')
             .values({
               userId: user.id,
-              type: "EMAIL_ENDING_PROPOSAL",
+              type: 'EMAIL_ENDING_PROPOSAL',
               targetId: proposal.id,
               sentAt: new Date(),
             })
@@ -160,13 +160,13 @@ export async function checkNewProposals() {
         } catch (error) {
           console.error(
             `Failed to send new proposal email to ${user.email}:`,
-            error,
+            error
           );
         }
       }
     }
   } catch (error) {
-    console.error("Error checking new proposals:", error);
+    console.error('Error checking new proposals:', error);
   }
 }
 
@@ -174,36 +174,36 @@ export async function checkNewDiscussions() {
   try {
     // Get discussions created in the last minute
     const newDiscussions = await db.public
-      .selectFrom("discourseTopic")
+      .selectFrom('discourseTopic')
       .selectAll()
-      .where("createdAt", ">=", new Date(Date.now() - 3 * 60 * 60 * 1000))
+      .where('createdAt', '>=', new Date(Date.now() - 3 * 60 * 60 * 1000))
       .execute();
 
     for (const discussion of newDiscussions) {
       // Check if discussion is part of a group
       const daoDiscourse = await db.public
-        .selectFrom("daoDiscourse")
+        .selectFrom('daoDiscourse')
         .selectAll()
-        .where("id", "=", discussion.daoDiscourseId)
+        .where('id', '=', discussion.daoDiscourseId)
         .executeTakeFirst();
 
       if (!daoDiscourse) {
         console.error(
-          `DAO discourse not found for discussion ${discussion.id}`,
+          `DAO discourse not found for discussion ${discussion.id}`
         );
         continue;
       }
 
       // Get the first post of the discussion to get the author
       const firstPost = await db.public
-        .selectFrom("discoursePost")
+        .selectFrom('discoursePost')
         .selectAll()
         .where((eb) =>
           eb.and([
-            eb("topicId", "=", discussion.externalId),
-            eb("daoDiscourseId", "=", discussion.daoDiscourseId),
-            eb("postNumber", "=", 1),
-          ]),
+            eb('topicId', '=', discussion.externalId),
+            eb('daoDiscourseId', '=', discussion.daoDiscourseId),
+            eb('postNumber', '=', 1),
+          ])
         )
         .executeTakeFirst();
 
@@ -214,28 +214,28 @@ export async function checkNewDiscussions() {
 
       // Get the author information from Discourse
       const discourseUser = await db.public
-        .selectFrom("discourseUser")
+        .selectFrom('discourseUser')
         .selectAll()
         .where((eb) =>
           eb.and([
-            eb("externalId", "=", firstPost.userId),
-            eb("daoDiscourseId", "=", discussion.daoDiscourseId),
-          ]),
+            eb('externalId', '=', firstPost.userId),
+            eb('daoDiscourseId', '=', discussion.daoDiscourseId),
+          ])
         )
         .executeTakeFirst();
 
       if (!discourseUser) {
         console.error(
-          `Discourse user not found for discussion ${discussion.id}`,
+          `Discourse user not found for discussion ${discussion.id}`
         );
         continue;
       }
 
       const proposalGroups = await db.public
-        .selectFrom("proposalGroup")
+        .selectFrom('proposalGroup')
         .selectAll()
-        .where("daoId", "=", daoDiscourse.daoId)
-        .where("name", "!=", "UNGROUPED")
+        .where('daoId', '=', daoDiscourse.daoId)
+        .where('name', '!=', 'UNGROUPED')
         .execute();
 
       let groupId: string | undefined;
@@ -247,9 +247,9 @@ export async function checkNewDiscussions() {
           items.length > 0 &&
           items.some(
             (item) =>
-              item.type === "topic" &&
+              item.type === 'topic' &&
               item.externalId === discussion.externalId.toString() &&
-              item.daoDiscourseId === discussion.daoDiscourseId,
+              item.daoDiscourseId === discussion.daoDiscourseId
           );
         if (isInGroup) {
           groupId = group.id;
@@ -260,16 +260,16 @@ export async function checkNewDiscussions() {
       // If not in a group yet, wait for the next iteration
       if (!groupId) {
         console.log(
-          `Discussion ${discussion.id} is not part of a group yet, waiting for next iteration`,
+          `Discussion ${discussion.id} is not part of a group yet, waiting for next iteration`
         );
         continue;
       }
 
       // Get the DAO name and slug
       const dao = await db.public
-        .selectFrom("dao")
+        .selectFrom('dao')
         .selectAll()
-        .where("id", "=", daoDiscourse.daoId)
+        .where('id', '=', daoDiscourse.daoId)
         .executeTakeFirst();
 
       if (!dao) {
@@ -279,15 +279,15 @@ export async function checkNewDiscussions() {
 
       if (!(dao.slug in db)) {
         throw new Error(
-          `Database schema for DAO slug '${dao.slug}' is not configured or found.`,
+          `Database schema for DAO slug '${dao.slug}' is not configured or found.`
         );
       }
 
       // Get users who have enabled new discussion notifications from the specific web schema
       const users = await db[dao.slug as keyof typeof db]
-        .selectFrom("user")
-        .select(["id", "email"])
-        .where("emailSettingsNewDiscussions", "=", true)
+        .selectFrom('user')
+        .select(['id', 'email'])
+        .where('emailSettingsNewDiscussions', '=', true)
         .execute();
 
       for (const user of users) {
@@ -295,16 +295,16 @@ export async function checkNewDiscussions() {
 
         // Check if notification was already sent in the specific web schema
         const existingNotification = await (
-          dao.slug === "arbitrum" ? db.arbitrum : db.public
+          dao.slug === 'arbitrum' ? db.arbitrum : db.public
         )
-          .selectFrom("userNotification")
+          .selectFrom('userNotification')
           .selectAll()
           .where((eb) =>
             eb.and([
-              eb("userId", "=", user.id),
-              eb("type", "=", "EMAIL_NEW_DISCUSSION"),
-              eb("targetId", "=", discussion.id),
-            ]),
+              eb('userId', '=', user.id),
+              eb('type', '=', 'EMAIL_NEW_DISCUSSION'),
+              eb('targetId', '=', discussion.id),
+            ])
           )
           .executeTakeFirst();
 
@@ -314,11 +314,11 @@ export async function checkNewDiscussions() {
 
         try {
           const { error } = await resend.emails.send({
-            from: "Proposals.app <notifications@proposals.app>",
+            from: 'Proposals.app <notifications@proposals.app>',
             to: [user.email],
             subject: `New Discussion in ${dao.name}`,
             react: NewDiscussionEmailTemplate({
-              discussionTitle: discussion.title || "New Discussion",
+              discussionTitle: discussion.title || 'New Discussion',
               discussionUrl: `https://${dao.slug}.proposals.app/${groupId}`,
               daoName: dao.name,
               authorUsername: discourseUser.username,
@@ -329,7 +329,7 @@ export async function checkNewDiscussions() {
           if (error) {
             console.error(
               `Failed to send new discussion email to ${user.email}:`,
-              error,
+              error
             );
             continue;
           }
@@ -337,10 +337,10 @@ export async function checkNewDiscussions() {
           // Record notification in the specific web schema
 
           await db[dao.slug as keyof typeof db]
-            .insertInto("userNotification")
+            .insertInto('userNotification')
             .values({
               userId: user.id,
-              type: "EMAIL_NEW_DISCUSSION",
+              type: 'EMAIL_NEW_DISCUSSION',
               targetId: discussion.id,
               sentAt: new Date(),
             })
@@ -348,13 +348,13 @@ export async function checkNewDiscussions() {
         } catch (error) {
           console.error(
             `Failed to send new discussion email to ${user.email}:`,
-            error,
+            error
           );
         }
       }
     }
   } catch (error) {
-    console.error("Error in checkNewDiscussions:", error);
+    console.error('Error in checkNewDiscussions:', error);
   }
 }
 
@@ -362,23 +362,23 @@ export async function checkEndingProposals() {
   try {
     // Check for ending proposals
     const endingProposals = await db.public
-      .selectFrom("proposal")
+      .selectFrom('proposal')
       .selectAll()
       .where((eb) =>
         eb.and([
-          eb("endAt", ">", new Date(Date.now() + 21 * 60 * 60 * 1000)),
-          eb("endAt", "<", new Date(Date.now() + 28 * 60 * 60 * 1000)),
-        ]),
+          eb('endAt', '>', new Date(Date.now() + 21 * 60 * 60 * 1000)),
+          eb('endAt', '<', new Date(Date.now() + 28 * 60 * 60 * 1000)),
+        ])
       )
       .execute();
 
     for (const proposal of endingProposals) {
       // Check if proposal is part of a group
       const proposalGroups = await db.public
-        .selectFrom("proposalGroup")
+        .selectFrom('proposalGroup')
         .selectAll()
-        .where("daoId", "=", proposal.daoId)
-        .where("name", "!=", "UNGROUPED")
+        .where('daoId', '=', proposal.daoId)
+        .where('name', '!=', 'UNGROUPED')
         .execute();
 
       let groupId: string | undefined;
@@ -390,9 +390,9 @@ export async function checkEndingProposals() {
           items.length > 0 &&
           items.some(
             (item) =>
-              item.type === "proposal" &&
+              item.type === 'proposal' &&
               item.externalId === proposal.externalId &&
-              item.governorId === proposal.governorId,
+              item.governorId === proposal.governorId
           );
         if (isInGroup) {
           groupId = group.id;
@@ -403,16 +403,16 @@ export async function checkEndingProposals() {
       // If not in a group yet, wait for the next iteration
       if (!groupId) {
         console.log(
-          `Proposal ${proposal.id} is not part of a group yet, waiting for next iteration`,
+          `Proposal ${proposal.id} is not part of a group yet, waiting for next iteration`
         );
         continue;
       }
 
       // Get the DAO name and slug
       const dao = await db.public
-        .selectFrom("dao")
+        .selectFrom('dao')
         .selectAll()
-        .where("id", "=", proposal.daoId)
+        .where('id', '=', proposal.daoId)
         .executeTakeFirst();
 
       if (!dao) {
@@ -422,15 +422,15 @@ export async function checkEndingProposals() {
 
       if (!(dao.slug in db)) {
         throw new Error(
-          `Database schema for DAO slug '${dao.slug}' is not configured or found.`,
+          `Database schema for DAO slug '${dao.slug}' is not configured or found.`
         );
       }
 
       // Get users who have enabled ending proposal notifications from the specific web schema
       const users = await db[dao.slug as keyof typeof db]
-        .selectFrom("user") // Use unprefixed table name
-        .select(["id", "email"])
-        .where("emailSettingsEndingProposals", "=", true)
+        .selectFrom('user') // Use unprefixed table name
+        .select(['id', 'email'])
+        .where('emailSettingsEndingProposals', '=', true)
         .execute();
 
       for (const user of users) {
@@ -438,16 +438,16 @@ export async function checkEndingProposals() {
 
         // Check if notification already sent in the specific web schema
         const existingNotification = await (
-          dao.slug === "arbitrum" ? db.arbitrum : db.public
+          dao.slug === 'arbitrum' ? db.arbitrum : db.public
         )
-          .selectFrom("userNotification") // Use unprefixed table name
+          .selectFrom('userNotification') // Use unprefixed table name
           .selectAll()
           .where((eb) =>
             eb.and([
-              eb("userId", "=", user.id),
-              eb("type", "=", "EMAIL_ENDING_PROPOSAL"),
-              eb("targetId", "=", proposal.id),
-            ]),
+              eb('userId', '=', user.id),
+              eb('type', '=', 'EMAIL_ENDING_PROPOSAL'),
+              eb('targetId', '=', proposal.id),
+            ])
           )
           .executeTakeFirst();
 
@@ -455,7 +455,7 @@ export async function checkEndingProposals() {
 
         try {
           const { error } = await resend.emails.send({
-            from: "Proposals.app <notifications@proposals.app>",
+            from: 'Proposals.app <notifications@proposals.app>',
             to: [user.email],
             subject: `Proposal ending soon in ${dao.name}`,
             react: EndingProposalEmailTemplate({
@@ -469,7 +469,7 @@ export async function checkEndingProposals() {
           if (error) {
             console.error(
               `Failed to send ending proposal email to ${user.email}:`,
-              error,
+              error
             );
             continue;
           }
@@ -477,10 +477,10 @@ export async function checkEndingProposals() {
           // Record notification in the specific web schema
 
           await db[dao.slug as keyof typeof db]
-            .insertInto("userNotification") // Use unprefixed table name
+            .insertInto('userNotification') // Use unprefixed table name
             .values({
               userId: user.id,
-              type: "EMAIL_ENDING_PROPOSAL",
+              type: 'EMAIL_ENDING_PROPOSAL',
               targetId: proposal.id,
               sentAt: new Date(),
             })
@@ -488,13 +488,13 @@ export async function checkEndingProposals() {
         } catch (error) {
           console.error(
             `Failed to send ending proposal email to ${user.email}:`,
-            error,
+            error
           );
         }
       }
     }
   } catch (error) {
-    console.error("Error checking ending proposals:", error);
+    console.error('Error checking ending proposals:', error);
   }
 }
 
@@ -513,12 +513,12 @@ async function runScheduledJobs() {
     await checkNewDiscussions();
     await checkEndingProposals();
   } catch (error) {
-    console.error("Error running scheduled jobs:", error);
+    console.error('Error running scheduled jobs:', error);
   }
 }
 
 // Schedule jobs to run every minute
-cron.schedule("* * * * *", runScheduledJobs);
+cron.schedule('* * * * *', runScheduledJobs);
 
 // Run jobs immediately on start
 runScheduledJobs();
@@ -526,10 +526,10 @@ runScheduledJobs();
 // Send uptime ping every 10 seconds
 const sendUptimePing = async () => {
   try {
-    console.log("Sending uptime ping...");
+    console.log('Sending uptime ping...');
     await axios.get(`${process.env.BETTERSTACK_KEY}`);
   } catch (error) {
-    console.error("Error sending uptime ping:", error);
+    console.error('Error sending uptime ping:', error);
   }
 };
 
@@ -538,8 +538,8 @@ setInterval(sendUptimePing, 10 * 1000);
 const app = express();
 
 // Health check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).send("OK");
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // Start server

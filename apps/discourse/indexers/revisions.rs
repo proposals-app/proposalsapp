@@ -8,7 +8,10 @@ use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use futures::stream::{self, StreamExt, TryStreamExt};
 use proposalsapp_db::models::{discourse_post, discourse_post_revision};
-use sea_orm::{ColumnTrait, Condition, EntityTrait, FromQueryResult, QueryFilter, QuerySelect, prelude::Uuid, sea_query::Expr};
+use sea_orm::{
+    ColumnTrait, Condition, EntityTrait, FromQueryResult, QueryFilter, QuerySelect, prelude::Uuid,
+    sea_query::Expr,
+};
 use std::{collections::HashSet, sync::Arc};
 use tokio::task::JoinSet;
 use tracing::{debug, error, info, instrument, warn};
@@ -60,7 +63,12 @@ impl RevisionIndexer {
 
     /// Internal helper to fetch posts needing revision updates and process them.
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id, recent_only = recent_only, priority = priority))]
-    async fn update_revisions_internal(&self, dao_discourse_id: Uuid, recent_only: bool, priority: bool) -> Result<()> {
+    async fn update_revisions_internal(
+        &self,
+        dao_discourse_id: Uuid,
+        recent_only: bool,
+        priority: bool,
+    ) -> Result<()> {
         let posts_needing_update = self
             .fetch_posts_needing_revision_update(dao_discourse_id, recent_only)
             .await
@@ -92,7 +100,8 @@ impl RevisionIndexer {
             // Spawn task to update revisions for a single post
             join_set.spawn(async move {
                 // Pass priority down
-                update_revisions_for_post(api_handler, dao_discourse_id, post_summary, priority).await
+                update_revisions_for_post(api_handler, dao_discourse_id, post_summary, priority)
+                    .await
             });
         }
 
@@ -126,7 +135,11 @@ impl RevisionIndexer {
     /// Fetches posts from the DB that might be missing revision data.
     /// Filters by recent updates if `recent_only` is true.
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id, recent_only = recent_only))]
-    async fn fetch_posts_needing_revision_update(&self, dao_discourse_id: Uuid, recent_only: bool) -> Result<Vec<PostWithRevisionCount>> {
+    async fn fetch_posts_needing_revision_update(
+        &self,
+        dao_discourse_id: Uuid,
+        recent_only: bool,
+    ) -> Result<Vec<PostWithRevisionCount>> {
         // Return the helper struct
         info!("Fetching posts needing revision update from DB");
 
@@ -257,7 +270,8 @@ async fn update_revisions_for_post(
                 };
 
                 // Process upload URLs in revision body content (sync function)
-                let processed_body = process_upload_urls(&revision.body_changes.side_by_side_markdown, api.clone());
+                let processed_body =
+                    process_upload_urls(&revision.body_changes.side_by_side_markdown, api.clone());
                 revision.body_changes.side_by_side_markdown = processed_body;
 
                 // Process title changes if they exist (sync function)

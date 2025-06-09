@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, anyhow};
 use once_cell::sync::Lazy;
-use rand::seq::{IndexedRandom};
+use rand::seq::IndexedRandom;
 use regex::Regex;
 use reqwest::{
     Client, StatusCode,
@@ -37,7 +37,10 @@ const USER_AGENTS: [&str; 5] = [
 ];
 
 // Compile regex once using Lazy for efficiency.
-static RE_UPLOAD_URL: Lazy<Regex> = Lazy::new(|| Regex::new(r"upload:\/\/([a-zA-Z0-9\-_]+)(?:\.([a-zA-Z0-9]+))?").expect("Failed to compile upload URL regex"));
+static RE_UPLOAD_URL: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"upload:\/\/([a-zA-Z0-9\-_]+)(?:\.([a-zA-Z0-9]+))?")
+        .expect("Failed to compile upload URL regex")
+});
 
 // --- Structs ---
 
@@ -494,10 +497,9 @@ impl DiscourseApi {
                         StatusCode::OK => {
                             info!(url, attempt, ?response_time, "Request successful (200 OK)");
                             // Read body text - potential point of failure
-                            return response
-                                .text()
-                                .await
-                                .with_context(|| format!("Failed to read response body text for {}", url));
+                            return response.text().await.with_context(|| {
+                                format!("Failed to read response body text for {}", url)
+                            });
                         }
                         StatusCode::TOO_MANY_REQUESTS => {
                             if attempt > self.max_retries {

@@ -1,10 +1,10 @@
-import { AsyncReturnType } from '@/lib/utils';
+import type { AsyncReturnType } from '@/lib/utils';
 import {
   daoSlugSchema,
   proposalIdSchema,
   voterAddressSchema,
 } from '@/lib/validations';
-import { db, DiscourseUser, Selectable } from '@proposalsapp/db';
+import { db, type DiscourseUser, type Selectable } from '@proposalsapp/db';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getProposalGovernor(proposalId: string) {

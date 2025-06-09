@@ -7,13 +7,16 @@ Cargo.lock
 
 # misc
 .DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
 
 # local env files
 .env.development
 .env
 .env.secrets
 
-.idea
-.vscode
 .yarn
 lcov.info

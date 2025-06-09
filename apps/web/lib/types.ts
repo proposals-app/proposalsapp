@@ -1,5 +1,5 @@
-import { Proposal, Selectable } from '@proposalsapp/db';
-import { ProcessedResults, VoteType } from './results_processing';
+import type { Proposal, Selectable } from '@proposalsapp/db';
+import type { ProcessedResults, VoteType } from './results_processing';
 
 export type ProposalMetadata = {
   quorumChoices?: number[];

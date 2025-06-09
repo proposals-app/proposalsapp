@@ -1,6 +1,6 @@
 'use client';
 
-import { Selectable, DiscourseUser } from '@proposalsapp/db';
+import type { DiscourseUser, Selectable } from '@proposalsapp/db';
 import { fuzzySearchDiscourseUsers } from '../../../delegates/actions';
 import FuzzySearch from './fuzzy-search';
 import Badge from '../badge';
@@ -8,7 +8,7 @@ import Badge from '../badge';
 interface FuzzyDiscourseUserSearchProps {
   daoSlug: string;
   excludeUserIds?: string[];
-  onSelectUser: (user: Selectable<DiscourseUser>) => void;
+  onSelectUser: (_user: Selectable<DiscourseUser>) => void;
   isLoading?: boolean;
   className?: string;
 }

@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from 'clsx';
+import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -6,9 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AsyncReturnType<T extends (...args: any) => Promise<any>> =
+export type AsyncReturnType<T extends (..._args: any) => Promise<any>> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends (...args: any) => Promise<infer R> ? R : never;
+  T extends (..._args: any) => Promise<infer R> ? R : never;
 
 export function formatAddress(address: string): string {
   if (!address) return '';

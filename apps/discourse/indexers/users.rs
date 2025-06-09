@@ -62,7 +62,13 @@ impl UserIndexer {
 
     /// Internal helper to fetch and process users from the directory endpoint.
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id, recent = recent, priority = priority, ?page_limit))]
-    async fn update_users_internal(&self, dao_discourse_id: Uuid, recent: bool, priority: bool, page_limit: Option<u32>) -> Result<()> {
+    async fn update_users_internal(
+        &self,
+        dao_discourse_id: Uuid,
+        recent: bool,
+        priority: bool,
+        page_limit: Option<u32>,
+    ) -> Result<()> {
         let start_time = Instant::now();
         info!("Starting user update process");
 
@@ -205,7 +211,12 @@ impl UserIndexer {
     /// Fetches user details by username and upserts them into the database.
     /// Returns the external user ID upon successful upsert.
     #[instrument(skip(self), fields(username = %username, dao_discourse_id = %dao_discourse_id, priority = priority))]
-    pub async fn fetch_and_upsert_user(&self, username: &str, dao_discourse_id: Uuid, priority: bool) -> Result<i32> {
+    pub async fn fetch_and_upsert_user(
+        &self,
+        username: &str,
+        dao_discourse_id: Uuid,
+        priority: bool,
+    ) -> Result<i32> {
         // Return the user ID
         debug!("Fetching user by username for upsert");
 
@@ -222,7 +233,8 @@ impl UserIndexer {
         let user_detail = response.user;
 
         // Process avatar URL
-        let processed_avatar_url = match self.process_avatar_url(&user_detail.avatar_template).await {
+        let processed_avatar_url = match self.process_avatar_url(&user_detail.avatar_template).await
+        {
             Ok(url) => url,
             Err(e) => {
                 warn!(error = ?e, username = %username, avatar_template = %user_detail.avatar_template, "Failed to process avatar URL, using original.");

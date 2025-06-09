@@ -60,7 +60,9 @@ impl RelationTrait for Relation {
                 .from(Column::DaoId)
                 .to(super::dao::Column::Id)
                 .into(),
-            Self::DelegateToDiscourseUser => Entity::has_many(super::delegate_to_discourse_user::Entity).into(),
+            Self::DelegateToDiscourseUser => {
+                Entity::has_many(super::delegate_to_discourse_user::Entity).into()
+            }
             Self::DelegateToVoter => Entity::has_many(super::delegate_to_voter::Entity).into(),
         }
     }

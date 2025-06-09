@@ -1,4 +1,4 @@
-import { Address } from 'viem';
+import type { Address } from 'viem';
 
 export const ARBITRUM_CORE_GOVERNOR_ADDRESS: Address =
   '0xf07DeD9dC292157749B6Fd268E37DF6EA38395B9';

@@ -2,8 +2,10 @@ use crate::DB;
 use alloy::primitives::Address;
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use proposalsapp_db::models::{dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user, voter};
-use rand;
+use proposalsapp_db::models::{
+    dao, dao_discourse, delegate, delegate_to_discourse_user, delegate_to_voter, discourse_user,
+    voter,
+};
 use reqwest::Client;
 use sea_orm::{
     ActiveValue::NotSet,
@@ -95,7 +97,10 @@ pub async fn run_karma_task() -> Result<()> {
 
                 let delegates_with_forum_handle: Vec<&KarmaDelegate> = all_delegates
                     .iter()
-                    .filter(|d| d.discourse_handles.is_some() && !d.discourse_handles.as_ref().unwrap().is_empty())
+                    .filter(|d| {
+                        d.discourse_handles.is_some()
+                            && !d.discourse_handles.as_ref().unwrap().is_empty()
+                    })
                     .collect();
 
                 info!("{:?}", delegates_with_forum_handle);
@@ -163,7 +168,10 @@ const RATE_LIMIT_STALE_DURATION: std::time::Duration = std::time::Duration::from
 const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 /// Extract rate limit information from response headers
-fn extract_rate_limit_info(headers: &reqwest::header::HeaderMap, now: Instant) -> (Option<u32>, Option<Instant>) {
+fn extract_rate_limit_info(
+    headers: &reqwest::header::HeaderMap,
+    now: Instant,
+) -> (Option<u32>, Option<Instant>) {
     // Extract remaining requests
     let remaining = headers
         .get("x-ratelimit-remaining")
@@ -221,7 +229,9 @@ async fn check_rate_limit(dao_slug: &str) -> bool {
     let now = Instant::now();
 
     // If rate limit info is fresh and we're close to the limit
-    if now.duration_since(rate_limit_state.last_updated) < RATE_LIMIT_STALE_DURATION && rate_limit_state.remaining <= RATE_LIMIT_THRESHOLD {
+    if now.duration_since(rate_limit_state.last_updated) < RATE_LIMIT_STALE_DURATION
+        && rate_limit_state.remaining <= RATE_LIMIT_THRESHOLD
+    {
         // If reset time is in the future, wait until then
         if rate_limit_state.reset_at > now {
             let wait_duration = rate_limit_state.reset_at.duration_since(now);
@@ -275,7 +285,12 @@ async fn update_rate_limit_state(headers: &reqwest::header::HeaderMap, dao_slug:
 }
 
 /// Handle rate limit exceeded (429 status code)
-async fn handle_rate_limit_exceeded(headers: &reqwest::header::HeaderMap, retry_delay: Duration, retry_count: u32, dao_slug: &str) -> std::time::Duration {
+async fn handle_rate_limit_exceeded(
+    headers: &reqwest::header::HeaderMap,
+    retry_delay: Duration,
+    retry_count: u32,
+    dao_slug: &str,
+) -> std::time::Duration {
     // Get retry-after value or calculate a reasonable delay
     let retry_after = headers
         .get("retry-after")
@@ -337,7 +352,10 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
                     ));
                 }
             }
-            Err(e) => return Err(e).with_context(|| format!("Failed to fetch JSON data for DAO: {}", dao_slug)),
+            Err(e) => {
+                return Err(e)
+                    .with_context(|| format!("Failed to fetch JSON data for DAO: {}", dao_slug));
+            }
         };
 
         let status = response.status();
@@ -357,7 +375,8 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
             });
         } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS && retry_count < MAX_RETRIES {
             // Handle 429 Too Many Requests
-            let delay = handle_rate_limit_exceeded(&headers, retry_delay, retry_count, dao_slug).await;
+            let delay =
+                handle_rate_limit_exceeded(&headers, retry_delay, retry_count, dao_slug).await;
             sleep(delay).await;
             retry_count += 1;
             retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
@@ -391,12 +410,18 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
 }
 
 fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
-    let response: KarmaFullApiResponse = serde_json::from_str(body).with_context(|| format!("Failed to parse JSON for DAO: {}", dao_slug))?;
+    let response: KarmaFullApiResponse = serde_json::from_str(body)
+        .with_context(|| format!("Failed to parse JSON for DAO: {}", dao_slug))?;
     Ok(response.data.delegates)
 }
 
 #[instrument(skip( dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
-async fn update_delegate(dao: &dao::Model, delegate_data: &KarmaDelegate, dao_discourse_id: Uuid, forum_handle: &str) -> Result<()> {
+async fn update_delegate(
+    dao: &dao::Model,
+    delegate_data: &KarmaDelegate,
+    dao_discourse_id: Uuid,
+    forum_handle: &str,
+) -> Result<()> {
     let txn = DB
         .get()
         .unwrap()

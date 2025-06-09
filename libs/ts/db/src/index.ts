@@ -1,29 +1,29 @@
 import {
+  CamelCasePlugin,
   DeduplicateJoinsPlugin,
-  ExpressionBuilder,
   Kysely,
   ParseJSONResultsPlugin,
   PostgresDialect,
   sql,
-  StringReference,
-} from "kysely";
-import { CamelCasePlugin } from "kysely";
-import { config as dotenv_config } from "dotenv";
-import { DB } from "./kysely_db";
-import pg from "pg";
+  type ExpressionBuilder,
+  type StringReference,
+} from 'kysely';
+import { config as dotenv_config } from 'dotenv';
+import type { DB } from './kysely_db';
+import pg from 'pg';
 
 dotenv_config();
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not defined.");
+  throw new Error('DATABASE_URL environment variable is not defined.');
 }
 
 if (!process.env.ARBITRUM_DATABASE_URL) {
-  throw new Error("ARBITRUM_DATABASE_URL environment variable is not defined.");
+  throw new Error('ARBITRUM_DATABASE_URL environment variable is not defined.');
 }
 
 if (!process.env.UNISWAP_DATABASE_URL) {
-  throw new Error("UNISWAP_DATABASE_URL environment variable is not defined.");
+  throw new Error('UNISWAP_DATABASE_URL environment variable is not defined.');
 }
 
 const { Pool } = pg;
@@ -39,7 +39,7 @@ export const db_pool_public = new Pool({
 
 export const db_pool_arbitrum = new Pool({
   connectionString: process.env.ARBITRUM_DATABASE_URL,
-  options: "-c search_path=arbitrum",
+  options: '-c search_path=arbitrum',
   min: 5,
   max: 10,
   ssl: {
@@ -49,7 +49,7 @@ export const db_pool_arbitrum = new Pool({
 
 export const db_pool_uniswap = new Pool({
   connectionString: process.env.UNISWAP_DATABASE_URL,
-  options: "-c search_path=uniswap",
+  options: '-c search_path=uniswap',
   min: 5,
   max: 10,
   ssl: {
@@ -57,11 +57,11 @@ export const db_pool_uniswap = new Pool({
   },
 });
 
-db_pool_arbitrum.on("connect", (client) => {
+db_pool_arbitrum.on('connect', (client) => {
   client.query(`SET search_path TO arbitrum`);
 });
 
-db_pool_uniswap.on("connect", (client) => {
+db_pool_uniswap.on('connect', (client) => {
   client.query(`SET search_path TO uniswap`);
 });
 
@@ -125,8 +125,8 @@ export const dbPool = {
 
 export const db = {
   public: dbPublic,
-  arbitrum: dbArbitrum.withSchema("arbitrum"),
-  uniswap: dbUniswap.withSchema("uniswap"),
+  arbitrum: dbArbitrum.withSchema('arbitrum'),
+  uniswap: dbUniswap.withSchema('uniswap'),
 };
 
 //if (process.env.NODE_ENV !== "production") global.dbPublic = dbPublic;
@@ -136,20 +136,24 @@ export const db = {
 function traverseJSON<DB, TB extends keyof DB>(
   eb: ExpressionBuilder<DB, TB>,
   column: StringReference<DB, TB>,
-  path: string | [string, ...string[]],
+  path: string | [string, ...string[]]
 ) {
   if (!Array.isArray(path)) {
     path = [path];
   }
 
   return sql`${sql.ref(column)}->${sql.raw(
-    path.map((item) => `'${item}'`).join("->"),
+    path.map((item) => `'${item}'`).join('->')
   )}`;
 }
 
 export { traverseJSON };
-export * from "./kysely_db";
+export * from './kysely_db';
 export { Kysely };
-export { sql, type Selectable, type Insertable } from "kysely";
-export { jsonArrayFrom } from "kysely/helpers/postgres";
-export { type SelectQueryBuilder } from "kysely";
+export {
+  sql,
+  type Selectable,
+  type Insertable,
+  type SelectQueryBuilder,
+} from 'kysely';
+export { jsonArrayFrom } from 'kysely/helpers/postgres';

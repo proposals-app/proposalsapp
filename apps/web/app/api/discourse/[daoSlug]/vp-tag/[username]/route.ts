@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@proposalsapp/db';
 import { formatNumberWithSuffix } from '@/lib/utils';
 

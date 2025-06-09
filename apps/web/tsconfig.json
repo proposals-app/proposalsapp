@@ -24,9 +24,7 @@
     "paths": {
       "@proposalsapp/db": ["../../libs/ts/db/src/index.ts"],
       "@proposalsapp/emails": ["../../libs/ts/emails/src/index.ts"],
-      "@proposalsapp/visual-dom-diff": [
-        "../../libs/ts/visual-dom-diff/src/index.ts"
-      ],
+      "@proposalsapp/visual-dom-diff": ["../../libs/ts/visual-dom-diff/src/index.ts"],
       "@/*": ["./*"]
     }
   },

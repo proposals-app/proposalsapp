@@ -1,6 +1,7 @@
 use alloy::sol;
 
 sol!(
+    #[allow(clippy::too_many_arguments)]
     #[derive(Debug)]
     #[sol(rpc, all_derives)]
     RindexerArbitrumCoreGovernorGen,

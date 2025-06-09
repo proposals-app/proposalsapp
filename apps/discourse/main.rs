@@ -3,7 +3,10 @@
 use crate::{
     db_handler::{db, initialize_db},
     discourse_api::DiscourseApi,
-    indexers::{categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer, users::UserIndexer},
+    indexers::{
+        categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer,
+        users::UserIndexer,
+    },
 };
 use anyhow::{Context, Error, Result};
 use axum::Router;
@@ -131,8 +134,10 @@ async fn main() -> Result<()> {
 
         // Create indexer instances
         let category_indexer = CategoryIndexer::new(Arc::clone(&api_client));
-        let user_indexer = UserIndexer::new(Arc::clone(&api_client), Arc::clone(&shared_http_client));
-        let topic_indexer = TopicIndexer::new(Arc::clone(&api_client), Arc::clone(&shared_http_client));
+        let user_indexer =
+            UserIndexer::new(Arc::clone(&api_client), Arc::clone(&shared_http_client));
+        let topic_indexer =
+            TopicIndexer::new(Arc::clone(&api_client), Arc::clone(&shared_http_client));
         let revision_indexer = RevisionIndexer::new(Arc::clone(&api_client));
 
         // --- Spawn Full Refresh Task ---

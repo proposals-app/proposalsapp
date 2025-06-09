@@ -2,7 +2,9 @@
 
 ## Overview
 
-This project implements subdomain-based routing to provide distinct experiences for different DAOs. It supports both specialized implementations (e.g., `arbitrum.domain.com`, `uniswap.domain.com`) and generic implementations for any DAO via `dao-name.domain.com`.
+This project implements subdomain-based routing to provide distinct experiences for different DAOs.
+It supports both specialized implementations (e.g., `arbitrum.domain.com`, `uniswap.domain.com`) and
+generic implementations for any DAO via `dao-name.domain.com`.
 
 ## How It Works
 
@@ -29,11 +31,13 @@ The middleware intercepts all incoming requests and:
 Environment variables control the behavior:
 
 - `NEXT_PUBLIC_ROOT_DOMAIN`: The root domain without subdomain (e.g., `domain.com`)
-- `NEXT_PUBLIC_SPECIAL_SUBDOMAINS`: Comma-separated list of subdomains with specialized implementations
+- `NEXT_PUBLIC_SPECIAL_SUBDOMAINS`: Comma-separated list of subdomains with specialized
+  implementations
 
 ## Development Setup
 
-Follow the instructions in `SUBDOMAIN_SETUP.md` to configure your local environment for testing subdomains.
+Follow the instructions in `SUBDOMAIN_SETUP.md` to configure your local environment for testing
+subdomains.
 
 ## Utility Functions
 
@@ -58,9 +62,7 @@ Check that the matcher pattern in `middleware.ts` isn't excluding your routes:
 
 ```typescript
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)'],
 };
 ```
 
@@ -101,4 +103,5 @@ The middleware handles differences between development and production:
 
 ### Query Parameters
 
-For generic DAO implementations, the subdomain is passed as a query parameter (`daoSlug`) to preserve the original value, as the path parameter gets normalized to `[daoSlug]`.
+For generic DAO implementations, the subdomain is passed as a query parameter (`daoSlug`) to
+preserve the original value, as the path parameter gets normalized to `[daoSlug]`.

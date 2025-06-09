@@ -185,7 +185,7 @@ export async function getDelegateByDiscourseUser(
     delegatetovoter: {
       ens: delegateData.voterEns,
       address: delegateData.voterAddress,
-      latestVotingPower: latestVotingPower,
+      latestVotingPower,
     },
   };
 }

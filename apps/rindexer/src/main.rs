@@ -4,9 +4,16 @@ use axum::Router;
 use dotenv::dotenv;
 use extensions::{db_extension::initialize_db, snapshot_api::initialize_snapshot_api};
 use reqwest::Client;
-use rindexer::{GraphqlOverrideSettings, IndexingDetails, StartDetails, event::callback_registry::TraceCallbackRegistry, start_rindexer};
+use rindexer::{
+    GraphqlOverrideSettings, IndexingDetails, StartDetails,
+    event::callback_registry::TraceCallbackRegistry, start_rindexer,
+};
 use std::{env, time::Duration};
-use tasks::{onchain_proposals_updates::run_periodic_proposal_state_update, snapshot_proposals::run_periodic_snapshot_proposals_update, snapshot_votes::run_periodic_snapshot_votes_update};
+use tasks::{
+    onchain_proposals_updates::run_periodic_proposal_state_update,
+    snapshot_proposals::run_periodic_snapshot_proposals_update,
+    snapshot_votes::run_periodic_snapshot_votes_update,
+};
 use tracing::{error, info, instrument, warn};
 use utils::tracing::setup_otel;
 

@@ -1,4 +1,4 @@
-import { ReactNode, Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { NavBar } from './components/nav-bar';
 import SuspendedThemeProvider from '@/app/components/theme-provider';
 import Banner from '@/app/components/banner';

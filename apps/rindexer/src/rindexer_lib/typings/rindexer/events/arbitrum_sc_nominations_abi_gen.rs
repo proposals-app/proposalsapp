@@ -2,6 +2,7 @@ use crate::rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations_abi_
 use alloy::sol;
 
 sol!(
+    #[allow(clippy::too_many_arguments)]
     #[derive(Debug)]
     #[sol(rpc, all_derives)]
     RindexerArbitrumSCNominationsGen,

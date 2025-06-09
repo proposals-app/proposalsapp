@@ -4,19 +4,19 @@ import { useCallback, useState } from 'react';
 import superjson from 'superjson';
 import {
   deleteGroup,
-  FuzzySearchResult,
-  GroupsDataReturnType,
-  ProposalGroup,
-  ProposalGroupItem,
   saveGroups,
+  type FuzzySearchResult,
+  type GroupsDataReturnType,
+  type ProposalGroup,
+  type ProposalGroupItem,
 } from '../actions';
 import {
-  MappingTable,
-  MappingTableRow,
-  MappingTableCell,
-  MappingTableActionCell,
-  Button,
   Badge,
+  Button,
+  MappingTable,
+  MappingTableActionCell,
+  MappingTableCell,
+  MappingTableRow,
 } from './ui';
 import { FuzzyItemSearch } from './ui/search';
 

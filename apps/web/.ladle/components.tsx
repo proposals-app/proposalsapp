@@ -3,16 +3,15 @@
 import type { GlobalProvider } from '@ladle/react';
 import React from 'react';
 import {
+  RainbowKitProvider,
   darkTheme,
   getDefaultConfig,
-  RainbowKitProvider,
 } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { defineChain } from 'viem';
 import '@rainbow-me/rainbowkit/styles.css';
-import { Toaster } from '../components/ui/sonner';
-import SuspendedThemeProvider from '../app/components/theme-provider';
+import { Toaster } from '../app/components/ui/sonner';
 
 // Define a local version of the Arbitrum chain
 const arbitrumLocalhost = defineChain({
@@ -80,6 +79,6 @@ function TestWalletProvider({ children }: { children: React.ReactNode }) {
 // The GlobalProvider should wrap the children with the TestWalletProvider
 export const Provider: GlobalProvider = ({
   children,
-  globalState, // Unused in this example
-  storyMeta, // Unused in this example
+  globalState: _globalState, // Unused in this example
+  storyMeta: _storyMeta, // Unused in this example
 }) => <TestWalletProvider>{children}</TestWalletProvider>;

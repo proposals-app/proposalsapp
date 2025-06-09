@@ -4,13 +4,13 @@ import CheckSvg from '@/public/assets/web/icons/check.svg';
 import ChevronDownSvg from '@/public/assets/web/icons/chevron-down.svg';
 import React, {
   createContext,
-  Dispatch,
-  SetStateAction,
+  useContext,
   useEffect,
   useRef,
   useState,
-  ReactNode,
-  useContext,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
 } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -19,7 +19,7 @@ const SelectContext = createContext<{
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   selectedValue: string | number; // Allow both string and number values
-  onSelectValue: (value: string | number) => void; // Allow both string and number values
+  onSelectValue: (_value: string | number) => void; // Allow both string and number values
   triggerRef: React.RefObject<HTMLButtonElement | null>;
 }>({
   isOpen: false,
@@ -31,7 +31,7 @@ const SelectContext = createContext<{
 
 interface SelectProps {
   value: string | number; // Allow both string and number values
-  onValueChange: (value: string | number) => void; // Allow both string and number values
+  onValueChange: (_value: string | number) => void; // Allow both string and number values
   children: ReactNode;
 }
 

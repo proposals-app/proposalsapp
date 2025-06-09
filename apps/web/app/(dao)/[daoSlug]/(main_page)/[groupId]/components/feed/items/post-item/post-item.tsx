@@ -1,6 +1,6 @@
-import { DiscourseUser, Selectable } from '@proposalsapp/db';
+import type { DiscourseUser, Selectable } from '@proposalsapp/db';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { Root } from 'hast';
+import type { Root } from 'hast';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toHast } from 'mdast-util-to-hast';
 import rehypeStringify from 'rehype-stringify';
@@ -15,7 +15,7 @@ import {
   getDiscourseUser,
   getPostLikesCount,
 } from '../../actions';
-import { FeedReturnType, GroupReturnType } from '../../../../actions';
+import type { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { DiscourseAuthor } from '@/app/(dao)/[daoSlug]/components/author-discourse';
 import HeartIcon from '@/public/assets/web/icons/like.svg';
 import SeenIcon from '@/public/assets/web/icons/views.svg';
@@ -349,8 +349,7 @@ function processQuotes(html: string): string {
           /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)(?:,\s*full:\w+)?"\]([\s\S]*?)\[\/quote\]/
         );
         if (match) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const [_, username, postNumber, topicId, content] = match;
+          const [, username, postNumber, topicId, content] = match;
           return createQuoteHtml(username, postNumber, topicId, content);
         }
         return segment;

@@ -149,7 +149,9 @@ impl SnapshotApiHandler {
             let job_query = job.query.clone();
 
             tokio::spawn(async move {
-                let result = Self::execute_request(&client, &job_url, &job_query, &config, rate_limiter).await;
+                let result =
+                    Self::execute_request(&client, &job_url, &job_query, &config, rate_limiter)
+                        .await;
                 if let Err(e) = job.response_sender.send(result) {
                     error!(error = ?e, url = job_url, query_len = job_query.len(), "Failed to send response for snapshot API request");
                 } else {
@@ -166,7 +168,13 @@ impl SnapshotApiHandler {
     }
 
     #[instrument(name = "snapshot_api_execute_request", skip(client, rate_limiter, config), fields(url = url))]
-    async fn execute_request(client: &Client, url: &str, query: &str, config: &SnapshotApiConfig, rate_limiter: Arc<RateLimiter>) -> Result<String> {
+    async fn execute_request(
+        client: &Client,
+        url: &str,
+        query: &str,
+        config: &SnapshotApiConfig,
+        rate_limiter: Arc<RateLimiter>,
+    ) -> Result<String> {
         let mut attempt = 0;
         let mut delay = Duration::from_secs(1);
 

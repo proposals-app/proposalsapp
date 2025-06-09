@@ -113,7 +113,8 @@ impl PostIndexer {
                     }
 
                     // Collect IDs seen in this API response page
-                    let current_page_ids: HashSet<i32> = posts_on_page.iter().map(|p| p.id).collect();
+                    let current_page_ids: HashSet<i32> =
+                        posts_on_page.iter().map(|p| p.id).collect();
                     seen_in_api_post_ids.extend(current_page_ids);
 
                     // Process posts concurrently using buffer_unordered
@@ -153,7 +154,10 @@ impl PostIndexer {
                             Err(join_err) => {
                                 // Task panicked or was cancelled
                                 error!(error = ?join_err, "Post processing task failed");
-                                post_errors.push(anyhow::Error::new(join_err).context("Post processing task failed"));
+                                post_errors.push(
+                                    anyhow::Error::new(join_err)
+                                        .context("Post processing task failed"),
+                                );
                             }
                         }
                     }
@@ -187,7 +191,9 @@ impl PostIndexer {
                         if total_processed_posts >= total_count {
                             info!(
                                 topic_id,
-                                total_processed_posts, total_count, "Reached or exceeded reported post count. Stopping."
+                                total_processed_posts,
+                                total_count,
+                                "Reached or exceeded reported post count. Stopping."
                             );
                             break;
                         }
@@ -342,7 +348,9 @@ impl PostIndexer {
                         if api_like_count > db_like_count {
                             info!(
                                 post_id = post_external_id,
-                                api_like_count, db_like_count, "API shows more likes than DB, fetching updates."
+                                api_like_count,
+                                db_like_count,
+                                "API shows more likes than DB, fetching updates."
                             );
                             if let Err(e) = likes_indexer
                                 .fetch_and_store_likes(dao_discourse_id, post_external_id, priority)

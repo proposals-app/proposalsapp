@@ -4,11 +4,16 @@ use crate::extensions::{
     db_extension::{DAO_SLUG_ID_MAP, store_delegations, store_voting_powers},
 };
 
-use super::super::super::typings::rindexer::events::uni_token::{DelegateChangedEvent, DelegateVotesChangedEvent, UNITokenEventType, no_extensions};
+use super::super::super::typings::rindexer::events::uni_token::{
+    DelegateChangedEvent, DelegateVotesChangedEvent, UNITokenEventType, no_extensions,
+};
 use alloy::hex::ToHexExt;
 use futures::{StreamExt, stream};
 use proposalsapp_db::models::{delegation, voting_power};
-use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info};
+use rindexer::{
+    EthereumSqlTypeWrapper, PgType, RindexerColorize,
+    event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info,
+};
 use sea_orm::{
     ActiveValue::{NotSet, Set},
     prelude::Uuid,
@@ -113,7 +118,10 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
     .await;
 }
 
-async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
+async fn delegate_votes_changed_handler(
+    manifest_path: &PathBuf,
+    registry: &mut EventCallbackRegistry,
+) {
     UNITokenEventType::DelegateVotesChanged(
         DelegateVotesChangedEvent::handler(
             |results, context| async move {

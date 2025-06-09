@@ -8,12 +8,12 @@ import { Button } from '@/app/components/ui/button';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Label } from '@/app/components/ui/label';
-import { DialogFooter, DialogClose } from '@/app/components/ui/dialog';
+import { DialogClose, DialogFooter } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
 import {
+  type VoteModalContentProps,
   ATTRIBUTION_TEXT,
   SNAPSHOT_APP_NAME,
-  VoteModalContentProps,
 } from '../../vote-button';
 
 export function OffchainApprovalVoteModalContent({

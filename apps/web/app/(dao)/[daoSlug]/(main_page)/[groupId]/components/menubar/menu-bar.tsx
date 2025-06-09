@@ -5,7 +5,7 @@ import { BodyViewBar } from './body-view-bar';
 import { CommentsViewBar } from './comments-view-bar';
 import { FullViewBar } from './full-view-bar';
 import React, { useState } from 'react';
-import { BodyVersionType } from '../../actions';
+import type { BodyVersionType } from '../../actions';
 
 export const fromFilters = [
   {

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { authClient } from '@/lib/auth/auth-client';
-import { Session } from '@/lib/auth/arbitrum_auth';
-import { Mail, Trash2, RefreshCw } from 'lucide-react';
+import type { Session } from '@/lib/auth/arbitrum_auth';
+import { Mail, RefreshCw, Trash2 } from 'lucide-react';
 
 interface AccountManagementProps {
   session: Session;
@@ -29,7 +29,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
 
     try {
       await authClient.changeEmail({
-        newEmail: newEmail,
+        newEmail,
         callbackURL: '/profile',
       });
 

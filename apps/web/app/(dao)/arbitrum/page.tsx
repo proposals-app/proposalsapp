@@ -1,10 +1,13 @@
-import { getGroups, getTotalVotingPower } from '../[daoSlug]/actions';
-import { GroupList } from '../[daoSlug]/components/group-list';
+import {
+  getActiveGroupsFeeds,
+  getGroups,
+  getTotalVotingPower,
+} from '../[daoSlug]/actions';
+import { StreamingGroupList } from '../[daoSlug]/components/streaming-group-list';
 import { MarkAllAsReadButton } from '../[daoSlug]/components/mark-all-as-read';
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth/arbitrum_auth';
 import { headers } from 'next/headers';
-import { ActiveGroupItem } from '../[daoSlug]/components/group-items/active-item';
 import { ArbitrumSummaryHeader } from './components/arbitrum-summary-header';
 import { LoadingGroupList, LoadingHeader } from '../[daoSlug]/loading';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
@@ -166,26 +169,119 @@ const getTokenPrice = async () => {
 };
 
 export default async function Page() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-
   // Hardcode the daoSlug for Arbitrum
   const daoSlug = 'arbitrum';
 
-  const result = await getGroups(daoSlug, userId);
+  return (
+    <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
+      <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
+        {/* Summary Header */}
+        <Suspense fallback={<LoadingHeader />}>
+          <ArbitrumHeader daoSlug={daoSlug} />
+        </Suspense>
 
-  if (!result) {
-    return null;
-  }
+        {/* Action Bar */}
+        <Suspense fallback={<ActionBarSkeleton />}>
+          <ActionBar daoSlug={daoSlug} />
+        </Suspense>
+
+        {/* Groups List */}
+        <Suspense fallback={<LoadingGroupList />}>
+          <GroupsContent daoSlug={daoSlug} />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+
+// Header component with financial data
+async function ArbitrumHeader({ daoSlug }: { daoSlug: string }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const result = await getGroups(daoSlug, userId);
+  if (!result) return null;
 
   const { groups } = result;
 
-  // Transform data - items no longer needed here
+  // Get active and inactive groups counts
+  const activeGroupsCount = groups.filter((g) => g.hasActiveProposal).length;
+  const totalProposalsCount = groups.reduce(
+    (sum, group) => sum + group.proposalsCount,
+    0
+  );
+  const totalTopicsCount = groups.reduce(
+    (sum, group) => sum + group.topicsCount,
+    0
+  );
+
+  // Fetch financial data in parallel
+  const [tokenPrice, treasuryBalance, totalVp] = await Promise.all([
+    getTokenPrice(),
+    getTreasuryBalance(),
+    getTotalVotingPower(result.daoId),
+  ]);
+
+  return (
+    <ArbitrumSummaryHeader
+      activeGroupsCount={activeGroupsCount}
+      totalProposalsCount={totalProposalsCount}
+      totalTopicsCount={totalTopicsCount}
+      tokenPrice={tokenPrice}
+      totalVp={totalVp}
+      treasuryBalance={treasuryBalance}
+    />
+  );
+}
+
+// Action bar component
+async function ActionBar({ daoSlug }: { daoSlug: string }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const result = await getGroups(daoSlug, userId);
+  if (!result) return null;
+
+  const hasNewActivityInGroups = result.groups.some(
+    (group) => group.hasNewActivity
+  );
+
+  return (
+    <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
+      <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-300'>
+        All Proposal Groups
+      </h2>
+      {hasNewActivityInGroups && <MarkAllAsReadButton />}
+    </div>
+  );
+}
+
+// Main content component
+async function GroupsContent({ daoSlug }: { daoSlug: string }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const result = await getGroups(daoSlug, userId);
+  if (!result) return null;
+
+  const { groups } = result;
+
+  // Get IDs of groups with active proposals
+  const activeGroupIds = groups
+    .filter((group) => group.hasActiveProposal)
+    .map((group) => group.id);
+
+  // Fetch all active group feeds in parallel
+  const activeGroupsFeeds = await getActiveGroupsFeeds(activeGroupIds, daoSlug);
+
+  // Transform data with pre-fetched feed data
   const groupsWithInfo = groups.map((group) => {
-    const groupItem = {
+    const feedData = activeGroupsFeeds.get(group.id);
+
+    return {
       id: group.id,
       name: group.name,
-      slug: `${group.id}`,
+      slug: group.slug,
       authorName: group.originalAuthorName,
       authorAvatarUrl: group.originalAuthorPicture,
       latestActivityAt: new Date(group.newestActivityTimestamp),
@@ -195,64 +291,25 @@ export default async function Page() {
       proposalsCount: group.proposalsCount,
       votesCount: group.votesCount,
       postsCount: group.postsCount,
-    };
-    return {
-      ...groupItem,
-      resultCard: group.hasActiveProposal ? (
-        <ActiveGroupItem group={groupItem} />
-      ) : null,
+      // Pre-computed feed data for active groups
+      activeFeedData: feedData || null,
     };
   });
 
-  const hasNewActivityInGroups = groupsWithInfo.some(
-    (group) => group.hasNewActivity
-  );
-
-  // Get active and inactive groups counts
-  const activeGroupsCount = groupsWithInfo.filter(
-    (g) => g.hasActiveProposal
-  ).length;
-  const totalProposalsCount = groupsWithInfo.reduce(
-    (sum, group) => sum + group.proposalsCount,
-    0
-  );
-  const totalTopicsCount = groupsWithInfo.reduce(
-    (sum, group) => sum + group.topicsCount,
-    0
-  );
-
-  // Fetch financial data
-  const tokenPrice = await getTokenPrice();
-  const treasuryBalance = await getTreasuryBalance();
-  const totalVp = await getTotalVotingPower(result.daoId);
-
   return (
-    <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
-      <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        <Suspense fallback={<LoadingHeader />}>
-          <ArbitrumSummaryHeader
-            activeGroupsCount={activeGroupsCount}
-            totalProposalsCount={totalProposalsCount}
-            totalTopicsCount={totalTopicsCount}
-            tokenPrice={tokenPrice}
-            totalVp={totalVp}
-            treasuryBalance={treasuryBalance}
-          />
-        </Suspense>
+    <StreamingGroupList
+      initialGroups={groupsWithInfo}
+      signedIn={userId ? true : false}
+    />
+  );
+}
 
-        {/* Action Bar */}
-        <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-          <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-300'>
-            All Proposal Groups
-          </h2>
-          {hasNewActivityInGroups && <MarkAllAsReadButton />}
-        </div>
-
-        {/* Groups List */}
-        <Suspense fallback={<LoadingGroupList />}>
-          <GroupList groups={groupsWithInfo} signedIn={userId ? true : false} />
-        </Suspense>
-      </div>
+// Action bar skeleton
+function ActionBarSkeleton() {
+  return (
+    <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
+      <div className='h-7 w-48 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
+      <div className='h-9 w-32 animate-pulse rounded-xs bg-neutral-200 dark:bg-neutral-700' />
     </div>
   );
 }

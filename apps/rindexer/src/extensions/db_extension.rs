@@ -4,9 +4,14 @@ use alloy_ens::ProviderEnsExt;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::{Lazy, OnceCell};
-use proposalsapp_db::models::{dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power};
+use proposalsapp_db::models::{
+    dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power,
+};
 use rindexer::provider::RindexerProvider;
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict};
+use sea_orm::{
+    ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult,
+    QueryFilter, Set, prelude::Uuid, sea_query::OnConflict,
+};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
@@ -17,22 +22,25 @@ use utils::types::{JobData, ProposalJobData};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_SLUG_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
-pub static DAO_SLUG_GOVERNOR_TYPE_ID_MAP: OnceCell<Mutex<HashMap<String, HashMap<String, Uuid>>>> = OnceCell::new();
-pub static DAO_SLUG_GOVERNOR_SPACE_MAP: Lazy<Mutex<HashMap<(String, String), String>>> = Lazy::new(|| {
-    let mut map = HashMap::new();
-    map.insert(
-        ("arbitrum".to_string(), "ARBITRUM_SNAPSHOT".to_string()),
-        "arbitrumfoundation.eth".to_string(),
-    );
-    // Add more mappings as needed
-    Mutex::new(map)
-});
+pub static DAO_SLUG_GOVERNOR_TYPE_ID_MAP: OnceCell<Mutex<HashMap<String, HashMap<String, Uuid>>>> =
+    OnceCell::new();
+pub static DAO_SLUG_GOVERNOR_SPACE_MAP: Lazy<Mutex<HashMap<(String, String), String>>> =
+    Lazy::new(|| {
+        let mut map = HashMap::new();
+        map.insert(
+            ("arbitrum".to_string(), "ARBITRUM_SNAPSHOT".to_string()),
+            "arbitrumfoundation.eth".to_string(),
+        );
+        // Add more mappings as needed
+        Mutex::new(map)
+    });
 
 const BATCH_SIZE: usize = 100;
 
 #[instrument(name = "db_initialize_db", skip_all)]
 pub async fn initialize_db() -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
+    let database_url =
+        std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = sea_orm::ConnectOptions::new(database_url);
     opt.max_connections(25)
@@ -255,7 +263,9 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
             .filter(dao_governor::Column::Id.eq(governor_id_to_find))
             .one(db)
             .await?;
-        let governor_model = governor.ok_or_else(|| anyhow::anyhow!("Governor not found with id: {}", governor_id_to_find))?;
+        let governor_model = governor.ok_or_else(|| {
+            anyhow::anyhow!("Governor not found with id: {}", governor_id_to_find)
+        })?;
 
         if governor_model.r#type == "SNAPSHOT" && proposal.discussion_url.is_set() {
             let job_data = ProposalJobData {
@@ -351,25 +361,26 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
     }
 
     for chunk in vote_active_models.chunks(BATCH_SIZE) {
-        let result: Result<InsertResult<vote::ActiveModel>, sea_orm::DbErr> = vote::Entity::insert_many(chunk.to_vec())
-            .on_conflict(
-                OnConflict::columns([
-                    vote::Column::ProposalId,
-                    vote::Column::VoterAddress,
-                    vote::Column::CreatedAt,
-                ])
-                .update_columns([
-                    vote::Column::Choice,
-                    vote::Column::VotingPower,
-                    vote::Column::Reason,
-                    vote::Column::BlockCreatedAt,
-                    vote::Column::Txid,
-                    vote::Column::ProposalId,
-                ])
-                .to_owned(),
-            )
-            .exec(db)
-            .await;
+        let result: Result<InsertResult<vote::ActiveModel>, sea_orm::DbErr> =
+            vote::Entity::insert_many(chunk.to_vec())
+                .on_conflict(
+                    OnConflict::columns([
+                        vote::Column::ProposalId,
+                        vote::Column::VoterAddress,
+                        vote::Column::CreatedAt,
+                    ])
+                    .update_columns([
+                        vote::Column::Choice,
+                        vote::Column::VotingPower,
+                        vote::Column::Reason,
+                        vote::Column::BlockCreatedAt,
+                        vote::Column::Txid,
+                        vote::Column::ProposalId,
+                    ])
+                    .to_owned(),
+                )
+                .exec(db)
+                .await;
 
         if let Err(err) = result {
             error!(error = %err, "Failed to insert vote chunk, transaction rolled back.");
@@ -712,7 +723,11 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
 }
 
 #[instrument(name = "db_isolated_ens_lookup", skip(address, provider, addr_string), fields(address = %address))]
-async fn isolated_ens_lookup(address: Address, addr_string: String, provider: Arc<RindexerProvider>) -> Result<String> {
+async fn isolated_ens_lookup(
+    address: Address,
+    addr_string: String,
+    provider: Arc<RindexerProvider>,
+) -> Result<String> {
     // Spawn a task to isolate potential panics
     match tokio::task::spawn(async move { provider.lookup_address(&address).await }).await {
         Ok(result) => match result {

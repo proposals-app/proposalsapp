@@ -1,21 +1,21 @@
 'use client';
 
-import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
-import NextSvg from '@/public/assets/web/icons/chevron-right.svg';
-import PreviousSvg from '@/public/assets/web/icons/chevron-left.svg';
-import FirstSvg from '@/public/assets/web/icons/chevron-double-left.svg';
-import LastSvg from '@/public/assets/web/icons/chevron-double-right.svg';
 import CheckboxCheck from '@/public/assets/web/icons/checkbox-checked.svg';
 import CheckboxNocheck from '@/public/assets/web/icons/checkbox-unchecked.svg';
-import { BodyVersionType, VersionType } from '../../actions';
-import { ViewEnum } from './menu-bar';
+import FirstSvg from '@/public/assets/web/icons/chevron-double-left.svg';
+import LastSvg from '@/public/assets/web/icons/chevron-double-right.svg';
+import PreviousSvg from '@/public/assets/web/icons/chevron-left.svg';
+import NextSvg from '@/public/assets/web/icons/chevron-right.svg';
+import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
 import { useOptimistic, useTransition } from 'react';
+import type { BodyVersionType, VersionType } from '../../actions';
+import { ViewEnum } from './menu-bar';
 
 interface BodyViewBarProps {
   bodyVersions: BodyVersionType[];
   currentVersion: number;
-  view: ViewEnum;
+  view?: ViewEnum;
   setView: (view: ViewEnum) => void;
   diff: boolean;
   includesProposals: boolean;
@@ -24,7 +24,7 @@ interface BodyViewBarProps {
 export const BodyViewBar = ({
   bodyVersions,
   currentVersion,
-  view,
+  view: _view,
   setView,
   diff,
   includesProposals,
@@ -74,7 +74,7 @@ export const BodyViewBar = ({
 
   return (
     <div
-      className={`fixed ${includesProposals ? 'bottom-20' : 'bottom-0'} mt-4 w-full max-w-4xl self-center px-4 pb-4 sm:bottom-0 sm:px-2 ${view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed ${includesProposals ? 'bottom-20' : 'bottom-0'} mt-4 w-full max-w-4xl self-center px-4 pb-4 sm:bottom-0 sm:px-2 ${_view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
     >
       <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 md:flex-row md:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
         <div className='flex w-full flex-row justify-between gap-2'>

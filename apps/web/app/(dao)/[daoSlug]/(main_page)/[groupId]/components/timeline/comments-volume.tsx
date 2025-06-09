@@ -1,3 +1,5 @@
+import { VolumeEvent } from '@/app/components/timeline/shared';
+
 interface CommentsVolumeProps {
   timestamp: Date;
   width: number;
@@ -5,15 +7,20 @@ interface CommentsVolumeProps {
   index: number;
 }
 
-export function CommentsVolume({ width }: CommentsVolumeProps) {
+export function CommentsVolume({
+  timestamp,
+  width,
+  last,
+  index,
+}: CommentsVolumeProps) {
   return (
-    <div className='flex min-h-1 w-full items-center py-[1px]'>
-      <div
-        className='ml-4 min-h-1 translate-x-[1px] bg-neutral-300 dark:bg-neutral-700'
-        style={{
-          width: `${Math.max(width * 80, 1)}%`,
-        }}
-      />
-    </div>
+    <VolumeEvent
+      timestamp={timestamp}
+      width={width}
+      last={last}
+      index={index}
+      type='comments'
+      showContent={true}
+    />
   );
 }

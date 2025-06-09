@@ -1,19 +1,19 @@
 import superjson from 'superjson';
 import {
+  createGroup,
   getDao,
   getGroupsData,
   getUngroupedProposals,
-  createGroup,
 } from './actions';
 import GroupingInterface from './components/proposal-group';
 import { Suspense } from 'react';
 import {
-  PageHeader,
-  MappingTable,
-  MappingTableRow,
-  MappingTableCell,
   Badge,
   Button,
+  MappingTable,
+  MappingTableCell,
+  MappingTableRow,
+  PageHeader,
 } from './components/ui';
 
 async function MappingPage({

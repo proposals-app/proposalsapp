@@ -76,7 +76,8 @@ lazy_static! {
             panic!("Failed to create HTTP client: {}", e);
         }
     };
-    static ref JOBS_QUEUE: Arc<Mutex<VecDeque<TimestampJob>>> = Arc::new(Mutex::new(VecDeque::with_capacity(100)));
+    static ref JOBS_QUEUE: Arc<Mutex<VecDeque<TimestampJob>>> =
+        Arc::new(Mutex::new(VecDeque::with_capacity(100)));
     static ref PROCESSOR_INIT: OnceCell<tokio::task::JoinHandle<()>> = OnceCell::const_new();
 }
 
@@ -332,6 +333,7 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
     }
 
     // Ensure job processor is running as a singleton using OnceCell
+    #[allow(clippy::async_yields_async)]
     PROCESSOR_INIT
         .get_or_init(|| async { tokio::spawn(async { job_processor().await }) })
         .await;
@@ -368,7 +370,11 @@ struct EstimateTimestamp {
 }
 
 #[instrument(name = "block_time_future_scan_api_request", skip(api_url, api_key), fields(api_url = api_url, block_number = block_number))]
-async fn future_scan_api_request(api_url: &str, api_key: &str, block_number: u64) -> Result<Option<EstimateTimestamp>> {
+async fn future_scan_api_request(
+    api_url: &str,
+    api_key: &str,
+    block_number: u64,
+) -> Result<Option<EstimateTimestamp>> {
     let url = format!(
         "{}?module=block&action=getblockcountdown&blockno={}&apikey={}",
         api_url, block_number, api_key
@@ -431,7 +437,11 @@ struct BlockRewardResponse {
 }
 
 #[instrument(name = "block_time_past_scan_api_request", skip(api_url, api_key), fields(api_url = api_url, block_number = block_number))]
-async fn past_scan_api_request(api_url: &str, api_key: &str, block_number: u64) -> Result<Option<BlockRewardResponse>> {
+async fn past_scan_api_request(
+    api_url: &str,
+    api_key: &str,
+    block_number: u64,
+) -> Result<Option<BlockRewardResponse>> {
     let url = format!(
         "{}?module=block&action=getblockreward&blockno={}&apikey={}",
         api_url, block_number, api_key
@@ -737,7 +747,8 @@ mod request_tests {
                 let target_block_number = if offset >= 0 {
                     current_block.checked_add(offset as u64)
                 } else {
-                    current_block.checked_sub(offset.checked_abs().context("offset abs overflow")? as u64)
+                    current_block
+                        .checked_sub(offset.checked_abs().context("offset abs overflow")? as u64)
                 }
                 .context("Invalid block offset")?;
 
@@ -803,8 +814,10 @@ mod api_tests {
 
     async fn ensure_api_keys() -> Result<(String, String)> {
         dotenv::dotenv().ok();
-        let etherscan_key = env::var("ETHERSCAN_API_KEY").context("ETHERSCAN_API_KEY must be set for tests")?;
-        let arbiscan_key = env::var("ARBISCAN_API_KEY").context("ARBISCAN_API_KEY must be set for tests")?;
+        let etherscan_key =
+            env::var("ETHERSCAN_API_KEY").context("ETHERSCAN_API_KEY must be set for tests")?;
+        let arbiscan_key =
+            env::var("ARBISCAN_API_KEY").context("ARBISCAN_API_KEY must be set for tests")?;
         Ok((etherscan_key, arbiscan_key))
     }
 
@@ -889,7 +902,10 @@ mod api_tests {
         );
 
         assert!(
-            response.message.contains("Invalid") || response.message.contains("Error") || response.message.contains("API key") || response.message.contains("NOTOK"),
+            response.message.contains("Invalid")
+                || response.message.contains("Error")
+                || response.message.contains("API key")
+                || response.message.contains("NOTOK"),
             "Expected error message for invalid API key, got: {}",
             response.message
         );

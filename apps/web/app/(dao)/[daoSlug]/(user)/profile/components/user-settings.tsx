@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { Bell, Mail, RefreshCw } from 'lucide-react';
-import { Session } from '@/lib/auth/arbitrum_auth';
+import type { Session } from '@/lib/auth/arbitrum_auth';
 import { useRouter } from 'next/navigation';
-import { saveSettings, SettingsData } from './../actions';
+import { saveSettings, type SettingsData } from './../actions';
 
 interface UserSettingsProps {
   session: Session;
@@ -29,9 +29,9 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
     setSaveSuccess(false);
 
     const settingsData: SettingsData = {
-      newDiscussions: newDiscussions,
-      newProposals: newProposals,
-      endingProposals: endingProposals,
+      newDiscussions,
+      newProposals,
+      endingProposals,
       isOnboarded: true,
     };
 
@@ -62,7 +62,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
     id,
   }: {
     checked: boolean;
-    onChange: (checked: boolean) => void;
+    onChange: (_checked: boolean) => void;
     id: string;
   }) => {
     return (

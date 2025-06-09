@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
-use super::super::super::typings::rindexer::events::arb_token::{ARBTokenEventType, DelegateChangedEvent, DelegateVotesChangedEvent, no_extensions};
+use super::super::super::typings::rindexer::events::arb_token::{
+    ARBTokenEventType, DelegateChangedEvent, DelegateVotesChangedEvent, no_extensions,
+};
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
@@ -10,7 +12,11 @@ use crate::{
 use alloy::hex::ToHexExt;
 use futures::stream::{self, StreamExt};
 use proposalsapp_db::models::{delegation, voting_power};
-use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
+use rindexer::{
+    EthereumSqlTypeWrapper, PgType, RindexerColorize,
+    event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus,
+    rindexer_error,
+};
 use sea_orm::{
     ActiveValue::{NotSet, Set},
     prelude::Uuid,
@@ -123,7 +129,10 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
     name = "arb_token_delegate_votes_changed_handler",
     skip(manifest_path, registry)
 )]
-async fn delegate_votes_changed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
+async fn delegate_votes_changed_handler(
+    manifest_path: &PathBuf,
+    registry: &mut EventCallbackRegistry,
+) {
     ARBTokenEventType::DelegateVotesChanged(
         DelegateVotesChangedEvent::handler(
             |results, context| async move {

@@ -1,8 +1,8 @@
-import { getDelegatesWithMappings, createDelegate } from './actions';
+import { createDelegate, getDelegatesWithMappings } from './actions';
 import { getDao } from '../actions';
 import { DelegateRow } from './components/edit-delegate-row';
 import { Suspense } from 'react';
-import { MappingTable, PageHeader, Button } from '../components/ui';
+import { Button, MappingTable, PageHeader } from '../components/ui';
 
 async function DelegatesPage({
   params,

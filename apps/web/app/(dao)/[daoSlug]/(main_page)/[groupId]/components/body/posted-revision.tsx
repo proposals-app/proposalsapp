@@ -1,10 +1,9 @@
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
-import { useState } from 'react';
-import { useQueryState, parseAsInteger, parseAsBoolean } from 'nuqs';
-import { BodyVersionType } from '../../actions';
-import React from 'react';
+import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
+import React, { useState } from 'react';
+import type { BodyVersionType } from '../../actions';
 import {
   Select,
   SelectContent,

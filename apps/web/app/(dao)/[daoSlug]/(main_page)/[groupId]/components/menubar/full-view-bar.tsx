@@ -3,7 +3,7 @@
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useCallback, useEffect, useRef } from 'react';
-import { feedFilters, ViewEnum, fromFilters } from './menu-bar';
+import { ViewEnum, feedFilters, fromFilters } from './menu-bar';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import {
   Select,
@@ -20,7 +20,7 @@ interface FullViewBarProps {
 }
 
 export const FullViewBar = ({
-  view,
+  view: _view,
   setView,
   includesProposals,
 }: FullViewBarProps) => {
@@ -56,18 +56,18 @@ export const FullViewBar = ({
 
     const rect = fullViewBarRef.current.getBoundingClientRect();
 
-    if (rect.top < 80 && view !== ViewEnum.COMMENTS) {
+    if (rect.top < 80 && _view !== ViewEnum.COMMENTS) {
       setView(ViewEnum.COMMENTS);
     } else if (
       rect.top >= 80 &&
       rect.bottom <= window.innerHeight &&
-      view !== ViewEnum.FULL
+      _view !== ViewEnum.FULL
     ) {
       setView(ViewEnum.FULL);
-    } else if (rect.top > window.innerHeight && view !== ViewEnum.BODY) {
+    } else if (rect.top > window.innerHeight && _view !== ViewEnum.BODY) {
       setView(ViewEnum.BODY);
     }
-  }, [view, setView]);
+  }, [_view, setView]);
 
   useEffect(() => {
     window.addEventListener('scroll', handleSwitchView, { passive: true });
@@ -85,7 +85,7 @@ export const FullViewBar = ({
     <div
       ref={fullViewBarRef}
       className={`mt-4 w-full min-w-full self-center overflow-visible sm:min-w-4xl sm:px-2 ${
-        view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'
+        _view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'
       }`}
     >
       <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-3 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 sm:flex-row sm:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>

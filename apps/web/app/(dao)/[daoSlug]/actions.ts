@@ -1,66 +1,54 @@
 'use server';
 
-import { AsyncReturnType } from '@/lib/utils';
+import type { AsyncReturnType } from '@/lib/utils';
 import { db, sql } from '@proposalsapp/db';
-import { ProposalGroupItem } from '@/lib/types';
-import { auth } from '@/lib/auth/arbitrum_auth';
-import { headers } from 'next/headers';
+import type { ProposalGroupItem } from '@/lib/types';
 import { revalidateTag } from 'next/cache';
 import { daoIdSchema, daoSlugSchema } from '@/lib/validations';
+import { requireAuthAndDao } from '@/lib/server-actions-utils';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
+import { cache } from 'react';
 
 export async function markAllAsRead(daoSlug: string) {
-  daoSlugSchema.parse(daoSlug);
+  try {
+    const { userId, dao } = await requireAuthAndDao(daoSlug);
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
+    // Fetch only the group IDs needed for the update
+    const groupIds = await db.public
+      .selectFrom('proposalGroup')
+      .where('daoId', '=', dao.id)
+      .select('id')
+      .execute();
 
-  if (!userId) {
-    console.warn('[markAllAsRead] User not authenticated.');
-    return;
+    if (groupIds.length === 0) {
+      console.log('[markAllAsRead] No groups found for DAO, nothing to mark.');
+      return;
+    }
+
+    const now = new Date();
+    const values = groupIds.map((group) => ({
+      userId,
+      proposalGroupId: group.id,
+      lastReadAt: now,
+    }));
+
+    // Batch insert/update all groups at once
+    await (daoSlug in db ? db[daoSlug as keyof typeof db] : db.public)
+      .insertInto('userProposalGroupLastRead')
+      .values(values)
+      .onConflict((oc) =>
+        oc
+          .columns(['userId', 'proposalGroupId'])
+          .doUpdateSet({ lastReadAt: now })
+      )
+      .execute();
+
+    revalidateTag(`groups-user-${userId}-${daoSlug}`);
+  } catch (error) {
+    console.error('[markAllAsRead] Error:', error);
+    throw error;
   }
-
-  const dao = await db.public
-    .selectFrom('dao')
-    .where('slug', '=', daoSlug)
-    .select('id')
-    .executeTakeFirst();
-
-  if (!dao) {
-    console.error(`[markAllAsRead] DAO not found for slug: ${daoSlug}`);
-    return;
-  }
-
-  // Fetch only the group IDs needed for the update
-  const groupIds = await db.public
-    .selectFrom('proposalGroup')
-    .where('daoId', '=', dao.id)
-    .select('id')
-    .execute();
-
-  if (groupIds.length === 0) {
-    console.log('[markAllAsRead] No groups found for DAO, nothing to mark.');
-    return;
-  }
-
-  const now = new Date();
-  const values = groupIds.map((group) => ({
-    userId: userId,
-    proposalGroupId: group.id,
-    lastReadAt: now,
-  }));
-
-  // Batch insert/update all groups at once
-  await (daoSlug in db ? db[daoSlug as keyof typeof db] : db.public)
-    .insertInto('userProposalGroupLastRead')
-    .values(values)
-    .onConflict((oc) =>
-      oc.columns(['userId', 'proposalGroupId']).doUpdateSet({ lastReadAt: now })
-    )
-    .execute();
-
-  revalidateTag(`groups-user-${userId}-${daoSlug}`);
 }
 
 interface GroupCoreData {
@@ -408,7 +396,8 @@ async function getUserLastReadData(
   return lastReadMap;
 }
 
-export async function getGroups(daoSlug: string, userId?: string) {
+// Add React cache for request-level deduplication
+const _getGroups = cache(async (daoSlug: string, userId?: string) => {
   daoSlugSchema.parse(daoSlug);
 
   const dao = await db.public
@@ -483,9 +472,66 @@ export async function getGroups(daoSlug: string, userId?: string) {
     daoId: dao.id,
     groups: combinedGroups,
   };
-}
+});
+
+// Export the cached version
+export const getGroups = _getGroups;
+
+/**
+ * Fetches feed data for multiple groups in parallel
+ * This eliminates the N+1 query problem when rendering active groups
+ */
+const _getActiveGroupsFeeds = cache(
+  async (
+    groupIds: string[],
+    daoSlug: string
+  ): Promise<Map<string, FeedData | null>> => {
+    'use cache';
+    cacheTag(`active-feeds-${daoSlug}`);
+    cacheLife('minutes');
+
+    if (!groupIds.length) return new Map();
+
+    // Import getFeed dynamically to avoid circular dependency
+    const { getFeed } = await import('./(main_page)/[groupId]/actions');
+    const { FeedFilterEnum, FromFilterEnum } = await import(
+      '@/app/searchParams'
+    );
+
+    // Fetch all feeds in parallel
+    const feedPromises = groupIds.map(async (groupId) => {
+      try {
+        const feedData = await getFeed(
+          groupId,
+          FeedFilterEnum.VOTES,
+          FromFilterEnum.ALL,
+          true
+        );
+        return { groupId, feedData };
+      } catch (error) {
+        console.error(`Error fetching feed for group ${groupId}:`, error);
+        return { groupId, feedData: null };
+      }
+    });
+
+    const results = await Promise.all(feedPromises);
+
+    // Convert to map for easy lookup
+    return new Map(results.map(({ groupId, feedData }) => [groupId, feedData]));
+  }
+);
+
+export const getActiveGroupsFeeds = _getActiveGroupsFeeds;
 
 export type GroupsReturnType = AsyncReturnType<typeof getGroups>;
+export type ActiveGroupsFeedsReturnType = AsyncReturnType<
+  typeof getActiveGroupsFeeds
+>;
+
+// Type for individual feed data - will be imported from the main page actions
+export type FeedData = Awaited<
+  ReturnType<typeof import('./(main_page)/[groupId]/actions').getFeed>
+>;
 
 // --- Other Functions (getTokenPrice, getTotalVotingPower, getTreasuryBalance) ---
 // These seem reasonably optimized and appropriately cached already.

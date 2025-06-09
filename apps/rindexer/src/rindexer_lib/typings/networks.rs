@@ -13,7 +13,13 @@ use std::sync::Arc;
 use tokio::sync::OnceCell;
 
 #[allow(dead_code)]
-async fn create_shadow_client(rpc_url: &str, chain_id: u64, compute_units_per_second: Option<u64>, block_poll_frequency: Option<BlockPollFrequency>, max_block_range: Option<U64>) -> Result<Arc<JsonRpcCachedProvider>, RetryClientError> {
+async fn create_shadow_client(
+    rpc_url: &str,
+    chain_id: u64,
+    compute_units_per_second: Option<u64>,
+    block_poll_frequency: Option<BlockPollFrequency>,
+    max_block_range: Option<U64>,
+) -> Result<Arc<JsonRpcCachedProvider>, RetryClientError> {
     let mut header = HeaderMap::new();
     header.insert(
         "X-SHADOW-API-KEY",
@@ -47,7 +53,8 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ETHEREUM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("ETHEREUM_NODE_URL").unwrap_or("ETHEREUM_NODE_URL".to_string()),
+                &public_read_env_value("ETHEREUM_NODE_URL")
+                    .unwrap_or("ETHEREUM_NODE_URL".to_string()),
                 1,
                 None,
                 Some(U64::from(1000)),
@@ -69,7 +76,8 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ARBITRUM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("ARBITRUM_NODE_URL").unwrap_or("ARBITRUM_NODE_URL".to_string()),
+                &public_read_env_value("ARBITRUM_NODE_URL")
+                    .unwrap_or("ARBITRUM_NODE_URL".to_string()),
                 42161,
                 None,
                 Some(U64::from(10000)),
@@ -91,7 +99,8 @@ pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
     OPTIMISM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("OPTIMISM_NODE_URL").unwrap_or("OPTIMISM_NODE_URL".to_string()),
+                &public_read_env_value("OPTIMISM_NODE_URL")
+                    .unwrap_or("OPTIMISM_NODE_URL".to_string()),
                 10,
                 None,
                 Some(U64::from(10000)),
@@ -113,7 +122,8 @@ pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
     POLYGON_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("POLYGON_NODE_URL").unwrap_or("POLYGON_NODE_URL".to_string()),
+                &public_read_env_value("POLYGON_NODE_URL")
+                    .unwrap_or("POLYGON_NODE_URL".to_string()),
                 137,
                 None,
                 Some(U64::from(10000)),
@@ -135,7 +145,8 @@ pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
     AVALANCHE_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("AVALANCHE_NODE_URL").unwrap_or("AVALANCHE_NODE_URL".to_string()),
+                &public_read_env_value("AVALANCHE_NODE_URL")
+                    .unwrap_or("AVALANCHE_NODE_URL".to_string()),
                 43114,
                 None,
                 Some(U64::from(10000)),

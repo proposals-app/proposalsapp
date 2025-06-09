@@ -7,7 +7,6 @@ networks:
     max_block_range: "1000"
     block_poll_frequency: optimized
 
-
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}

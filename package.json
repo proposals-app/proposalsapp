@@ -19,7 +19,18 @@
     "start-email-service": "yarn workspace @proposalsapp/email-service run start",
     "start-push-service": "yarn workspace @proposalsapp/push-service run start",
     "start-web": "yarn workspace @proposalsapp/web run start",
-    "update-deps": "./update-deps.sh"
+    "update-deps": "./update-deps.sh",
+    "lint": "npx eslint . --config eslint.config.mjs",
+    "lint:fix": "npx eslint . --config eslint.config.mjs --fix",
+    "format": "npx prettier --check --config prettier.config.mjs .",
+    "format:fix": "npx prettier --write --config prettier.config.mjs .",
+    "lint:rust": "cargo lint",
+    "lint:rust:fix": "cargo fix",
+    "format:rust": "cargo format",
+    "format:rust:check": "cargo check-format",
+    "check": "yarn lint && yarn format && yarn lint:rust && yarn format:rust:check",
+    "fix": "yarn lint:fix && yarn format:fix && yarn lint:rust:fix && yarn format:rust",
+    "verify-setup": "./scripts/verify-setup.sh"
   },
   "type": "module",
   "workspaces": [

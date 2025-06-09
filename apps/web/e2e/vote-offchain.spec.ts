@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import snapshot from '@snapshot-labs/snapshot.js';
 import basicSetup from './wallet-setup/basic.setup';
 import fetch from 'cross-fetch';
-import type { Page, Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 const HUB_URL = 'https://testnet.hub.snapshot.org';
 const SPACE_ID = 'proposalsapp-area51.eth';
@@ -75,7 +75,7 @@ function generateWeights(n: number, total: number = 100): number[] {
   const sum = weights.reduce((acc, w) => acc + w, 0);
   const normalizedWeights = weights.map((w) => Math.round((w / sum) * total));
 
-  let currentSum = normalizedWeights.reduce((acc, w) => acc + w, 0);
+  const currentSum = normalizedWeights.reduce((acc, w) => acc + w, 0);
   let diff = total - currentSum;
 
   let i = 0;
@@ -119,20 +119,20 @@ async function connectWallet(
       console.log(`${testLogPrefix} Handling Metamask 'Got it' button...`);
       await gotItButton.click();
     }
-  } catch (e) {
+  } catch (_e) {
     console.log(`${testLogPrefix} 'Got it' button not found, continuing...`);
   }
 
   try {
     await metamask.approveNewNetwork();
-  } catch (e) {
+  } catch (_e) {
     console.log(
       `${testLogPrefix} Approve new network skipped/failed, continuing...`
     );
   }
   try {
     await metamask.approveSwitchNetwork();
-  } catch (e) {
+  } catch (_e) {
     console.log(
       `${testLogPrefix} Approve switch network skipped/failed, continuing...`
     );
@@ -173,7 +173,7 @@ async function createSnapshotProposal(
       type: voteType,
       title: proposalTitle,
       body: bodyText,
-      choices: choices,
+      choices,
       start: startAt,
       end: endAt,
       snapshot: currentBlock,
@@ -235,8 +235,8 @@ async function fetchLatestActiveProposalId(
     variables: {
       spaceId: SPACE_ID,
       type: voteType,
-      titlePrefix: titlePrefix,
-      currentTimestamp: currentTimestamp,
+      titlePrefix,
+      currentTimestamp,
     },
   };
 
@@ -374,8 +374,8 @@ async function verifyVoteViaApi(
               }
             }`,
     variables: {
-      proposalId: proposalId,
-      voterAddress: voterAddress,
+      proposalId,
+      voterAddress,
     },
   };
 
@@ -567,11 +567,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['Yes', 'No', 'Abstain'];
     const proposalTitlePrefix = 'E2E Test Proposal (Basic)';
     const proposalBody = 'Automated test proposal for basic voting.';
-    let proposalId: string;
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`;
 
-    proposalId = await getOrCreateActiveProposal(
+    const proposalId = await getOrCreateActiveProposal(
       voteType,
       proposalTitlePrefix,
       proposalBody,
@@ -659,11 +658,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['SC Choice 1', 'SC Choice 2', 'SC Choice 3'];
     const proposalTitlePrefix = 'E2E Test Proposal (Single Choice)';
     const proposalBody = 'Automated test proposal for single-choice voting.';
-    let proposalId: string;
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`;
 
-    proposalId = await getOrCreateActiveProposal(
+    const proposalId = await getOrCreateActiveProposal(
       voteType,
       proposalTitlePrefix,
       proposalBody,
@@ -757,11 +755,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const proposalTitlePrefix = 'E2E Test Proposal (Approval Multi-Choice)';
     const proposalBody =
       'Automated test proposal for multi-choice approval voting.';
-    let proposalId: string;
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`;
 
-    proposalId = await getOrCreateActiveProposal(
+    const proposalId = await getOrCreateActiveProposal(
       voteType,
       proposalTitlePrefix,
       proposalBody,
@@ -866,11 +863,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['Quad Choice A', 'Quad Choice B', 'Quad Choice C'];
     const proposalTitlePrefix = 'E2E Test Proposal (Quadratic)';
     const proposalBody = 'Automated test proposal for quadratic voting.';
-    let proposalId: string;
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`;
 
-    proposalId = await getOrCreateActiveProposal(
+    const proposalId = await getOrCreateActiveProposal(
       voteType,
       proposalTitlePrefix,
       proposalBody,
@@ -959,11 +955,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['Rank C A', 'Rank C B', 'Rank C C', 'Rank C D'];
     const proposalTitlePrefix = 'E2E Test Proposal (Ranked Choice)';
     const proposalBody = 'Automated test proposal for ranked-choice voting.';
-    let proposalId: string;
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`;
 
-    proposalId = await getOrCreateActiveProposal(
+    const proposalId = await getOrCreateActiveProposal(
       voteType,
       proposalTitlePrefix,
       proposalBody,
@@ -1016,7 +1011,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     );
 
     let currentOrder = [...originalIndices];
-    let dragOperations: Array<{
+    const dragOperations: Array<{
       fromIndex: number;
       toIndex: number;
       item: string;
@@ -1271,11 +1266,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const choices = ['Weight Opt 1', 'Weight Opt 2', 'Weight Opt 3'];
     const proposalTitlePrefix = 'E2E Test Proposal (Weighted)';
     const proposalBody = 'Automated test proposal for weighted voting.';
-    let proposalId: string;
     const uniqueReasonNonce = `test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`;
 
-    proposalId = await getOrCreateActiveProposal(
+    const proposalId = await getOrCreateActiveProposal(
       voteType,
       proposalTitlePrefix,
       proposalBody,

@@ -5,7 +5,7 @@ import {
   getFeed,
 } from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
-import { Selectable, DiscoursePost } from '@proposalsapp/db';
+import type { DiscoursePost, Selectable } from '@proposalsapp/db';
 import { unstable_noStore as noStore } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
@@ -118,7 +118,7 @@ Based *only* on the **Proposal Details** and **Discussion Comments** provided ab
 `;
 
     // Combine context and task
-    const fullPrompt = context + '\n---\n' + taskPrompt;
+    const fullPrompt = `${context}\n---\n${taskPrompt}`;
 
     // --- Stream the response ---
     const result = streamText({

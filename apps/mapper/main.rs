@@ -15,7 +15,8 @@ mod karma;
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
-    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
+    let database_url =
+        std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
     let mut opt = sea_orm::ConnectOptions::new(database_url);
     opt.max_connections(25)
         .min_connections(5)

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import { PostItem, PostItemLoading } from './items/post-item/post-item';
 import { VoteItem, VoteItemLoading } from './items/vote-item/vote-item';
-import { FeedReturnType, GroupReturnType } from '../../actions';
+import type { FeedReturnType, GroupReturnType } from '../../actions';
 import { AggregateVoteItem } from './items/vote-item/aggregate-vote-item';
-import { VotesWithVoters } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
+import type { VotesWithVoters } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 
 export async function Feed({
   group,

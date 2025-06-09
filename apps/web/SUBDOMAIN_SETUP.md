@@ -1,6 +1,7 @@
 # Subdomain Routing Setup
 
-This guide helps you set up and test the subdomain routing functionality both in development and production environments.
+This guide helps you set up and test the subdomain routing functionality both in development and
+production environments.
 
 ## Development Setup
 
@@ -74,8 +75,7 @@ For production:
    - Configure your domain's DNS to point wildcard subdomains to your server
    - Example: `*.domain.com` points to your server IP
 
-2. **Environment Variables**:
-   Update `.env.production` or deployment environment:
+2. **Environment Variables**: Update `.env.production` or deployment environment:
 
    ```
    NEXT_PUBLIC_ROOT_DOMAIN=domain.com
@@ -106,10 +106,14 @@ server {
 
 ## Troubleshooting
 
-- **Subdomain not working locally**: Make sure your hosts file is correctly configured and you're using the correct port
-- **Middleware not running**: Check that path matchers in the middleware config are not excluding your routes
-- **Special implementation not loading**: Verify that your special subdomain is included in the NEXT_PUBLIC_SPECIAL_SUBDOMAINS env variable
-- **Custom implementation not found**: Check the URL pathname in the browser dev tools to ensure the rewrite is happening correctly
+- **Subdomain not working locally**: Make sure your hosts file is correctly configured and you're
+  using the correct port
+- **Middleware not running**: Check that path matchers in the middleware config are not excluding
+  your routes
+- **Special implementation not loading**: Verify that your special subdomain is included in the
+  NEXT_PUBLIC_SPECIAL_SUBDOMAINS env variable
+- **Custom implementation not found**: Check the URL pathname in the browser dev tools to ensure the
+  rewrite is happening correctly
 
 ## Adding New Special Subdomains
 

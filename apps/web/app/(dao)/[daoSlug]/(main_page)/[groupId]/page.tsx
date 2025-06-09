@@ -1,10 +1,10 @@
 import {
-  FeedFilterEnum,
   searchParamsCache,
-  FromFilterEnum,
+  type FeedFilterEnum,
+  type FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import { getGroup, getBodyVersions, getFeed, getGroupHeader } from './actions';
+import { getBodyVersions, getFeed, getGroup, getGroupHeader } from './actions';
 import {
   AuthorInfo,
   Body,
@@ -22,7 +22,7 @@ import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultN
 import { PostedRevisions } from './components/body/posted-revision';
 import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 import { LastReadUpdater } from './components/last-read-updater';
-import { ResultEvent } from '@/lib/types';
+import type { ResultEvent } from '@/lib/types';
 import Loading from './loading';
 
 export default async function Page({

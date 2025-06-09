@@ -1,7 +1,7 @@
 import { auth as arbitrumAuth } from '@/lib/auth/arbitrum_auth';
 import { auth as uniswapAuth } from '@/lib/auth/uniswap_auth';
 import { toNextJsHandler } from 'better-auth/next-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
 // Create handlers for each auth provider
 const arbitrumHandler = toNextJsHandler(arbitrumAuth.handler);

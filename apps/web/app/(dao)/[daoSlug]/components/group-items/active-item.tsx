@@ -1,9 +1,7 @@
 import Link from 'next/link';
-import { getFeed } from '../../(main_page)/[groupId]/actions';
-import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
-import { Suspense } from 'react';
 import { ResultCard } from './results/result-card';
 import Image from 'next/image';
+import type { FeedData } from '../../actions';
 
 enum TimelineEventType {
   ResultOngoingBasicVote = 'ResultOngoingBasicVote',
@@ -30,16 +28,10 @@ interface ActiveGroupItemProps {
     votesCount: number;
     postsCount: number;
   };
+  feedData: FeedData | null; // Pre-fetched feed data
 }
 
-export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
-  const feedData = await getFeed(
-    group.id,
-    FeedFilterEnum.VOTES,
-    FromFilterEnum.ALL,
-    true
-  );
-
+export function ActiveGroupItem({ group, feedData }: ActiveGroupItemProps) {
   const result =
     feedData?.events && feedData.events.length > 0 ? feedData.events[0] : null;
 
@@ -74,15 +66,13 @@ export async function ActiveGroupItem({ group }: ActiveGroupItemProps) {
             </div>
           </div>
           <div className='relative flex w-full items-start self-end sm:w-auto'>
-            <Suspense>
-              {result &&
-                (result.type === TimelineEventType.ResultOngoingBasicVote ||
-                  result.type === TimelineEventType.ResultOngoingOtherVotes ||
-                  result.type === TimelineEventType.ResultEndedBasicVote ||
-                  result.type === TimelineEventType.ResultEndedOtherVotes) && (
-                  <ResultCard content={result.content} result={result.result} />
-                )}
-            </Suspense>
+            {result &&
+              (result.type === TimelineEventType.ResultOngoingBasicVote ||
+                result.type === TimelineEventType.ResultOngoingOtherVotes ||
+                result.type === TimelineEventType.ResultEndedBasicVote ||
+                result.type === TimelineEventType.ResultEndedOtherVotes) && (
+                <ResultCard content={result.content} result={result.result} />
+              )}
           </div>
         </div>
       </div>

@@ -82,7 +82,8 @@ impl CategoryIndexer {
                     consecutive_identical_responses += 1;
                     warn!(
                         page,
-                        consecutive_identical_responses, "Detected identical category response page. Potential issue."
+                        consecutive_identical_responses,
+                        "Detected identical category response page. Potential issue."
                     );
                     if consecutive_identical_responses >= 2 {
                         error!(

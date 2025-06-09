@@ -1,9 +1,15 @@
 use crate::DB;
 use anyhow::{Context, Result};
-use proposalsapp_db::models::{dao_discourse, discourse_topic, job_queue, proposal, proposal_group};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, prelude::Uuid};
+use proposalsapp_db::models::{
+    dao_discourse, discourse_topic, job_queue, proposal, proposal_group,
+};
+use sea_orm::{
+    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, prelude::Uuid,
+};
 use tracing::{Span, error, info, instrument, warn};
-use utils::types::{DiscussionJobData, JobType, ProposalGroupItem, ProposalItem, ProposalJobData, TopicItem};
+use utils::types::{
+    DiscussionJobData, JobType, ProposalGroupItem, ProposalItem, ProposalJobData, TopicItem,
+};
 
 #[instrument()]
 pub async fn run_group_task() -> Result<()> {
@@ -34,11 +40,13 @@ pub async fn run_group_task() -> Result<()> {
 
         let job_result = match job_type {
             JobType::MapperNewProposalDiscussion => {
-                let data: DiscussionJobData = serde_json::from_value(job.data.clone()).context("Failed to deserialize discussion job data")?;
+                let data: DiscussionJobData = serde_json::from_value(job.data.clone())
+                    .context("Failed to deserialize discussion job data")?;
                 process_new_discussion_job(job.id, data.discourse_topic_id).await
             }
             JobType::MapperNewSnapshotProposal => {
-                let data: ProposalJobData = serde_json::from_value(job.data.clone()).context("Failed to deserialize proposal job data")?;
+                let data: ProposalJobData = serde_json::from_value(job.data.clone())
+                    .context("Failed to deserialize proposal job data")?;
                 process_snapshot_proposal_job(job.id, data.proposal_id).await
             }
         };
@@ -191,7 +199,9 @@ async fn check_topic_already_mapped(topic: discourse_topic::Model) -> Result<boo
         if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items) {
             for item in items {
                 if let ProposalGroupItem::Topic(topic_item) = item {
-                    if topic_item.external_id == topic.external_id.to_string() && topic_item.dao_discourse_id == topic.dao_discourse_id {
+                    if topic_item.external_id == topic.external_id.to_string()
+                        && topic_item.dao_discourse_id == topic.dao_discourse_id
+                    {
                         return Ok(true);
                     }
                 }
@@ -318,10 +328,14 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
                     "Found proposal group containing the discourse topic"
                 );
 
-                if let Ok(mut items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
+                if let Ok(mut items) =
+                    serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+                {
                     // Check if proposal is not already in the group
                     let proposal_already_in_group = items.iter().any(|item| match item {
-                        ProposalGroupItem::Proposal(prop_item) => prop_item.external_id == proposal.id.to_string(),
+                        ProposalGroupItem::Proposal(prop_item) => {
+                            prop_item.external_id == proposal.id.to_string()
+                        }
                         _ => false,
                     });
 
@@ -340,7 +354,8 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
 
                         // Update the group
                         let mut group: proposal_group::ActiveModel = group.into();
-                        group.items = Set(serde_json::to_value(items).context("Failed to serialize proposal group items")?);
+                        group.items = Set(serde_json::to_value(items)
+                            .context("Failed to serialize proposal group items")?);
                         proposal_group::Entity::update(group)
                             .exec(DB.get().unwrap())
                             .await
@@ -398,7 +413,9 @@ async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result
     Ok(())
 }
 
-async fn find_group_by_topic(topic: discourse_topic::Model) -> Result<Option<proposal_group::Model>> {
+async fn find_group_by_topic(
+    topic: discourse_topic::Model,
+) -> Result<Option<proposal_group::Model>> {
     let proposal_groups = proposal_group::Entity::find()
         .all(DB.get().unwrap())
         .await
@@ -408,7 +425,9 @@ async fn find_group_by_topic(topic: discourse_topic::Model) -> Result<Option<pro
         if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
             for item in items {
                 if let ProposalGroupItem::Topic(topic_item) = item {
-                    if topic_item.external_id == topic.external_id.to_string() && topic_item.dao_discourse_id == topic.dao_discourse_id {
+                    if topic_item.external_id == topic.external_id.to_string()
+                        && topic_item.dao_discourse_id == topic.dao_discourse_id
+                    {
                         return Ok(Some(group));
                     }
                 }

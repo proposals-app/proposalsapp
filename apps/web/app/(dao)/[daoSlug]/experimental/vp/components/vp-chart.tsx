@@ -3,8 +3,8 @@
 import { format, toZonedTime } from 'date-fns-tz';
 import * as echarts from 'echarts';
 import { useEffect, useRef } from 'react';
-import superjson, { SuperJSONResult } from 'superjson';
-import { VpRankingReturnType, VoterRankData } from '../actions';
+import superjson, { type SuperJSONResult } from 'superjson';
+import type { VoterRankData, VpRankingReturnType } from '../actions';
 
 interface VpChartProps {
   chartData: SuperJSONResult;

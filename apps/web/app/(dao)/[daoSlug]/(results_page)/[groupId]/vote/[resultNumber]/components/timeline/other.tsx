@@ -1,13 +1,21 @@
+import { BasicEvent, VolumeEvent } from '@/app/components/timeline/shared';
+import { TimelineEventType } from '@/lib/types';
+
 export function VotesVolume() {
-  return <div className='flex min-h-1 w-full items-center'></div>;
+  return <VolumeEvent width={0} type='votes' showContent={false} />;
 }
 
 export function CommentsVolume() {
-  return <div className='flex min-h-1 w-full items-center'></div>;
+  return <VolumeEvent width={0} type='comments' showContent={false} />;
 }
 
 export function Basic() {
   return (
-    <div className='relative mr-4 flex min-h-8 w-full items-center py-2'></div>
+    <BasicEvent
+      content=''
+      type={TimelineEventType.Basic}
+      showContent={false}
+      showExternalLink={false}
+    />
   );
 }

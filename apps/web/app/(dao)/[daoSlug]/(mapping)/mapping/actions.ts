@@ -2,10 +2,15 @@
 
 import Fuse from 'fuse.js';
 import { db } from '@proposalsapp/db';
-import { AsyncReturnType } from '@/lib/utils';
+import type { AsyncReturnType } from '@/lib/utils';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 import { revalidateTag } from 'next/cache';
+import {
+  type ServerActionVoidResult,
+  handleSilentServerAction,
+  handleVoidServerAction,
+} from '@/lib/server-actions-utils';
 
 // Define strong types for our data structures
 export type ProposalItem = {
@@ -209,58 +214,60 @@ export async function fuzzySearchItems(
     return [];
   }
 
-  try {
-    const dao = await db.public
-      .selectFrom('dao')
-      .where('slug', '=', daoSlug)
-      .selectAll()
-      .executeTakeFirstOrThrow();
+  return handleSilentServerAction(
+    async () => {
+      const dao = await db.public
+        .selectFrom('dao')
+        .where('slug', '=', daoSlug)
+        .selectAll()
+        .executeTakeFirstOrThrow();
 
-    const daoDiscourse = await db.public
-      .selectFrom('daoDiscourse')
-      .where('daoId', '=', dao.id)
-      .selectAll()
-      .executeTakeFirst();
+      const daoDiscourse = await db.public
+        .selectFrom('daoDiscourse')
+        .where('daoId', '=', dao.id)
+        .selectAll()
+        .executeTakeFirst();
 
-    if (!daoDiscourse) {
-      console.log('No daoDiscourse found for dao:', daoSlug);
-      return [];
-    }
+      if (!daoDiscourse) {
+        console.log('No daoDiscourse found for dao:', daoSlug);
+        return [];
+      }
 
-    const [proposals, topics] = await Promise.all([
-      db.public
-        .selectFrom('proposal')
-        .where('markedSpam', '=', false)
-        .where('proposal.daoId', '=', dao.id)
-        .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
-        .select([
-          'proposal.id',
-          'proposal.externalId',
-          'proposal.governorId',
-          'proposal.name as proposalName',
-          'daoGovernor.name as governorName',
-        ])
-        .execute(),
-      db.public
-        .selectFrom('discourseTopic')
-        .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
-        .leftJoin(
-          'daoDiscourse',
-          'daoDiscourse.id',
-          'discourseTopic.daoDiscourseId'
-        )
-        .select([
-          'discourseTopic.id',
-          'discourseTopic.externalId',
-          'discourseTopic.daoDiscourseId',
-          'title',
-          'daoDiscourse.discourseBaseUrl',
-        ])
-        .execute(),
-    ]);
+      const [proposals, topics] = await Promise.all([
+        db.public
+          .selectFrom('proposal')
+          .where('markedSpam', '=', false)
+          .where('proposal.daoId', '=', dao.id)
+          .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
+          .select([
+            'proposal.id',
+            'proposal.externalId',
+            'proposal.governorId',
+            'proposal.name as proposalName',
+            'daoGovernor.name as governorName',
+          ])
+          .execute(),
+        db.public
+          .selectFrom('discourseTopic')
+          .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
+          .leftJoin(
+            'daoDiscourse',
+            'daoDiscourse.id',
+            'discourseTopic.daoDiscourseId'
+          )
+          .select([
+            'discourseTopic.id',
+            'discourseTopic.externalId',
+            'discourseTopic.daoDiscourseId',
+            'title',
+            'daoDiscourse.discourseBaseUrl',
+          ])
+          .execute(),
+      ]);
 
-    const allItems: (Omit<FuzzySearchResult, 'score'> & { score?: number })[] =
-      [
+      const allItems: (Omit<FuzzySearchResult, 'score'> & {
+        score?: number;
+      })[] = [
         ...proposals.map((p) => ({
           name: p.proposalName,
           type: 'proposal' as const,
@@ -277,32 +284,35 @@ export async function fuzzySearchItems(
         })),
       ];
 
-    if (allItems.length === 0) return [];
+      if (allItems.length === 0) return [];
 
-    const fuse = new Fuse(allItems, {
-      keys: ['name'],
-      threshold: 0.5,
-      includeScore: true,
-    });
+      const fuse = new Fuse(allItems, {
+        keys: ['name'],
+        threshold: 0.5,
+        includeScore: true,
+      });
 
-    return fuse
-      .search(searchTerm)
-      .slice(0, 100)
-      .map((result) => ({
-        ...result.item,
-        score: result.score ?? 1.0,
-      }));
-  } catch (error) {
-    console.error('Error in fuzzySearchItems:', error);
-    return [];
-  }
+      return fuse
+        .search(searchTerm)
+        .slice(0, 100)
+        .map((result) => ({
+          ...result.item,
+          score: result.score ?? 1.0,
+        }));
+    },
+    [],
+    'fuzzySearchItems'
+  );
 }
 /**
  * Saves updated groups to the database
  */
-export async function saveGroups(groups: ProposalGroup[]) {
+export async function saveGroups(
+  groups: ProposalGroup[]
+): Promise<ServerActionVoidResult> {
   'use server';
-  try {
+
+  return handleVoidServerAction(async () => {
     await Promise.all(
       groups.map(async (group) => {
         if (group.id) {
@@ -340,19 +350,18 @@ export async function saveGroups(groups: ProposalGroup[]) {
 
     revalidateTag('groupsData');
     revalidateTag('ungroupedProposals');
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to save groups:', error);
-    return { success: false, error };
-  }
+  }, 'saveGroups');
 }
 
 /**
  * Creates a new empty proposal group
  */
-export async function createGroup(daoSlug: string) {
+export async function createGroup(
+  daoSlug: string
+): Promise<ServerActionVoidResult> {
   'use server';
-  try {
+
+  return handleVoidServerAction(async () => {
     const dao = await getDao(daoSlug);
 
     const newGroup: ProposalGroup = {
@@ -376,11 +385,7 @@ export async function createGroup(daoSlug: string) {
 
     revalidateTag('groupsData');
     revalidateTag('ungroupedProposals');
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to create group:', error);
-    return { success: false, error };
-  }
+  }, 'createGroup');
 }
 
 /**

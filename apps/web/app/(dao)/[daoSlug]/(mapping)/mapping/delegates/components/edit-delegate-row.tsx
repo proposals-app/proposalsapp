@@ -1,24 +1,29 @@
 'use client';
 
-import { Selectable, Delegate, DiscourseUser, Voter } from '@proposalsapp/db';
+import type {
+  Delegate,
+  DiscourseUser,
+  Selectable,
+  Voter,
+} from '@proposalsapp/db';
 import { useState } from 'react';
 import {
+  deleteDelegate,
   mapDiscourseUserToDelegate,
   mapVoterToDelegate,
   unmapDiscourseUserFromDelegate,
   unmapVoterFromDelegate,
-  deleteDelegate,
 } from '../actions';
 import {
   FuzzyDiscourseUserSearch,
   FuzzyVoterSearch,
 } from '../../components/ui/search';
 import {
-  MappingTableRow,
-  MappingTableCell,
-  MappingTableActionCell,
-  Button,
   Badge,
+  Button,
+  MappingTableActionCell,
+  MappingTableCell,
+  MappingTableRow,
 } from '../../components/ui';
 
 interface EditDelegateRowProps {

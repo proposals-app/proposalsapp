@@ -5,15 +5,15 @@ import { formatDistanceToNow } from 'date-fns';
 import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
-import { WindowScroller, List, AutoSizer } from 'react-virtualized';
-import { VotesWithVoters } from '../actions';
-import {
+import { AutoSizer, List, WindowScroller } from 'react-virtualized';
+import type { VotesWithVoters } from '../actions';
+import type {
   ProcessedResults,
   ProcessedVote,
   VoteType,
 } from '@/lib/results_processing';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
-import superjson, { SuperJSONResult } from 'superjson';
+import superjson, { type SuperJSONResult } from 'superjson';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author-voter';
 import {
   Select,

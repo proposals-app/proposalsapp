@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Bell, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { saveSettings, SettingsData } from '../../profile/actions';
+import { saveSettings, type SettingsData } from '../../profile/actions';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 
 export const EmailPreferences = () => {
@@ -17,9 +17,9 @@ export const EmailPreferences = () => {
     setIsSubmitting(true);
 
     const settingsData: SettingsData = {
-      newDiscussions: newDiscussions,
-      newProposals: newProposals,
-      endingProposals: endingProposals,
+      newDiscussions,
+      newProposals,
+      endingProposals,
       isOnboarded: true,
     };
 
@@ -35,7 +35,7 @@ export const EmailPreferences = () => {
     id,
   }: {
     checked: boolean;
-    onChange: (checked: boolean) => void;
+    onChange: (_checked: boolean) => void;
     id: string;
   }) => {
     return (

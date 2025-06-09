@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { ReactNode, Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
 export default async function SuspendedThemeProvider({
   children,

@@ -3,7 +3,7 @@
 import ArrowSvg from '@/public/assets/web/icons/arrow-left.svg';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface HeaderClientProps {
   originalAuthorName: string;

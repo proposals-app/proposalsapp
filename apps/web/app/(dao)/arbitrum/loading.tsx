@@ -1,4 +1,4 @@
-import { LoadingHeader, LoadingGroupList } from '../[daoSlug]/loading';
+import { LoadingGroupList, LoadingHeader } from '../[daoSlug]/loading';
 
 export default function Loading() {
   return (

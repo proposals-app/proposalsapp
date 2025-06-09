@@ -1,13 +1,13 @@
 'use client';
 
-import { Selectable, Voter } from '@proposalsapp/db';
+import type { Selectable, Voter } from '@proposalsapp/db';
 import { fuzzySearchVoters } from '../../../delegates/actions';
 import FuzzySearch from './fuzzy-search';
 import Badge from '../badge';
 
 interface FuzzyVoterSearchProps {
   excludeVoterIds?: string[];
-  onSelectVoter: (voter: Selectable<Voter>) => void;
+  onSelectVoter: (_voter: Selectable<Voter>) => void;
   isLoading?: boolean;
   className?: string;
 }

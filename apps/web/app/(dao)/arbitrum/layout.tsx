@@ -1,4 +1,4 @@
-import { ReactNode, Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import Banner from '@/app/components/banner';
 import SuspendedThemeProvider from '@/app/components/theme-provider';
 import { NavBar } from '../[daoSlug]/components/nav-bar';

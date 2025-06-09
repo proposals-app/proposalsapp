@@ -2,13 +2,13 @@ import { notFound } from 'next/navigation';
 
 import {
   getFeed,
-  GroupReturnType,
+  type GroupReturnType,
 } from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/actions';
 import TimelineEventIcon from '@/public/assets/web/icons/timeline-event.svg';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { connection } from 'next/server';
 import { ResultsMobile } from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/components/timeline/mobile/timeline-mobile';
-import { ResultEvent, TimelineEventType } from '@/lib/types';
+import { TimelineEventType, type ResultEvent } from '@/lib/types';
 import { Basic, CommentsVolume, VotesVolume } from './other';
 import { Result } from './result';
 

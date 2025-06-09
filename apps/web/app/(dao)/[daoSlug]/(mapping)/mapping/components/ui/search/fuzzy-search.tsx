@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface FuzzySearchProps<T> {
   placeholder: string;
-  onSearch: (term: string) => Promise<T[]>;
-  onSelect: (item: T) => void;
-  renderItem: (item: T) => React.ReactNode;
+  onSearch: (_term: string) => Promise<T[]>;
+  onSelect: (_item: T) => void;
+  renderItem: (_item: T) => React.ReactNode;
   isLoading?: boolean;
   noResultsMessage?: string;
   searchingMessage?: string;

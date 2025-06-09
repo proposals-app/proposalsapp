@@ -1,9 +1,14 @@
 #![allow(non_snake_case)]
-use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::{ArbitrumTreasuryGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent, ProposalExtendedEvent, VoteCastEvent, no_extensions};
+use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::{
+    ArbitrumTreasuryGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent,
+    ProposalExtendedEvent, VoteCastEvent, no_extensions,
+};
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_proposal, store_votes},
+        db_extension::{
+            DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_proposal, store_votes,
+        },
     },
     rindexer_lib::typings::rindexer::events::arbitrum_treasury_governor::arbitrum_treasury_governor_contract,
 };
@@ -12,7 +17,11 @@ use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use futures::{StreamExt, stream};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
-use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error};
+use rindexer::{
+    EthereumSqlTypeWrapper, PgType, RindexerColorize,
+    event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus,
+    rindexer_error,
+};
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::{self, NotSet},
@@ -419,7 +428,10 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
     name = "arbitrum_treasury_governor_handlers",
     skip(manifest_path, registry)
 )]
-pub async fn arbitrum_treasury_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
+pub async fn arbitrum_treasury_governor_handlers(
+    manifest_path: &PathBuf,
+    registry: &mut EventCallbackRegistry,
+) {
     proposal_created_handler(manifest_path, registry).await;
     proposal_executed_handler(manifest_path, registry).await;
     proposal_extended_handler(manifest_path, registry).await;
@@ -461,7 +473,10 @@ pub async fn update_active_proposals_end_time() -> Result<()> {
 
     // Get all active proposals for this governor
     let active_proposals = proposal::Entity::find()
-        .filter(proposal::Column::GovernorId.eq(get_governor_id().context("Failed to get governor ID")?))
+        .filter(
+            proposal::Column::GovernorId
+                .eq(get_governor_id().context("Failed to get governor ID")?),
+        )
         .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
         .all(db)
         .await
@@ -556,7 +571,10 @@ pub async fn update_ended_proposals_state() -> Result<()> {
     let active_proposals = proposal::Entity::find()
         .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
         .filter(proposal::Column::EndAt.lt(chrono::Utc::now().naive_utc()))
-        .filter(proposal::Column::GovernorId.eq(get_governor_id().context("Failed to get governor ID")?))
+        .filter(
+            proposal::Column::GovernorId
+                .eq(get_governor_id().context("Failed to get governor ID")?),
+        )
         .all(db)
         .await
         .context("Failed to fetch ended active proposals")?;
@@ -616,12 +634,16 @@ pub async fn update_ended_proposals_state() -> Result<()> {
 }
 
 #[instrument(name = "arbitrum_treasury_governor_calculate_final_proposal_state", skip(proposal, votes), fields(proposal_id = proposal.external_id))]
-async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<vote::Model>) -> Result<ProposalState> {
+async fn calculate_final_proposal_state(
+    proposal: &proposal::Model,
+    votes: &Vec<vote::Model>,
+) -> Result<ProposalState> {
     let mut for_votes = 0.0;
     let mut against_votes = 0.0;
 
     let choices_value = proposal.choices.clone();
-    let choices_vec: Vec<String> = serde_json::from_value(choices_value.clone()).unwrap_or_else(|_| vec![]);
+    let choices_vec: Vec<String> =
+        serde_json::from_value(choices_value.clone()).unwrap_or_else(|_| vec![]);
 
     let mut choice_map: HashMap<usize, String> = HashMap::new();
     for (index, choice_text) in choices_vec.iter().enumerate() {
@@ -639,17 +661,19 @@ async fn calculate_final_proposal_state(proposal: &proposal::Model, votes: &Vec<
 
     for vote in votes {
         match vote.choice.as_u64() {
-            Some(choice_index) => match choice_map.get(&(choice_index as usize)).map(|s| s.as_str()) {
-                Some("for") => for_votes += vote.voting_power,
-                Some("against") => against_votes += vote.voting_power,
-                Some(_) | None => {
-                    debug!(
-                        proposal_id = proposal.external_id,
-                        choice_index = choice_index,
-                        "Unknown choice type at index for proposal"
-                    );
+            Some(choice_index) => {
+                match choice_map.get(&(choice_index as usize)).map(|s| s.as_str()) {
+                    Some("for") => for_votes += vote.voting_power,
+                    Some("against") => against_votes += vote.voting_power,
+                    Some(_) | None => {
+                        debug!(
+                            proposal_id = proposal.external_id,
+                            choice_index = choice_index,
+                            "Unknown choice type at index for proposal"
+                        );
+                    }
                 }
-            },
+            }
             None => {
                 error!(
                     proposal_id = proposal.external_id,

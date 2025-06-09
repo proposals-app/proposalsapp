@@ -1,9 +1,9 @@
-import { Proposal, Selectable } from '@proposalsapp/db';
+import type { Proposal, Selectable } from '@proposalsapp/db';
 import {
-  getVoter,
-  getProposalGovernor,
-  getVotesWithVoters,
   getNonVoters,
+  getProposalGovernor,
+  getVoter,
+  getVotesWithVoters,
 } from './actions';
 import { LoadingChart, ResultsChart } from './result/results-chart';
 import { LoadingList, ResultsList } from './result/results-list';

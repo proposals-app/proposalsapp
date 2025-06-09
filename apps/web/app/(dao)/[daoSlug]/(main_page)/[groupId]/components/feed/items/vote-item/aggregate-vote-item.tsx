@@ -1,9 +1,9 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { notFound } from 'next/navigation';
-import { FeedReturnType, GroupReturnType } from '../../../../actions';
+import type { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author-voter';
-import { ProposalMetadata } from '@/lib/types';
+import type { ProposalMetadata } from '@/lib/types';
 
 export async function AggregateVoteItem({
   item,

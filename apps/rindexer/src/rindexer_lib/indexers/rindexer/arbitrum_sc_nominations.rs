@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
-use super::super::super::typings::rindexer::events::arbitrum_sc_nominations::{ArbitrumSCNominationsEventType, ProposalCreatedEvent, ProposalExecutedEvent, no_extensions};
+use super::super::super::typings::rindexer::events::arbitrum_sc_nominations::{
+    ArbitrumSCNominationsEventType, ProposalCreatedEvent, ProposalExecutedEvent, no_extensions,
+};
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
@@ -10,7 +12,11 @@ use crate::{
 use alloy::{hex::ToHexExt, primitives::U256};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState};
 use regex::Regex;
-use rindexer::{EthereumSqlTypeWrapper, PgType, RindexerColorize, event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus, rindexer_error, rindexer_info};
+use rindexer::{
+    EthereumSqlTypeWrapper, PgType, RindexerColorize,
+    event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus,
+    rindexer_error, rindexer_info,
+};
 use sea_orm::{
     ActiveValue::{NotSet, Set},
     prelude::Uuid,
@@ -201,7 +207,9 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
         ProposalExecutedEvent::handler(
             |results, context| async move {
                 if results.is_empty() {
-                    debug!("No ArbitrumSCNominations ProposalExecuted events to process in this batch.");
+                    debug!(
+                        "No ArbitrumSCNominations ProposalExecuted events to process in this batch."
+                    );
                     return Ok(());
                 }
 
@@ -226,7 +234,10 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
     name = "arbitrum_sc_nominations_handlers",
     skip(manifest_path, registry)
 )]
-pub async fn arbitrum_sc_nominations_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
+pub async fn arbitrum_sc_nominations_handlers(
+    manifest_path: &PathBuf,
+    registry: &mut EventCallbackRegistry,
+) {
     proposal_created_handler(manifest_path, registry).await;
     proposal_executed_handler(manifest_path, registry).await;
     info!("Arbitrum SC Nominations handlers registered.");

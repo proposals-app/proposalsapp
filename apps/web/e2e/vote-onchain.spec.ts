@@ -3,26 +3,27 @@ import { MetaMask, metaMaskFixtures } from '@synthetixio/synpress/playwright';
 import type { Page } from '@playwright/test';
 import basicSetup from './wallet-setup/basic.setup';
 import {
+  type Abi,
+  type AbiEvent,
+  type Address,
   type Chain,
+  type Log,
   createTestClient,
+  decodeEventLog,
+  getEventSelector,
   http,
+  parseEther,
   publicActions,
   walletActions,
-  type Address,
-  parseEther,
-  getEventSelector,
-  decodeEventLog,
-  type Log,
-  type AbiEvent,
-  type Abi,
 } from 'viem';
 import { arbitrum } from 'viem/chains';
-import { ARBITRUM_TOKEN_ABI, ARBITRUM_TOKEN_ADDRESS } from '@/lib/constants';
 import {
-  ARBITRUM_CORE_GOVERNOR_ADDRESS,
+  ARBITRUM_TOKEN_ABI,
+  ARBITRUM_TOKEN_ADDRESS,
   ARBITRUM_CORE_GOVERNOR_ABI,
-  ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
+  ARBITRUM_CORE_GOVERNOR_ADDRESS,
   ARBITRUM_TREASURY_GOVERNOR_ABI,
+  ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
 } from '@/lib/constants';
 
 const test = testWithSynpress(metaMaskFixtures(basicSetup));
@@ -110,20 +111,20 @@ async function connectWallet(
       console.log(`${testLogPrefix} Handling Metamask 'Got it' button...`);
       await gotItButton.click();
     }
-  } catch (e) {
+  } catch (_e) {
     console.log(`${testLogPrefix} 'Got it' button not found, continuing...`);
   }
 
   try {
     await metamask.approveNewNetwork();
-  } catch (e) {
+  } catch (_e) {
     console.log(
       `${testLogPrefix} Approve new network skipped/failed, continuing...`
     );
   }
   try {
     await metamask.approveSwitchNetwork();
-  } catch (e) {
+  } catch (_e) {
     console.log(
       `${testLogPrefix} Approve switch network skipped/failed, continuing...`
     );
@@ -435,9 +436,9 @@ async function waitForVoteCastEventLog(
         args: {
           // Assuming voter (indexed arg 0 after signature) and proposalId (indexed arg 1)
           voter: DELEGATE_ACCOUNT,
-          proposalId: proposalId,
+          proposalId,
         } as any, // Use any here because the specific indexed args might differ slightly between VoteCast and VoteCastWithParams, but viem's getLogs can handle filtering if the names match.
-        fromBlock: fromBlock,
+        fromBlock,
         toBlock: 'latest',
       });
 
@@ -522,7 +523,7 @@ async function verifyVoteOnchain(
         });
         decodedEventArgs = decodedEvent.args as VoteCastEventArgs;
         decodedEventName = 'VoteCast';
-      } catch (e) {
+      } catch (_e) {
         // Decoding failed as VoteCast, try VoteCastWithParams next if available
         console.log(
           `${testLogPrefix} Decoding as VoteCast failed, trying VoteCastWithParams...`
@@ -814,12 +815,11 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     const governorAddress = ARBITRUM_CORE_GOVERNOR_ADDRESS;
     const governorAbi = ARBITRUM_CORE_GOVERNOR_ABI;
     const choices = ['For', 'Against', 'Abstain'];
-    let proposalId: bigint;
     const uniqueReasonNonce = `onchain-core-test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`; // The UI appends ATTRIBUTION_TEXT
 
     // 1. Create and activate a new proposal for this test run
-    proposalId = await createAndActivateProposal(
+    const proposalId = await createAndActivateProposal(
       governorAddress,
       governorAbi,
       testLogPrefix
@@ -938,12 +938,11 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     const governorAddress = ARBITRUM_TREASURY_GOVERNOR_ADDRESS;
     const governorAbi = ARBITRUM_TREASURY_GOVERNOR_ABI;
     const choices = ['For', 'Against', 'Abstain'];
-    let proposalId: bigint;
     const uniqueReasonNonce = `onchain-treasury-test-run-${Date.now()}`;
     const expectedReasonString = `${uniqueReasonNonce}\n${ATTRIBUTION_TEXT}`;
 
     // 1. Create and activate a new proposal for this test run ON THE TREASURY GOVERNOR
-    proposalId = await createAndActivateProposal(
+    const proposalId = await createAndActivateProposal(
       governorAddress,
       governorAbi,
       testLogPrefix

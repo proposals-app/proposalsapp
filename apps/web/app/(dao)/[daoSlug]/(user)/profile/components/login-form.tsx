@@ -1,7 +1,7 @@
 'use client';
 
-import { signIn, emailOtp } from '@/lib/auth/auth-client';
-import { useState, useTransition, useRef } from 'react';
+import { emailOtp, signIn } from '@/lib/auth/auth-client';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail } from 'lucide-react';
 import { usePostHog } from 'posthog-js/react';

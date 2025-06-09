@@ -1,13 +1,13 @@
 'use client';
 
-import { FuzzySearchResult, fuzzySearchItems } from '../../../actions';
+import { fuzzySearchItems, type FuzzySearchResult } from '../../../actions';
 import FuzzySearch from './fuzzy-search';
 import Badge from '../badge';
 
 interface FuzzyItemSearchProps {
   daoSlug: string;
   excludeItems?: string[];
-  onSelectItem: (item: FuzzySearchResult) => void;
+  onSelectItem: (_item: FuzzySearchResult) => void;
   isLoading?: boolean;
   className?: string;
 }

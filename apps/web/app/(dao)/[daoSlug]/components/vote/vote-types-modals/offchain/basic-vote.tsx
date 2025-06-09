@@ -12,9 +12,9 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { useAccount, useWalletClient } from 'wagmi';
 import {
+  type VoteModalContentProps,
   ATTRIBUTION_TEXT,
   SNAPSHOT_APP_NAME,
-  VoteModalContentProps,
 } from '../../vote-button';
 
 export function OffchainBasicVoteModalContent({

@@ -1,22 +1,21 @@
 'use client';
 
 import {
-  CommentsVolumeEvent,
-  FeedEvent,
   TimelineEventType,
-  VotesVolumeEvent,
+  type CommentsVolumeEvent,
+  type FeedEvent,
+  type VotesVolumeEvent,
 } from '@/lib/types';
-import { GroupReturnType } from '../../actions';
+import type { GroupReturnType } from '../../actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
-import {
-  RefObject,
+import React, {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type RefObject,
 } from 'react';
-import React from 'react';
 import { CommentsVolume } from './comments-volume';
 import { VotesVolume } from './votes-volume';
 import { Result } from './result';
@@ -109,7 +108,7 @@ function aggregateVolumeEvents(
             Math.min(...voteEvents.map((e) => e.timestamp.getTime()))
           ),
           volumes: aggregatedVolumes,
-          colors: colors,
+          colors,
           maxVolume: Math.max(...voteEvents.map((e) => e.maxVolume)),
           volumeType: 'votes',
           metadata: {
@@ -528,8 +527,8 @@ export function Timeline({
 export function useResizeObserver(
   ref: RefObject<HTMLElement>,
   callback: (
-    size: { width: number; height: number },
-    sizeIncreased: boolean
+    _size: { width: number; height: number },
+    _sizeIncreased: boolean
   ) => void
 ) {
   const prevSizeRef = useRef({ width: 0, height: 0 });

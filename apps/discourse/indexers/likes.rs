@@ -1,4 +1,7 @@
-use crate::{db_handler::upsert_post_likes_batch, discourse_api::DiscourseApi, models::likes::PostLikeResponse};
+use crate::{
+    db_handler::upsert_post_likes_batch, discourse_api::DiscourseApi,
+    models::likes::PostLikeResponse,
+};
 use anyhow::{Context, Result};
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;

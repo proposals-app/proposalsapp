@@ -5,12 +5,12 @@ import { Button } from '@/app/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Label } from '@/app/components/ui/label';
-import { DialogFooter, DialogClose } from '@/app/components/ui/dialog';
-import { Selectable, Proposal } from '@proposalsapp/db';
+import { DialogClose, DialogFooter } from '@/app/components/ui/dialog';
+import type { Proposal, Selectable } from '@proposalsapp/db';
 import {
   useAccount,
-  useWriteContract,
   useWaitForTransactionReceipt,
+  useWriteContract,
 } from 'wagmi';
 import {
   ARBITRUM_CORE_GOVERNOR_ABI,
@@ -18,14 +18,14 @@ import {
 } from '@/lib/constants';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { ATTRIBUTION_TEXT } from '../../vote-button';
-import { Abi } from 'abitype';
+import type { Abi } from 'abitype';
 
 interface OnchainArbitrumCoreBasicVoteModalContentProps {
   proposal: Selectable<Proposal>;
   choices: string[];
   snapshotSpace?: string; // Not used in onchain, but keep interface consistent if desired
   snapshotHubUrl?: string; // Not used in onchain
-  onVoteSubmit: (voteData: {
+  onVoteSubmit: (_voteData: {
     proposalId: string;
     choice: number;
     reason: string;

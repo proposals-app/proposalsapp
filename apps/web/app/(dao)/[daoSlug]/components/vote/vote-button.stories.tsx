@@ -1,29 +1,29 @@
-import { VoteType } from '@/lib/results_processing';
+import type { VoteType } from '@/lib/results_processing';
 import { VoteButton } from './vote-button';
 import '@/styles/globals.css';
-import { Story } from '@ladle/react';
-import React, { useState, useEffect } from 'react';
+import type { Story } from '@ladle/react';
+import React, { useEffect, useState } from 'react';
 import {
+  type Abi,
+  type AbiEvent,
+  type Address,
   type Chain,
-  createPublicClient,
-  http,
-  Address,
-  PublicClient,
-  Abi,
+  type DecodeEventLogReturnType,
+  type Log,
+  type PublicClient,
   ContractFunctionExecutionError,
-  Log,
+  createPublicClient,
   decodeEventLog,
-  AbiEvent,
-  DecodeEventLogReturnType,
+  http,
 } from 'viem';
 import { arbitrum } from 'viem/chains';
 import {
   ARBITRUM_CORE_GOVERNOR_ABI,
-  ARBITRUM_TOKEN_ABI,
   ARBITRUM_CORE_GOVERNOR_ADDRESS,
-  ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
-  ARBITRUM_TREASURY_GOVERNOR_ABI,
+  ARBITRUM_TOKEN_ABI,
   ARBITRUM_TOKEN_ADDRESS,
+  ARBITRUM_TREASURY_GOVERNOR_ABI,
+  ARBITRUM_TREASURY_GOVERNOR_ADDRESS,
 } from '@/lib/constants';
 
 // Define a local ProposalState enum matching the expected string values
@@ -204,7 +204,7 @@ function extractTitleFromDescription(description: string): string {
     titleLine?.replace(/^#+\s*/, '').trim() || 'Untitled Onchain Proposal';
   // Truncate if necessary
   if (title.length > 120) {
-    title = title.substring(0, 120) + '...';
+    title = `${title.substring(0, 120)}...`;
   }
   return title;
 }
@@ -616,7 +616,7 @@ async function fetchLatestOnchainProposal(
             body: description ?? '',
             author: proposer || '0x...',
             url: `https://www.tally.xyz/gov/arbitrum/proposal/${latestProposalId}`, // Example URL might need adjustment per governor
-            startAt: startAt,
+            startAt,
             createdAt: startAt, // Approximate with startAt
             endAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // Add 7 days to current time
             blockCreatedAt: proposalStartBlock,

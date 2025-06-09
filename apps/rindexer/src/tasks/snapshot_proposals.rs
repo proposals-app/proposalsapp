@@ -1,5 +1,7 @@
 use crate::extensions::{
-    db_extension::{DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, store_proposal},
+    db_extension::{
+        DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, store_proposal,
+    },
     snapshot_api::SNAPSHOT_API_HANDLER,
 };
 use anyhow::{Context, Result};
@@ -52,7 +54,11 @@ struct SnapshotProposal {
 }
 
 /// Fetches a batch of proposals from Snapshot API for a given space
-async fn fetch_proposals_batch(space: &str, skip: usize, batch_size: usize) -> Result<Vec<SnapshotProposal>> {
+async fn fetch_proposals_batch(
+    space: &str,
+    skip: usize,
+    batch_size: usize,
+) -> Result<Vec<SnapshotProposal>> {
     let graphql_query = format!(
         r#"
         {{
@@ -109,7 +115,11 @@ async fn fetch_proposals_batch(space: &str, skip: usize, batch_size: usize) -> R
 }
 
 #[instrument(name = "update_snapshot_proposals", skip(dao_id, governor_id, space))]
-pub async fn update_snapshot_proposals(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
+pub async fn update_snapshot_proposals(
+    dao_id: Uuid,
+    governor_id: Uuid,
+    space: String,
+) -> Result<()> {
     info!(space = %space, "Running task to fetch latest snapshot proposals for space.");
 
     // Continuously refresh all proposals in a paginated way
@@ -149,9 +159,13 @@ pub async fn update_snapshot_proposals(dao_id: Uuid, governor_id: Uuid, space: S
                         debug!(proposal_id = %proposal_data.id, "Snapshot proposal stored");
                         batch_success_count += 1;
                     }
-                    Err(e) => error!(proposal_id = %proposal_data.id, error = %e, "Failed to store snapshot proposal"),
+                    Err(e) => {
+                        error!(proposal_id = %proposal_data.id, error = %e, "Failed to store snapshot proposal")
+                    }
                 },
-                Err(e) => error!(proposal_id = %proposal_data.id, error = %e, "Failed to convert snapshot proposal to active model"),
+                Err(e) => {
+                    error!(proposal_id = %proposal_data.id, error = %e, "Failed to convert snapshot proposal to active model")
+                }
             }
         }
 
@@ -276,7 +290,9 @@ pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
                 for (gov_type, governor_id) in governor_types.iter() {
                     if gov_type.contains("SNAPSHOT") {
                         // Try to get the space using the tuple (dao_slug, gov_type)
-                        let Some(space) = governor_space_map.get(&(dao_slug.clone(), gov_type.clone())) else {
+                        let Some(space) =
+                            governor_space_map.get(&(dao_slug.clone(), gov_type.clone()))
+                        else {
                             error!(dao_slug = %dao_slug, governor_type = %gov_type, "Snapshot space not found for DAO slug and governor type. Skipping governor for proposal update.");
                             continue;
                         };
@@ -298,8 +314,12 @@ pub async fn run_periodic_snapshot_proposals_update() -> Result<()> {
             for (dao_id, governor_id, space) in snapshot_governors {
                 info!(dao_id = %dao_id, governor_id = %governor_id, space = %space, "Updating snapshot proposals for governor.");
                 match update_snapshot_proposals(dao_id, governor_id, space).await {
-                    Ok(_) => info!(governor_id = %governor_id, "Successfully updated snapshot proposals for governor."),
-                    Err(e) => error!(governor_id = %governor_id, error = %e, "Failed to update snapshot proposals for governor: {:?}", e),
+                    Ok(_) => {
+                        info!(governor_id = %governor_id, "Successfully updated snapshot proposals for governor.")
+                    }
+                    Err(e) => {
+                        error!(governor_id = %governor_id, error = %e, "Failed to update snapshot proposals for governor: {:?}", e)
+                    }
                 }
             }
         }

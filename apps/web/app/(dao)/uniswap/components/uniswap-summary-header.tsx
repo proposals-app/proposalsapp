@@ -25,7 +25,7 @@ export function UniswapSummaryHeader({
     label: string;
     colorClass: string;
     bgClass: string;
-    format: (v: number) => string | number;
+    format: (_v: number) => string | number;
   }
 
   const primaryMetrics: MetricItem[] = [

@@ -1,9 +1,14 @@
 'use server';
 
-import { db, DiscourseUser, Selectable, Voter } from '@proposalsapp/db';
+import {
+  db,
+  type DiscourseUser,
+  type Selectable,
+  type Voter,
+} from '@proposalsapp/db';
 import { revalidateTag } from 'next/cache';
 import Fuse from 'fuse.js';
-import { AsyncReturnType } from '@/lib/utils';
+import type { AsyncReturnType } from '@/lib/utils';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 
 export type DelegatesWithMappingsReturnType = AsyncReturnType<
@@ -89,8 +94,8 @@ export async function getDelegatesWithMappings(daoSlug: string) {
 
       return {
         delegate,
-        discourseUsers: discourseUsers,
-        voters: voters,
+        discourseUsers,
+        voters,
         latestMappingTimestamp,
       };
     })

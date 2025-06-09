@@ -32,7 +32,12 @@ fn cleanup_html(content: &str) -> String {
             .trim();
 
         // Check if the inner content doesn't contain block-level elements
-        if !inner_content.contains("<div") && !inner_content.contains("<p") && !inner_content.contains("<ul") && !inner_content.contains("<ol") && !inner_content.contains("<table") {
+        if !inner_content.contains("<div")
+            && !inner_content.contains("<p")
+            && !inner_content.contains("<ul")
+            && !inner_content.contains("<ol")
+            && !inner_content.contains("<table")
+        {
             result = inner_content.to_string();
         }
     }
@@ -51,20 +56,24 @@ pub fn extract_before_content_inline(content: &str) -> Result<String> {
     }
 
     // Handle diff-del in both opening and closing tags (with multiple classes)
-    let both_diff_del = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">([\s\S]*?)</\1\s+class="[^"]*diff-del[^"]*">"#)?;
+    let both_diff_del = Regex::new(
+        r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">([\s\S]*?)</\1\s+class="[^"]*diff-del[^"]*">"#,
+    )?;
     result = both_diff_del
         .replace_all(&result, "<$1>$2</$1>")
         .to_string();
 
     // Handle diff-del class in opening tag (with multiple classes)
-    let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">([\s\S]*?)</\1>"#)?;
+    let diff_del_pattern =
+        Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">([\s\S]*?)</\1>"#)?;
     result = diff_del_pattern
         .replace_all(&result, "<$1>$2</$1>")
         .to_string();
 
     // Remove diff-ins elements completely including their content (with multiple
     // classes)
-    let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-ins[^"]*">[\s\S]*?</\1>"#)?;
+    let diff_ins_pattern =
+        Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-ins[^"]*">[\s\S]*?</\1>"#)?;
     result = diff_ins_pattern.replace_all(&result, "").to_string();
 
     // Keep content inside <del> tags including whitespace
@@ -90,16 +99,20 @@ pub fn extract_after_content_inline(content: &str) -> Result<String> {
     }
 
     // Handle diff-del in both opening and closing tags (with multiple classes)
-    let both_diff_del = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">(.*?)</\1\s+class="[^"]*diff-del[^"]*">"#)?;
+    let both_diff_del = Regex::new(
+        r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">(.*?)</\1\s+class="[^"]*diff-del[^"]*">"#,
+    )?;
     result = both_diff_del.replace_all(&result, "$2").to_string();
 
     // Remove diff-del elements completely including their content (with multiple
     // classes)
-    let diff_del_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">[\s\S]*?</\1>"#)?;
+    let diff_del_pattern =
+        Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-del[^"]*">[\s\S]*?</\1>"#)?;
     result = diff_del_pattern.replace_all(&result, "").to_string();
 
     // Handle diff-ins class (with multiple classes)
-    let diff_ins_pattern = Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-ins[^"]*">([\s\S]*?)</\1>"#)?;
+    let diff_ins_pattern =
+        Regex::new(r#"<([a-zA-Z0-9]+)\s+class="[^"]*diff-ins[^"]*">([\s\S]*?)</\1>"#)?;
     result = diff_ins_pattern
         .replace_all(&result, "<$1>$2</$1>")
         .to_string();
@@ -118,7 +131,9 @@ pub fn extract_after_content_inline(content: &str) -> Result<String> {
 
 #[cfg(test)]
 mod inline_changes_tests {
-    use crate::models::revisions::inline_changes::{extract_after_content_inline, extract_before_content_inline};
+    use crate::models::revisions::inline_changes::{
+        extract_after_content_inline, extract_before_content_inline,
+    };
 
     #[test]
     fn test_simple_ins_del() {
@@ -184,7 +199,8 @@ mod inline_changes_tests {
 
     #[test]
     fn test_with_wrapper_empty_div() {
-        let content = r#"<div class="inline-diff"><div>Hackathon Continuation Program </div></div>"#;
+        let content =
+            r#"<div class="inline-diff"><div>Hackathon Continuation Program </div></div>"#;
 
         let before = extract_before_content_inline(content).unwrap();
         let after = extract_after_content_inline(content).unwrap();
@@ -403,7 +419,9 @@ mod inline_changes_tests {
         assert!(!before.contains("cannot assume token delegations"));
 
         // Test the after content
-        assert!(after.contains("Governance and Compliance Requirements for OpCo, its Internal Employees, and the OAT"));
+        assert!(after.contains(
+            "Governance and Compliance Requirements for OpCo, its Internal Employees, and the OAT"
+        ));
         assert!(after.contains("forbidden"));
         assert!(after.contains("participating in"));
         assert!(after.contains("OpCo in its capacity as a legal entity"));
@@ -517,8 +535,10 @@ mod inline_changes_tests {
                 </ul>
             </div>"#;
 
-        let expected_before = r#"<h1>Old Title</h1><p>Removed paragraph</p><ul><li>Old item</li></ul>"#;
-        let expected_after = r#"<h1>New Title</h1><p>Added paragraph</p><ul><li>New item</li></ul>"#;
+        let expected_before =
+            r#"<h1>Old Title</h1><p>Removed paragraph</p><ul><li>Old item</li></ul>"#;
+        let expected_after =
+            r#"<h1>New Title</h1><p>Added paragraph</p><ul><li>New item</li></ul>"#;
 
         let before = extract_before_content_inline(content).unwrap();
         let after = extract_after_content_inline(content).unwrap();

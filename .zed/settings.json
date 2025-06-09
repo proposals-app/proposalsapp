@@ -1,0 +1,131 @@
+{
+  "languages": {
+    "Rust": {
+      "format_on_save": "on",
+      "formatter": "language_server",
+      "code_actions_on_format": { "source.organizeImports": true }
+    },
+    "TypeScript": {
+      "format_on_save": "on",
+      "formatter": "auto",
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    },
+    "TSX": {
+      "format_on_save": "on",
+      "formatter": "auto",
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    },
+    "JavaScript": {
+      "format_on_save": "on",
+      "formatter": "auto",
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    },
+    "JSON": {
+      "format_on_save": "on",
+      "formatter": "prettier"
+    },
+    "Markdown": {
+      "format_on_save": "on",
+      "formatter": "prettier",
+      "wrap_guides": [100]
+    },
+    "YAML": {
+      "format_on_save": "on",
+      "formatter": "prettier"
+    }
+  },
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "check": {
+          "command": "clippy",
+          "features": "all"
+        },
+        "cargo": {
+          "features": "all"
+        },
+        "procMacro": {
+          "enable": true
+        },
+        "imports": {
+          "granularity": {
+            "group": "crate"
+          },
+          "prefix": "crate"
+        },
+        "lens": {
+          "enable": true,
+          "methodReferences": true,
+          "references": true
+        },
+        "inlayHints": {
+          "enable": true,
+          "chainingHints": true,
+          "parameterHints": true,
+          "typeHints": true
+        }
+      }
+    },
+    "typescript-language-server": {
+      "initialization_options": {
+        "preferences": {
+          "importModuleSpecifier": "relative",
+          "includePackageJsonAutoImports": "auto"
+        }
+      }
+    },
+    "eslint": {
+      "settings": {
+        "overrideConfigFile": "./eslint.config.mjs",
+        "workingDirectories": ["."]
+      }
+    }
+  },
+  "prettier": {
+    "config_path": "./prettier.config.mjs"
+  },
+  "eslint": {
+    "config_path": "./eslint.config.mjs"
+  },
+  "diagnostics": {
+    "include_warnings": true
+  },
+  "format_on_save": "on",
+  "code_actions_on_format": {
+    "source.fixAll.eslint": true
+  },
+  "formatter": "prettier",
+  "wrap_guides": [80, 120],
+  "soft_wrap": "preferred_line_length",
+  "preferred_line_length": 80,
+  "tab_size": 2,
+  "hard_tabs": false,
+  "show_whitespaces": "selection",
+  "remove_trailing_whitespace_on_save": true,
+  "ensure_final_newline_on_save": true,
+  "file_types": {
+    "Dockerfile": ["Dockerfile", "Dockerfile.*"],
+    "TOML": ["*.toml"],
+    "Rust": ["*.rs"]
+  },
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/node_modules",
+    "**/target",
+    "**/.next",
+    "**/.turbo",
+    "**/dist",
+    "**/build",
+    "**/coverage",
+    "**/playwright-report",
+    "**/test-results",
+    "**/.cargo",
+    "**/apps/observe/storage"
+  ]
+}

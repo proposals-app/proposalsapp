@@ -3,26 +3,31 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from "kysely";
+import type { ColumnType } from 'kysely';
 
 export enum ProposalState {
-  ACTIVE = "ACTIVE",
-  CANCELED = "CANCELED",
-  DEFEATED = "DEFEATED",
-  EXECUTED = "EXECUTED",
-  EXPIRED = "EXPIRED",
-  HIDDEN = "HIDDEN",
-  PENDING = "PENDING",
-  QUEUED = "QUEUED",
-  SUCCEEDED = "SUCCEEDED",
-  UNKNOWN = "UNKNOWN",
+  ACTIVE = 'ACTIVE',
+  CANCELED = 'CANCELED',
+  DEFEATED = 'DEFEATED',
+  EXECUTED = 'EXECUTED',
+  EXPIRED = 'EXPIRED',
+  HIDDEN = 'HIDDEN',
+  PENDING = 'PENDING',
+  QUEUED = 'QUEUED',
+  SUCCEEDED = 'SUCCEEDED',
+  UNKNOWN = 'UNKNOWN',
 }
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Json = JsonValue;
 
@@ -458,23 +463,23 @@ export interface DB {
   jobQueue: JobQueue;
   proposal: Proposal;
   proposalGroup: ProposalGroup;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated": RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExecuted": RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExtended": RindexerInternalRindexerArbitrumCoreGovernorProposalExtended;
-  "rindexerInternal.rindexerArbitrumCoreGovernorVoteCast": RindexerInternalRindexerArbitrumCoreGovernorVoteCast;
-  "rindexerInternal.rindexerArbitrumScNominationsProposalCreated": RindexerInternalRindexerArbitrumScNominationsProposalCreated;
-  "rindexerInternal.rindexerArbitrumScNominationsProposalExecuted": RindexerInternalRindexerArbitrumScNominationsProposalExecuted;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalCreated": RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExecuted": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExtended": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCast": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCastWithParams": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCastWithParams;
-  "rindexerInternal.rindexerArbTokenDelegateChanged": RindexerInternalRindexerArbTokenDelegateChanged;
-  "rindexerInternal.rindexerArbTokenDelegateVotesChanged": RindexerInternalRindexerArbTokenDelegateVotesChanged;
-  "rindexerInternal.rindexerLastKnownIndexesDroppingSql": RindexerInternalRindexerLastKnownIndexesDroppingSql;
-  "rindexerInternal.rindexerLastKnownRelationshipDroppingSql": RindexerInternalRindexerLastKnownRelationshipDroppingSql;
-  "rindexerInternal.rindexerUniTokenDelegateChanged": RindexerInternalRindexerUniTokenDelegateChanged;
-  "rindexerInternal.rindexerUniTokenDelegateVotesChanged": RindexerInternalRindexerUniTokenDelegateVotesChanged;
+  'rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated': RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
+  'rindexerInternal.rindexerArbitrumCoreGovernorProposalExecuted': RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted;
+  'rindexerInternal.rindexerArbitrumCoreGovernorProposalExtended': RindexerInternalRindexerArbitrumCoreGovernorProposalExtended;
+  'rindexerInternal.rindexerArbitrumCoreGovernorVoteCast': RindexerInternalRindexerArbitrumCoreGovernorVoteCast;
+  'rindexerInternal.rindexerArbitrumScNominationsProposalCreated': RindexerInternalRindexerArbitrumScNominationsProposalCreated;
+  'rindexerInternal.rindexerArbitrumScNominationsProposalExecuted': RindexerInternalRindexerArbitrumScNominationsProposalExecuted;
+  'rindexerInternal.rindexerArbitrumTreasuryGovernorProposalCreated': RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated;
+  'rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExecuted': RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted;
+  'rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExtended': RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended;
+  'rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCast': RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast;
+  'rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCastWithParams': RindexerInternalRindexerArbitrumTreasuryGovernorVoteCastWithParams;
+  'rindexerInternal.rindexerArbTokenDelegateChanged': RindexerInternalRindexerArbTokenDelegateChanged;
+  'rindexerInternal.rindexerArbTokenDelegateVotesChanged': RindexerInternalRindexerArbTokenDelegateVotesChanged;
+  'rindexerInternal.rindexerLastKnownIndexesDroppingSql': RindexerInternalRindexerLastKnownIndexesDroppingSql;
+  'rindexerInternal.rindexerLastKnownRelationshipDroppingSql': RindexerInternalRindexerLastKnownRelationshipDroppingSql;
+  'rindexerInternal.rindexerUniTokenDelegateChanged': RindexerInternalRindexerUniTokenDelegateChanged;
+  'rindexerInternal.rindexerUniTokenDelegateVotesChanged': RindexerInternalRindexerUniTokenDelegateVotesChanged;
   session: Session;
   user: User;
   userNotification: UserNotification;
