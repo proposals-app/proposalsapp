@@ -2,33 +2,19 @@ import { cookies } from 'next/headers';
 import { Suspense, type ReactNode } from 'react';
 import { ViewportBackground } from './viewport-background';
 
-export default async function SuspendedThemeProvider({
+export async function ThemeProvider({
   children,
   theme,
 }: {
   children: ReactNode;
   theme?: string;
 }) {
-  return (
-    <Suspense>
-      <ThemeProvider defaultTheme={theme}>{children}</ThemeProvider>
-    </Suspense>
-  );
-}
-
-export async function ThemeProvider({
-  children,
-  defaultTheme,
-}: {
-  children: ReactNode;
-  defaultTheme?: string;
-}) {
   const cookieStore = await cookies();
 
   const themeMode =
     (cookieStore.get('theme-mode')?.value as 'light' | 'dark') ?? 'dark';
 
-  const themeVariant = cookieStore.get('theme-variant')?.value ?? defaultTheme;
+  const themeVariant = cookieStore.get('theme-variant')?.value ?? theme;
 
   return (
     <div className={themeMode} data-theme={themeVariant}>

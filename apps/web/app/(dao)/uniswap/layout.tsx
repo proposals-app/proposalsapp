@@ -1,6 +1,6 @@
 import { Suspense, type ReactNode } from 'react';
 import Banner from '@/app/components/consent/cookie-banner';
-import SuspendedThemeProvider from '@/app/components/providers/theme-provider';
+import { ThemeProvider } from '@/app/components/providers/theme-provider';
 import { NavBar } from '../[daoSlug]/components/navigation/nav-bar';
 
 export default async function UniswapLayout({
@@ -9,7 +9,7 @@ export default async function UniswapLayout({
   children: ReactNode;
 }) {
   return (
-    <SuspendedThemeProvider theme='uniswap'>
+    <ThemeProvider theme='uniswap'>
       <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
         <Suspense>
           <NavBar daoSlug='uniswap' />
@@ -21,6 +21,6 @@ export default async function UniswapLayout({
           <Banner />
         </Suspense>
       </div>
-    </SuspendedThemeProvider>
+    </ThemeProvider>
   );
 }
