@@ -1,5 +1,6 @@
 // Enhanced UI Components for Progressive Loading
 export * from './skeleton';
+export * from './spinner';
 
 // Existing UI Components
 export * from './button';
