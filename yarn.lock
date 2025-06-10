@@ -5130,7 +5130,11 @@ __metadata:
     jsdom: "npm:26.1.0"
     lucide-react: "npm:^0.513.0"
     mdast-util-from-markdown: "npm:^2.0.2"
+    mdast-util-gfm: "npm:^3.1.0"
+    mdast-util-gfm-table: "npm:^2.0.0"
     mdast-util-to-hast: "npm:^13.2.0"
+    micromark-extension-gfm: "npm:^3.0.0"
+    micromark-extension-gfm-table: "npm:^2.1.1"
     next: "npm:^15.3.3"
     next-themes: "npm:^0.4.6"
     npm-run-all: "npm:^4.1.5"
@@ -5155,6 +5159,8 @@ __metadata:
     redis: "npm:^5.5.6"
     rehype-stringify: "npm:^10.0.1"
     remark-gfm: "npm:^4.0.1"
+    remark-parse: "npm:^11.0.0"
+    remark-rehype: "npm:^11.1.2"
     satori: "npm:^0.15.2"
     serwist: "npm:^9.0.14"
     sonner: "npm:^2.0.5"
@@ -18223,7 +18229,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mdast-util-gfm@npm:^3.0.0":
+"mdast-util-gfm@npm:^3.0.0, mdast-util-gfm@npm:^3.1.0":
   version: 3.1.0
   resolution: "mdast-util-gfm@npm:3.1.0"
   dependencies:
@@ -18523,7 +18529,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"micromark-extension-gfm-table@npm:^2.0.0":
+"micromark-extension-gfm-table@npm:^2.0.0, micromark-extension-gfm-table@npm:^2.1.1":
   version: 2.1.1
   resolution: "micromark-extension-gfm-table@npm:2.1.1"
   dependencies:
@@ -22420,7 +22426,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"remark-rehype@npm:^11.0.0":
+"remark-rehype@npm:^11.0.0, remark-rehype@npm:^11.1.2":
   version: 11.1.2
   resolution: "remark-rehype@npm:11.1.2"
   dependencies:

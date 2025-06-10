@@ -1,15 +1,6 @@
 import type { DiscourseUser, Selectable } from '@proposalsapp/db';
 import { formatDistanceToNowStrict } from 'date-fns';
-import type { Root } from 'hast';
-import { fromMarkdown } from 'mdast-util-from-markdown';
-import { toHast } from 'mdast-util-to-hast';
-import rehypeStringify from 'rehype-stringify';
-import { unified } from 'unified';
-import {
-  COLLAPSIBLE_STYLES,
-  MARKDOWN_STYLES,
-  QUOTE_STYLES_POST,
-} from '@/lib/markdown_styles';
+import { markdownToHtml } from '@/lib/markdown-converter';
 import {
   getDelegateByDiscourseUser,
   getDiscourseUser,
@@ -55,7 +46,7 @@ export async function PostItem({
   const currentVotingPower =
     delegate?.delegatetovoter?.latestVotingPower?.votingPower;
 
-  const processedContent = markdownToHtml(item.cooked ?? 'Unknown');
+  const processedContent = markdownToHtml(item.cooked ?? 'Unknown', 'post');
   const postAnchorId = `post-${item.postNumber}-${item.topicId}`;
   const relativeCreateTime = formatDistanceToNowStrict(
     new Date(item.createdAt),
@@ -300,175 +291,6 @@ export function PostItemLoading() {
   );
 }
 
-type MarkdownStyleKeys = keyof typeof MARKDOWN_STYLES;
+// Processing functions moved to @/lib/markdown-converter for unified processing
 
-// Process quotes after HTML conversion
-function processQuotes(html: string): string {
-  if (!html.includes('[quote="')) return html;
-
-  function createQuoteHtml(
-    username: string,
-    postNumber: string,
-    topicId: string,
-    content: string
-  ) {
-    const formattedContent = content
-      .split('\n\n')
-      .map((paragraph) => paragraph.trim())
-      .filter((paragraph) => paragraph.length > 0)
-      .map((paragraph) => `<p class="${MARKDOWN_STYLES.p}">${paragraph}</p>`)
-      .join('\n');
-
-    return `
-      <div class="${QUOTE_STYLES_POST.wrapper}">
-        <div class="${QUOTE_STYLES_POST.header}">
-          <span>Quoted from&nbsp;</span>
-          <span>${username}</span>
-        </div>
-        <div class="${QUOTE_STYLES_POST.content}">
-          ${formattedContent}
-        </div>
-        <div class="${QUOTE_STYLES_POST.linkWrapper}">
-          <a href="${postNumber === '1' ? '#body' : `#post-${postNumber}-${topicId}`}"
-             class="${QUOTE_STYLES_POST.link}">
-            ${postNumber === '1' ? 'back to top ↑' : 'jump to post →'}
-          </a>
-        </div>
-      </div>
-    `;
-  }
-
-  // Split the content into segments (quotes and non-quotes)
-  const segments = html.split(/(\[quote="[^"]*"[\s\S]*?\[\/quote\])/g);
-
-  return segments
-    .map((segment) => {
-      if (segment.startsWith('[quote="')) {
-        // Process quote
-        const match = segment.match(
-          /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)(?:,\s*full:\w+)?"\]([\s\S]*?)\[\/quote\]/
-        );
-        if (match) {
-          const [, username, postNumber, topicId, content] = match;
-          return createQuoteHtml(username, postNumber, topicId, content);
-        }
-        return segment;
-      } else {
-        // Process non-quote content
-        // Wrap any non-empty content in a paragraph if it's not already wrapped
-        return segment
-          .split('\n\n')
-          .map((paragraph) => paragraph.trim())
-          .filter((paragraph) => paragraph.length > 0)
-          .map((paragraph) => {
-            if (!paragraph.startsWith('<p') && !paragraph.startsWith('<')) {
-              return `<p class="${MARKDOWN_STYLES.p}">${paragraph}</p>`;
-            }
-            return paragraph;
-          })
-          .join('\n');
-      }
-    })
-    .join('\n');
-}
-
-function processDetails(html: string): string {
-  if (!html.includes('[details="')) return html;
-
-  // Helper function to create a collapsible details HTML structure
-  function createDetailsHtml(summary: string, content: string) {
-    return `
-      <details class="${COLLAPSIBLE_STYLES.details}">
-        <summary class="${COLLAPSIBLE_STYLES.summary}">${summary}</summary>
-        <div class="${COLLAPSIBLE_STYLES.content}">
-          ${content.trim()}
-        </div>
-      </details>
-    `;
-  }
-
-  let processedHtml = html;
-  let wasProcessed = true;
-
-  while (wasProcessed) {
-    wasProcessed = false;
-
-    // Process one level of details at a time
-    processedHtml = processedHtml.replace(
-      /\[details="([^"]+)"\]((?!\[details=)[\s\S]*?)\[\/details\]/g,
-      // @typescript-eslint/no-unused-vars
-      (_, summary, content) => {
-        wasProcessed = true;
-        return createDetailsHtml(summary, content);
-      }
-    );
-  }
-
-  return processedHtml;
-}
-
-// Define interfaces
-interface HastNode {
-  type: string;
-  tagName?: string;
-  properties?: {
-    className?: string;
-    [key: string]: string | string[] | number | boolean | null | undefined;
-  };
-  children?: HastNode[];
-  value?: string;
-}
-
-function applyStyleToNode(node: HastNode): void {
-  if (!node || typeof node !== 'object') return;
-
-  if (
-    node.tagName &&
-    Object.prototype.hasOwnProperty.call(MARKDOWN_STYLES, node.tagName)
-  ) {
-    const tagName = node.tagName as MarkdownStyleKeys;
-    node.properties = node.properties || {};
-    node.properties.className = node.properties.className
-      ? `${node.properties.className} ${MARKDOWN_STYLES[tagName]}`
-      : MARKDOWN_STYLES[tagName];
-  }
-
-  // Recursively process children
-  if (Array.isArray(node.children)) {
-    node.children.forEach(applyStyleToNode);
-  }
-}
-
-function markdownToHtml(markdown: string): string {
-  try {
-    // First convert markdown to HTML
-    const mdast = fromMarkdown(markdown);
-    const hast = toHast(mdast);
-
-    if (hast) {
-      // Ensure the hast node is compatible with the expected type
-      const rootNode: Root = {
-        type: 'root',
-        children: hast.type === 'root' ? hast.children : [hast],
-      };
-
-      // Apply styles to the root node
-      applyStyleToNode(rootNode as HastNode);
-
-      const html = unified()
-        .use(rehypeStringify, {
-          closeSelfClosing: true,
-          allowDangerousHtml: true,
-        })
-        .stringify(rootNode);
-
-      // Process quotes after HTML conversion
-      return processDetails(processQuotes(html));
-    } else {
-      return '<div>Error processing content</div>';
-    }
-  } catch (error) {
-    console.error('Error converting markdown to HTML:', error);
-    return '<div>Error processing content</div>';
-  }
-}
+// markdownToHtml function moved to @/lib/markdown-converter for unified processing
