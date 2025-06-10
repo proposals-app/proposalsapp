@@ -55,9 +55,7 @@ export default async function Layout({
             <Suspense>
               <NuqsAdapter>
                 <WalletProvider>
-                  <main>
-                    <Suspense>{children}</Suspense>
-                  </main>
+                  <main>{children}</main>
                   <Toaster />
                 </WalletProvider>
               </NuqsAdapter>

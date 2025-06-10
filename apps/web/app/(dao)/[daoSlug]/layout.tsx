@@ -14,7 +14,9 @@ export default async function DaoLayout({
   return (
     <SuspendedThemeProvider theme={daoSlug}>
       <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
-        <NavBar daoSlug={daoSlug} />
+        <Suspense>
+          <NavBar daoSlug={daoSlug} />
+        </Suspense>
         <div className='flex w-full pt-20 pl-0 md:pt-0 md:pl-20'>
           {children}
         </div>

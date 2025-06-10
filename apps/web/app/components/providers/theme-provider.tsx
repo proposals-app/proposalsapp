@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { type ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { ViewportBackground } from './viewport-background';
 
 export default async function SuspendedThemeProvider({
@@ -9,7 +9,11 @@ export default async function SuspendedThemeProvider({
   children: ReactNode;
   theme?: string;
 }) {
-  return <ThemeProvider defaultTheme={theme}>{children}</ThemeProvider>;
+  return (
+    <Suspense>
+      <ThemeProvider defaultTheme={theme}>{children}</ThemeProvider>
+    </Suspense>
+  );
 }
 
 export async function ThemeProvider({
@@ -28,7 +32,9 @@ export async function ThemeProvider({
 
   return (
     <div className={themeMode} data-theme={themeVariant}>
-      <ViewportBackground theme={themeVariant} mode={themeMode} />
+      <Suspense>
+        <ViewportBackground theme={themeVariant} mode={themeMode} />
+      </Suspense>
       {children}
     </div>
   );

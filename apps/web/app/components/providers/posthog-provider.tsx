@@ -19,7 +19,9 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <PHProvider client={posthog}>
-      <SuspendedPostHogPageView />
+      <Suspense>
+        <PostHogPageView />
+      </Suspense>
       {children}
     </PHProvider>
   );
@@ -44,12 +46,4 @@ function PostHogPageView() {
   }, [pathname, searchParams, posthog]);
 
   return null;
-}
-
-function SuspendedPostHogPageView() {
-  return (
-    <Suspense fallback={null}>
-      <PostHogPageView />
-    </Suspense>
-  );
 }

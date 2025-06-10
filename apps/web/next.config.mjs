@@ -49,7 +49,7 @@ const nextConfig = {
   experimental: {
     reactCompiler: true,
     // viewTransition: true,
-    dynamicIO: true,
+    // dynamicIO: true,
     useCache: true,
     cacheHandlers: { default: resolve('./cache-handler.mjs') },
     serverActions: {
