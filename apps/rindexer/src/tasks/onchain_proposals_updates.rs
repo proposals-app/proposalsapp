@@ -25,6 +25,13 @@ pub async fn run_periodic_proposal_state_update() -> Result<()> {
             .await
             .context("Failed to update ended proposals state for arbitrum_treasury_governor")?;
 
+        arbitrum_core_governor::update_active_proposals_quorum()
+            .await
+            .context("Failed to update active proposals quorum for arbitrum_core_governor")?;
+        arbitrum_treasury_governor::update_active_proposals_quorum()
+            .await
+            .context("Failed to update active proposals quorum for arbitrum_treasury_governor")?;
+
         info!("Successfully updated proposals states");
     }
 }

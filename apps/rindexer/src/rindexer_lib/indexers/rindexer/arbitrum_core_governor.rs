@@ -783,3 +783,92 @@ async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
 
     Ok(total_vp)
 }
+
+#[instrument(name = "arbitrum_core_governor_update_active_proposals_quorum", skip_all)]
+pub async fn update_active_proposals_quorum() -> Result<()> {
+    let db = DB.get().unwrap();
+
+    // Get all active proposals that have started for this governor
+    let active_proposals = proposal::Entity::find()
+        .filter(
+            proposal::Column::GovernorId
+                .eq(get_governor_id().context("Failed to get governor ID")?),
+        )
+        .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
+        .filter(proposal::Column::StartAt.lte(chrono::Utc::now().naive_utc()))
+        .all(db)
+        .await
+        .context("Failed to fetch active and started proposals")?;
+
+    if active_proposals.is_empty() {
+        return Ok(());
+    }
+
+    info!(
+        governor = "ARBITRUM_CORE",
+        active_proposals_count = active_proposals.len(),
+        "Updating quorum for active and started proposals"
+    );
+
+    let arbitrum_core_governor = arbitrum_core_governor_contract("arbitrum").await;
+
+    for proposal in active_proposals {
+        let proposal_id = proposal.external_id.clone();
+        let proposal_id_u256: U256 = match proposal_id.parse() {
+            Ok(id) => id,
+            Err(e) => {
+                error!(proposal_id = %proposal_id, error = %e, "Failed to parse proposal ID");
+                continue;
+            }
+        };
+
+        // Get the current quorum value from the contract
+        let proposal_snapshot_block_result = arbitrum_core_governor
+            .proposalSnapshot(proposal_id_u256)
+            .call()
+            .await;
+        
+        let current_quorum = match proposal_snapshot_block_result {
+            Ok(snapshot_block) => {
+                match arbitrum_core_governor.quorum(snapshot_block).call().await {
+                    Ok(quorum_value) => quorum_value.to::<u128>() as f64 / (10.0f64.powi(18)),
+                    Err(e) => {
+                        error!(proposal_id = %proposal_id, error = %e, "Failed to fetch current quorum from contract");
+                        continue;
+                    }
+                }
+            },
+            Err(e) => {
+                error!(proposal_id = %proposal_id, error = %e, "Failed to fetch proposal snapshot block");
+                continue;
+            }
+        };
+
+        // Only update if the quorum has changed
+        if (current_quorum - proposal.quorum).abs() > f64::EPSILON {
+            debug!(
+                proposal_id = %proposal_id,
+                old_quorum = proposal.quorum,
+                new_quorum = current_quorum,
+                "Updating proposal quorum"
+            );
+
+            // Update the proposal with the new quorum
+            let mut proposal_active_model: proposal::ActiveModel = proposal.clone().into();
+            proposal_active_model.quorum = Set(current_quorum);
+
+            if let Err(e) = proposal_active_model.update(db).await {
+                error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal quorum");
+            } else {
+                debug!(proposal_id = %proposal_id, new_quorum = current_quorum, "Successfully updated proposal quorum");
+            }
+        }
+    }
+
+    info!(
+        governor = "ARBITRUM_CORE",
+        "Successfully updated quorum for active and started proposals"
+    );
+
+    Ok(())
+}
