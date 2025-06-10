@@ -1,6 +1,12 @@
 'use client';
 
-import { Suspense, useMemo, useState, useTransition } from 'react';
+import {
+  Suspense,
+  useMemo,
+  useState,
+  useTransition,
+  useDeferredValue,
+} from 'react';
 import { Filter, Search } from 'lucide-react';
 import { GroupItemWrapper } from './group-item-wrapper';
 import type { FeedData } from '../actions';
@@ -71,11 +77,12 @@ export function StreamingGroupList({
   const [filter, setFilter] = useState<'all' | 'active' | 'unread'>('all');
   const [isPending, startTransition] = useTransition();
 
-  // Handle search with transition for better UX
+  // Defer the search query for filtering to keep input responsive
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  // Handle search - update input immediately
   const handleSearchChange = (value: string) => {
-    startTransition(() => {
-      setSearchQuery(value);
-    });
+    setSearchQuery(value);
   };
 
   // Handle filter change with transition
@@ -99,9 +106,9 @@ export function StreamingGroupList({
   const filteredGroups = useMemo(() => {
     let filtered = sortedGroups;
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    // Apply search filter using deferred value
+    if (deferredSearchQuery.trim()) {
+      const query = deferredSearchQuery.toLowerCase();
       filtered = filtered.filter((group) => {
         const nameMatch = group.name.toLowerCase().includes(query);
         const authorMatch = group.authorName.toLowerCase().includes(query);
@@ -121,7 +128,10 @@ export function StreamingGroupList({
     }
 
     return filtered;
-  }, [sortedGroups, searchQuery, filter]);
+  }, [sortedGroups, deferredSearchQuery, filter]);
+
+  // Check if search is still processing
+  const isSearchPending = searchQuery !== deferredSearchQuery;
 
   // Split groups into batches for progressive rendering
   const priorityGroups = filteredGroups.filter((g) => g.hasActiveProposal);
@@ -141,8 +151,10 @@ export function StreamingGroupList({
               onChange={(e) => handleSearchChange(e.target.value)}
               className='w-full rounded-xs border border-neutral-200 bg-white py-2 pr-4 pl-10 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-600'
             />
-            {isPending && (
-              <div className='absolute top-1/2 right-3 -translate-y-1/2'></div>
+            {(isPending || isSearchPending) && (
+              <div className='absolute top-1/2 right-3 -translate-y-1/2'>
+                <div className='h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300'></div>
+              </div>
             )}
           </div>
         </div>
