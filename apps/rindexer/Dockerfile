@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     build-essential \
     clang \
+    lld \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -45,6 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdw-dev \
     build-essential \
     clang \
+    lld \
     python3 \
     curl \
     && rm -rf /var/lib/apt/lists/*
