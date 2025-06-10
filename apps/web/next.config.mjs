@@ -1,10 +1,10 @@
-// import withSerwistInit from '@serwist/next';
+import withSerwistInit from '@serwist/next';
 import { resolve } from 'path';
 
-// const _withSerwist = withSerwistInit({
-//   swSrc: 'app/sw.ts',
-//   swDest: 'public/sw.js',
-// });
+const _withSerwist = withSerwistInit({
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -91,6 +91,6 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// export default nextConfig;
 // If you need Serwist support, uncomment the following line:
-// export default _withSerwist(nextConfig);
+export default _withSerwist(nextConfig);
