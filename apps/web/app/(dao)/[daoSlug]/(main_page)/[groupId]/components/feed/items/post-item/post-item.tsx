@@ -329,7 +329,7 @@ function processQuotes(html: string): string {
           ${formattedContent}
         </div>
         <div class="${QUOTE_STYLES_POST.linkWrapper}">
-          <a href="${postNumber === '1' ? '#' : `#post-${postNumber}-${topicId}`}"
+          <a href="${postNumber === '1' ? '#body' : `#post-${postNumber}-${topicId}`}"
              class="${QUOTE_STYLES_POST.link}">
             ${postNumber === '1' ? 'back to top ↑' : 'jump to post →'}
           </a>

@@ -21,6 +21,7 @@ const BodyContent = memo(
           <div
             className='diff-content'
             dangerouslySetInnerHTML={{ __html: processedContent }}
+            id='body'
           />
           {!expanded && (
             <div className='absolute right-0 bottom-0 left-0 flex h-32 flex-col items-center justify-end bg-linear-to-t from-neutral-50 to-transparent dark:from-neutral-900'>
