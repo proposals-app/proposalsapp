@@ -69,7 +69,7 @@ export const QUOTE_STYLES_POST = {
     'mb-3 flex items-center text-sm font-semibold text-neutral-700 dark:text-neutral-300',
   content: 'text-neutral-700 dark:text-neutral-300 [&>*:last-child]:mb-0',
   linkWrapper: 'mt-4 flex w-full justify-end',
-  link: 'inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-200 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300',
+  link: 'inline-flex items-center px-3 py-1.5 text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-700 hover:underline dark:text-neutral-400 dark:hover:text-neutral-300',
 } as const;
 
 export const COLLAPSIBLE_STYLES = {

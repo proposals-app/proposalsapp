@@ -181,20 +181,23 @@ function applyStylesToHtml(html: string): string {
       styledHtml = styledHtml.replace(regex, `<${tag}$1 class="${className}">`);
     } else {
       // Handle opening tags with potential existing attributes
-      const regex = new RegExp(
-        `<${tag}(\\s[^>]*)?(?:\\s+class="([^"]*)")?([^>]*)>`,
-        'g'
-      );
-      styledHtml = styledHtml.replace(
-        regex,
-        (match, attrs1 = '', existingClass = '', attrs2 = '') => {
-          const allAttrs = (attrs1 + attrs2).trim();
-          const combinedClass = existingClass
-            ? `${existingClass} ${className}`
-            : className;
-          return `<${tag}${allAttrs ? ` ${allAttrs}` : ''} class="${combinedClass}">`;
+      const regex = new RegExp(`<${tag}([^>]*)>`, 'g');
+      styledHtml = styledHtml.replace(regex, (match, attributes) => {
+        // Check if class attribute already exists
+        const classMatch = attributes.match(/class=["']([^"']*)["']/);
+        if (classMatch) {
+          // Merge with existing class
+          const existingClass = classMatch[1];
+          const combinedClass = `${existingClass} ${className}`;
+          return match.replace(
+            /class=["'][^"']*["']/,
+            `class="${combinedClass}"`
+          );
+        } else {
+          // Add new class attribute
+          return `<${tag}${attributes} class="${className}">`;
         }
-      );
+      });
     }
   });
 
@@ -208,11 +211,11 @@ function wrapTablesResponsive(html: string): string {
     .replace(/<\/table>/g, '</table></div>');
 }
 
-// Add target="_blank" and rel attributes to external links
+// Add target="_blank" and rel attributes to external links only
 function addTargetBlankToLinks(html: string): string {
   return html.replace(
     /<a([^>]*href=["']([^"']+)["'][^>]*)>/g,
-    (match, attributes) => {
+    (match, attributes, href) => {
       // Skip if target is already specified
       if (attributes.includes('target=')) {
         return match;
@@ -223,7 +226,12 @@ function addTargetBlankToLinks(html: string): string {
         return match;
       }
 
-      // Add target="_blank" and rel="noopener noreferrer" to all links
+      // Skip anchor links (internal page links starting with #)
+      if (href.startsWith('#')) {
+        return match;
+      }
+
+      // Add target="_blank" and rel="noopener noreferrer" to external links only
       return `<a${attributes} target="_blank" rel="noopener noreferrer">`;
     }
   );
@@ -324,7 +332,13 @@ function applyStyleToDOM(
 
   Object.entries(MARKDOWN_STYLES).forEach(([tag, className]) => {
     container.querySelectorAll(tag).forEach((element) => {
-      element.className = `${element.className} ${className}`.trim();
+      // Properly merge classes instead of just concatenating
+      const existingClasses = element.className.trim();
+      if (existingClasses) {
+        element.className = `${existingClasses} ${className}`;
+      } else {
+        element.className = className;
+      }
     });
   });
 
@@ -340,7 +354,7 @@ function applyStyleToDOM(
 
   let result = container.innerHTML;
 
-  // Add target="_blank" to all links
+  // Add target="_blank" to external links only
   result = addTargetBlankToLinks(result);
 
   return result;
