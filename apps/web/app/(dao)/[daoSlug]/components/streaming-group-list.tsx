@@ -10,11 +10,8 @@ import {
 import { Filter, Search } from 'lucide-react';
 import { GroupItemWrapper } from './group-item-wrapper';
 import type { FeedData } from '../actions';
-import {
-  SkeletonAvatar,
-  SkeletonText,
-  SkeletonCard,
-} from '../../../components/ui/skeleton';
+import { SkeletonGroupItemEnhanced } from '../../../components/ui/skeleton';
+import { Spinner } from '../../../components/ui/spinner';
 
 interface Group {
   id: string;
@@ -40,32 +37,9 @@ interface StreamingGroupListProps {
 // Enhanced individual group item with error boundary and progressive loading
 function StreamingGroupItem({ group }: { group: Group }) {
   return (
-    <Suspense fallback={<EnhancedGroupItemSkeleton />}>
+    <Suspense fallback={<SkeletonGroupItemEnhanced />}>
       <GroupItemWrapper group={group} />
     </Suspense>
-  );
-}
-
-// Enhanced skeleton for individual group items with better visual fidelity
-function EnhancedGroupItemSkeleton() {
-  return (
-    <SkeletonCard className='p-2 sm:p-3' padding={false}>
-      <div className='relative flex flex-col gap-1 sm:gap-2'>
-        <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
-          <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
-            <SkeletonAvatar size='md' className='sm:h-10 sm:w-10' />
-            <div className='space-y-1'>
-              <SkeletonText width='8rem' size='md' />
-              <SkeletonText width='5rem' size='sm' />
-            </div>
-          </div>
-          <div className='space-y-1'>
-            <SkeletonText width='8rem' size='sm' />
-            <SkeletonText width='6rem' size='xs' />
-          </div>
-        </div>
-      </div>
-    </SkeletonCard>
   );
 }
 
@@ -153,7 +127,7 @@ export function StreamingGroupList({
             />
             {(isPending || isSearchPending) && (
               <div className='absolute top-1/2 right-3 -translate-y-1/2'>
-                <div className='h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300'></div>
+                <Spinner size='sm' />
               </div>
             )}
           </div>

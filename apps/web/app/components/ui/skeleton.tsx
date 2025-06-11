@@ -4,16 +4,16 @@ import { type VariantProps, cva } from 'class-variance-authority';
 import { cn } from '../../../lib/utils';
 
 const skeletonVariants = cva(
-  'animate-pulse rounded-md bg-neutral-200 dark:bg-neutral-700/80',
+  'border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30',
   {
     variants: {
       variant: {
-        default: '',
-        text: 'rounded-sm',
-        avatar: 'rounded-full',
-        button: 'rounded-md',
-        card: 'rounded-lg',
-        input: 'rounded-md',
+        default: 'rounded-sm',
+        text: 'rounded-none',
+        avatar: 'rounded-full border-solid',
+        button: 'rounded-sm border-solid',
+        card: 'rounded-sm border-solid',
+        input: 'rounded-sm',
       },
       size: {
         xs: 'h-3',
@@ -187,7 +187,7 @@ const SkeletonVoteItem = React.forwardRef<
   return (
     <div ref={ref} className={cn('space-y-3', className)}>
       {showColorBar && (
-        <div className='h-1 w-full rounded-full bg-gradient-to-r from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-600' />
+        <div className='h-1 w-full border-b-2 border-dashed border-neutral-300 dark:border-neutral-600' />
       )}
       <div className='flex items-start justify-between'>
         <div className='flex-1 space-y-2'>
@@ -316,7 +316,7 @@ const SkeletonVPPage = React.forwardRef<HTMLDivElement, { className?: string }>(
   ({ className }, ref) => {
     return (
       <div ref={ref} className={cn('container mx-auto p-4 py-10', className)}>
-        <div className='mb-4 h-8 w-1/2 animate-pulse rounded bg-neutral-200 text-center text-2xl font-bold dark:bg-neutral-700' />
+        <div className='mb-4 h-8 w-1/2 border border-dashed border-neutral-300 bg-neutral-100/50 text-center text-2xl font-bold dark:border-neutral-600 dark:bg-neutral-800/30' />
         <SkeletonChart />
       </div>
     );
@@ -340,10 +340,10 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
           {/* Header with profile picture */}
           <div className='p-6'>
             <div className='flex flex-row items-center space-x-4'>
-              <div className='relative flex h-12 w-12 animate-pulse items-center justify-center rounded-full border border-neutral-200 bg-neutral-200 p-4 sm:h-16 sm:w-16 dark:border-neutral-700 dark:bg-neutral-700' />
+              <div className='relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 p-4 sm:h-16 sm:w-16 dark:border-neutral-600 dark:bg-neutral-800/30' />
               <div className='flex-1'>
-                <div className='h-6 w-32 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
-                <div className='mt-2 h-4 w-32 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
+                <div className='h-6 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='mt-2 h-4 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
               </div>
             </div>
           </div>
@@ -355,9 +355,9 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
                 key={label}
                 className='border-r border-neutral-200 last:border-r-0 dark:border-neutral-700'
               >
-                <div className='flex animate-pulse flex-col items-center justify-center bg-white p-4 text-center dark:bg-neutral-800/50'>
-                  <div className='mb-1 h-6 w-8 bg-neutral-200 dark:bg-neutral-700' />
-                  <div className='h-4 w-12 bg-neutral-200 dark:bg-neutral-700' />
+                <div className='flex flex-col items-center justify-center bg-white p-4 text-center dark:bg-neutral-800/50'>
+                  <div className='mb-1 h-6 w-8 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='h-4 w-12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
                 </div>
               </div>
             ))}
@@ -370,9 +370,9 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
                 key={label}
                 className='border-r border-neutral-200 last:border-r-0 dark:border-neutral-700'
               >
-                <div className='flex animate-pulse flex-col items-center justify-center bg-neutral-50 p-4 dark:bg-neutral-900/20'>
-                  <div className='mb-1 h-6 w-10 bg-neutral-200 dark:bg-neutral-700' />
-                  <div className='h-4 w-14 bg-neutral-200 dark:bg-neutral-700' />
+                <div className='flex flex-col items-center justify-center bg-neutral-50 p-4 dark:bg-neutral-900/20'>
+                  <div className='mb-1 h-6 w-10 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='h-4 w-14 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
                 </div>
               </div>
             ))}
@@ -385,10 +385,10 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
             {/* Profile picture, name and description */}
             <div className='col-span-3 row-span-2 p-6'>
               <div className='flex flex-row items-center space-x-8'>
-                <div className='relative flex h-16 w-16 animate-pulse items-center justify-center rounded-full border border-neutral-200 bg-neutral-200 p-4 dark:border-neutral-700 dark:bg-neutral-700' />
+                <div className='relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 p-4 dark:border-neutral-600 dark:bg-neutral-800/30' />
                 <div className='flex-1'>
-                  <div className='h-8 w-48 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
-                  <div className='mt-2 h-4 w-48 animate-pulse bg-neutral-200 dark:bg-neutral-700' />
+                  <div className='h-8 w-48 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='mt-2 h-4 w-48 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
                 </div>
               </div>
             </div>
@@ -403,10 +403,10 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
                 className={`col-start-5 col-end-6 row-start-${index + 1} row-end-${index + 2} border-b border-l border-neutral-200 dark:border-neutral-700 ${index === 2 ? 'border-b-0' : ''}`}
               >
                 <div
-                  className={`flex animate-pulse flex-col items-center justify-center p-4 ${index % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/20' : 'bg-white dark:bg-neutral-800/50'}`}
+                  className={`flex flex-col items-center justify-center p-4 ${index % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/20' : 'bg-white dark:bg-neutral-800/50'}`}
                 >
-                  <div className='mb-1 h-6 w-10 bg-neutral-200 dark:bg-neutral-700' />
-                  <div className='h-4 w-14 bg-neutral-200 dark:bg-neutral-700' />
+                  <div className='mb-1 h-6 w-10 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='h-4 w-14 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
                 </div>
               </div>
             ))}
@@ -418,10 +418,10 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
                 className={`col-start-${index + 1} col-end-${index + 2} row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700`}
               >
                 <div
-                  className={`flex animate-pulse flex-col items-center justify-center p-4 text-center ${index % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/20' : 'bg-white dark:bg-neutral-800/50'}`}
+                  className={`flex flex-col items-center justify-center p-4 text-center ${index % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/20' : 'bg-white dark:bg-neutral-800/50'}`}
                 >
-                  <div className='mb-1 h-6 w-8 bg-neutral-200 dark:bg-neutral-700' />
-                  <div className='h-4 w-12 bg-neutral-200 dark:bg-neutral-700' />
+                  <div className='mb-1 h-6 w-8 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='h-4 w-12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
                 </div>
               </div>
             ))}
@@ -446,7 +446,7 @@ const SkeletonBodyHeader = React.forwardRef<
       )}
     >
       {/* Title Loading */}
-      <div className='h-8 w-3/4 animate-pulse self-center rounded-lg bg-neutral-200 sm:self-start dark:bg-neutral-800' />
+      <div className='h-8 w-3/4 self-center border border-dashed border-neutral-300 bg-neutral-100/50 sm:self-start dark:border-neutral-600 dark:bg-neutral-800/30' />
 
       {/* Author Info and Posted Time Loading */}
       <div className='flex flex-col'>
@@ -454,9 +454,9 @@ const SkeletonBodyHeader = React.forwardRef<
           {/* Author Info Loading */}
           <div className='flex flex-row items-center gap-2'>
             <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 dark:border-neutral-700'>
-              <div className='h-full w-full animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800' />
+              <div className='h-full w-full rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
             </div>
-            <div className='h-5 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+            <div className='h-5 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
           </div>
           {/* Posted Time and Revisions Loading */}
           <div className='flex flex-col items-end gap-2'>
@@ -464,18 +464,18 @@ const SkeletonBodyHeader = React.forwardRef<
               {/* Initially Posted */}
               <div className='hidden flex-row items-center gap-2 px-2 py-1 sm:flex'>
                 <div className='flex flex-col items-end space-y-1'>
-                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+                  <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='h-4 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
                 </div>
               </div>
 
               {/* Latest Revision */}
               <div className='flex flex-row items-center gap-2 bg-white px-2 py-1 dark:bg-neutral-950'>
                 <div className='flex flex-col items-end space-y-1'>
-                  <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-                  <div className='h-4 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+                  <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='h-4 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
                 </div>
-                <div className='h-6 w-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+                <div className='h-6 w-6 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
               </div>
             </div>
           </div>
@@ -500,17 +500,17 @@ const SkeletonResultsHeader = React.forwardRef<
     >
       {/* Back Button Placeholder */}
       <div className='flex items-center gap-2 rounded-full px-3 py-2'>
-        <div className='h-6 w-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+        <div className='h-6 w-6 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         <span className='hidden text-sm font-medium sm:block'>Back</span>
       </div>
 
       <div className='flex items-center gap-2 pl-2 sm:pl-4'>
         {/* Avatar Placeholder */}
         <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300'>
-          <div className='h-8 w-8 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700' />
+          <div className='h-8 w-8 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
         {/* Group Name Placeholder */}
-        <div className='h-6 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+        <div className='h-6 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
     </div>
   );
@@ -529,22 +529,22 @@ const SkeletonBody = React.forwardRef<HTMLDivElement, { className?: string }>(
           >
             <div className='space-y-4'>
               {/* Title line */}
-              <div className='h-8 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+              <div className='h-8 w-3/4 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
               {/* Paragraph lines */}
-              <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-              <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+              <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='h-4 w-11/12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
               {/* Section Heading */}
-              <div className='mt-6 h-6 w-1/2 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+              <div className='mt-6 h-6 w-1/2 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
               {/* More Paragraphs */}
-              <div className='mt-6 h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-              <div className='h-4 w-11/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-              <div className='mt-4 h-4 w-3/4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-              <div className='h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
-              <div className='h-4 w-10/12 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800' />
+              <div className='mt-6 h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='h-4 w-11/12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='mt-4 h-4 w-3/4 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='h-4 w-10/12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
             </div>
 
             {/* Gradient overlay */}
-            <div className='absolute right-0 bottom-0 left-0 h-24 bg-linear-to-t from-neutral-50 to-transparent dark:from-neutral-900' />
+            <div className='absolute right-0 bottom-0 left-0 h-24 border-t border-dashed border-neutral-300 bg-neutral-50/80 dark:border-neutral-600 dark:bg-neutral-900/80' />
           </div>
         </div>
       </div>
@@ -569,13 +569,13 @@ const SkeletonMenuBar = React.forwardRef<
         <div className='dark:border-neutral-450 flex w-full items-center justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
           <div className='flex w-full justify-between'>
             <div className='flex items-center gap-4'>
-              <div className='h-6 w-6 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-700' />
-              <div className='h-5 w-16 animate-pulse rounded-md bg-neutral-200 sm:w-32 dark:bg-neutral-700' />
+              <div className='h-6 w-6 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='h-5 w-16 border border-dashed border-neutral-300 bg-neutral-100/50 sm:w-32 dark:border-neutral-600 dark:bg-neutral-800/30' />
             </div>
 
             <div className='flex space-x-2'>
-              <div className='h-8 w-24 animate-pulse rounded-xs bg-neutral-200 sm:w-44 dark:bg-neutral-700' />
-              <div className='h-8 w-24 animate-pulse rounded-xs bg-neutral-200 sm:w-44 dark:bg-neutral-700' />
+              <div className='h-8 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 sm:w-44 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='h-8 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 sm:w-44 dark:border-neutral-600 dark:bg-neutral-800/30' />
             </div>
           </div>
         </div>
@@ -673,24 +673,21 @@ const SkeletonPostItem = React.forwardRef<
   { className?: string }
 >(({ className }, ref) => {
   return (
-    <div
-      ref={ref}
-      className={cn('flex w-full animate-pulse flex-col gap-4', className)}
-    >
+    <div ref={ref} className={cn('flex w-full flex-col gap-4', className)}>
       <div className='flex items-center gap-4'>
-        <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-10 w-10 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         <div className='flex flex-col space-y-2'>
-          <div className='h-4 w-48 rounded bg-neutral-200 dark:bg-neutral-800' />
-          <div className='h-3 w-32 rounded bg-neutral-200 dark:bg-neutral-800' />
+          <div className='h-4 w-48 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='h-3 w-32 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
       </div>
       <div className='flex flex-col space-y-2'>
-        <div className='h-4 w-full rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-5/6 rounded bg-neutral-200 dark:bg-neutral-800' />
-        <div className='h-4 w-3/4 rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-full rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='h-4 w-5/6 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='h-4 w-3/4 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
       <div className='mt-2 flex justify-end'>
-        <div className='h-3 w-20 rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-3 w-20 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
     </div>
   );
@@ -702,26 +699,23 @@ const SkeletonVoteItemFeed = React.forwardRef<
   { className?: string }
 >(({ className }, ref) => {
   return (
-    <div
-      ref={ref}
-      className={cn('flex w-full animate-pulse flex-col gap-4', className)}
-    >
-      <div className='mb-2 h-2 w-full bg-neutral-200 dark:bg-neutral-800' />
+    <div ref={ref} className={cn('flex w-full flex-col gap-4', className)}>
+      <div className='mb-2 h-2 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-4'>
-          <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800' />
+          <div className='h-10 w-10 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
           <div className='flex flex-col space-y-2'>
-            <div className='h-4 w-48 rounded bg-neutral-200 dark:bg-neutral-800' />
-            <div className='h-3 w-32 rounded bg-neutral-200 dark:bg-neutral-800' />
+            <div className='h-4 w-48 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+            <div className='h-3 w-32 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
           </div>
         </div>
-        <div className='h-3 w-24 rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-3 w-24 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
       <div className='flex flex-col space-y-2'>
-        <div className='h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-4 w-1/2 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
       <div className='mt-2 flex justify-end'>
-        <div className='h-3 w-20 rounded bg-neutral-200 dark:bg-neutral-800' />
+        <div className='h-3 w-20 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
     </div>
   );
@@ -770,16 +764,16 @@ const SkeletonResultsTitle = React.forwardRef<
   return (
     <div ref={ref} className={cn('mb-4 flex flex-col gap-4', className)}>
       {/* Title placeholder */}
-      <div className='h-6 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+      <div className='h-6 w-2/3 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
 
       {/* Metadata row */}
       <div className='flex items-center gap-4'>
         {/* Published by text */}
         <div className='flex items-center gap-2'>
-          <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+          <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='h-3 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='h-3 w-16 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
       </div>
     </div>
@@ -795,20 +789,20 @@ const SkeletonResultsList = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'w-72 animate-pulse text-neutral-700 sm:ml-6 dark:text-neutral-200',
+        'w-72 text-neutral-700 sm:ml-6 dark:text-neutral-200',
         className
       )}
     >
       {/* Status message placeholder */}
       <div className='flex flex-col justify-center sm:h-28'>
-        <div className='mb-1 h-5 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700' />
-        <div className='mb-4 h-5 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700' />
+        <div className='mb-1 h-5 w-3/4 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='mb-4 h-5 w-3/4 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
 
       {/* Majority support placeholder */}
       <div className='mb-4 flex w-full items-center gap-1'>
-        <div className='h-4 w-4 rounded-full bg-neutral-200 dark:bg-neutral-700' />
-        <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-700' />
+        <div className='h-4 w-4 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='h-4 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
 
       {/* Choice bars loading state */}
@@ -824,7 +818,7 @@ const SkeletonResultsList = React.forwardRef<
       {/* Quorum bar placeholder */}
       <div className='mb-4'>
         <div className='relative mb-2 h-4 w-full overflow-hidden rounded border border-neutral-200 dark:border-neutral-700'>
-          <div className='h-full w-1/2 bg-neutral-200 dark:bg-neutral-700' />
+          <div className='h-full w-1/2 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
           <div className='absolute top-[-4px] left-1/2 h-6 w-0.5 rounded bg-neutral-300 dark:bg-neutral-600' />
         </div>
       </div>
@@ -841,24 +835,24 @@ const SkeletonResultsTable = React.forwardRef<
   return (
     <div ref={ref} className={className}>
       {/* Desktop Header */}
-      <div className='sticky top-[88px] z-10 mb-2 hidden h-12 grid-cols-7 items-center gap-2 border border-neutral-800 bg-neutral-200 p-2 sm:grid dark:border-neutral-600 dark:bg-neutral-800'>
+      <div className='sticky top-[88px] z-10 mb-2 hidden h-12 grid-cols-7 items-center gap-2 border border-neutral-800 bg-neutral-100/50 p-2 sm:grid dark:border-neutral-600 dark:bg-neutral-800/30'>
         <div className='col-span-2 flex items-center'>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
         <div className='col-span-1 flex items-center justify-end gap-2'>
-          <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          <div className='h-4 w-16 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
         <div className='col-span-3'>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
         <div className='col-span-1 flex items-center justify-end gap-2'>
-          <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          <div className='h-4 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
       </div>
 
       {/* Mobile Header */}
-      <div className='sticky top-[88px] z-10 mb-2 block h-12 border border-neutral-800 bg-neutral-200 p-2 sm:hidden dark:border-neutral-600 dark:bg-neutral-800'>
-        <div className='h-full w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+      <div className='sticky top-[88px] z-10 mb-2 block h-12 border border-neutral-800 bg-neutral-100/50 p-2 sm:hidden dark:border-neutral-600 dark:bg-neutral-800/30'>
+        <div className='h-full w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
       </div>
 
       {/* Rows */}
@@ -869,15 +863,15 @@ const SkeletonResultsTable = React.forwardRef<
           style={{ height: `${desktopRowHeight}px` }}
         >
           {/* Color bar Skeleton */}
-          <div className='absolute top-0 left-0 h-2 w-[10%] animate-pulse bg-neutral-300 opacity-50 dark:bg-neutral-700' />
+          <div className='absolute top-0 left-0 h-2 w-[10%] border-t-2 border-dashed border-neutral-300 bg-neutral-100/20 dark:border-neutral-600 dark:bg-neutral-800/20' />
 
           {/* Desktop Loading Row Structure */}
           <div className='relative hidden h-full grid-cols-7 items-center p-2 sm:grid'>
             <div className='col-span-2 flex items-center gap-2'>
-              <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-300 dark:bg-neutral-700' />
+              <div className='h-10 w-10 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
               <div className='flex flex-col gap-1'>
-                <div className='h-4 w-32 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-                <div className='h-3 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+                <div className='h-4 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
               </div>
             </div>
           </div>
@@ -894,12 +888,12 @@ const SkeletonNonVotersTable = React.forwardRef<
 >(({ className }, ref) => {
   return (
     <div ref={ref} className={cn('mt-6', className)}>
-      <div className='sticky z-10 grid h-12 grid-cols-7 items-center gap-2 border-t border-r border-l border-neutral-800 bg-neutral-200 p-2 dark:border-neutral-600 dark:bg-neutral-800'>
+      <div className='sticky z-10 grid h-12 grid-cols-7 items-center gap-2 border-t border-r border-l border-neutral-800 bg-neutral-100/50 p-2 dark:border-neutral-600 dark:bg-neutral-800/30'>
         <div className='col-span-2 flex items-center'>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
         <div className='col-span-5 flex items-center justify-end gap-2'>
-          <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
+          <div className='h-4 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
         </div>
       </div>
     </div>
@@ -922,7 +916,7 @@ const SkeletonTimeline = React.forwardRef<
       <div className='relative h-[calc(100vh-96px)] w-full'>
         {/* Top SVG Placeholder */}
         <div className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800'>
-          <div className='h-6 w-6 animate-pulse rounded bg-neutral-400 dark:bg-neutral-500' />
+          <div className='h-6 w-6 border border-dashed border-neutral-400 bg-neutral-200/50 dark:border-neutral-500 dark:bg-neutral-700/30' />
         </div>
 
         {/* Vertical Line Placeholder */}
@@ -930,7 +924,7 @@ const SkeletonTimeline = React.forwardRef<
 
         {/* Bottom SVG Placeholder */}
         <div className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800'>
-          <div className='h-6 w-6 animate-pulse rounded bg-neutral-400 dark:bg-neutral-500' />
+          <div className='h-6 w-6 border border-dashed border-neutral-400 bg-neutral-200/50 dark:border-neutral-500 dark:bg-neutral-700/30' />
         </div>
 
         {/* Placeholder Items */}
@@ -941,9 +935,9 @@ const SkeletonTimeline = React.forwardRef<
               className='relative flex w-full items-center justify-start'
             >
               <div className='z-20 flex h-[120px] w-28 flex-col gap-2 rounded-l-xs border border-neutral-200 bg-white px-4 py-2 dark:border-neutral-700 dark:bg-neutral-800'>
-                <div className='h-4 w-20 animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
-                <div className='h-4 w-16 animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
-                <div className='h-4 w-20 animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
+                <div className='h-4 w-20 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='h-4 w-16 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='h-4 w-20 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
               </div>
             </div>
           ))}
@@ -964,7 +958,9 @@ const SkeletonChart = React.forwardRef<HTMLDivElement, { className?: string }>(
           className
         )}
       >
-        <div className='animate-pulse text-neutral-500'>Loading Chart...</div>
+        <div className='border border-dashed border-neutral-300 bg-neutral-100/50 p-4 text-center text-neutral-500 dark:border-neutral-600 dark:bg-neutral-800/30'>
+          Chart Blueprint
+        </div>
       </div>
     );
   }
@@ -994,6 +990,86 @@ const HeaderSkeleton = React.forwardRef<HTMLDivElement, { className?: string }>(
 );
 HeaderSkeleton.displayName = 'HeaderSkeleton';
 
+// Group Item Skeleton - for individual group items in lists
+const SkeletonGroupItemDetailed = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'rounded-xs border border-neutral-200 bg-white p-2 sm:p-3 dark:border-neutral-700 dark:bg-neutral-950',
+        className
+      )}
+    >
+      <div className='relative flex flex-col gap-1 sm:gap-2'>
+        <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
+          <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
+            <div className='min-h-[32px] min-w-[32px] rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-600 dark:bg-neutral-800/30' />
+            <div>
+              <div className='mb-1 h-5 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='h-4 w-20 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+            </div>
+          </div>
+          <div className='h-16 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        </div>
+      </div>
+    </div>
+  );
+});
+SkeletonGroupItemDetailed.displayName = 'SkeletonGroupItemDetailed';
+
+// AI Summary Loading State - for AI generation loading
+const SkeletonAISummaryLoading = React.forwardRef<
+  HTMLDivElement,
+  { className?: string; children?: React.ReactNode }
+>(({ className, children }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'flex items-center justify-center space-x-2 border border-dashed border-neutral-300 bg-neutral-100/50 p-3 text-neutral-500 dark:border-neutral-600 dark:bg-neutral-800/30 dark:text-neutral-400',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+});
+SkeletonAISummaryLoading.displayName = 'SkeletonAISummaryLoading';
+
+// Enhanced Group Item Skeleton - for streaming group items with enhanced visual fidelity
+const SkeletonGroupItemEnhanced = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <SkeletonCard
+      ref={ref}
+      className={cn('p-2 sm:p-3', className)}
+      padding={false}
+    >
+      <div className='relative flex flex-col gap-1 sm:gap-2'>
+        <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
+          <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
+            <SkeletonAvatar size='md' className='sm:h-10 sm:w-10' />
+            <div className='space-y-1'>
+              <SkeletonText width='8rem' size='md' />
+              <SkeletonText width='5rem' size='sm' />
+            </div>
+          </div>
+          <div className='space-y-1'>
+            <SkeletonText width='8rem' size='sm' />
+            <SkeletonText width='6rem' size='xs' />
+          </div>
+        </div>
+      </div>
+    </SkeletonCard>
+  );
+});
+SkeletonGroupItemEnhanced.displayName = 'SkeletonGroupItemEnhanced';
+
 export {
   Skeleton,
   SkeletonText,
@@ -1019,6 +1095,8 @@ export {
   // Lists and groups
   SkeletonGroupList,
   SkeletonGroupItem,
+  SkeletonGroupItemDetailed,
+  SkeletonGroupItemEnhanced,
   // Feed
   SkeletonFeed,
   SkeletonPostItem,
@@ -1031,6 +1109,8 @@ export {
   SkeletonNonVotersTable,
   SkeletonTimeline,
   SkeletonChart,
+  // Specialized components
+  SkeletonAISummaryLoading,
   // Legacy aliases
   LoadingHeader,
   LoadingGroupList,

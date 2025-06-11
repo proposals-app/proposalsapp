@@ -10,6 +10,7 @@ import {
   MessageSquareWarning,
   Sparkles,
 } from 'lucide-react';
+import { SkeletonAISummaryLoading } from '../../../../../../components/ui/skeleton';
 
 export default function AISummary({ groupId }: { groupId: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -85,10 +86,10 @@ export default function AISummary({ groupId }: { groupId: string }) {
         <div id='ai-summary-content' className='space-y-4 px-4 py-5 sm:p-6'>
           {/* Loading State */}
           {activelyLoading && (
-            <div className='flex animate-pulse items-center justify-center space-x-2 text-neutral-500 dark:text-neutral-400'>
+            <SkeletonAISummaryLoading>
               <Sparkles />
               <span>Generating...</span>
-            </div>
+            </SkeletonAISummaryLoading>
           )}
 
           {/* Error State */}
