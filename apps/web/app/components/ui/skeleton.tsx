@@ -103,7 +103,7 @@ const SkeletonAvatar = React.forwardRef<
     <Skeleton
       ref={ref}
       variant='avatar'
-      className={cn(sizeClasses[size], className)}
+      className={`${cn(sizeClasses[size], className)} aspect-square`}
       {...props}
     />
   );
