@@ -10,7 +10,7 @@ import {
   MessageSquareWarning,
   Sparkles,
 } from 'lucide-react';
-import { SkeletonAISummaryLoading } from '../../../../../../components/ui/skeleton';
+import { SkeletonAISummaryLoading } from '@/app/components/ui/skeleton';
 
 export default function AISummary({ groupId }: { groupId: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
