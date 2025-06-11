@@ -83,6 +83,61 @@
   }
 }
 
+/* Blueprint/Wireframe skeleton styling */
+.skeleton-blueprint {
+  position: relative;
+  background: transparent;
+  border: 1px dashed rgb(209 213 219 / 0.8);
+}
+
+.dark .skeleton-blueprint {
+  border-color: rgb(75 85 99 / 0.8);
+}
+
+.skeleton-blueprint::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(45deg, rgba(209, 213, 219, 0.1) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(209, 213, 219, 0.1) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(209, 213, 219, 0.1) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(209, 213, 219, 0.1) 75%);
+  background-size: 8px 8px;
+  background-position:
+    0 0,
+    0 4px,
+    4px -4px,
+    -4px 0px;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.dark .skeleton-blueprint::before {
+  background-image:
+    linear-gradient(45deg, rgba(75, 85, 99, 0.15) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(75, 85, 99, 0.15) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(75, 85, 99, 0.15) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(75, 85, 99, 0.15) 75%);
+}
+
+.skeleton-blueprint.skeleton-solid {
+  border-style: solid;
+  border-width: 2px;
+}
+
+.skeleton-blueprint.skeleton-text::before {
+  background-size: 4px 4px;
+  background-position:
+    0 0,
+    0 2px,
+    2px -2px,
+    -2px 0px;
+}
+
 @layer base {
   html {
     @apply bg-neutral-50 dark:bg-neutral-900;
@@ -90,7 +145,7 @@
     min-height: 100vh;
     height: 100%;
   }
-  
+
   body {
     @apply bg-neutral-50 dark:bg-neutral-900;
     min-height: 100vh;

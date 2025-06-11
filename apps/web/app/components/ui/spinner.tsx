@@ -17,14 +17,17 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
     <div className='flex items-center justify-center'>
       <div
         className={cn(
-          'rounded-full border-2 border-dashed border-neutral-300 border-t-neutral-500 dark:border-neutral-600 dark:border-t-neutral-400',
+          'rounded-full border-2 border-dashed border-neutral-300 border-t-neutral-500 bg-transparent dark:border-neutral-600 dark:border-t-neutral-400',
           sizeClasses[size],
           className
         )}
         style={{
           animation: 'spin 2s linear infinite',
+          position: 'relative',
         }}
-      />
+      >
+        <div className='absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-neutral-300/20 to-transparent dark:via-neutral-600/20' />
+      </div>
     </div>
   );
 }

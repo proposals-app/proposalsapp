@@ -3,34 +3,31 @@ import { type VariantProps, cva } from 'class-variance-authority';
 
 import { cn } from '../../../lib/utils';
 
-const skeletonVariants = cva(
-  'border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30',
-  {
-    variants: {
-      variant: {
-        default: 'rounded-sm',
-        text: 'rounded-none',
-        avatar: 'rounded-full border-solid',
-        button: 'rounded-sm border-solid',
-        card: 'rounded-sm border-solid',
-        input: 'rounded-sm',
-      },
-      size: {
-        xs: 'h-3',
-        sm: 'h-4',
-        md: 'h-5',
-        lg: 'h-6',
-        xl: 'h-8',
-        '2xl': 'h-10',
-        '3xl': 'h-12',
-      },
+const skeletonVariants = cva('skeleton-blueprint', {
+  variants: {
+    variant: {
+      default: 'rounded-sm',
+      text: 'skeleton-text rounded-none',
+      avatar: 'skeleton-solid rounded-full',
+      button: 'skeleton-solid rounded-sm',
+      card: 'skeleton-solid rounded-sm',
+      input: 'rounded-sm',
     },
-    defaultVariants: {
-      variant: 'default',
-      size: 'md',
+    size: {
+      xs: 'h-3',
+      sm: 'h-4',
+      md: 'h-5',
+      lg: 'h-6',
+      xl: 'h-8',
+      '2xl': 'h-10',
+      '3xl': 'h-12',
     },
-  }
-);
+  },
+  defaultVariants: {
+    variant: 'default',
+    size: 'md',
+  },
+});
 
 interface SkeletonProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -187,7 +184,7 @@ const SkeletonVoteItem = React.forwardRef<
   return (
     <div ref={ref} className={cn('space-y-3', className)}>
       {showColorBar && (
-        <div className='h-1 w-full border-b-2 border-dashed border-neutral-300 dark:border-neutral-600' />
+        <div className='skeleton-blueprint skeleton-text h-1 w-full' />
       )}
       <div className='flex items-start justify-between'>
         <div className='flex-1 space-y-2'>
@@ -316,7 +313,7 @@ const SkeletonVPPage = React.forwardRef<HTMLDivElement, { className?: string }>(
   ({ className }, ref) => {
     return (
       <div ref={ref} className={cn('container mx-auto p-4 py-10', className)}>
-        <div className='mb-4 h-8 w-1/2 border border-dashed border-neutral-300 bg-neutral-100/50 text-center text-2xl font-bold dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint mb-4 h-8 w-1/2 rounded-sm text-center text-2xl font-bold' />
         <SkeletonChart />
       </div>
     );
@@ -340,10 +337,10 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
           {/* Header with profile picture */}
           <div className='p-6'>
             <div className='flex flex-row items-center space-x-4'>
-              <div className='relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 p-4 sm:h-16 sm:w-16 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-solid relative flex h-12 w-12 items-center justify-center rounded-full p-4 sm:h-16 sm:w-16' />
               <div className='flex-1'>
-                <div className='h-6 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                <div className='mt-2 h-4 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='skeleton-blueprint skeleton-text h-6 w-32' />
+                <div className='skeleton-blueprint skeleton-text mt-2 h-4 w-32' />
               </div>
             </div>
           </div>
@@ -356,8 +353,8 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
                 className='border-r border-neutral-200 last:border-r-0 dark:border-neutral-700'
               >
                 <div className='flex flex-col items-center justify-center bg-white p-4 text-center dark:bg-neutral-800/50'>
-                  <div className='mb-1 h-6 w-8 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                  <div className='h-4 w-12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='skeleton-blueprint skeleton-text mb-1 h-6 w-8' />
+                  <div className='skeleton-blueprint skeleton-text h-4 w-12' />
                 </div>
               </div>
             ))}
@@ -371,8 +368,8 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
                 className='border-r border-neutral-200 last:border-r-0 dark:border-neutral-700'
               >
                 <div className='flex flex-col items-center justify-center bg-neutral-50 p-4 dark:bg-neutral-900/20'>
-                  <div className='mb-1 h-6 w-10 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                  <div className='h-4 w-14 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='skeleton-blueprint skeleton-text mb-1 h-6 w-10' />
+                  <div className='skeleton-blueprint skeleton-text h-4 w-14' />
                 </div>
               </div>
             ))}
@@ -385,10 +382,10 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
             {/* Profile picture, name and description */}
             <div className='col-span-3 row-span-2 p-6'>
               <div className='flex flex-row items-center space-x-8'>
-                <div className='relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 p-4 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='skeleton-blueprint skeleton-solid relative flex h-16 w-16 items-center justify-center rounded-full p-4' />
                 <div className='flex-1'>
-                  <div className='h-8 w-48 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                  <div className='mt-2 h-4 w-48 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='skeleton-blueprint skeleton-text h-8 w-48' />
+                  <div className='skeleton-blueprint skeleton-text mt-2 h-4 w-48' />
                 </div>
               </div>
             </div>
@@ -405,8 +402,8 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
                 <div
                   className={`flex flex-col items-center justify-center p-4 ${index % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/20' : 'bg-white dark:bg-neutral-800/50'}`}
                 >
-                  <div className='mb-1 h-6 w-10 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                  <div className='h-4 w-14 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='skeleton-blueprint skeleton-text mb-1 h-6 w-10' />
+                  <div className='skeleton-blueprint skeleton-text h-4 w-14' />
                 </div>
               </div>
             ))}
@@ -420,8 +417,8 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
                 <div
                   className={`flex flex-col items-center justify-center p-4 text-center ${index % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/20' : 'bg-white dark:bg-neutral-800/50'}`}
                 >
-                  <div className='mb-1 h-6 w-8 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                  <div className='h-4 w-12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='skeleton-blueprint skeleton-text mb-1 h-6 w-8' />
+                  <div className='skeleton-blueprint skeleton-text h-4 w-12' />
                 </div>
               </div>
             ))}
@@ -446,7 +443,7 @@ const SkeletonBodyHeader = React.forwardRef<
       )}
     >
       {/* Title Loading */}
-      <div className='h-8 w-3/4 self-center border border-dashed border-neutral-300 bg-neutral-100/50 sm:self-start dark:border-neutral-600 dark:bg-neutral-800/30' />
+      <div className='skeleton-blueprint skeleton-text h-8 w-3/4 self-center sm:self-start' />
 
       {/* Author Info and Posted Time Loading */}
       <div className='flex flex-col'>
@@ -454,9 +451,9 @@ const SkeletonBodyHeader = React.forwardRef<
           {/* Author Info Loading */}
           <div className='flex flex-row items-center gap-2'>
             <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 dark:border-neutral-700'>
-              <div className='h-full w-full rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-solid h-full w-full rounded-full' />
             </div>
-            <div className='h-5 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+            <div className='skeleton-blueprint skeleton-text h-5 w-32' />
           </div>
           {/* Posted Time and Revisions Loading */}
           <div className='flex flex-col items-end gap-2'>
@@ -464,18 +461,18 @@ const SkeletonBodyHeader = React.forwardRef<
               {/* Initially Posted */}
               <div className='hidden flex-row items-center gap-2 px-2 py-1 sm:flex'>
                 <div className='flex flex-col items-end space-y-1'>
-                  <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                  <div className='h-4 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='skeleton-blueprint skeleton-text h-3 w-24' />
+                  <div className='skeleton-blueprint skeleton-text h-4 w-32' />
                 </div>
               </div>
 
               {/* Latest Revision */}
               <div className='flex flex-row items-center gap-2 bg-white px-2 py-1 dark:bg-neutral-950'>
                 <div className='flex flex-col items-end space-y-1'>
-                  <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                  <div className='h-4 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                  <div className='skeleton-blueprint skeleton-text h-3 w-24' />
+                  <div className='skeleton-blueprint skeleton-text h-4 w-32' />
                 </div>
-                <div className='h-6 w-6 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='skeleton-blueprint skeleton-text h-6 w-6' />
               </div>
             </div>
           </div>
@@ -500,17 +497,17 @@ const SkeletonResultsHeader = React.forwardRef<
     >
       {/* Back Button Placeholder */}
       <div className='flex items-center gap-2 rounded-full px-3 py-2'>
-        <div className='h-6 w-6 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-text h-6 w-6' />
         <span className='hidden text-sm font-medium sm:block'>Back</span>
       </div>
 
       <div className='flex items-center gap-2 pl-2 sm:pl-4'>
         {/* Avatar Placeholder */}
         <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300'>
-          <div className='h-8 w-8 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-solid h-8 w-8 rounded-full' />
         </div>
         {/* Group Name Placeholder */}
-        <div className='h-6 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-text h-6 w-32' />
       </div>
     </div>
   );
@@ -529,22 +526,22 @@ const SkeletonBody = React.forwardRef<HTMLDivElement, { className?: string }>(
           >
             <div className='space-y-4'>
               {/* Title line */}
-              <div className='h-8 w-3/4 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-text h-8 w-3/4' />
               {/* Paragraph lines */}
-              <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-              <div className='h-4 w-11/12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-text h-4 w-full' />
+              <div className='skeleton-blueprint skeleton-text h-4 w-11/12' />
               {/* Section Heading */}
-              <div className='mt-6 h-6 w-1/2 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-text mt-6 h-6 w-1/2' />
               {/* More Paragraphs */}
-              <div className='mt-6 h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-              <div className='h-4 w-11/12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-              <div className='mt-4 h-4 w-3/4 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-              <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-              <div className='h-4 w-10/12 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-text mt-6 h-4 w-full' />
+              <div className='skeleton-blueprint skeleton-text h-4 w-11/12' />
+              <div className='skeleton-blueprint skeleton-text mt-4 h-4 w-3/4' />
+              <div className='skeleton-blueprint skeleton-text h-4 w-full' />
+              <div className='skeleton-blueprint skeleton-text h-4 w-10/12' />
             </div>
 
             {/* Gradient overlay */}
-            <div className='absolute right-0 bottom-0 left-0 h-24 border-t border-dashed border-neutral-300 bg-neutral-50/80 dark:border-neutral-600 dark:bg-neutral-900/80' />
+            <div className='skeleton-blueprint skeleton-text absolute right-0 bottom-0 left-0 h-24 bg-neutral-50/80 dark:bg-neutral-900/80' />
           </div>
         </div>
       </div>
@@ -569,13 +566,13 @@ const SkeletonMenuBar = React.forwardRef<
         <div className='dark:border-neutral-450 flex w-full items-center justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
           <div className='flex w-full justify-between'>
             <div className='flex items-center gap-4'>
-              <div className='h-6 w-6 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-              <div className='h-5 w-16 border border-dashed border-neutral-300 bg-neutral-100/50 sm:w-32 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-solid h-6 w-6 rounded-full' />
+              <div className='skeleton-blueprint skeleton-text h-5 w-16 sm:w-32' />
             </div>
 
             <div className='flex space-x-2'>
-              <div className='h-8 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 sm:w-44 dark:border-neutral-600 dark:bg-neutral-800/30' />
-              <div className='h-8 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 sm:w-44 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-text h-8 w-24 sm:w-44' />
+              <div className='skeleton-blueprint skeleton-text h-8 w-24 sm:w-44' />
             </div>
           </div>
         </div>
@@ -675,19 +672,19 @@ const SkeletonPostItem = React.forwardRef<
   return (
     <div ref={ref} className={cn('flex w-full flex-col gap-4', className)}>
       <div className='flex items-center gap-4'>
-        <div className='h-10 w-10 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-solid h-10 w-10 rounded-full' />
         <div className='flex flex-col space-y-2'>
-          <div className='h-4 w-48 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-          <div className='h-3 w-32 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-4 w-48 rounded' />
+          <div className='skeleton-blueprint skeleton-text h-3 w-32 rounded' />
         </div>
       </div>
       <div className='flex flex-col space-y-2'>
-        <div className='h-4 w-full rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-        <div className='h-4 w-5/6 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-        <div className='h-4 w-3/4 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-full rounded' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-5/6 rounded' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-3/4 rounded' />
       </div>
       <div className='mt-2 flex justify-end'>
-        <div className='h-3 w-20 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-text h-3 w-20 rounded' />
       </div>
     </div>
   );
@@ -700,22 +697,22 @@ const SkeletonVoteItemFeed = React.forwardRef<
 >(({ className }, ref) => {
   return (
     <div ref={ref} className={cn('flex w-full flex-col gap-4', className)}>
-      <div className='mb-2 h-2 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+      <div className='skeleton-blueprint skeleton-text mb-2 h-2 w-full' />
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-4'>
-          <div className='h-10 w-10 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-solid h-10 w-10 rounded-full' />
           <div className='flex flex-col space-y-2'>
-            <div className='h-4 w-48 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-            <div className='h-3 w-32 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+            <div className='skeleton-blueprint skeleton-text h-4 w-48 rounded' />
+            <div className='skeleton-blueprint skeleton-text h-3 w-32 rounded' />
           </div>
         </div>
-        <div className='h-3 w-24 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-text h-3 w-24 rounded' />
       </div>
       <div className='flex flex-col space-y-2'>
-        <div className='h-4 w-1/2 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-1/2 rounded' />
       </div>
       <div className='mt-2 flex justify-end'>
-        <div className='h-3 w-20 rounded border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-text h-3 w-20 rounded' />
       </div>
     </div>
   );
@@ -764,16 +761,16 @@ const SkeletonResultsTitle = React.forwardRef<
   return (
     <div ref={ref} className={cn('mb-4 flex flex-col gap-4', className)}>
       {/* Title placeholder */}
-      <div className='h-6 w-2/3 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+      <div className='skeleton-blueprint skeleton-text h-6 w-2/3' />
 
       {/* Metadata row */}
       <div className='flex items-center gap-4'>
         {/* Published by text */}
         <div className='flex items-center gap-2'>
-          <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-          <div className='h-3 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-          <div className='h-3 w-16 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-          <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-3 w-24' />
+          <div className='skeleton-blueprint skeleton-text h-3 w-32' />
+          <div className='skeleton-blueprint skeleton-text h-3 w-16' />
+          <div className='skeleton-blueprint skeleton-text h-3 w-24' />
         </div>
       </div>
     </div>
@@ -795,14 +792,14 @@ const SkeletonResultsList = React.forwardRef<
     >
       {/* Status message placeholder */}
       <div className='flex flex-col justify-center sm:h-28'>
-        <div className='mb-1 h-5 w-3/4 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-        <div className='mb-4 h-5 w-3/4 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-text mb-1 h-5 w-3/4' />
+        <div className='skeleton-blueprint skeleton-text mb-4 h-5 w-3/4' />
       </div>
 
       {/* Majority support placeholder */}
       <div className='mb-4 flex w-full items-center gap-1'>
-        <div className='h-4 w-4 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-        <div className='h-4 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+        <div className='skeleton-blueprint skeleton-solid h-4 w-4 rounded-full' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-24' />
       </div>
 
       {/* Choice bars loading state */}
@@ -818,7 +815,7 @@ const SkeletonResultsList = React.forwardRef<
       {/* Quorum bar placeholder */}
       <div className='mb-4'>
         <div className='relative mb-2 h-4 w-full overflow-hidden rounded border border-neutral-200 dark:border-neutral-700'>
-          <div className='h-full w-1/2 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-full w-1/2' />
           <div className='absolute top-[-4px] left-1/2 h-6 w-0.5 rounded bg-neutral-300 dark:bg-neutral-600' />
         </div>
       </div>
@@ -835,24 +832,24 @@ const SkeletonResultsTable = React.forwardRef<
   return (
     <div ref={ref} className={className}>
       {/* Desktop Header */}
-      <div className='sticky top-[88px] z-10 mb-2 hidden h-12 grid-cols-7 items-center gap-2 border border-neutral-800 bg-neutral-100/50 p-2 sm:grid dark:border-neutral-600 dark:bg-neutral-800/30'>
+      <div className='skeleton-blueprint sticky top-[88px] z-10 mb-2 hidden h-12 grid-cols-7 items-center gap-2 border border-neutral-800 p-2 sm:grid dark:border-neutral-600'>
         <div className='col-span-2 flex items-center'>
-          <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-4 w-full' />
         </div>
         <div className='col-span-1 flex items-center justify-end gap-2'>
-          <div className='h-4 w-16 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-4 w-16' />
         </div>
         <div className='col-span-3'>
-          <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-4 w-full' />
         </div>
         <div className='col-span-1 flex items-center justify-end gap-2'>
-          <div className='h-4 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-4 w-24' />
         </div>
       </div>
 
       {/* Mobile Header */}
-      <div className='sticky top-[88px] z-10 mb-2 block h-12 border border-neutral-800 bg-neutral-100/50 p-2 sm:hidden dark:border-neutral-600 dark:bg-neutral-800/30'>
-        <div className='h-full w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+      <div className='skeleton-blueprint sticky top-[88px] z-10 mb-2 block h-12 border border-neutral-800 p-2 sm:hidden dark:border-neutral-600'>
+        <div className='skeleton-blueprint skeleton-text h-full w-full' />
       </div>
 
       {/* Rows */}
@@ -863,15 +860,15 @@ const SkeletonResultsTable = React.forwardRef<
           style={{ height: `${desktopRowHeight}px` }}
         >
           {/* Color bar Skeleton */}
-          <div className='absolute top-0 left-0 h-2 w-[10%] border-t-2 border-dashed border-neutral-300 bg-neutral-100/20 dark:border-neutral-600 dark:bg-neutral-800/20' />
+          <div className='skeleton-blueprint skeleton-text absolute top-0 left-0 h-2 w-[10%] bg-neutral-100/20 dark:bg-neutral-800/20' />
 
           {/* Desktop Loading Row Structure */}
           <div className='relative hidden h-full grid-cols-7 items-center p-2 sm:grid'>
             <div className='col-span-2 flex items-center gap-2'>
-              <div className='h-10 w-10 rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-solid h-10 w-10 rounded-full' />
               <div className='flex flex-col gap-1'>
-                <div className='h-4 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                <div className='h-3 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='skeleton-blueprint skeleton-text h-4 w-32' />
+                <div className='skeleton-blueprint skeleton-text h-3 w-24' />
               </div>
             </div>
           </div>
@@ -888,12 +885,12 @@ const SkeletonNonVotersTable = React.forwardRef<
 >(({ className }, ref) => {
   return (
     <div ref={ref} className={cn('mt-6', className)}>
-      <div className='sticky z-10 grid h-12 grid-cols-7 items-center gap-2 border-t border-r border-l border-neutral-800 bg-neutral-100/50 p-2 dark:border-neutral-600 dark:bg-neutral-800/30'>
+      <div className='skeleton-blueprint sticky z-10 grid h-12 grid-cols-7 items-center gap-2 border-t border-r border-l border-neutral-800 p-2 dark:border-neutral-600'>
         <div className='col-span-2 flex items-center'>
-          <div className='h-4 w-full border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-4 w-full' />
         </div>
         <div className='col-span-5 flex items-center justify-end gap-2'>
-          <div className='h-4 w-24 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-4 w-24' />
         </div>
       </div>
     </div>
@@ -935,9 +932,9 @@ const SkeletonTimeline = React.forwardRef<
               className='relative flex w-full items-center justify-start'
             >
               <div className='z-20 flex h-[120px] w-28 flex-col gap-2 rounded-l-xs border border-neutral-200 bg-white px-4 py-2 dark:border-neutral-700 dark:bg-neutral-800'>
-                <div className='h-4 w-20 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                <div className='h-4 w-16 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-                <div className='h-4 w-20 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+                <div className='skeleton-blueprint skeleton-text h-4 w-20' />
+                <div className='skeleton-blueprint skeleton-text h-4 w-16' />
+                <div className='skeleton-blueprint skeleton-text h-4 w-20' />
               </div>
             </div>
           ))}
@@ -958,8 +955,8 @@ const SkeletonChart = React.forwardRef<HTMLDivElement, { className?: string }>(
           className
         )}
       >
-        <div className='border border-dashed border-neutral-300 bg-neutral-100/50 p-4 text-center text-neutral-500 dark:border-neutral-600 dark:bg-neutral-800/30'>
-          Chart Blueprint
+        <div className='skeleton-blueprint skeleton-text p-4 text-center text-neutral-500'>
+          Loading chart...
         </div>
       </div>
     );
@@ -1006,13 +1003,13 @@ const SkeletonGroupItemDetailed = React.forwardRef<
       <div className='relative flex flex-col gap-1 sm:gap-2'>
         <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
           <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
-            <div className='min-h-[32px] min-w-[32px] rounded-full border-2 border-solid border-neutral-300 bg-neutral-100/50 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-600 dark:bg-neutral-800/30' />
+            <div className='skeleton-blueprint skeleton-solid min-h-[32px] min-w-[32px] rounded-full sm:min-h-[40px] sm:min-w-[40px]' />
             <div>
-              <div className='mb-1 h-5 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-              <div className='h-4 w-20 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+              <div className='skeleton-blueprint skeleton-text mb-1 h-5 w-32' />
+              <div className='skeleton-blueprint skeleton-text h-4 w-20' />
             </div>
           </div>
-          <div className='h-16 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
+          <div className='skeleton-blueprint skeleton-text h-16 w-32' />
         </div>
       </div>
     </div>
@@ -1029,7 +1026,7 @@ const SkeletonAISummaryLoading = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'flex items-center justify-center space-x-2 border border-dashed border-neutral-300 bg-neutral-100/50 p-3 text-neutral-500 dark:border-neutral-600 dark:bg-neutral-800/30 dark:text-neutral-400',
+        'skeleton-blueprint skeleton-text flex items-center justify-center space-x-2 p-3 text-neutral-500 dark:text-neutral-400',
         className
       )}
     >
