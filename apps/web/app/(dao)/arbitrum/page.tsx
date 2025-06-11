@@ -9,7 +9,7 @@ import { Suspense } from 'react';
 import { auth } from '@/lib/auth/arbitrum_auth';
 import { headers } from 'next/headers';
 import { ArbitrumSummaryHeader } from './components/arbitrum-summary-header';
-import { LoadingGroupList, LoadingHeader } from '../[daoSlug]/loading';
+import { LoadingGroupList, LoadingHeader } from '@/app/components/ui/skeleton';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 

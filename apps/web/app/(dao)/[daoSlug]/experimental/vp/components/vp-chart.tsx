@@ -5,6 +5,7 @@ import * as echarts from 'echarts';
 import { useEffect, useRef } from 'react';
 import superjson, { type SuperJSONResult } from 'superjson';
 import type { VoterRankData, VpRankingReturnType } from '../actions';
+import { SkeletonChart } from '@/app/components/ui/skeleton';
 
 interface VpChartProps {
   chartData: SuperJSONResult;
@@ -184,9 +185,5 @@ export function VpChart({ chartData }: VpChartProps) {
 }
 
 export function LoadingChart() {
-  return (
-    <div className='flex h-[600px] w-full items-center justify-center bg-neutral-100 dark:bg-neutral-900'>
-      <div className='animate-pulse text-neutral-500'>Loading Chart...</div>
-    </div>
-  );
+  return <SkeletonChart />;
 }

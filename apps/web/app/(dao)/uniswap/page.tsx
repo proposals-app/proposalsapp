@@ -9,8 +9,7 @@ import { Suspense } from 'react';
 import { auth } from '@/lib/auth/uniswap_auth';
 import { headers } from 'next/headers';
 import { UniswapSummaryHeader } from './components/uniswap-summary-header';
-import { LoadingGroupList, LoadingHeader } from '../[daoSlug]/loading';
-import { SkeletonText, SkeletonButton } from '../../components/ui/skeleton';
+import { SkeletonText, SkeletonButton, LoadingGroupList, LoadingHeader } from '@/app/components/ui/skeleton';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 

@@ -4,8 +4,7 @@ import { MarkAllAsReadButton } from './components/mark-all-as-read';
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth/arbitrum_auth';
 import { headers } from 'next/headers';
-import { LoadingGroupList } from './loading';
-import { SkeletonText, SkeletonButton } from '../../components/ui/skeleton';
+import { SkeletonText, SkeletonButton, LoadingGroupList } from '@/app/components/ui/skeleton';
 
 export default async function Page({
   params,

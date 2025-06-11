@@ -6,6 +6,7 @@ import PassedIcon from '@/public/assets/web/icons/check.svg';
 import FailedIcon from '@/public/assets/web/icons/cross.svg';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { connection } from 'next/server';
+import { SkeletonResultsList } from '@/app/components/ui/skeleton';
 
 interface ResultsListProps {
   results: SuperJSONResult;
@@ -381,54 +382,5 @@ function ParticipationPercentage({
 }
 
 export function LoadingList() {
-  return (
-    <div className='w-72 animate-pulse text-neutral-700 sm:ml-6 dark:text-neutral-200'>
-      {/* Status message placeholder */}
-      <div className='flex flex-col justify-center sm:h-28'>
-        <div className='mb-1 h-5 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700' />
-        <div className='mb-4 h-5 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700' />
-      </div>
-
-      {/* Majority support placeholder */}
-      <div className='mb-4 flex w-full items-center gap-1'>
-        <div className='h-4 w-4 rounded-full bg-neutral-200 dark:bg-neutral-700' />
-        <div className='h-4 w-24 rounded bg-neutral-200 dark:bg-neutral-700' />
-      </div>
-
-      {/* Choice bars loading state */}
-      <div className='mb-4 space-y-2'>
-        {[...Array(3)].map((_, index) => (
-          <div
-            key={index}
-            className='relative h-10 w-full overflow-hidden rounded border-2 border-neutral-200 dark:border-neutral-700'
-          />
-        ))}
-      </div>
-
-      {/* Quorum bar placeholder */}
-      <div className='mb-4'>
-        <div className='relative mb-2 h-4 w-full overflow-hidden rounded border border-neutral-200 dark:border-neutral-700'>
-          <div className='h-full w-1/2 bg-neutral-200 dark:bg-neutral-700' />
-          {/* Placeholder for quorum line */}
-          <div className='absolute top-[-4px] left-1/2 h-6 w-0.5 rounded bg-neutral-300 dark:bg-neutral-600' />
-        </div>
-        {/* Quorum text placeholder */}
-        <div className='flex items-center gap-1'>
-          <div className='h-4 w-4 rounded-full bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-4 w-32 rounded bg-neutral-200 dark:bg-neutral-700' />
-        </div>
-      </div>
-
-      {/* Delegated voting power placeholder */}
-      <div className='mt-4'>
-        <div className='relative mb-2 h-2 w-full overflow-hidden rounded border border-neutral-200 dark:border-neutral-700'>
-          <div className='h-full w-1/3 bg-neutral-200 dark:bg-neutral-700' />
-        </div>
-        <div className='flex items-center gap-1'>
-          <div className='h-3 w-36 rounded bg-neutral-200 dark:bg-neutral-700' />{' '}
-          {/* Adjusted width slightly */}
-        </div>
-      </div>
-    </div>
-  );
+  return <SkeletonResultsList />;
 }

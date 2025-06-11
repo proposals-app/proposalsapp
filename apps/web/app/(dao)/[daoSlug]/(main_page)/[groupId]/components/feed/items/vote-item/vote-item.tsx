@@ -6,6 +6,7 @@ import type { ProcessedVote } from '@/lib/results_processing';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-voter';
 import type { VotesWithVoters } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 import type { ProposalMetadata } from '@/lib/types';
+import { SkeletonVoteItemFeed } from '@/app/components/ui/skeleton';
 
 // Helper to format choice text, similar to the one in ResultsTable
 const getChoiceText = (vote: ProcessedVote, isWeighted = false): string => {
@@ -156,28 +157,7 @@ export async function VoteItem({
 }
 
 export function VoteItemLoading() {
-  return (
-    <div className='flex w-full animate-pulse flex-col gap-4'>
-      <div className='mb-2 h-2 w-full bg-neutral-200 dark:bg-neutral-800'></div>{' '}
-      {/* Placeholder for color bar */}
-      <div className='flex items-center justify-between'>
-        <div className='flex items-center gap-4'>
-          <div className='h-10 w-10 rounded-full bg-neutral-200 dark:bg-neutral-800'></div>
-          <div className='flex flex-col space-y-2'>
-            <div className='h-4 w-48 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-            <div className='h-3 w-32 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-          </div>
-        </div>
-        <div className='h-3 w-24 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-      </div>
-      <div className='flex flex-col space-y-2'>
-        <div className='h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-      </div>
-      <div className='mt-2 flex justify-end'>
-        <div className='h-3 w-20 rounded bg-neutral-200 dark:bg-neutral-800'></div>
-      </div>
-    </div>
-  );
+  return <SkeletonVoteItemFeed />;
 }
 
 const daoBaseUrlMap: { [key: string]: string } = {

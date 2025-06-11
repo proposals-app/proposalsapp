@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
-import { PostItem, PostItemLoading } from './items/post-item/post-item';
-import { VoteItem, VoteItemLoading } from './items/vote-item/vote-item';
+import { PostItem } from './items/post-item/post-item';
+import { VoteItem } from './items/vote-item/vote-item';
 import type { FeedReturnType, GroupReturnType } from '../../actions';
 import { AggregateVoteItem } from './items/vote-item/aggregate-vote-item';
 import type { VotesWithVoters } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
+import { SkeletonFeed } from '@/app/components/ui/skeleton';
 
 export async function Feed({
   group,
@@ -86,32 +87,5 @@ export async function Feed({
 }
 
 export function FeedLoading() {
-  const loadingItems = Array.from({ length: 12 }); // Adjust number of loading items as needed
-
-  return (
-    <div className='flex w-full flex-col gap-8'>
-      {loadingItems.map((_, index) => {
-        // Alternate between PostItemLoading and VoteItemLoading for a varied feed loading state
-        if (index % 3 === 0) {
-          return (
-            <div
-              key={index}
-              className='border-b border-neutral-200 py-4 dark:border-neutral-800'
-            >
-              <PostItemLoading />
-            </div>
-          );
-        } else {
-          return (
-            <div
-              key={index}
-              className='border-b border-neutral-200 py-4 dark:border-neutral-800'
-            >
-              <VoteItemLoading />
-            </div>
-          );
-        }
-      })}
-    </div>
-  );
+  return <SkeletonFeed />;
 }

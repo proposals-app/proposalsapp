@@ -14,6 +14,7 @@ import type {
 } from '@/lib/results_processing';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import superjson, { type SuperJSONResult } from 'superjson';
+import { SkeletonResultsTable } from '@/app/components/ui/skeleton';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-voter';
 import {
   Select,
@@ -464,101 +465,5 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
 }
 
 export function LoadingTable() {
-  const mobileRowHeight = 140;
-  const desktopRowHeight = 80;
-  // Loading state updated for both desktop and mobile structures
-  return (
-    <div>
-      {/* Desktop Header */}
-      <div className='sticky top-[88px] z-10 mb-2 hidden h-12 grid-cols-7 items-center gap-2 border border-neutral-800 bg-neutral-200 p-2 sm:grid dark:border-neutral-600 dark:bg-neutral-800'>
-        {/* Delegate */}
-        <div className='col-span-2 flex items-center'>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-        </div>
-        {/* Voting Power */}
-        <div className='col-span-1 flex items-center justify-end gap-2'>
-          <div className='h-4 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-        </div>
-        {/* Choice */}
-        <div className='col-span-3'>
-          <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-        </div>
-        {/* Date */}
-        <div className='col-span-1 flex items-center justify-end gap-2'>
-          <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-        </div>
-      </div>
-      {/* Mobile Header (Filter Only) */}
-      <div className='sticky top-[88px] z-10 mb-2 block h-12 border border-neutral-800 bg-neutral-200 p-2 sm:hidden dark:border-neutral-600 dark:bg-neutral-800'>
-        <div className='h-full w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-      </div>
-
-      {/* Rows */}
-      {[...Array(10)].map((_, index) => (
-        <div
-          key={index}
-          className='relative border-b border-neutral-200 dark:border-neutral-700'
-          // Set height explicitly on the container for loading state consistency
-          style={{ height: `${desktopRowHeight}px` }}
-        >
-          {/* Color bar Skeleton */}
-          <div className='absolute top-0 left-0 h-2 w-[10%] animate-pulse bg-neutral-300 opacity-50 dark:bg-neutral-700' />
-
-          {/* === Desktop Loading Row Structure === */}
-          <div className='relative hidden h-full grid-cols-7 items-center p-2 sm:grid'>
-            {/* Delegate */}
-            <div className='col-span-2 flex items-center gap-2'>
-              <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-300 dark:bg-neutral-700' />
-              <div className='flex flex-col gap-1'>
-                <div className='h-4 w-32 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-                <div className='h-3 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-              </div>
-            </div>
-            {/* Voting Power */}
-            <div className='col-span-1 flex flex-col items-end gap-1 px-2'>
-              <div className='h-4 w-20 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-              <div className='h-3 w-12 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            </div>
-            {/* Choice */}
-            <div className='col-span-3 flex flex-col gap-1 px-2'>
-              <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-              <div className='h-3 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            </div>
-            {/* Date */}
-            <div className='col-span-1 flex flex-col items-end gap-1 px-2'>
-              <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-              <div className='h-3 w-20 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            </div>
-          </div>
-          {/* === Mobile Loading Row Structure === */}
-          {/* Need to override the height inherited from the parent for mobile */}
-          <div
-            className='relative flex h-full flex-col justify-between p-3 sm:hidden'
-            style={{ height: `${mobileRowHeight}px` }}
-          >
-            {/* Delegate Skeleton */}
-            <div className='flex items-center gap-2'>
-              <div className='h-10 w-10 animate-pulse rounded-full bg-neutral-300 dark:bg-neutral-700' />
-              <div className='h-4 w-32 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            </div>
-            {/* Choice Skeleton */}
-            <div className='flex flex-col gap-1'>
-              <div className='h-4 w-full animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-              <div className='h-3 w-4/5 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            </div>
-            {/* VP (Left) & Date (Right) Skeleton */}
-            <div className='flex items-end justify-between'>
-              {/* VP Skeleton */}
-              <div className='flex flex-col items-start gap-1'>
-                <div className='h-4 w-20 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-                <div className='h-3 w-12 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-              </div>
-              {/* Date Skeleton */}
-              <div className='h-4 w-24 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700' />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <SkeletonResultsTable />;
 }

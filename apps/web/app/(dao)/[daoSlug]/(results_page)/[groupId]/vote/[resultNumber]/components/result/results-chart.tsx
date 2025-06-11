@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { ProcessedResults } from '@/lib/results_processing';
 import superjson, { type SuperJSONResult } from 'superjson';
 import type { TooltipComponentFormatterCallbackParams } from 'echarts';
+import { SkeletonChart } from '@/app/components/ui/skeleton';
 
 interface ResultsChartProps {
   results: SuperJSONResult;
@@ -560,61 +561,5 @@ export function ResultsChart({ results }: ResultsChartProps) {
 // --- Loading Chart Component (Unchanged from original) ---
 
 export function LoadingChart() {
-  return (
-    <div className='flex h-[400px] w-full items-center justify-center'>
-      {' '}
-      {/* Adjusted height slightly */}
-      <div className='w-full space-y-4'>
-        {/* Chart area placeholder */}
-        <div className='relative h-[320px] w-full'>
-          {/* Y-axis labels */}
-          <div className='absolute top-0 left-0 flex h-full w-12 flex-col justify-between py-2'>
-            {' '}
-            {/* Adjusted padding/width */}
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className='h-3 w-10 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' // Slightly smaller
-              />
-            ))}
-          </div>
-
-          {/* Chart grid lines */}
-          <div className='absolute inset-y-0 top-2 right-0 bottom-2 left-12'>
-            {' '}
-            {/* Adjusted margins */}
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className='border-b border-dashed border-neutral-200 dark:border-neutral-700' // Dashed lines
-                style={{ height: `${100 / 5}%` }}
-              />
-            ))}
-          </div>
-
-          {/* Loading lines (Simplified) */}
-          <div className='absolute inset-0 mt-4 ml-12 flex flex-col justify-around'>
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className='h-1 w-11/12 animate-pulse rounded bg-neutral-300 dark:bg-neutral-600' // Slightly darker pulse
-                style={{
-                  opacity: 0.8 - i * 0.2, // Adjusted opacity
-                  transform: `translateY(${i * 5}px)`, // Slight vertical separation
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* X-axis labels */}
-        <div className='flex justify-between pr-2 pl-12 sm:pr-4'>
-          {' '}
-          {/* Adjusted padding */}
-          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 sm:w-20 dark:bg-neutral-700' />
-          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 sm:w-20 dark:bg-neutral-700' />
-        </div>
-      </div>
-    </div>
-  );
+  return <SkeletonChart />;
 }

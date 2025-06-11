@@ -16,6 +16,10 @@ import {
   LoadingNonVotersTable,
   NonVotersTable,
 } from './result/non-voters-table';
+import {
+  SkeletonResultsTitle,
+  SkeletonResults,
+} from '@/app/components/ui/skeleton';
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
@@ -100,48 +104,9 @@ async function NonVotersTableLazy({ proposalId }: { proposalId: string }) {
 }
 
 function TitleLoading() {
-  return (
-    <div className='mb-4 flex flex-col gap-4'>
-      {/* Title placeholder */}
-      <div className='h-6 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-
-      {/* Metadata row */}
-      <div className='flex items-center gap-4'>
-        {/* Published by text */}
-        <div className='flex items-center gap-2'>
-          <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-16 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-          <div className='h-3 w-24 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
-        </div>
-      </div>
-    </div>
-  );
+  return <SkeletonResultsTitle />;
 }
 
 export function ResultsLoading() {
-  return (
-    <div className='flex w-full flex-col gap-2 sm:flex-row'>
-      <div className='flex w-full flex-col gap-8 sm:gap-2'>
-        <div className='hidden lg:block'>
-          <TitleLoading />
-        </div>
-
-        <div className='flex justify-center sm:hidden'>
-          <LoadingList />
-        </div>
-
-        <LoadingChart />
-
-        <div className='flex flex-col'>
-          <LoadingNonVotersTable />
-          <LoadingTable />
-        </div>
-      </div>
-
-      <div className='hidden sm:block'>
-        <LoadingList />
-      </div>
-    </div>
-  );
+  return <SkeletonResults />;
 }

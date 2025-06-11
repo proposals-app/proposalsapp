@@ -8,6 +8,7 @@ import TimelineEventIcon from '@/public/assets/web/icons/timeline-event.svg';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { connection } from 'next/server';
 import { ResultsMobile } from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/components/timeline/mobile/timeline-mobile';
+import { SkeletonTimeline } from '@/app/components/ui/skeleton';
 import { TimelineEventType, type ResultEvent } from '@/lib/types';
 import { Basic, CommentsVolume, VotesVolume } from './other';
 import { Result } from './result';
@@ -132,49 +133,5 @@ export async function Timeline({
 }
 
 export function LoadingTimeline() {
-  return (
-    <div className='fixed top-24 left-28 z-20 hidden h-screen w-44 flex-col items-end justify-start sm:flex'>
-      <div className='relative h-[calc(100vh-96px)] w-full'>
-        {/* Top SVG Placeholder */}
-        <div className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800'>
-          <TimelineEventIcon
-            className='fill-neutral-400 dark:fill-neutral-500'
-            width={24}
-            height={24}
-            alt={'Timeline event'}
-          />
-        </div>
-
-        {/* Vertical Line Placeholder */}
-        <div className='absolute top-2 bottom-4 left-[15px] z-10 w-0.5 bg-neutral-300 dark:bg-neutral-600' />
-
-        {/* Bottom SVG Placeholder */}
-        <div className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800'>
-          <TimelineEventIcon
-            className='fill-neutral-400 dark:fill-neutral-500'
-            width={24}
-            height={24}
-            alt={'Timeline event'}
-          />
-        </div>
-
-        {/* Placeholder Items */}
-        <div className='flex h-full flex-col gap-16 pt-2'>
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div
-              key={index}
-              className='relative flex w-full items-center justify-start'
-            >
-              {/* Placeholder Event Content */}
-              <div className='z-20 flex h-[120px] w-28 flex-col gap-2 rounded-l-xs border border-neutral-200 bg-white px-4 py-2 dark:border-neutral-700 dark:bg-neutral-800'>
-                <div className='h-4 w-20 animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
-                <div className='h-4 w-16 animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
-                <div className='h-4 w-20 animate-pulse rounded-sm bg-neutral-300 dark:bg-neutral-700' />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return <SkeletonTimeline />;
 }
