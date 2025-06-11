@@ -4953,14 +4953,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/test@npm:^1.52.0":
-  version: 1.52.0
-  resolution: "@playwright/test@npm:1.52.0"
+"@playwright/test@npm:^1.53.0":
+  version: 1.53.0
+  resolution: "@playwright/test@npm:1.53.0"
   dependencies:
-    playwright: "npm:1.52.0"
+    playwright: "npm:1.53.0"
   bin:
     playwright: cli.js
-  checksum: 10c0/1c428b421593eb4f79b7c99783a389c3ab3526c9051ec772749f4fca61414dfa9f2344eba846faac5f238084aa96c836364a91d81d3034ac54924f239a93e247
+  checksum: 10c0/8335d56545a172b3b0d98c67094ce659899577746d95e991d7c47d94b533f715b2278d13795646cd3c5c2ed4559ce89b520aafd6f4ec4586fb51d047215173db
   languageName: node
   linkType: hard
 
@@ -4997,7 +4997,7 @@ __metadata:
     express: "npm:^5.1.0"
     node-cron: "npm:^4.1.0"
     supertest: "npm:^7.1.1"
-    tsx: "npm:^4.19.4"
+    tsx: "npm:^4.20.1"
     typescript: "npm:^5.8.3"
     vitest: "npm:^3.2.3"
   languageName: unknown
@@ -5007,7 +5007,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/emails@workspace:libs/ts/emails"
   dependencies:
-    "@react-email/components": "npm:0.0.41"
+    "@react-email/components": "npm:0.0.42"
     "@react-email/render": "npm:1.1.2"
     "@react-email/tailwind": "npm:1.0.5"
     "@tsconfig/recommended": "npm:^1.0.8"
@@ -5080,7 +5080,7 @@ __metadata:
     "@opentelemetry/sdk-logs": "npm:^0.202.0"
     "@opentelemetry/sdk-metrics": "npm:^2.0.1"
     "@opentelemetry/sdk-trace-base": "npm:^2.0.1"
-    "@playwright/test": "npm:^1.52.0"
+    "@playwright/test": "npm:^1.53.0"
     "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/visual-dom-diff": "npm:0.7.2"
     "@radix-ui/react-checkbox": "npm:^1.3.2"
@@ -5128,7 +5128,7 @@ __metadata:
     hast: "npm:^1.0.0"
     hast-util-to-dom: "npm:^4.0.1"
     jsdom: "npm:26.1.0"
-    lucide-react: "npm:^0.513.0"
+    lucide-react: "npm:^0.514.0"
     mdast-util-from-markdown: "npm:^2.0.2"
     mdast-util-gfm: "npm:^3.1.0"
     mdast-util-gfm-table: "npm:^2.0.0"
@@ -5142,8 +5142,8 @@ __metadata:
     ollama-ai-provider: "npm:^1.2.0"
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.4"
-    posthog-js: "npm:^1.249.5"
-    posthog-node: "npm:^4.18.0"
+    posthog-js: "npm:^1.250.1"
+    posthog-node: "npm:^5.0.0"
     prettier: "npm:^3.5.3"
     prettier-plugin-classnames: "npm:^0.7.8"
     prettier-plugin-merge: "npm:^0.7.4"
@@ -5166,7 +5166,7 @@ __metadata:
     sonner: "npm:^2.0.5"
     start-server-and-test: "npm:^2.0.12"
     superjson: "npm:^2.2.2"
-    tailwind-merge: "npm:^3.3.0"
+    tailwind-merge: "npm:^3.3.1"
     tailwindcss: "npm:^4.1.8"
     tailwindcss-animate: "npm:1.0.7"
     tw-animate-css: "npm:^1.3.4"
@@ -5176,7 +5176,7 @@ __metadata:
     viem: "npm:^2.31.0"
     wagmi: "npm:^2.15.6"
     web-push: "npm:^3.6.7"
-    zod: "npm:^3.25.57"
+    zod: "npm:^3.25.61"
   languageName: unknown
   linkType: soft
 
@@ -5694,9 +5694,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-email/components@npm:0.0.41":
-  version: 0.0.41
-  resolution: "@react-email/components@npm:0.0.41"
+"@react-email/components@npm:0.0.42":
+  version: 0.0.42
+  resolution: "@react-email/components@npm:0.0.42"
   dependencies:
     "@react-email/body": "npm:0.0.11"
     "@react-email/button": "npm:0.0.19"
@@ -5717,10 +5717,10 @@ __metadata:
     "@react-email/row": "npm:0.0.12"
     "@react-email/section": "npm:0.0.16"
     "@react-email/tailwind": "npm:1.0.5"
-    "@react-email/text": "npm:0.1.4"
+    "@react-email/text": "npm:0.1.5"
   peerDependencies:
     react: ^18.0 || ^19.0 || ^19.0.0-rc
-  checksum: 10c0/830a42688f0b3614e8cb6704029ee655d47a35cf554172bc8a690819d0b1f9211716f1d0bed3592801aff6961dbc19293d2d608556accf051789b3665cb6e2ed
+  checksum: 10c0/ba5eba9969ca80797024dce499f97bd7e4c2dcf799f1c187f58c2b1a51a74998fae29c9db68232f05b93ad978c4673a4ef60ff3699f8cdd3c3be4d5bc9d462c2
   languageName: node
   linkType: hard
 
@@ -5857,12 +5857,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-email/text@npm:0.1.4":
-  version: 0.1.4
-  resolution: "@react-email/text@npm:0.1.4"
+"@react-email/text@npm:0.1.5":
+  version: 0.1.5
+  resolution: "@react-email/text@npm:0.1.5"
   peerDependencies:
     react: ^18.0 || ^19.0 || ^19.0.0-rc
-  checksum: 10c0/b87479ae58b780873c19ef181837324241fe87337b87859d3f627ae8a302bdc422b23764200afd759ef49882e05bc6d2c92e3d78c46f01fdd1afcefca6470d47
+  checksum: 10c0/ad825332903917d1185ce7c5e4d19846496565996f82b71a873648dffc6342d382606a96a5a00a15a16abef5322540d56b481ad3ca21c8b34de9b598715ec149
   languageName: node
   linkType: hard
 
@@ -18014,12 +18014,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^0.513.0":
-  version: 0.513.0
-  resolution: "lucide-react@npm:0.513.0"
+"lucide-react@npm:^0.514.0":
+  version: 0.514.0
+  resolution: "lucide-react@npm:0.514.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/1e1cd19afe9478ac18f545d561a8681ab0f0f8421328060869634a76c80ff1dac5abd6704da015eef5a1ee7a0a02d478c1dcbe141e1967bbcd2d1c48212110fb
+  checksum: 10c0/83d781e5036b53a1b0f3be05d43c80675c8d65ff59901f7db1868ba36d3fa159cb459f4c3974781a4105062a1aa7df8a57ac70192a455b95afec7281ad751ffb
   languageName: node
   linkType: hard
 
@@ -20919,27 +20919,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.52.0":
-  version: 1.52.0
-  resolution: "playwright-core@npm:1.52.0"
+"playwright-core@npm:1.53.0":
+  version: 1.53.0
+  resolution: "playwright-core@npm:1.53.0"
   bin:
     playwright-core: cli.js
-  checksum: 10c0/640945507e6ca2144e9f596b2a6ecac042c2fd3683ff99e6271e9a7b38f3602d415f282609d569456f66680aab8b3c5bb1b257d8fb63a7fc0ed648261110421f
+  checksum: 10c0/fda0cf76115b15b1ca5cbc69e14185904e5c85e9e7cddb0a48121e69d681c638ac497e8a103985976cae260aa02e9c03ea27d6cd0b5f3d3ca914d4c7fd96f930
   languageName: node
   linkType: hard
 
-"playwright@npm:1.52.0":
-  version: 1.52.0
-  resolution: "playwright@npm:1.52.0"
+"playwright@npm:1.53.0":
+  version: 1.53.0
+  resolution: "playwright@npm:1.53.0"
   dependencies:
     fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.52.0"
+    playwright-core: "npm:1.53.0"
   dependenciesMeta:
     fsevents:
       optional: true
   bin:
     playwright: cli.js
-  checksum: 10c0/2c6edf1e15e59bbaf77f3fa0fe0ac975793c17cff835d9c8b8bc6395a3b6f1c01898b3058ab37891b2e4d424bcc8f1b4844fe70d943e0143d239d7451408c579
+  checksum: 10c0/8d995114808b92f2005bd12ff5e494cdc3fa2d484f4d85a3e54be1fb99e88ae3e34b24792d83bb987462c73e553a0fa37a2a70264afbf67894b51c1498cf5a11
   languageName: node
   linkType: hard
 
@@ -21193,9 +21193,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-js@npm:^1.249.5":
-  version: 1.249.5
-  resolution: "posthog-js@npm:1.249.5"
+"posthog-js@npm:^1.250.1":
+  version: 1.250.1
+  resolution: "posthog-js@npm:1.250.1"
   dependencies:
     core-js: "npm:^3.38.1"
     fflate: "npm:^0.4.8"
@@ -21209,16 +21209,14 @@ __metadata:
       optional: true
     rrweb-snapshot:
       optional: true
-  checksum: 10c0/3fa193bd0247bdaf117abf572d70ba677c219a71c12c122704d127f5229517abeaff9b40e5d33cd1754c279a57333e20e1c958c754e23cafad6e42df13d0033a
+  checksum: 10c0/237c8184a1173eaebfd6842d20f24743b519222b52a17f2303b3bce0dc94488b89ff7775853d4c00e86b534cca091c65c239198a55c90fecfaeae2e899994879
   languageName: node
   linkType: hard
 
-"posthog-node@npm:^4.18.0":
-  version: 4.18.0
-  resolution: "posthog-node@npm:4.18.0"
-  dependencies:
-    axios: "npm:^1.8.2"
-  checksum: 10c0/aa30427599d15b98357b5a88096a8b38b0812c71af49eb54fce0a46164521c247c3b064973931c3471cf84cb7f0e391bfc5d6174cd038f75f8c02cb8a9626cff
+"posthog-node@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "posthog-node@npm:5.0.0"
+  checksum: 10c0/8332977743ef4f6d42bfd59f03d6dc105cac8aa63eb65f1919d098b1d367188cd958b250138904a26552e9fc0f21edc377fc7a0a98cdf2e792073c7aa95807ee
   languageName: node
   linkType: hard
 
@@ -24385,10 +24383,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwind-merge@npm:^3.3.0":
-  version: 3.3.0
-  resolution: "tailwind-merge@npm:3.3.0"
-  checksum: 10c0/a50cd141100486f98541dfab3705712af5860556689b7496dc6b0284374f02d12d5471f0f40035f6bb8b1c749c422060a1f3e5f8900057d8a7786b111c8472e6
+"tailwind-merge@npm:^3.3.1":
+  version: 3.3.1
+  resolution: "tailwind-merge@npm:3.3.1"
+  checksum: 10c0/b84c6a78d4669fa12bf5ab8f0cdc4400a3ce0a7c006511af4af4be70bb664a27466dbe13ee9e3b31f50ddf6c51d380e8192ce0ec9effce23ca729d71a9f63818
   languageName: node
   linkType: hard
 
@@ -24999,9 +24997,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:^4.19.4":
-  version: 4.19.4
-  resolution: "tsx@npm:4.19.4"
+"tsx@npm:^4.20.1":
+  version: 4.20.1
+  resolution: "tsx@npm:4.20.1"
   dependencies:
     esbuild: "npm:~0.25.0"
     fsevents: "npm:~2.3.3"
@@ -25011,7 +25009,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/f7b8d44362343fbde1f2ecc9832d243a450e1168dd09702a545ebe5f699aa6912e45b431a54b885466db414cceda48e5067b36d182027c43b2c02a4f99d8721e
+  checksum: 10c0/10f861c66d13fcdcae1d4203f06c682d4c4beadb915d644aa198dfac49be18496e6e26daf5f693be87cf2776c1a883abb21e811f77ffd5b0a5cdd41d49c8cd52
   languageName: node
   linkType: hard
 
@@ -27056,10 +27054,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25.57":
-  version: 3.25.57
-  resolution: "zod@npm:3.25.57"
-  checksum: 10c0/3b3d98bf31d4ca9ce92e151ec6a69f6d63a9a7e4e74ce2bd0dfac87a1955d77934fc0fd5caf0017c9c9746e86cdcd27c63b0e3378bbf5e8b62ec5833f94395ac
+"zod@npm:^3.25.61":
+  version: 3.25.61
+  resolution: "zod@npm:3.25.61"
+  checksum: 10c0/45386e88c52b5946dbe22c95fe45f3e7c1c90c4fba8cd7b8ce4e6cf0a79c987026990cbb082c54bb2926be35ed49947f351f05b35d6507aa17c23c088a5f4667
   languageName: node
   linkType: hard
 
