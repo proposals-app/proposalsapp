@@ -48,3 +48,6 @@ node_modules/
 /playwright/.cache/
 
 .cache-synpress
+
+*storybook.log
+storybook-static

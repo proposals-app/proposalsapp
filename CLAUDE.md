@@ -51,7 +51,7 @@ yarn start-email-service    # Start email notifications
 # Web development
 cd apps/web
 yarn dev                    # Development server with turbopack
-yarn ladle                  # Component development environment
+yarn storybook              # Component development environment
 ```
 
 ### Code Quality

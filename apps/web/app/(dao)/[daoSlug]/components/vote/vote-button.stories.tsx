@@ -1,7 +1,6 @@
 import type { VoteType } from '@/lib/results_processing';
 import { VoteButton } from './vote-button';
-import '@/styles/globals.css';
-import type { Story } from '@ladle/react';
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import React, { useEffect, useState } from 'react';
 import {
   type Abi,
@@ -887,63 +886,95 @@ const OnchainProposalStory: React.FC<{
   return <VoteButton governor={governor} proposal={proposal} />;
 };
 
-// --- Exported Stories ---
+// --- Storybook Configuration ---
+const meta: Meta<typeof VoteButton> = {
+  title: 'Vote Button',
+  component: VoteButton,
+  parameters: {
+    layout: 'centered',
+  },
+};
 
-// Snapshot Stories
-export const SnapshotBasic: Story = () => (
-  <SnapshotProposalStory proposalType='basic' governor='ARBITRUM_SNAPSHOT' />
-);
-SnapshotBasic.storyName = 'Snapshot - Basic';
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-export const SnapshotSingleChoice: Story = () => (
-  <SnapshotProposalStory
-    proposalType='single-choice'
-    governor='ARBITRUM_SNAPSHOT'
-  />
-);
-SnapshotSingleChoice.storyName = 'Snapshot - Single Choice';
+// --- Snapshot Stories ---
+export const SnapshotBasic: Story = {
+  render: () => (
+    <SnapshotProposalStory proposalType='basic' governor='ARBITRUM_SNAPSHOT' />
+  ),
+  name: 'Snapshot - Basic',
+};
 
-export const SnapshotApproval: Story = () => (
-  <SnapshotProposalStory proposalType='approval' governor='ARBITRUM_SNAPSHOT' />
-);
-SnapshotApproval.storyName = 'Snapshot - Approval';
+export const SnapshotSingleChoice: Story = {
+  render: () => (
+    <SnapshotProposalStory
+      proposalType='single-choice'
+      governor='ARBITRUM_SNAPSHOT'
+    />
+  ),
+  name: 'Snapshot - Single Choice',
+};
 
-export const SnapshotQuadratic: Story = () => (
-  <SnapshotProposalStory
-    proposalType='quadratic'
-    governor='ARBITRUM_SNAPSHOT'
-  />
-);
-SnapshotQuadratic.storyName = 'Snapshot - Quadratic';
+export const SnapshotApproval: Story = {
+  render: () => (
+    <SnapshotProposalStory
+      proposalType='approval'
+      governor='ARBITRUM_SNAPSHOT'
+    />
+  ),
+  name: 'Snapshot - Approval',
+};
 
-export const SnapshotRankedChoice: Story = () => (
-  <SnapshotProposalStory
-    proposalType='ranked-choice'
-    governor='ARBITRUM_SNAPSHOT'
-  />
-);
-SnapshotRankedChoice.storyName = 'Snapshot - Ranked Choice';
+export const SnapshotQuadratic: Story = {
+  render: () => (
+    <SnapshotProposalStory
+      proposalType='quadratic'
+      governor='ARBITRUM_SNAPSHOT'
+    />
+  ),
+  name: 'Snapshot - Quadratic',
+};
 
-export const SnapshotWeighted: Story = () => (
-  <SnapshotProposalStory proposalType='weighted' governor='ARBITRUM_SNAPSHOT' />
-);
-SnapshotWeighted.storyName = 'Snapshot - Weighted';
+export const SnapshotRankedChoice: Story = {
+  render: () => (
+    <SnapshotProposalStory
+      proposalType='ranked-choice'
+      governor='ARBITRUM_SNAPSHOT'
+    />
+  ),
+  name: 'Snapshot - Ranked Choice',
+};
 
-// On-Chain Stories
-export const OnChainArbitrumCore: Story = () => (
-  <OnchainProposalStory
-    governorAddress={ARBITRUM_CORE_GOVERNOR_ADDRESS}
-    governor='ARBITRUM_CORE'
-    governorName='Arbitrum Core'
-  />
-);
-OnChainArbitrumCore.storyName = 'On-Chain - Arbitrum Core';
+export const SnapshotWeighted: Story = {
+  render: () => (
+    <SnapshotProposalStory
+      proposalType='weighted'
+      governor='ARBITRUM_SNAPSHOT'
+    />
+  ),
+  name: 'Snapshot - Weighted',
+};
 
-export const OnChainArbitrumTreasury: Story = () => (
-  <OnchainProposalStory
-    governorAddress={ARBITRUM_TREASURY_GOVERNOR_ADDRESS}
-    governor='ARBITRUM_TREASURY'
-    governorName='Arbitrum Treasury'
-  />
-);
-OnChainArbitrumTreasury.storyName = 'On-Chain - Arbitrum Treasury';
+// --- On-Chain Stories ---
+export const OnChainArbitrumCore: Story = {
+  render: () => (
+    <OnchainProposalStory
+      governorAddress={ARBITRUM_CORE_GOVERNOR_ADDRESS}
+      governor='ARBITRUM_CORE'
+      governorName='Arbitrum Core'
+    />
+  ),
+  name: 'On-Chain - Arbitrum Core',
+};
+
+export const OnChainArbitrumTreasury: Story = {
+  render: () => (
+    <OnchainProposalStory
+      governorAddress={ARBITRUM_TREASURY_GOVERNOR_ADDRESS}
+      governor='ARBITRUM_TREASURY'
+      governorName='Arbitrum Treasury'
+    />
+  ),
+  name: 'On-Chain - Arbitrum Treasury',
+};
