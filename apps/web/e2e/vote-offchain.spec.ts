@@ -98,8 +98,11 @@ function generateWeights(n: number, total: number = 100): number[] {
 
 async function getStorybookFrame(page: Page, testLogPrefix: string = '') {
   const iframe = page.locator('iframe[title="storybook-preview-iframe"]');
-  await expect(iframe, `${testLogPrefix} Storybook iframe should be visible`).toBeVisible({ timeout: 10000 });
-  
+  await expect(
+    iframe,
+    `${testLogPrefix} Storybook iframe should be visible`
+  ).toBeVisible({ timeout: 10000 });
+
   const frame = await iframe.contentFrame();
   if (!frame) {
     throw new Error(`${testLogPrefix} Could not access iframe content`);
@@ -114,9 +117,9 @@ async function connectWallet(
   testLogPrefix: string = ''
 ) {
   console.log(`${testLogPrefix} Connecting wallet...`);
-  
+
   const frame = await getStorybookFrame(page, testLogPrefix);
-  
+
   await expect(
     frame.getByTestId('rk-connect-button'),
     `${testLogPrefix} RainbowKit Connect button should be visible`
@@ -606,7 +609,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
-    
+
     const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
@@ -699,7 +702,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
-    
+
     const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
@@ -798,7 +801,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
-    
+
     const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
@@ -908,7 +911,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
-    
+
     const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
@@ -1002,7 +1005,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
-    
+
     const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
@@ -1315,7 +1318,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
-    
+
     const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,

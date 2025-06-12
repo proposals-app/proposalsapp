@@ -38,7 +38,6 @@
     "libs/ts/emails",
     "libs/ts/visual-dom-diff",
     "apps/web",
-    "apps/email-service",
-    "apps/push-service"
+    "apps/email-service"
   ]
 }

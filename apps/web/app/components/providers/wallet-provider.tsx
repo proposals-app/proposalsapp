@@ -9,7 +9,6 @@ import { WagmiProvider } from 'wagmi';
 import { arbitrum } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-
 const config = getDefaultConfig({
   appName: 'proposalsapp',
   projectId: 'e18a2020baa088921415dd06caf2bfb4',

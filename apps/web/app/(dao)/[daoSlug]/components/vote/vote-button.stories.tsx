@@ -217,9 +217,11 @@ async function fetchLatestSnapshotProposal(
   // Build proper GraphQL query with variables
   let query: string;
   let variables: any;
-  
+
   if (proposalType) {
-    console.log(`[fetchLatestSnapshotProposal] Filtering by type: ${proposalType}`);
+    console.log(
+      `[fetchLatestSnapshotProposal] Filtering by type: ${proposalType}`
+    );
     query = `
       query LatestProposal($spaceId: String!, $proposalType: String!) {
         proposals(
@@ -231,7 +233,9 @@ async function fetchLatestSnapshotProposal(
         ) {`;
     variables = { spaceId, proposalType };
   } else {
-    console.log(`[fetchLatestSnapshotProposal] Fetching latest proposal of any type`);
+    console.log(
+      `[fetchLatestSnapshotProposal] Fetching latest proposal of any type`
+    );
     query = `
       query LatestProposal($spaceId: String!) {
         proposals(
