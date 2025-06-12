@@ -214,31 +214,38 @@ async function fetchLatestSnapshotProposal(
   hubUrl: string,
   proposalType?: VoteType
 ): Promise<MockProposal | null> {
-  const whereClauses: string[] = [`space: $spaceId`];
-  let snapshotTypeString: string | undefined;
+  // Build proper GraphQL query with variables
+  let query: string;
+  let variables: any;
+  
   if (proposalType) {
-    snapshotTypeString = proposalType;
-    if (snapshotTypeString) {
-      whereClauses.push(`type: "${snapshotTypeString}"`);
-    } else {
-      console.warn(
-        `[fetchLatestSnapshotProposal] Could not map VoteType '${proposalType}' to a Snapshot type string. Fetching latest proposal of any type.`
-      );
-    }
-  }
-  const whereString = whereClauses.join(', ');
-
-  const graphqlQuery = {
-    operationName: 'LatestProposal',
-    query: `
+    console.log(`[fetchLatestSnapshotProposal] Filtering by type: ${proposalType}`);
+    query = `
+      query LatestProposal($spaceId: String!, $proposalType: String!) {
+        proposals(
+          first: 1,
+          skip: 0,
+          where: { space: $spaceId, type: $proposalType },
+          orderBy: "created",
+          orderDirection: desc
+        ) {`;
+    variables = { spaceId, proposalType };
+  } else {
+    console.log(`[fetchLatestSnapshotProposal] Fetching latest proposal of any type`);
+    query = `
       query LatestProposal($spaceId: String!) {
         proposals(
           first: 1,
           skip: 0,
-          where: { ${whereString} },
+          where: { space: $spaceId },
           orderBy: "created",
           orderDirection: desc
-        ) {
+        ) {`;
+    variables = { spaceId };
+  }
+
+  // Complete the query fields
+  const queryFields = `
           id
           title
           body
@@ -262,14 +269,18 @@ async function fetchLatestSnapshotProposal(
           ipfs # Use IPFS hash as a substitute for txid
         }
       }
-    `,
-    variables: { spaceId },
+    `;
+
+  const graphqlQuery = {
+    operationName: 'LatestProposal',
+    query: query + queryFields,
+    variables,
   };
 
   const fetchUrl = `${hubUrl}/graphql`;
   console.log(
     `[fetchLatestSnapshotProposal] Attempting to fetch from: ${fetchUrl} for space: ${spaceId}${
-      snapshotTypeString ? ` and type: ${snapshotTypeString}` : ' (any type)'
+      proposalType ? ` and type: ${proposalType}` : ' (any type)'
     }`
   );
 
@@ -305,7 +316,7 @@ async function fetchLatestSnapshotProposal(
     if (!proposalData) {
       console.warn(
         `[fetchLatestSnapshotProposal] No proposal found for space '${spaceId}' ${
-          snapshotTypeString ? `and type '${snapshotTypeString}'` : '(any type)'
+          proposalType ? `and type '${proposalType}'` : '(any type)'
         } in Snapshot API response data.`
       );
       return null;

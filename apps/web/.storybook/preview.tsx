@@ -7,12 +7,13 @@ import {
 } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { arbitrum } from 'viem/chains';
 import { defineChain } from 'viem';
 import '@rainbow-me/rainbowkit/styles.css';
 import '../styles/globals.css';
 import { Toaster } from '../app/components/ui/sonner';
 
-// Define a local version of the Arbitrum chain
+// Define a local version of the Arbitrum chain for onchain testing
 const arbitrumLocalhost = defineChain({
   id: 42_161,
   name: 'Arbitrum Localhost',
@@ -37,10 +38,29 @@ const arbitrumLocalhost = defineChain({
   },
 });
 
+// Determine which chain configuration to use based on the story
+// For onchain stories, we need localhost (requires Anvil)
+// For offchain stories (Snapshot), we can use the public Arbitrum network
+function getChainConfig() {
+  // Check if we're in an onchain story by looking at the URL
+  if (typeof window !== 'undefined') {
+    const url = window.location.href;
+    const isOnchainStory = url.includes('on-chain') || url.includes('onchain');
+
+    if (isOnchainStory) {
+      console.log('Using localhost chain for onchain story');
+      return [arbitrumLocalhost] as const;
+    }
+  }
+
+  console.log('Using public Arbitrum chain for offchain story');
+  return [arbitrum] as const;
+}
+
 const config = getDefaultConfig({
   appName: 'proposalsapp',
   projectId: 'e18a2020baa088921415dd06caf2bfb4',
-  chains: [arbitrumLocalhost],
+  chains: getChainConfig(),
   ssr: true,
 });
 

@@ -96,6 +96,17 @@ function generateWeights(n: number, total: number = 100): number[] {
   return normalizedWeights.map((w) => Math.max(0, w));
 }
 
+async function getStorybookFrame(page: Page, testLogPrefix: string = '') {
+  const iframe = page.locator('iframe[title="storybook-preview-iframe"]');
+  await expect(iframe, `${testLogPrefix} Storybook iframe should be visible`).toBeVisible({ timeout: 10000 });
+  
+  const frame = await iframe.contentFrame();
+  if (!frame) {
+    throw new Error(`${testLogPrefix} Could not access iframe content`);
+  }
+  return frame;
+}
+
 async function connectWallet(
   page: Page,
   metamask: MetaMask,
@@ -103,13 +114,16 @@ async function connectWallet(
   testLogPrefix: string = ''
 ) {
   console.log(`${testLogPrefix} Connecting wallet...`);
+  
+  const frame = await getStorybookFrame(page, testLogPrefix);
+  
   await expect(
-    page.getByRole('button', { name: 'Connect Wallet' }),
-    `${testLogPrefix} Connect Wallet button should be visible`
+    frame.getByTestId('rk-connect-button'),
+    `${testLogPrefix} RainbowKit Connect button should be visible`
   ).toBeVisible({ timeout: 20000 });
 
-  await page.getByTestId('rk-connect-button').click();
-  await page.getByTestId('rk-wallet-option-io.metamask').click();
+  await frame.getByTestId('rk-connect-button').click();
+  await frame.getByTestId('rk-wallet-option-io.metamask').click();
 
   await metamask.connectToDapp();
 
@@ -535,7 +549,8 @@ async function submitVoteAndConfirmMetamask(
   testLogPrefix: string = '',
   apiVerificationDelay: number = API_VERIFICATION_DELAY
 ) {
-  const submitVoteButton = page.getByRole('button', { name: 'Submit Vote' });
+  const frame = await getStorybookFrame(page, testLogPrefix);
+  const submitVoteButton = frame.getByRole('button', { name: 'Submit Vote' });
   await expect(
     submitVoteButton,
     `${testLogPrefix} Submit Vote button should be enabled`
@@ -585,19 +600,21 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--snapshot--basic`
+      `http://localhost:6006/?path=/story/vote-button--snapshot-basic&viewMode=story&nav=false&panel=false&toolbar=false`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
-    const voteButton = page.getByRole('button', { name: 'Cast Your Vote' });
+    const frame = await getStorybookFrame(page, testLogPrefix);
+    
+    const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
       `${testLogPrefix} Cast Your Vote button should be visible`
     ).toBeVisible({ timeout: 30000 });
     await voteButton.click();
 
-    const proposalTitle = await page
+    const proposalTitle = await frame
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
     expect(
@@ -613,7 +630,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       `${testLogPrefix} Randomly selected choice: "${choiceToSelect}" (Index: ${randomIndex}, Expected API Value: ${expectedChoiceValue})`
     );
 
-    const choiceRadioButton = page
+    const choiceRadioButton = frame
       .locator('div[role="dialog"]')
       .getByRole('radio', { name: choiceToSelect });
     await expect(
@@ -625,7 +642,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page
+    await frame
       .locator('textarea#reason')
       .fill(uniqueReasonNonce, { timeout: 1000 });
 
@@ -676,19 +693,21 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--snapshot--single-choice`
+      `http://localhost:6006/?path=/story/vote-button--snapshot-single-choice&viewMode=story&nav=false&panel=false&toolbar=false`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
-    const voteButton = page.getByRole('button', { name: 'Cast Your Vote' });
+    const frame = await getStorybookFrame(page, testLogPrefix);
+    
+    const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
       `${testLogPrefix} Cast Your Vote button should be visible`
     ).toBeVisible({ timeout: 30000 });
     await voteButton.click();
 
-    const proposalTitle = await page
+    const proposalTitle = await frame
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
     expect(
@@ -704,7 +723,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       `${testLogPrefix} Randomly selected choice: "${choiceToSelect}" (Index: ${randomIndex}, Expected API Value: ${expectedChoiceValue})`
     );
 
-    const choiceRadioButton = page
+    const choiceRadioButton = frame
       .locator('div[role="dialog"]')
       .getByRole('radio', { name: choiceToSelect });
     await expect(
@@ -716,7 +735,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page
+    await frame
       .locator('textarea#reason')
       .fill(uniqueReasonNonce, { timeout: 1000 });
 
@@ -773,19 +792,21 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--snapshot--approval`
+      `http://localhost:6006/?path=/story/vote-button--snapshot-approval&viewMode=story&nav=false&panel=false&toolbar=false`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
-    const voteButton = page.getByRole('button', { name: 'Cast Your Vote' });
+    const frame = await getStorybookFrame(page, testLogPrefix);
+    
+    const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
       `${testLogPrefix} Cast Your Vote button should be visible`
     ).toBeVisible({ timeout: 30000 });
     await voteButton.click();
 
-    const proposalTitle = await page
+    const proposalTitle = await frame
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
     expect(
@@ -806,7 +827,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     for (const index of selectedIndices) {
       const choiceToSelect = choices[index];
       selectedChoiceTexts.push(choiceToSelect);
-      const choiceCheckbox = page
+      const choiceCheckbox = frame
         .locator('div[role="dialog"]')
         .getByRole('checkbox', { name: choiceToSelect });
       await expect(
@@ -830,7 +851,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page
+    await frame
       .locator('textarea#reason')
       .fill(uniqueReasonNonce, { timeout: 1000 });
 
@@ -881,19 +902,21 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--snapshot--quadratic`
+      `http://localhost:6006/?path=/story/vote-button--snapshot-quadratic&viewMode=story&nav=false&panel=false&toolbar=false`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
-    const voteButton = page.getByRole('button', { name: 'Cast Your Vote' });
+    const frame = await getStorybookFrame(page, testLogPrefix);
+    
+    const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
       `${testLogPrefix} Cast Your Vote button should be visible`
     ).toBeVisible({ timeout: 30000 });
     await voteButton.click();
 
-    const proposalTitle = await page
+    const proposalTitle = await frame
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
     expect(
@@ -910,7 +933,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       `${testLogPrefix} Randomly selected choice: "${choiceToSelect}" (Index: ${randomIndex}, Expected API Value: ${JSON.stringify(expectedChoiceValue)})`
     );
 
-    const choiceRadioButton = page
+    const choiceRadioButton = frame
       .locator('div[role="dialog"]')
       .getByRole('radio', { name: choiceToSelect });
     await expect(
@@ -922,7 +945,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page
+    await frame
       .locator('textarea#reason')
       .fill(uniqueReasonNonce, { timeout: 1000 });
 
@@ -973,19 +996,21 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--snapshot--ranked-choice`
+      `http://localhost:6006/?path=/story/vote-button--snapshot-ranked-choice&viewMode=story&nav=false&panel=false&toolbar=false`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
-    const voteButton = page.getByRole('button', { name: 'Cast Your Vote' });
+    const frame = await getStorybookFrame(page, testLogPrefix);
+    
+    const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
       `${testLogPrefix} Cast Your Vote button should be visible`
     ).toBeVisible({ timeout: 30000 });
     await voteButton.click();
 
-    const dialogLocator = page.locator('div[role="dialog"]');
+    const dialogLocator = frame.locator('div[role="dialog"]');
     await expect(
       dialogLocator,
       `${testLogPrefix} Vote modal dialog should be visible`
@@ -1054,14 +1079,14 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     const getDragHandleLocator = (itemContainerLocator: Locator): Locator =>
       itemContainerLocator.locator('button[aria-label^="Drag"]');
     const getItemContainerByIndex = (index: number): Locator =>
-      page.locator(sortableItemContainerSelector).nth(index);
+      frame.locator(sortableItemContainerSelector).nth(index);
 
     await expect(
-      page.locator(sortableItemContainerSelector).first(),
+      frame.locator(sortableItemContainerSelector).first(),
       `${testLogPrefix} Ranked choice items should be visible`
     ).toBeVisible({ timeout: 15000 });
     await expect(
-      page.locator(sortableItemContainerSelector),
+      frame.locator(sortableItemContainerSelector),
       `${testLogPrefix} Number of ranked choice items should match choices count`
     ).toHaveCount(choices.length, { timeout: 10000 });
 
@@ -1284,19 +1309,21 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      `http://localhost:61000/?story=vote-button--snapshot--weighted`
+      `http://localhost:6006/?path=/story/vote-button--snapshot-weighted&viewMode=story&nav=false&panel=false&toolbar=false`
     );
     await connectWallet(page, metamask, metamaskPage, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
-    const voteButton = page.getByRole('button', { name: 'Cast Your Vote' });
+    const frame = await getStorybookFrame(page, testLogPrefix);
+    
+    const voteButton = frame.getByRole('button', { name: 'Cast Your Vote' });
     await expect(
       voteButton,
       `${testLogPrefix} Cast Your Vote button should be visible`
     ).toBeVisible({ timeout: 30000 });
     await voteButton.click();
 
-    const proposalTitle = await page
+    const proposalTitle = await frame
       .locator('.sm\\:max-w-\\[525px\\] h2')
       .textContent();
     expect(
@@ -1310,7 +1337,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     console.log(`${testLogPrefix} Generated random weights: ${weights}`);
 
-    const dialogLocator = page.locator('div[role="dialog"]');
+    const dialogLocator = frame.locator('div[role="dialog"]');
 
     for (let i = 0; i < choices.length; i++) {
       const choiceText = choices[i];
@@ -1349,7 +1376,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     console.log(
       `${testLogPrefix} Filling reason with nonce: "${uniqueReasonNonce}"`
     );
-    await page
+    await frame
       .locator('textarea#reason')
       .fill(uniqueReasonNonce, { timeout: 1000 });
 

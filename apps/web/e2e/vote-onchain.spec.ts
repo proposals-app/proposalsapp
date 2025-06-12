@@ -96,8 +96,8 @@ async function connectWallet(
 ) {
   console.log(`${testLogPrefix} Connecting wallet...`);
   await expect(
-    page.getByRole('button', { name: 'Connect Wallet' }),
-    `${testLogPrefix} Connect Wallet button should be visible`
+    page.getByTestId('rk-connect-button'),
+    `${testLogPrefix} RainbowKit Connect button should be visible`
   ).toBeVisible({ timeout: 20000 });
 
   await page.getByTestId('rk-connect-button').click();
@@ -834,7 +834,7 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      'http://localhost:61000/?story=vote-button--on--chain--arbitrum-core'
+      'http://localhost:6006/?story=vote-button--on--chain--arbitrum-core'
     );
 
     // 3. Connect Wallet
@@ -957,7 +957,7 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
       extensionId
     );
     await page.goto(
-      'http://localhost:61000/?story=vote-button--on--chain--arbitrum-treasury'
+      'http://localhost:6006/?story=vote-button--on--chain--arbitrum-treasury'
     );
 
     // 3. Connect Wallet
