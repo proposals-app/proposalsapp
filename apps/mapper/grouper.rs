@@ -438,8 +438,10 @@ async fn find_group_by_topic(
 }
 
 fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
+    // Remove query parameters and fragments
     let url_without_query = url.split('?').next().unwrap_or("");
-    let parts: Vec<&str> = url_without_query
+    let url_clean = url_without_query.split('#').next().unwrap_or("");
+    let parts: Vec<&str> = url_clean
         .split('/')
         .filter(|&part| !part.is_empty())
         .collect();
@@ -447,25 +449,24 @@ fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
     // Check if the URL contains the "t" segment, which is typical for Discourse
     // topic URLs
     if let Some(index) = parts.iter().position(|&part| part == "t") {
-        // Try to extract the ID from the next segment
-        let id = parts
-            .get(index + 1)
-            .and_then(|part| part.parse::<i32>().ok());
-
-        // If no ID is found, try to extract the slug from the next segment
-        let slug = if id.is_none() {
-            parts.get(index + 1).and_then(|part| {
-                if part.is_empty() {
-                    None
-                } else {
-                    Some(part.to_string())
-                }
-            })
+        // Discourse URLs typically have the format: /t/slug/id or sometimes just /t/id
+        // First, check if there's a segment after 't'
+        if let Some(first_part) = parts.get(index + 1) {
+            // Check if it's a numeric ID (old format: /t/12345)
+            if let Ok(id) = first_part.parse::<i32>() {
+                return (Some(id), None);
+            }
+            
+            // Otherwise, it's a slug. Check if there's an ID after the slug
+            let slug = Some(first_part.to_string());
+            let id = parts
+                .get(index + 2)
+                .and_then(|part| part.parse::<i32>().ok());
+            
+            (id, slug)
         } else {
-            None
-        };
-
-        (id, slug)
+            (None, None)
+        }
     } else {
         // If the URL doesn't contain the "t" segment, return None for both ID and slug
         (None, None)
@@ -476,65 +477,212 @@ fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
 mod tests {
     use super::*;
 
+    // Tests for ID-only format: /t/12345
     #[test]
-    fn test_extract_discourse_1() {
+    fn test_id_only_basic() {
         let url = "https://example.com/t/12345";
         assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
     }
 
     #[test]
-    fn test_extract_discourse_2() {
-        let url = "https://example.com/t/12345?param=value";
+    fn test_id_only_with_query_params() {
+        let url = "https://example.com/t/12345?param=value&another=test";
         assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
     }
 
     #[test]
-    fn test_extract_discourse_3() {
-        let url = "https://example.com/t/12345/67890";
+    fn test_id_only_with_post_number() {
+        let url = "https://example.com/t/12345/67";
         assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
     }
 
     #[test]
-    fn test_extract_discourse_4() {
-        let url = "https://example.com/t/";
-        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
+    fn test_id_only_with_trailing_slash() {
+        let url = "https://example.com/t/12345/";
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
     }
 
+    // Tests for slug-only format: /t/topic-slug
     #[test]
-    fn test_extract_discourse_5() {
-        let url = "https://example.com/t/abcde";
+    fn test_slug_only_basic() {
+        let url = "https://example.com/t/my-topic-slug";
         assert_eq!(
             extract_discourse_id_or_slug(url),
-            (None, Some("abcde".to_string()))
+            (None, Some("my-topic-slug".to_string()))
         );
     }
 
     #[test]
-    fn test_extract_discourse_6() {
+    fn test_slug_only_with_dashes() {
+        let url = "https://example.com/t/this-is-a-long-topic-slug";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (None, Some("this-is-a-long-topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_slug_only_alphanumeric_mix() {
+        let url = "https://example.com/t/proposal123abc";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (None, Some("proposal123abc".to_string()))
+        );
+    }
+
+    // Tests for slug + ID format: /t/slug/12345
+    #[test]
+    fn test_slug_and_id_basic() {
+        let url = "https://example.com/t/my-topic/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("my-topic".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_slug_and_id_with_query_params() {
+        let url = "https://example.com/t/topic-slug/12345?u=username&ref=search";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_slug_and_id_with_post_number() {
+        let url = "https://example.com/t/my-topic-slug/12345/7";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("my-topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_real_arbitrum_forum_url() {
+        let url = "https://forum.arbitrum.foundation/t/reallocate-redeemed-usdm-funds-to-step-2-budget/29335?u=entropy";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (
+                Some(29335),
+                Some("reallocate-redeemed-usdm-funds-to-step-2-budget".to_string())
+            )
+        );
+    }
+
+    #[test]
+    fn test_very_long_arbitrum_slug() {
+        let url = "https://forum.arbitrum.foundation/t/wind-down-the-mss-transfer-payment-responsibilities-to-the-arbitrum-foundation/29279";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (
+                Some(29279),
+                Some("wind-down-the-mss-transfer-payment-responsibilities-to-the-arbitrum-foundation".to_string())
+            )
+        );
+    }
+
+    #[test]
+    fn test_extremely_long_slug_with_id() {
+        let url = "https://forum.arbitrum.foundation/t/non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (
+                Some(12345),
+                Some("non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead".to_string())
+            )
+        );
+    }
+
+    // Tests for URL variations and edge cases
+    #[test]
+    fn test_url_with_fragment() {
+        let url = "https://forum.example.com/t/topic-slug/12345#post_5";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_url_with_multiple_slashes() {
+        let url = "https://forum.example.com//t//topic-slug//12345//";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_protocol_relative_url() {
+        let url = "//forum.example.com/t/topic-slug/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_relative_url() {
+        let url = "/t/topic-slug/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_url_without_protocol() {
+        let url = "forum.example.com/t/topic-slug/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_unicode_characters_in_slug() {
+        let url = "https://forum.example.com/t/тема-на-русском/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("тема-на-русском".to_string()))
+        );
+    }
+
+    // Tests for invalid/malformed URLs
+    #[test]
+    fn test_empty_url() {
         let url = "";
         assert_eq!(extract_discourse_id_or_slug(url), (None, None));
     }
 
     #[test]
-    fn test_extract_discourse_7() {
+    fn test_url_without_t_segment() {
+        let url = "https://example.com/some/other/path";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
+    }
+
+    #[test]
+    fn test_url_with_empty_t_segment() {
+        let url = "https://example.com/t/";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
+    }
+
+    #[test]
+    fn test_url_with_only_domain() {
         let url = "https://example.com";
         assert_eq!(extract_discourse_id_or_slug(url), (None, None));
     }
 
     #[test]
-    fn test_extract_discourse_8() {
-        let url = "https://example.com/t///12345";
-        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
+    fn test_url_with_t_but_no_content() {
+        let url = "https://example.com/t";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
     }
 
+    // Edge case: slug that looks like it could be an ID but isn't numeric
     #[test]
-    fn test_extract_discourse_9() {
-        let url = "https://example.com/t/12345/";
-        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
-    }
-
-    #[test]
-    fn test_extract_discourse_10() {
+    fn test_slug_only_with_trailing_slash() {
         let url = "https://forum.arbitrum.foundation/t/non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead/";
         assert_eq!(
             extract_discourse_id_or_slug(url),

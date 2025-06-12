@@ -267,22 +267,47 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
             anyhow::anyhow!("Governor not found with id: {}", governor_id_to_find)
         })?;
 
-        if governor_model.r#type == "SNAPSHOT" && proposal.discussion_url.is_set() {
-            let job_data = ProposalJobData {
-                proposal_id: inserted_proposal.last_insert_id,
-            };
+        debug!(
+            governor_type = %governor_model.r#type,
+            is_snapshot = governor_model.r#type.contains("SNAPSHOT"),
+            "Checking governor type for job creation"
+        );
 
-            // Enqueue job to fetch snapshot discussion details
-            job_queue::Entity::insert(job_queue::ActiveModel {
-                id: NotSet,
-                r#type: Set(ProposalJobData::job_type().to_string()),
-                data: Set(serde_json::to_value(job_data)?),
-                status: Set("PENDING".into()),
-                created_at: NotSet,
-            })
-            .exec(db)
-            .await?;
-            debug!("Snapshot discussion details job enqueued");
+        if governor_model.r#type.contains("SNAPSHOT") {
+            // Check if discussion_url is set and not empty
+            if let Some(discussion_url) = proposal.discussion_url.clone().take().flatten() {
+                if !discussion_url.is_empty() {
+                    let job_data = ProposalJobData {
+                        proposal_id: inserted_proposal.last_insert_id,
+                    };
+
+                    // Enqueue job to fetch snapshot discussion details
+                    job_queue::Entity::insert(job_queue::ActiveModel {
+                        id: NotSet,
+                        r#type: Set(ProposalJobData::job_type().to_string()),
+                        data: Set(serde_json::to_value(job_data)?),
+                        status: Set("PENDING".into()),
+                        created_at: NotSet,
+                    })
+                    .exec(db)
+                    .await?;
+                    info!(
+                        proposal_id = %inserted_proposal.last_insert_id,
+                        discussion_url = %discussion_url,
+                        "Snapshot discussion details job enqueued"
+                    );
+                } else {
+                    debug!(
+                        proposal_id = %inserted_proposal.last_insert_id,
+                        "Snapshot proposal has empty discussion_url, skipping job creation"
+                    );
+                }
+            } else {
+                debug!(
+                    proposal_id = %inserted_proposal.last_insert_id,
+                    "Snapshot proposal has no discussion_url, skipping job creation"
+                );
+            }
         }
     }
 
