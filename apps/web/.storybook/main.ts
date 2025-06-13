@@ -1,4 +1,8 @@
 import type { StorybookConfig } from '@storybook/nextjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const config: StorybookConfig = {
   stories: ['../app/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
@@ -12,6 +16,105 @@ const config: StorybookConfig = {
     options: {},
   },
   staticDirs: ['../public'],
+  webpackFinal: async (config) => {
+    // Add custom plugin to handle cloudflare: scheme
+    config.plugins = config.plugins || [];
+    config.plugins.push({
+      apply(compiler) {
+        compiler.hooks.normalModuleFactory.tap(
+          'CloudflareSchemePlugin',
+          (factory) => {
+            factory.hooks.beforeResolve.tap(
+              'CloudflareSchemePlugin',
+              (resolveData) => {
+                if (resolveData.request?.startsWith('cloudflare:')) {
+                  resolveData.request = false;
+                }
+              }
+            );
+          }
+        );
+      },
+    });
+
+    // Prevent Node.js modules from being included in browser bundle
+    config.resolve = config.resolve || {};
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      dns: false,
+      net: false,
+      tls: false,
+      crypto: false,
+      stream: false,
+      http: false,
+      https: false,
+      zlib: false,
+      path: 'path-browserify',
+      os: false,
+      process: 'process/browser',
+      buffer: 'buffer',
+      pg: false,
+      'pg-native': false,
+    };
+
+    // Add webpack DefinePlugin to provide process.env
+    const webpack = await import('webpack');
+    config.plugins = config.plugins || [];
+    config.plugins.push(
+      new webpack.default.DefinePlugin({
+        'process.env': JSON.stringify({}),
+        'process.cwd': 'function() { return "/"; }',
+        global: 'globalThis',
+      })
+    );
+
+    // Add ProvidePlugin to make process and Buffer available globally
+    config.plugins.push(
+      new webpack.default.ProvidePlugin({
+        process: 'process/browser',
+        Buffer: ['buffer', 'Buffer'],
+      })
+    );
+
+    // Ignore database-related modules in Storybook
+    config.externals = config.externals || [];
+    if (Array.isArray(config.externals)) {
+      config.externals.push('pg', 'pg-native');
+    }
+
+    // Add rule to ignore @proposalsapp/db imports entirely
+    config.module = config.module || {};
+    config.module.rules = config.module.rules || [];
+    config.module.rules.push({
+      test: /node_modules\/@proposalsapp\/db/,
+      use: 'null-loader',
+    });
+
+    if (config.module?.rules) {
+      // Find the existing rule that handles SVG files
+      const imageRule = config.module.rules.find((rule) => {
+        if (rule && typeof rule === 'object' && 'test' in rule && rule.test) {
+          return rule.test.toString().includes('svg');
+        }
+        return false;
+      });
+
+      // Exclude SVG files from the default image rule
+      if (imageRule && typeof imageRule === 'object') {
+        imageRule.exclude = /\.svg$/;
+      }
+
+      // Add SVGR loader for SVG files
+      config.module.rules.push({
+        test: /\.svg$/,
+        issuer: /\.[jt]sx?$/,
+        use: ['@svgr/webpack'],
+      });
+    }
+
+    return config;
+  },
 };
 
 export default config;

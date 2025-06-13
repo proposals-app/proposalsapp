@@ -11,9 +11,9 @@ export const chromaticDecorator: Decorator = (Story, context) => {
 
   // Add CSS to disable animations if configured
   const disableAnimations = chromaticParams.pauseAnimationAtEnd;
-  
+
   return (
-    <div data-chromatic="true">
+    <div data-chromatic='true'>
       {disableAnimations && (
         <style>
           {`
@@ -43,7 +43,7 @@ export const chromaticModes = {
       pauseAnimationAtEnd: true,
     },
   },
-  
+
   // Layout mode for components that need layout shift testing
   layout: {
     chromatic: {
@@ -53,7 +53,7 @@ export const chromaticModes = {
       diffThreshold: 0.1, // More sensitive for layout changes
     },
   },
-  
+
   // Interactive mode for components with hover/focus states
   interactive: {
     chromatic: {
@@ -66,7 +66,7 @@ export const chromaticModes = {
       },
     },
   },
-  
+
   // Mobile-first mode for responsive components
   mobile: {
     chromatic: {
@@ -75,7 +75,7 @@ export const chromaticModes = {
       pauseAnimationAtEnd: true,
     },
   },
-  
+
   // Desktop-only mode for complex layouts
   desktop: {
     chromatic: {
