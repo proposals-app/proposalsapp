@@ -27,6 +27,7 @@ interface ResultCardProps {
   };
   useTw?: boolean;
   voteComponent?: ReactNode;
+  currentTime?: Date;
 }
 
 const VoteComponents = {
@@ -52,6 +53,7 @@ export function ResultCard({
   result,
   useTw = false,
   voteComponent,
+  currentTime = new Date(),
 }: ResultCardProps) {
   const Component = result.voteType ? VoteComponents[result.voteType] : null;
   const onchain = result.proposal.blockCreatedAt ? true : false;
@@ -87,7 +89,7 @@ export function ResultCard({
       // Use static components for ImageResponse
       const StaticComponent = VoteComponentsStatic[result.voteType];
       if (StaticComponent) {
-        return <StaticComponent result={result} />;
+        return <StaticComponent result={result} currentTime={currentTime} />;
       }
     } else if (Component) {
       // Use regular components with hooks for normal rendering

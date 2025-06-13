@@ -9,12 +9,14 @@ interface BasicVoteProps {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
   debugBar?: boolean;
+  currentTime: Date;
 }
 
 // Static version for ImageResponse - no hooks allowed
 export const BasicVoteStatic = ({
   result,
   debugBar = false,
+  currentTime,
 }: BasicVoteProps) => {
   const isHidden = result.hiddenVote && result.scoresState !== 'final';
 
@@ -24,7 +26,7 @@ export const BasicVoteStatic = ({
   const voteSegments = result.voteSegments || {};
 
   // Calculate real time status
-  const now = new Date();
+  const now = currentTime;
   const endAt = new Date(result.proposal.endAt);
   const isLive = now < endAt;
   const timeDiff = Math.abs(endAt.getTime() - now.getTime());

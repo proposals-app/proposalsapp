@@ -25,14 +25,16 @@ interface GroupItemWrapperProps {
 
 // Wrapper component that handles rendering logic
 export function GroupItemWrapper({ group }: GroupItemWrapperProps) {
+  const currentTime = new Date();
+  
   return (
     <Suspense fallback={<SkeletonGroupItemDetailed />}>
       {group.hasActiveProposal ? (
-        <ActiveGroupItem group={group} feedData={group.activeFeedData} />
+        <ActiveGroupItem group={group} feedData={group.activeFeedData} currentTime={currentTime} />
       ) : group.proposalsCount > 0 ? (
-        <InactiveGroupItem group={group} />
+        <InactiveGroupItem group={group} currentTime={currentTime} />
       ) : (
-        <DiscussionGroupItem group={group} />
+        <DiscussionGroupItem group={group} currentTime={currentTime} />
       )}
     </Suspense>
   );

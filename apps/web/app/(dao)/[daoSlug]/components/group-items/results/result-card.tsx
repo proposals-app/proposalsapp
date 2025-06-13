@@ -7,8 +7,11 @@ interface ResultCardProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
+  currentTime?: Date;
 }
 
-export function ResultCard(props: ResultCardProps) {
-  return <SharedResultCard {...props} useTw={false} />;
+export function ResultCard({ currentTime, ...props }: ResultCardProps) {
+  return (
+    <SharedResultCard {...props} useTw={false} currentTime={currentTime} />
+  );
 }

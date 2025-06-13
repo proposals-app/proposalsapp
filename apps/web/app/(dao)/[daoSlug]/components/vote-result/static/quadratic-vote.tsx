@@ -2,15 +2,16 @@ import React from 'react';
 import type { ProcessedResults } from '@/lib/results_processing';
 import type { VoteSegmentData } from '@/lib/types';
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistance } from 'date-fns';
 
 interface QuadraticVoteProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
+  currentTime: Date;
 }
 
-export const QuadraticVoteStatic = ({ result }: QuadraticVoteProps) => {
+export const QuadraticVoteStatic = ({ result, currentTime }: QuadraticVoteProps) => {
   const isHidden = result.hiddenVote && result.scoresState !== 'final';
 
   const finalResults = isHidden ? {} : result.finalResults || {};
@@ -20,7 +21,7 @@ export const QuadraticVoteStatic = ({ result }: QuadraticVoteProps) => {
   const voteSegments = result.voteSegments || {};
 
   // Calculate real time status
-  const now = new Date();
+  const now = currentTime;
   const endAt = new Date(result.proposal.endAt);
   const isLive = now < endAt;
   const timeDiff = Math.abs(endAt.getTime() - now.getTime());
@@ -29,8 +30,8 @@ export const QuadraticVoteStatic = ({ result }: QuadraticVoteProps) => {
 
   // Determine text and color
   const timeText = isLive
-    ? `ends ${formatDistanceToNow(endAt, { addSuffix: true })}`
-    : `ended ${formatDistanceToNow(endAt, { addSuffix: true })}`;
+    ? `ends ${formatDistance(endAt, currentTime, { addSuffix: true })}`
+    : `ended ${formatDistance(endAt, currentTime, { addSuffix: true })}`;
 
   const timeColor = isLive && isWithin24Hours ? '#cc3d35' : '#374249';
   const onchain = result.proposal.blockCreatedAt ? true : false;

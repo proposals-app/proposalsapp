@@ -29,9 +29,14 @@ interface ActiveGroupItemProps {
     postsCount: number;
   };
   feedData: FeedData | null; // Pre-fetched feed data
+  currentTime?: Date;
 }
 
-export function ActiveGroupItem({ group, feedData }: ActiveGroupItemProps) {
+export function ActiveGroupItem({
+  group,
+  feedData,
+  currentTime = new Date(),
+}: ActiveGroupItemProps) {
   const result =
     feedData?.events && feedData.events.length > 0 ? feedData.events[0] : null;
 
@@ -71,7 +76,11 @@ export function ActiveGroupItem({ group, feedData }: ActiveGroupItemProps) {
                 result.type === TimelineEventType.ResultOngoingOtherVotes ||
                 result.type === TimelineEventType.ResultEndedBasicVote ||
                 result.type === TimelineEventType.ResultEndedOtherVotes) && (
-                <ResultCard content={result.content} result={result.result} />
+                <ResultCard
+                  content={result.content}
+                  result={result.result}
+                  currentTime={currentTime}
+                />
               )}
           </div>
         </div>

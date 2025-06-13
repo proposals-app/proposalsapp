@@ -14,6 +14,7 @@ interface StaticResultCardProps {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
   debugBar?: boolean;
+  currentTime?: Date;
 }
 
 const VoteComponentsStatic = {
@@ -28,13 +29,14 @@ const VoteComponentsStatic = {
 export function StaticResultCard({
   result,
   debugBar = false,
+  currentTime = new Date(),
 }: StaticResultCardProps) {
   // Render vote component
   const renderVoteComponent = () => {
     if (result.voteType) {
       const StaticComponent = VoteComponentsStatic[result.voteType];
       if (StaticComponent) {
-        return <StaticComponent result={result} debugBar={debugBar} />;
+        return <StaticComponent result={result} debugBar={debugBar} currentTime={currentTime} />;
       }
     }
 

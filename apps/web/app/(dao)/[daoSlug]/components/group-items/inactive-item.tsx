@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistance } from 'date-fns';
 import Link from 'next/link';
 import Image from 'next/image';
 import CommentsIcon from '@/public/assets/web/icons/discussion.svg';
@@ -19,10 +19,14 @@ interface InactiveGroupItemProps {
     votesCount: number;
     postsCount: number;
   };
+  currentTime: Date;
 }
 
-export function InactiveGroupItem({ group }: InactiveGroupItemProps) {
-  const relativeTime = formatDistanceToNow(new Date(group.latestActivityAt), {
+export function InactiveGroupItem({
+  group,
+  currentTime,
+}: InactiveGroupItemProps) {
+  const relativeTime = formatDistance(group.latestActivityAt, currentTime, {
     addSuffix: true,
   });
 
