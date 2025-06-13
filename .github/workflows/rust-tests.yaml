@@ -8,6 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTC_WRAPPER: "sccache"
+  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   build-test-coverage:
@@ -19,6 +21,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Show initial disk space
+        run: df -h
+
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+          
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -27,11 +48,17 @@ jobs:
           override: true
           components: llvm-tools-preview
 
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.3
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
@@ -43,7 +70,11 @@ jobs:
           tool: cargo-llvm-cov,cargo-nextest
 
       - name: Build
-        run: cargo build --verbose
+        run: |
+          cargo build --verbose
+          # Clean up unnecessary build artifacts to save space
+          rm -rf target/debug/deps/*.d
+          rm -rf target/debug/incremental
 
       - name: Run tests with coverage
         env:
@@ -73,3 +104,7 @@ jobs:
         with:
           name: code-coverage-report
           path: lcov.info
+
+      - name: Show final disk space
+        if: always()
+        run: df -h
