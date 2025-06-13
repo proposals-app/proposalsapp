@@ -1105,6 +1105,76 @@ const SkeletonGroupItemEnhanced = React.forwardRef<
 });
 SkeletonGroupItemEnhanced.displayName = 'SkeletonGroupItemEnhanced';
 
+// Action Bar Skeleton - for the action bar between summary header and group list
+const SkeletonActionBar = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'mb-6 flex min-h-[2.25rem] flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0',
+        className
+      )}
+    >
+      {/* H2 title skeleton - matches text-xl font-semibold */}
+      <div className='skeleton-blueprint skeleton-text h-7 w-44 rounded-none text-xl font-semibold' />
+      {/* Button container with consistent height */}
+      <div className='h-9 flex items-center'>
+        {/* Button skeleton - matches rounded-xs px-4 py-2 text-sm */}
+        <div className='skeleton-blueprint skeleton-solid h-9 w-32 rounded-xs px-4 py-2 text-sm font-medium' />
+      </div>
+    </div>
+  );
+});
+SkeletonActionBar.displayName = 'SkeletonActionBar';
+
+// Search and Filter Bar Skeleton - for the streaming group list search/filter interface
+const SkeletonSearchAndFilter = React.forwardRef<
+  HTMLDivElement,
+  { className?: string; showUnreadFilter?: boolean }
+>(({ className, showUnreadFilter = true }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between',
+        className
+      )}
+    >
+      {/* Search input skeleton */}
+      <div className='relative w-full sm:w-1/2'>
+        <div className='skeleton-blueprint skeleton-text h-10 w-full rounded-xs' />
+      </div>
+
+      {/* Filter buttons skeleton */}
+      <div className='flex flex-wrap gap-2 self-end'>
+        <div className='skeleton-blueprint skeleton-solid h-8 w-12 rounded-xs' />
+        <div className='skeleton-blueprint skeleton-solid h-8 w-16 rounded-xs' />
+        {showUnreadFilter && (
+          <div className='skeleton-blueprint skeleton-solid h-8 w-16 rounded-xs' />
+        )}
+      </div>
+    </div>
+  );
+});
+SkeletonSearchAndFilter.displayName = 'SkeletonSearchAndFilter';
+
+// Complete Group List Page Skeleton - includes search, filters, and group list
+const SkeletonGroupListPage = React.forwardRef<
+  HTMLDivElement,
+  { className?: string; showUnreadFilter?: boolean }
+>(({ className, showUnreadFilter = true }, ref) => {
+  return (
+    <div ref={ref} className={cn('flex flex-col gap-6', className)}>
+      <SkeletonSearchAndFilter showUnreadFilter={showUnreadFilter} />
+      <SkeletonGroupList />
+    </div>
+  );
+});
+SkeletonGroupListPage.displayName = 'SkeletonGroupListPage';
+
 export {
   Skeleton,
   SkeletonText,
@@ -1146,6 +1216,9 @@ export {
   SkeletonChart,
   // Specialized components
   SkeletonAISummaryLoading,
+  SkeletonActionBar,
+  SkeletonSearchAndFilter,
+  SkeletonGroupListPage,
   // Legacy aliases
   LoadingHeader,
   LoadingGroupList,

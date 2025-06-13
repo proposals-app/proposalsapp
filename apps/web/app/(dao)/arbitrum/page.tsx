@@ -4,12 +4,16 @@ import {
   getTotalVotingPower,
 } from '../[daoSlug]/actions';
 import { StreamingGroupList } from '../[daoSlug]/components/streaming-group-list';
-import { MarkAllAsReadButton } from '../[daoSlug]/components/mark-all-as-read';
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth/arbitrum_auth';
 import { headers } from 'next/headers';
 import { ArbitrumSummaryHeader } from './components/arbitrum-summary-header';
-import { LoadingGroupList, LoadingHeader } from '@/app/components/ui/skeleton';
+import { ArbitrumActionBarClient } from './components/arbitrum-action-bar-client';
+import {
+  LoadingGroupList,
+  LoadingHeader,
+  SkeletonActionBar,
+} from '@/app/components/ui/skeleton';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 
@@ -185,7 +189,7 @@ export default async function Page() {
         </Suspense>
 
         {/* Action Bar - loads groups data independently */}
-        <Suspense fallback={<ActionBarSkeleton />}>
+        <Suspense fallback={<SkeletonActionBar />}>
           <ActionBarContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
@@ -289,12 +293,10 @@ async function ActionBarContainer({
   );
 
   return (
-    <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-      <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-300'>
-        All Proposal Groups
-      </h2>
-      {hasNewActivityInGroups && <MarkAllAsReadButton />}
-    </div>
+    <ArbitrumActionBarClient
+      hasNewActivity={hasNewActivityInGroups}
+      signedIn={userId ? true : false}
+    />
   );
 }
 
@@ -348,15 +350,5 @@ async function GroupsContainer({
       initialGroups={groupsWithInfo}
       signedIn={userId ? true : false}
     />
-  );
-}
-
-// Action bar skeleton
-function ActionBarSkeleton() {
-  return (
-    <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-      <div className='h-7 w-48 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-      <div className='h-9 w-32 border border-dashed border-neutral-300 bg-neutral-100/50 dark:border-neutral-600 dark:bg-neutral-800/30' />
-    </div>
   );
 }
