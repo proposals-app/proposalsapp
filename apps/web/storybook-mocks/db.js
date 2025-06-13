@@ -1,5 +1,18 @@
 // Mock for @proposalsapp/db package to avoid database dependencies in Storybook
 
+// Mock the complete database module
+export const db = {
+  public: {},
+  arbitrum: {},
+  uniswap: {},
+};
+
+export const dbPool = {
+  public: {},
+  arbitrum: {},
+  uniswap: {},
+};
+
 export const ProposalState = {
   PENDING: 'PENDING',
   ACTIVE: 'ACTIVE',
@@ -14,8 +27,29 @@ export const ProposalState = {
 export const TimelineEventType = {
   ResultOngoingBasicVote: 'ResultOngoingBasicVote',
   ResultCompletedBasicVote: 'ResultCompletedBasicVote',
-  // Add other event types as needed
+  ResultEndedBasicVote: 'ResultEndedBasicVote',
+  ResultEndedOtherVotes: 'ResultEndedOtherVotes',
+  Basic: 'Basic',
+  CommentsVolume: 'CommentsVolume',
+  VotesVolume: 'VotesVolume',
 };
 
-// Mock any other exports from @proposalsapp/db that might be used in stories
+// Mock Kysely
+export class Kysely {
+  constructor() {}
+  withSchema() { return this; }
+  selectFrom() { return this; }
+  select() { return this; }
+  where() { return this; }
+  execute() { return Promise.resolve([]); }
+}
+
+export const sql = {
+  ref: () => ({}),
+  raw: () => ({}),
+};
+
+export const traverseJSON = () => ({});
+
+// Mock any other exports that might be needed
 export default {};

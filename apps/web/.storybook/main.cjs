@@ -79,17 +79,17 @@ const config = {
       config.externals.push('pg', 'pg-native');
     }
 
-    // Add rule to ignore @proposalsapp/db imports entirely
-    config.module = config.module || {};
-    config.module.rules = config.module.rules || [];
-    config.module.rules.push({
-      test: /node_modules\/@proposalsapp\/db/,
-      use: 'null-loader',
-    });
+    // Remove null-loader rule to allow our alias to work
 
     // Add webpack alias to mock @proposalsapp/db
     config.resolve.alias = {
       ...config.resolve.alias,
+      '@proposalsapp/db': path.resolve(__dirname, '../storybook-mocks/db.js'),
+    };
+
+    // Also handle the package resolution
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
       '@proposalsapp/db': path.resolve(__dirname, '../storybook-mocks/db.js'),
     };
 
