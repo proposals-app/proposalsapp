@@ -1,16 +1,9 @@
 'use client';
 
-import {
-  Suspense,
-  useMemo,
-  useState,
-  useTransition,
-  useDeferredValue,
-} from 'react';
+import { useMemo, useState, useTransition, useDeferredValue } from 'react';
 import { Filter, Search } from 'lucide-react';
 import { GroupItemWrapper } from './group-item-wrapper';
 import type { FeedData } from '../actions';
-import { SkeletonGroupItemEnhanced } from '../../../components/ui/skeleton';
 import { Spinner } from '../../../components/ui/spinner';
 
 interface Group {
@@ -29,24 +22,17 @@ interface Group {
   activeFeedData: FeedData | null;
 }
 
-interface StreamingGroupListProps {
+interface GroupListProps {
   initialGroups: Group[];
   signedIn: boolean;
 }
 
 // Enhanced individual group item with error boundary and progressive loading
-function StreamingGroupItem({ group }: { group: Group }) {
-  return (
-    <Suspense fallback={<SkeletonGroupItemEnhanced />}>
-      <GroupItemWrapper group={group} />
-    </Suspense>
-  );
+function GroupItem({ group }: { group: Group }) {
+  return <GroupItemWrapper group={group} />;
 }
 
-export function StreamingGroupList({
-  initialGroups,
-  signedIn,
-}: StreamingGroupListProps) {
+export function GroupList({ initialGroups, signedIn }: GroupListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'unread'>('all');
   const [isPending, startTransition] = useTransition();
@@ -190,14 +176,14 @@ export function StreamingGroupList({
 
           {priorityGroups.map((group) => (
             <div key={group.id}>
-              <StreamingGroupItem group={group} />
+              <GroupItem group={group} />
             </div>
           ))}
 
           {/* Then render regular groups with staggered loading */}
           {regularGroups.map((group) => (
             <div key={group.id}>
-              <StreamingGroupItem group={group} />
+              <GroupItem group={group} />
             </div>
           ))}
         </div>

@@ -625,13 +625,20 @@ const SkeletonGroupList = React.forwardRef<
   HTMLDivElement,
   { className?: string }
 >(({ className }, ref) => {
+  // Mix of different group item types for realistic loading state
+  const getSkeletonComponent = (index: number) => {
+    // First 3 items are active
+    if (index < 3) return <SkeletonActiveGroupItem key={index} />;
+    // Mix of inactive and discussion for the rest
+    if (index % 3 === 0) return <SkeletonDiscussionGroupItem key={index} />;
+    return <SkeletonInactiveGroupItem key={index} />;
+  };
+
   return (
     <div ref={ref} className={cn('space-y-4', className)}>
       {Array(24)
         .fill(0)
-        .map((_, index) => (
-          <SkeletonGroupItem key={index} />
-        ))}
+        .map((_, index) => getSkeletonComponent(index))}
     </div>
   );
 });
@@ -1189,12 +1196,6 @@ const SkeletonActiveGroupItem = React.forwardRef<
       )}
     >
       <div className='relative flex flex-col gap-1 sm:gap-2'>
-        {/* Active indicator (top-right ping animation) */}
-        <div className='absolute right-0 flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6'>
-          <span className='bg-for-400 dark:bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
-          <span className='bg-for-400 dark:bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
-        </div>
-
         <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
           {/* Left side: Avatar + Title + Author */}
           <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
