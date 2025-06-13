@@ -1,10 +1,6 @@
-import type { StorybookConfig } from '@storybook/nextjs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const path = require('path');
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const config: StorybookConfig = {
+const config = {
   stories: ['../app/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
   addons: [
     '@storybook/addon-docs',
@@ -59,10 +55,10 @@ const config: StorybookConfig = {
     };
 
     // Add webpack DefinePlugin to provide process.env
-    const webpack = await import('webpack');
+    const webpack = require('webpack');
     config.plugins = config.plugins || [];
     config.plugins.push(
-      new webpack.default.DefinePlugin({
+      new webpack.DefinePlugin({
         'process.env': JSON.stringify({}),
         'process.cwd': 'function() { return "/"; }',
         global: 'globalThis',
@@ -71,7 +67,7 @@ const config: StorybookConfig = {
 
     // Add ProvidePlugin to make process and Buffer available globally
     config.plugins.push(
-      new webpack.default.ProvidePlugin({
+      new webpack.ProvidePlugin({
         process: 'process/browser',
         Buffer: ['buffer', 'Buffer'],
       })
@@ -117,4 +113,4 @@ const config: StorybookConfig = {
   },
 };
 
-export default config;
+module.exports = config;
