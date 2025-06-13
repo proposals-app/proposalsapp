@@ -657,7 +657,7 @@ const SkeletonGroupItem = React.forwardRef<
       )}
     >
       {/* Avatar Skeleton */}
-      <SkeletonAvatar size='md' className='sm:h-10 sm:w-10' />
+      <SkeletonGroupItemAvatar />
 
       <div className='flex w-full flex-col justify-center space-y-2'>
         {/* Group Name Skeleton */}
@@ -1095,7 +1095,7 @@ const SkeletonGroupItemEnhanced = React.forwardRef<
       <div className='relative flex flex-col gap-1 sm:gap-2'>
         <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
           <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
-            <SkeletonAvatar size='md' className='sm:h-10 sm:w-10' />
+            <SkeletonGroupItemAvatar />
             <div className='space-y-1'>
               <SkeletonText width='8rem' size='md' />
               <SkeletonText width='5rem' size='sm' />
@@ -1182,6 +1182,134 @@ const SkeletonGroupListPage = React.forwardRef<
 });
 SkeletonGroupListPage.displayName = 'SkeletonGroupListPage';
 
+// Reusable Group Item Components - consolidated common patterns
+const SkeletonGroupItemAvatar = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'relative flex min-h-[32px] min-w-[32px] items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-300',
+        className
+      )}
+    >
+      <SkeletonAvatar size='md' className='h-full w-full border-0' />
+    </div>
+  );
+});
+SkeletonGroupItemAvatar.displayName = 'SkeletonGroupItemAvatar';
+
+const SkeletonGroupItemTitle = React.forwardRef<
+  HTMLDivElement,
+  { variant?: 'active' | 'default'; className?: string }
+>(({ variant = 'default', className }, ref) => {
+  const spacing = variant === 'active' ? 'space-y-2' : 'space-y-0.5';
+
+  return (
+    <div ref={ref} className={cn(spacing, className)}>
+      <Skeleton className='h-[14px] w-48 sm:h-[22px] sm:w-56' />
+      <Skeleton className='h-[14px] w-32 sm:h-[22px] sm:w-40' />
+    </div>
+  );
+});
+SkeletonGroupItemTitle.displayName = 'SkeletonGroupItemTitle';
+
+const SkeletonGroupItemAuthor = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <Skeleton
+      ref={ref}
+      className={cn('h-3 w-20 sm:h-[16px] sm:w-24', className)}
+    />
+  );
+});
+SkeletonGroupItemAuthor.displayName = 'SkeletonGroupItemAuthor';
+
+const SkeletonGroupItemTime = React.forwardRef<
+  HTMLDivElement,
+  { variant?: 'default' | 'large'; className?: string }
+>(({ variant = 'default', className }, ref) => {
+  const sizeClasses =
+    variant === 'large'
+      ? 'h-3 w-16 sm:h-[18px] sm:w-24'
+      : 'h-3 w-16 sm:h-[14px] sm:w-20';
+
+  return <Skeleton ref={ref} className={cn(sizeClasses, className)} />;
+});
+SkeletonGroupItemTime.displayName = 'SkeletonGroupItemTime';
+
+const SkeletonGroupItemActivityIndicator = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'relative flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6',
+        className
+      )}
+    >
+      <span className='bg-for-400 dark:bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
+      <span className='bg-for-400 dark:bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
+    </div>
+  );
+});
+SkeletonGroupItemActivityIndicator.displayName =
+  'SkeletonGroupItemActivityIndicator';
+
+const SkeletonGroupItemStats = React.forwardRef<
+  HTMLDivElement,
+  { variant?: 'default' | 'simplified'; className?: string }
+>(({ variant = 'default', className }, ref) => {
+  if (variant === 'simplified') {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'dark:text-neutral-350 flex flex-col justify-end gap-2 self-end text-xs font-bold text-neutral-600 select-none',
+          className
+        )}
+      >
+        <div className='flex items-center gap-8'>
+          <div className='flex items-center gap-1'>
+            <Skeleton className='h-4 w-32' />
+          </div>
+          <div className='flex items-center gap-1'>
+            <Skeleton className='h-4 w-20' />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'dark:text-neutral-350 flex flex-col justify-end gap-2 self-end text-xs font-bold text-neutral-600 select-none',
+        className
+      )}
+    >
+      <div className='flex items-center gap-4'>
+        <div className='flex items-center gap-1'>
+          <Skeleton className='h-6 w-6 rounded-sm' />
+          <Skeleton className='h-3 w-16' />
+        </div>
+        <div className='flex items-center gap-1'>
+          <Skeleton className='h-6 w-6 rounded-sm' />
+          <Skeleton className='h-3 w-12' />
+        </div>
+      </div>
+    </div>
+  );
+});
+SkeletonGroupItemStats.displayName = 'SkeletonGroupItemStats';
+
 // Specific Group Item Skeletons - pixel-perfect replicas of group item components
 const SkeletonActiveGroupItem = React.forwardRef<
   HTMLDivElement,
@@ -1196,23 +1324,17 @@ const SkeletonActiveGroupItem = React.forwardRef<
       )}
     >
       <div className='relative flex flex-col gap-1 sm:gap-2'>
+        {/* Active indicator (top-right ping animation) */}
+        <SkeletonGroupItemActivityIndicator className='absolute right-0' />
+
         <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
           {/* Left side: Avatar + Title + Author */}
           <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
-            {/* Avatar skeleton with exact sizing and border */}
-            <div className='relative flex min-h-[32px] min-w-[32px] items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-300'>
-              <Skeleton className='absolute inset-0 h-full w-full rounded-full' />
-            </div>
+            <SkeletonGroupItemAvatar />
 
             <div className='space-y-2'>
-              {/* Title skeleton - matches line-clamp-2 text-sm sm:text-lg */}
-              <div className='space-y-2'>
-                <Skeleton className='h-[14px] w-48 sm:h-[22px] sm:w-56' />
-                <Skeleton className='h-[14px] w-32 sm:h-[22px] sm:w-40' />
-              </div>
-
-              {/* Author skeleton - matches text-xs sm:text-sm */}
-              <Skeleton className='h-3 w-20 sm:h-[16px] sm:w-24' />
+              <SkeletonGroupItemTitle variant='active' />
+              <SkeletonGroupItemAuthor />
             </div>
           </div>
 
@@ -1246,44 +1368,26 @@ const SkeletonInactiveGroupItem = React.forwardRef<
         <div className='flex items-start justify-between'>
           {/* Left side: Avatar + Title + Author */}
           <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
-            {/* Avatar skeleton with exact sizing and border */}
-            <div className='relative flex min-h-[32px] min-w-[32px] items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-300'>
-              <Skeleton className='absolute inset-0 h-full w-full rounded-full' />
-            </div>
+            <SkeletonGroupItemAvatar />
 
             <div className='space-y-1'>
-              {/* Title skeleton - matches line-clamp-2 text-sm sm:text-lg */}
+              {/* Single title line - modified from default */}
               <div className='space-y-2'>
                 <Skeleton className='h-[16px] w-32 sm:h-[24px] sm:w-56' />
-                {/* <Skeleton className='h-[16px] w-24 sm:h-[24px] sm:w-40' /> */}
               </div>
 
-              {/* Author skeleton - matches text-xs sm:text-sm */}
-              <Skeleton className='h-3 w-20 sm:h-[16px] sm:w-24' />
+              <SkeletonGroupItemAuthor />
             </div>
           </div>
 
           {/* Right side: Time + Activity indicator */}
           <div className='flex items-center gap-1'>
-            {/* Time skeleton - matches text-xs sm:text-sm */}
-            <Skeleton className='h-3 w-16 sm:h-[18px] sm:w-24' />
+            <SkeletonGroupItemTime variant='large' />
           </div>
         </div>
 
         {/* Bottom stats section */}
-        <div className='dark:text-neutral-350 flex flex-col justify-end gap-2 self-end text-xs font-bold text-neutral-600 select-none'>
-          <div className='flex items-center gap-8'>
-            {/* Comments icon + text */}
-            <div className='flex items-center gap-1'>
-              <Skeleton className='h-4 w-32' />
-            </div>
-
-            {/* Votes icon + text */}
-            <div className='flex items-center gap-1'>
-              <Skeleton className='h-4 w-20' />
-            </div>
-          </div>
-        </div>
+        <SkeletonGroupItemStats variant='simplified' />
       </div>
     </div>
   );
@@ -1306,44 +1410,26 @@ const SkeletonDiscussionGroupItem = React.forwardRef<
         <div className='flex items-start justify-between'>
           {/* Left side: Avatar + Title + Author */}
           <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
-            {/* Avatar skeleton with exact sizing and border */}
-            <div className='relative flex min-h-[32px] min-w-[32px] items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-300'>
-              <Skeleton className='absolute inset-0 h-full w-full rounded-full' />
-            </div>
+            <SkeletonGroupItemAvatar />
 
             <div className='space-y-2'>
-              {/* Title skeleton - matches line-clamp-2 text-sm sm:text-lg */}
+              {/* Single title line - modified from default */}
               <div className='space-y-2'>
                 <Skeleton className='h-[14px] w-48 sm:h-[24px] sm:w-56' />
-                {/* <Skeleton className='h-[14px] w-32 sm:h-[22px] sm:w-40' /> */}
               </div>
 
-              {/* Author skeleton - matches text-xs sm:text-sm */}
-              <Skeleton className='h-3 w-20 sm:h-[16px] sm:w-24' />
+              <SkeletonGroupItemAuthor />
             </div>
           </div>
 
           {/* Right side: Time + Activity indicator */}
           <div className='flex items-center gap-1'>
-            {/* Time skeleton - matches text-xs sm:text-sm */}
-            <Skeleton className='h-3 w-16 sm:h-[14px] sm:w-20' />
+            <SkeletonGroupItemTime />
           </div>
         </div>
 
         {/* Bottom stats section - same as inactive but for discussions */}
-        <div className='dark:text-neutral-350 flex flex-col justify-end gap-2 self-end text-xs font-bold text-neutral-600 select-none'>
-          <div className='flex items-center gap-8'>
-            {/* Comments icon + text */}
-            <div className='flex items-center gap-1'>
-              <Skeleton className='h-4 w-32' />
-            </div>
-
-            {/* Votes icon + text */}
-            <div className='flex items-center gap-1'>
-              <Skeleton className='h-4 w-20' />
-            </div>
-          </div>
-        </div>
+        <SkeletonGroupItemStats variant='simplified' />
       </div>
     </div>
   );
@@ -1380,6 +1466,13 @@ export {
   SkeletonActiveGroupItem,
   SkeletonInactiveGroupItem,
   SkeletonDiscussionGroupItem,
+  // Group item building blocks
+  SkeletonGroupItemAvatar,
+  SkeletonGroupItemTitle,
+  SkeletonGroupItemAuthor,
+  SkeletonGroupItemTime,
+  SkeletonGroupItemActivityIndicator,
+  SkeletonGroupItemStats,
   // Feed
   SkeletonFeed,
   SkeletonPostItem,
