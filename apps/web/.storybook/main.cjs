@@ -87,6 +87,12 @@ const config = {
       use: 'null-loader',
     });
 
+    // Add webpack alias to mock @proposalsapp/db
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@proposalsapp/db': path.resolve(__dirname, '../storybook-mocks/db.js'),
+    };
+
     if (config.module?.rules) {
       // Find the existing rule that handles SVG files
       const imageRule = config.module.rules.find((rule) => {
