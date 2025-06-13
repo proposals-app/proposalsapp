@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs';
 import { ActiveGroupItem } from './active-item';
 import { TimelineEventType } from '@/lib/types';
 import { ProposalState } from '@proposalsapp/db';
+import { SkeletonActiveGroupItem } from '../../../../components/ui/skeleton';
 
 const meta: Meta<typeof ActiveGroupItem> = {
   title: 'DAO/Group Items/ActiveGroupItem',
@@ -226,6 +227,17 @@ export const LongTitle: Story = {
     group: {
       ...Default.args!.group!,
       name: 'This is a very long proposal title that should demonstrate how the component handles text wrapping and truncation when the title exceeds the available space in the component layout',
+    },
+  },
+};
+
+export const Loading = {
+  render: () => <SkeletonActiveGroupItem />,
+  parameters: {
+    docs: {
+      description: {
+        story: 'Loading skeleton for active group items',
+      },
     },
   },
 };

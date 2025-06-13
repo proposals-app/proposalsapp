@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { InactiveGroupItem } from './inactive-item';
+import { SkeletonInactiveGroupItem } from '../../../../components/ui/skeleton';
 
 const meta: Meta<typeof InactiveGroupItem> = {
   title: 'DAO/Group Items/InactiveGroupItem',
@@ -148,6 +149,17 @@ export const OldActivity: Story = {
       name: 'Old Archived Proposal',
       latestActivityAt: new Date('2024-01-15T10:00:00.000Z'),
       hasNewActivity: false,
+    },
+  },
+};
+
+export const Loading = {
+  render: () => <SkeletonInactiveGroupItem />,
+  parameters: {
+    docs: {
+      description: {
+        story: 'Loading skeleton for inactive group items',
+      },
     },
   },
 };

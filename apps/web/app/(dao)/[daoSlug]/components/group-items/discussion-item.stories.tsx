@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { DiscussionGroupItem } from './discussion-item';
+import { SkeletonDiscussionGroupItem } from '../../../../components/ui/skeleton';
 
 const meta: Meta<typeof DiscussionGroupItem> = {
   title: 'DAO/Group Items/DiscussionGroupItem',
@@ -161,6 +162,17 @@ export const OldDiscussion: Story = {
       latestActivityAt: new Date('2024-03-15T14:22:00.000Z'),
       hasNewActivity: false,
       postsCount: 12,
+    },
+  },
+};
+
+export const Loading = {
+  render: () => <SkeletonDiscussionGroupItem />,
+  parameters: {
+    docs: {
+      description: {
+        story: 'Loading skeleton for discussion group items',
+      },
     },
   },
 };
