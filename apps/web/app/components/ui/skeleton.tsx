@@ -341,7 +341,7 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
               <div className='flex-1'>
                 <div className='skeleton-blueprint skeleton-text h-7 w-32' />
                 <div className='skeleton-blueprint skeleton-text mt-3 h-4 w-52' />
-                <div className='skeleton-blueprint skeleton-text mt-2 hidden h-4 w-52 max-[330px]:block' />
+                <div className='skeleton-blueprint skeleton-text mt-2 hidden h-4 w-52 max-[400px]:block' />
               </div>
             </div>
           </div>
