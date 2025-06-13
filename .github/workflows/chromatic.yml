@@ -1,0 +1,84 @@
+name: Chromatic Visual Testing
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/chromatic.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/chromatic.yml'
+
+# Cancel in-progress runs on same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Required for Chromatic to track changes between commits
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build Storybook
+        run: |
+          cd apps/web
+          yarn build-storybook
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
+      - name: Run Chromatic
+        uses: chromaui/action@latest
+        with:
+          # Required: Project token from chromatic.com
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # Optional: Build Storybook directory
+          buildScriptName: build-storybook
+          # Optional: working directory
+          workingDir: apps/web
+          # Optional: Only run on changed stories (faster builds)
+          onlyChanged: true
+          # Optional: Auto-accept changes on main branch
+          autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
+          # Optional: Exit with non-zero code if there are visual changes
+          exitZeroOnChanges: false
+          # Optional: Skip run if no Storybook changes detected
+          skip: 'dependabot/**'
+          
+      - name: Comment PR with Chromatic results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { CHROMATIC_URL } = process.env;
+            if (CHROMATIC_URL) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `📸 **Chromatic Visual Testing Results**\n\n[View visual changes on Chromatic](${CHROMATIC_URL})`
+              });
+            }
+        env:
+          CHROMATIC_URL: ${{ steps.chromatic.outputs.url }}

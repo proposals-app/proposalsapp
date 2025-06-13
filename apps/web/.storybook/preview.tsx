@@ -12,6 +12,7 @@ import { defineChain } from 'viem';
 import '@rainbow-me/rainbowkit/styles.css';
 import '../styles/globals.css';
 import { Toaster } from '../app/components/ui/sonner';
+import { chromaticDecorator } from './chromatic-decorator';
 
 // Define a local version of the Arbitrum chain for onchain testing
 const arbitrumLocalhost = defineChain({
@@ -100,6 +101,18 @@ const preview: Preview = {
     nextjs: {
       appDirectory: true,
     },
+    // Global Chromatic configuration
+    chromatic: {
+      // Default viewport sizes for all stories
+      viewports: [320, 768, 1200],
+      // Default delay for animations to complete
+      delay: 300,
+      // Disable animations for consistent screenshots by default
+      pauseAnimationAtEnd: true,
+      // Default diffing options
+      diffThreshold: 0.2,
+      diffIncludeAntiAliasing: false,
+    },
   },
   decorators: [
     (Story) => (
@@ -107,6 +120,7 @@ const preview: Preview = {
         <Story />
       </TestWalletProvider>
     ),
+    chromaticDecorator,
   ],
 };
 

@@ -340,7 +340,8 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
               <div className='skeleton-blueprint skeleton-solid relative flex h-12 w-12 items-center justify-center rounded-full p-4' />
               <div className='flex-1'>
                 <div className='skeleton-blueprint skeleton-text h-7 w-32' />
-                <div className='skeleton-blueprint skeleton-text mt-1.5 h-4 w-52' />
+                <div className='skeleton-blueprint skeleton-text mt-3 h-4 w-52' />
+                <div className='skeleton-blueprint skeleton-text mt-2 hidden h-4 w-52 max-[330px]:block' />
               </div>
             </div>
           </div>
@@ -349,16 +350,24 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
           <div className='grid grid-cols-3 border-t border-neutral-200 dark:border-neutral-700'>
             {[
               { label: 'Active', bgClass: 'bg-green-50 dark:bg-green-900/20' },
-              { label: 'Proposals', bgClass: 'bg-amber-50 dark:bg-amber-900/20' },
-              { label: 'Discussions', bgClass: 'bg-sky-100 dark:bg-sky-800/50' }
+              {
+                label: 'Proposals',
+                bgClass: 'bg-amber-50 dark:bg-amber-900/20',
+              },
+              {
+                label: 'Discussions',
+                bgClass: 'bg-sky-100 dark:bg-sky-800/50',
+              },
             ].map((metric, index) => (
               <div
                 key={metric.label}
                 className={`${index !== 0 ? 'border-l border-neutral-200 dark:border-neutral-700' : ''}`}
               >
-                <div className={`flex h-full flex-col items-center justify-center p-4 text-center ${metric.bgClass}`}>
-                  <div className='skeleton-blueprint skeleton-text mb-1 h-4 w-8 sm:h-7' />
-                  <div className='skeleton-blueprint skeleton-text h-3 w-12 sm:h-4' />
+                <div
+                  className={`flex h-full flex-col items-center justify-center p-4 text-center ${metric.bgClass}`}
+                >
+                  <div className='skeleton-blueprint skeleton-text mb-1 h-6 w-8 sm:h-7' />
+                  <div className='skeleton-blueprint skeleton-text h-4 w-12 sm:h-4' />
                 </div>
               </div>
             ))}
@@ -367,17 +376,28 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
           {/* Financial metrics row */}
           <div className='grid grid-cols-3 border-t border-neutral-200 dark:border-neutral-700'>
             {[
-              { label: 'Voting Power', bgClass: 'bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10' },
-              { label: 'Treasury', bgClass: 'bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10' },
-              { label: 'ARB Price', bgClass: 'bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10' }
+              {
+                label: 'Voting Power',
+                bgClass: 'bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10',
+              },
+              {
+                label: 'Treasury',
+                bgClass: 'bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10',
+              },
+              {
+                label: 'ARB Price',
+                bgClass: 'bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10',
+              },
             ].map((metric, index) => (
               <div
                 key={metric.label}
                 className={`${index !== 0 ? 'h-full border-l border-neutral-200 dark:border-neutral-700' : 'h-full'}`}
               >
-                <div className={`flex h-full flex-col items-center justify-center p-4 text-center ${metric.bgClass}`}>
-                  <div className='skeleton-blueprint skeleton-text mb-1 h-4 w-10 sm:h-7' />
-                  <div className='skeleton-blueprint skeleton-text h-3 w-14 sm:h-4' />
+                <div
+                  className={`flex h-full flex-col items-center justify-center p-4 text-center ${metric.bgClass}`}
+                >
+                  <div className='skeleton-blueprint skeleton-text mb-1 h-6 w-10 sm:h-7' />
+                  <div className='skeleton-blueprint skeleton-text h-4 w-14 sm:h-4' />
                 </div>
               </div>
             ))}
@@ -403,19 +423,19 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
 
             {/* Financial metrics in column 5 */}
             <div className='col-start-5 col-end-6 row-start-1 row-end-2 border-b border-l border-neutral-200 dark:border-neutral-700'>
-              <div className='flex h-full flex-col items-center justify-center p-4 text-center bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10'>
+              <div className='flex h-full flex-col items-center justify-center bg-[#28A0F0]/5 p-4 text-center dark:bg-[#28A0F0]/10'>
                 <div className='skeleton-blueprint skeleton-text mb-1 h-7 w-10' />
                 <div className='skeleton-blueprint skeleton-text h-4 w-16' />
               </div>
             </div>
             <div className='col-start-5 col-end-6 row-start-2 row-end-3 border-b border-l border-neutral-200 dark:border-neutral-700'>
-              <div className='flex h-full flex-col items-center justify-center p-4 text-center bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10'>
+              <div className='flex h-full flex-col items-center justify-center bg-[#28A0F0]/5 p-4 text-center dark:bg-[#28A0F0]/10'>
                 <div className='skeleton-blueprint skeleton-text mb-1 h-7 w-12' />
                 <div className='skeleton-blueprint skeleton-text h-4 w-20' />
               </div>
             </div>
             <div className='col-start-5 col-end-6 row-start-3 row-end-4 border-l border-neutral-200 dark:border-neutral-700'>
-              <div className='flex h-full flex-col items-center justify-center p-4 text-center bg-[#28A0F0]/5 dark:bg-[#28A0F0]/10'>
+              <div className='flex h-full flex-col items-center justify-center bg-[#28A0F0]/5 p-4 text-center dark:bg-[#28A0F0]/10'>
                 <div className='skeleton-blueprint skeleton-text mb-1 h-7 w-10' />
                 <div className='skeleton-blueprint skeleton-text h-4 w-14' />
               </div>
@@ -423,20 +443,20 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
 
             {/* Primary metrics in row 3, columns 1-3 */}
             <div className='col-start-1 col-end-2 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
-              <div className='flex h-full flex-col items-center justify-center p-4 text-center bg-green-50 dark:bg-green-900/20'>
-                <div className='skeleton-blueprint skeleton-text mb-1 h-7 w-6' />
+              <div className='flex h-full flex-col items-center justify-center bg-green-50 p-4 text-center dark:bg-green-900/20'>
+                <div className='skeleton-blueprint skeleton-text mb-1 h-8 w-6' />
                 <div className='skeleton-blueprint skeleton-text h-4 w-10' />
               </div>
             </div>
             <div className='col-start-2 col-end-3 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
-              <div className='flex h-full flex-col items-center justify-center p-4 text-center bg-amber-50 dark:bg-amber-900/20'>
-                <div className='skeleton-blueprint skeleton-text mb-1 h-7 w-6' />
+              <div className='flex h-full flex-col items-center justify-center bg-amber-50 p-4 text-center dark:bg-amber-900/20'>
+                <div className='skeleton-blueprint skeleton-text mb-1 h-8 w-6' />
                 <div className='skeleton-blueprint skeleton-text h-4 w-14' />
               </div>
             </div>
             <div className='col-start-3 col-end-4 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
-              <div className='flex h-full flex-col items-center justify-center p-4 text-center bg-sky-100 dark:bg-sky-800/50'>
-                <div className='skeleton-blueprint skeleton-text mb-1 h-7 w-6' />
+              <div className='flex h-full flex-col items-center justify-center bg-sky-100 p-4 text-center dark:bg-sky-800/50'>
+                <div className='skeleton-blueprint skeleton-text mb-1 h-8 w-6' />
                 <div className='skeleton-blueprint skeleton-text h-4 w-16' />
               </div>
             </div>

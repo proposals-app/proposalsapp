@@ -1,0 +1,15 @@
+{
+  "autoAcceptChanges": false,
+  "buildScriptName": "build-storybook",
+  "exitOnceUploaded": true,
+  "exitZeroOnChanges": true,
+  "externals": ["public/**"],
+  "ignoreLastBuildOnBranch": "main",
+  "onlyChanged": true,
+  "projectId": "Project:6849cd94c068d4116037b01e",
+  "skip": "dependabot/**",
+  "storybookBaseDir": "apps/web",
+  "storybookBuildDir": "storybook-static",
+  "storybookConfigDir": ".storybook",
+  "zip": true
+}

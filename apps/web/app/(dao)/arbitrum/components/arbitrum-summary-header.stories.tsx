@@ -1,12 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { ArbitrumSummaryHeader } from './arbitrum-summary-header';
 import { SkeletonHeader } from '@/app/components/ui/skeleton';
+import { chromaticModes } from '@/.storybook/chromatic-decorator';
 
 const meta: Meta<typeof ArbitrumSummaryHeader> = {
   title: 'DAO Components/Arbitrum Summary Header',
   component: ArbitrumSummaryHeader,
   parameters: {
     layout: 'fullscreen',
+    // Use default Chromatic mode for standard visual testing
+    ...chromaticModes.default,
   },
   tags: ['autodocs'],
 };
@@ -71,12 +74,14 @@ export const ZeroValues: Story = {
 
 export const LoadingSkeleton: StoryObj = {
   render: () => <SkeletonHeader />,
-  name: 'Loading Skeleton',
   parameters: {
     docs: {
       description: {
-        story: 'Loading skeleton state that matches the structure of the Arbitrum summary header. Uses the blueprint design system with dashed borders and diagonal patterns.',
+        story:
+          'Loading skeleton state that matches the structure of the Arbitrum summary header. Uses the blueprint design system with dashed borders and diagonal patterns.',
       },
     },
+    // Use layout mode for critical layout shift testing
+    ...chromaticModes.layout,
   },
 };
