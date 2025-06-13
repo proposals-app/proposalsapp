@@ -3,7 +3,7 @@ import {
   getGroups,
   getTotalVotingPower,
 } from '../[daoSlug]/actions';
-import { StreamingGroupList } from '../[daoSlug]/components/streaming-group-list';
+import { GroupList } from '../[daoSlug]/components/group-list';
 import { MarkAllAsReadButton } from '../[daoSlug]/components/mark-all-as-read';
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth/uniswap_auth';
@@ -311,7 +311,7 @@ async function GroupsContainer({
   });
 
   return (
-    <StreamingGroupList
+    <GroupList
       initialGroups={groupsWithInfo}
       signedIn={userId ? true : false}
     />

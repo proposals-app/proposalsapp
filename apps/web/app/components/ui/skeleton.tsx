@@ -340,7 +340,7 @@ const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
               <div className='skeleton-blueprint skeleton-solid relative flex h-12 w-12 items-center justify-center rounded-full p-4' />
               <div className='flex-1'>
                 <div className='skeleton-blueprint skeleton-text h-7 w-32' />
-                <div className='skeleton-blueprint skeleton-text mt-3 h-4 w-52' />
+                <div className='skeleton-blueprint skeleton-text mt-3 h-4.5 w-52' />
                 <div className='skeleton-blueprint skeleton-text mt-2 hidden h-4 w-52 max-[400px]:block' />
               </div>
             </div>
@@ -1009,10 +1009,6 @@ const SkeletonChart = React.forwardRef<HTMLDivElement, { className?: string }>(
 );
 SkeletonChart.displayName = 'SkeletonChart';
 
-// Legacy aliases for backward compatibility
-const LoadingHeader = SkeletonHeader;
-const LoadingGroupList = SkeletonGroupList;
-
 // Simple header skeleton for page-level loading
 const HeaderSkeleton = React.forwardRef<HTMLDivElement, { className?: string }>(
   ({ className }, ref) => {
@@ -1140,8 +1136,8 @@ SkeletonActionBar.displayName = 'SkeletonActionBar';
 // Search and Filter Bar Skeleton - for the streaming group list search/filter interface
 const SkeletonSearchAndFilter = React.forwardRef<
   HTMLDivElement,
-  { className?: string; showUnreadFilter?: boolean }
->(({ className, showUnreadFilter = true }, ref) => {
+  { className?: string }
+>(({ className }, ref) => {
   return (
     <div
       ref={ref}
@@ -1150,18 +1146,18 @@ const SkeletonSearchAndFilter = React.forwardRef<
         className
       )}
     >
-      {/* Search input skeleton */}
+      {/* Search input skeleton - matches actual input with icon */}
       <div className='relative w-full sm:w-1/2'>
-        <div className='skeleton-blueprint skeleton-text h-10 w-full rounded-xs' />
+        <div className='relative flex items-center'>
+          {/* <Skeleton className='absolute left-3 h-5 w-5 rounded-sm' /> */}
+          <Skeleton className='h-10 w-full rounded-xs border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800' />
+        </div>
       </div>
 
-      {/* Filter buttons skeleton */}
+      {/* Filter buttons skeleton - matches actual button styling */}
       <div className='flex flex-wrap gap-2 self-end'>
-        <div className='skeleton-blueprint skeleton-solid h-8 w-12 rounded-xs' />
-        <div className='skeleton-blueprint skeleton-solid h-8 w-16 rounded-xs' />
-        {showUnreadFilter && (
-          <div className='skeleton-blueprint skeleton-solid h-8 w-16 rounded-xs' />
-        )}
+        <Skeleton className='h-8 w-14 rounded-xs' />
+        <Skeleton className='h-8 w-16 rounded-xs' />
       </div>
     </div>
   );
@@ -1171,16 +1167,34 @@ SkeletonSearchAndFilter.displayName = 'SkeletonSearchAndFilter';
 // Complete Group List Page Skeleton - includes search, filters, and group list
 const SkeletonGroupListPage = React.forwardRef<
   HTMLDivElement,
-  { className?: string; showUnreadFilter?: boolean }
->(({ className, showUnreadFilter = true }, ref) => {
+  { className?: string }
+>(({ className }, ref) => {
   return (
     <div ref={ref} className={cn('flex flex-col gap-6', className)}>
-      <SkeletonSearchAndFilter showUnreadFilter={showUnreadFilter} />
+      <SkeletonSearchAndFilter />
       <SkeletonGroupList />
     </div>
   );
 });
 SkeletonGroupListPage.displayName = 'SkeletonGroupListPage';
+
+// Group List with Controls Skeleton - matches the exact GroupList component structure
+const SkeletonGroupListWithControls = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div ref={ref} className={cn('flex flex-col gap-6', className)}>
+      <SkeletonSearchAndFilter />
+      <SkeletonGroupList />
+    </div>
+  );
+});
+SkeletonGroupListWithControls.displayName = 'SkeletonGroupListWithControls';
+
+// Legacy aliases for backward compatibility
+const LoadingHeader = SkeletonHeader;
+const LoadingGroupList = SkeletonGroupListWithControls;
 
 // Reusable Group Item Components - consolidated common patterns
 const SkeletonGroupItemAvatar = React.forwardRef<
@@ -1490,6 +1504,7 @@ export {
   SkeletonActionBar,
   SkeletonSearchAndFilter,
   SkeletonGroupListPage,
+  SkeletonGroupListWithControls,
   // Legacy aliases
   LoadingHeader,
   LoadingGroupList,

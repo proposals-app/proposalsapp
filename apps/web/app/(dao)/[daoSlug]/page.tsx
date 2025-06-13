@@ -1,5 +1,5 @@
 import { getActiveGroupsFeeds, getGroups } from './actions';
-import { StreamingGroupList } from './components/streaming-group-list';
+import { GroupList } from './components/group-list';
 import { MarkAllAsReadButton } from './components/mark-all-as-read';
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth/arbitrum_auth';
@@ -109,7 +109,7 @@ async function GroupsContent({ daoSlug }: { daoSlug: string }) {
   });
 
   return (
-    <StreamingGroupList
+    <GroupList
       initialGroups={groupsWithInfo}
       signedIn={userId ? true : false}
     />
