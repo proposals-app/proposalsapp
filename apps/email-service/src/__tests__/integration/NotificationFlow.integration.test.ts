@@ -62,22 +62,22 @@ describe('Notification Flow Integration Tests', () => {
 
       // Create a new proposal
       const [proposal] = await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
-          dao_id: testData.dao.id,
-          governor_id: testData.governor.id,
-          external_id: 'test-proposal-1',
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'test-proposal-1',
           name: 'Test Proposal',
           body: 'This is a test proposal',
           url: 'https://example.com/proposal/1',
           author: '0x1234567890123456789012345678901234567890',
-          proposal_state: ProposalState.ACTIVE,
-          start_at: new Date(),
-          end_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+          proposalState: ProposalState.ACTIVE,
+          startAt: new Date(),
+          endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
           quorum: 100,
           choices: JSON.stringify(['For', 'Against']),
-          marked_spam: false,
-          created_at: new Date(), // Recent proposal
+          markedSpam: false,
+          createdAt: new Date(), // Recent proposal
         })
         .returning(['id', 'name', 'url'])
         .execute();
@@ -97,10 +97,12 @@ describe('Notification Flow Integration Tests', () => {
 
       // Verify notification was recorded
       const notifications = await db
-        .selectFrom('testdao.user_notification')
+        .withSchema('testdao')
+        .withSchema('testdao')
+        .selectFrom('userNotification')
         .selectAll()
-        .where('user_id', '=', testData.user.id)
-        .where('target_id', '=', proposal.id)
+        .where('userId', '=', testData.user.id)
+        .where('targetId', '=', proposal.id)
         .where('type', '=', 'new_proposal')
         .execute();
 
@@ -112,34 +114,35 @@ describe('Notification Flow Integration Tests', () => {
 
       // Create a new proposal
       const [proposal] = await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
-          dao_id: testData.dao.id,
-          governor_id: testData.governor.id,
-          external_id: 'test-proposal-2',
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'test-proposal-2',
           name: 'Test Proposal 2',
           body: 'This is another test proposal',
           url: 'https://example.com/proposal/2',
           author: '0x1234567890123456789012345678901234567890',
-          proposal_state: ProposalState.ACTIVE,
-          start_at: new Date(),
-          end_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          proposalState: ProposalState.ACTIVE,
+          startAt: new Date(),
+          endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           quorum: 100,
           choices: JSON.stringify(['For', 'Against']),
-          marked_spam: false,
-          created_at: new Date(),
+          markedSpam: false,
+          createdAt: new Date(),
         })
         .returning(['id'])
         .execute();
 
       // Create existing notification
       await db
-        .insertInto('testdao.user_notification')
+        .withSchema('testdao')
+        .insertInto('userNotification')
         .values({
-          user_id: testData.user.id,
-          target_id: proposal.id,
+          userId: testData.user.id,
+          targetId: proposal.id,
           type: 'new_proposal',
-          sent_at: new Date(),
+          sentAt: new Date(),
         })
         .execute();
 
@@ -156,22 +159,22 @@ describe('Notification Flow Integration Tests', () => {
 
       // Create an old proposal (created 2 hours ago)
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
-          dao_id: testData.dao.id,
-          governor_id: testData.governor.id,
-          external_id: 'old-proposal',
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'old-proposal',
           name: 'Old Proposal',
           body: 'This is an old proposal',
           url: 'https://example.com/proposal/old',
           author: '0x1234567890123456789012345678901234567890',
-          proposal_state: ProposalState.ACTIVE,
-          start_at: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          end_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          proposalState: ProposalState.ACTIVE,
+          startAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           quorum: 100,
           choices: JSON.stringify(['For', 'Against']),
-          marked_spam: false,
-          created_at: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+          markedSpam: false,
+          createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
         })
         .execute();
 
@@ -205,31 +208,31 @@ describe('Notification Flow Integration Tests', () => {
       console.log('Six days ago:', sixDaysAgo.toISOString());
 
       const [proposal] = await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
-          dao_id: testData.dao.id,
-          governor_id: testData.governor.id,
-          external_id: 'ending-proposal',
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'ending-proposal',
           name: 'Ending Proposal',
           body: 'This proposal is ending soon',
           url: 'https://example.com/proposal/ending',
           author: '0x1234567890123456789012345678901234567890',
-          proposal_state: ProposalState.ACTIVE,
-          start_at: sixDaysAgo,
-          end_at: thirtyMinutesFromNow,
+          proposalState: ProposalState.ACTIVE,
+          startAt: sixDaysAgo,
+          endAt: thirtyMinutesFromNow,
           quorum: 100,
           choices: JSON.stringify(['For', 'Against']),
-          marked_spam: false,
-          created_at: sixDaysAgo,
+          markedSpam: false,
+          createdAt: sixDaysAgo,
         })
         .returning(['id'])
         .execute();
 
       // Debug: Check if proposal was created correctly
       const allProposals = await db
-        .selectFrom('public.proposal')
+        .selectFrom('proposal')
         .selectAll()
-        .where('dao_id', '=', testData.dao.id)
+        .where('daoId', '=', testData.dao.id)
         .execute();
       console.log('All proposals:', allProposals);
 
@@ -241,11 +244,11 @@ describe('Notification Flow Integration Tests', () => {
 
       // Debug: Test manual query to see what's happening
       const manualQuery = await db
-        .selectFrom('public.proposal')
+        .selectFrom('proposal')
         .selectAll()
-        .where('dao_id', '=', testData.dao.id)
-        .where('proposal_state', '=', ProposalState.ACTIVE)
-        .where('marked_spam', '=', false)
+        .where('daoId', '=', testData.dao.id)
+        .where('proposalState', '=', ProposalState.ACTIVE)
+        .where('markedSpam', '=', false)
         .execute();
       console.log('Manual query (all ACTIVE proposals):', manualQuery);
 
@@ -264,10 +267,11 @@ describe('Notification Flow Integration Tests', () => {
 
       // Verify notification was recorded
       const notifications = await db
-        .selectFrom('testdao.user_notification')
+        .withSchema('testdao')
+        .selectFrom('userNotification')
         .selectAll()
-        .where('user_id', '=', endingUser.id)
-        .where('target_id', '=', proposal.id)
+        .where('userId', '=', endingUser.id)
+        .where('targetId', '=', proposal.id)
         .where('type', '=', 'ending_proposal')
         .execute();
 
@@ -279,21 +283,21 @@ describe('Notification Flow Integration Tests', () => {
 
       // Create a proposal ending in 5 hours (beyond 120 minute timeframe)
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
-          dao_id: testData.dao.id,
-          governor_id: testData.governor.id,
-          external_id: 'future-ending-proposal',
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'future-ending-proposal',
           name: 'Future Ending Proposal',
           body: 'This proposal ends far in the future',
           url: 'https://example.com/proposal/future',
           author: '0x1234567890123456789012345678901234567890',
-          proposal_state: ProposalState.ACTIVE,
-          start_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          end_at: new Date(Date.now() + 5 * 60 * 60 * 1000), // Ends in 5 hours
+          proposalState: ProposalState.ACTIVE,
+          startAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          endAt: new Date(Date.now() + 5 * 60 * 60 * 1000), // Ends in 5 hours
           quorum: 100,
           choices: JSON.stringify(['For', 'Against']),
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
         })
         .execute();
 
@@ -314,50 +318,50 @@ describe('Notification Flow Integration Tests', () => {
 
       // Create a new discourse topic
       const [topic] = await db
-        .insertInto('public.discourse_topic')
+        .insertInto('discourseTopic')
         .values({
-          dao_discourse_id: testData.discourse.id,
-          external_id: 123,
+          daoDiscourseId: testData.discourse.id,
+          externalId: 123,
           title: 'Test Discussion',
           slug: 'test-discussion',
-          fancy_title: 'Test Discussion',
-          category_id: 1,
+          fancyTitle: 'Test Discussion',
+          categoryId: 1,
           archived: false,
           closed: false,
           pinned: false,
-          pinned_globally: false,
+          pinnedGlobally: false,
           visible: true,
-          posts_count: 1,
-          reply_count: 0,
-          like_count: 0,
+          postsCount: 1,
+          replyCount: 0,
+          likeCount: 0,
           views: 10,
-          created_at: new Date(), // Recent topic
-          bumped_at: new Date(),
-          last_posted_at: new Date(),
+          createdAt: new Date(), // Recent topic
+          bumpedAt: new Date(),
+          lastPostedAt: new Date(),
         })
-        .returning(['id', 'slug', 'external_id'])
+        .returning(['id', 'slug', 'externalId'])
         .execute();
 
       // Create a discourse post for the topic
       await db
-        .insertInto('public.discourse_post')
+        .insertInto('discoursePost')
         .values({
-          dao_discourse_id: testData.discourse.id,
-          external_id: 1,
-          topic_id: topic.externalId,
-          topic_slug: topic.slug,
-          post_number: 1,
-          post_type: 1,
-          user_id: testData.discourseUser.externalId,
+          daoDiscourseId: testData.discourse.id,
+          externalId: 1,
+          topicId: topic.externalId,
+          topicSlug: topic.slug,
+          postNumber: 1,
+          postType: 1,
+          userId: testData.discourseUser.externalId,
           username: testData.discourseUser.username,
           deleted: false,
-          created_at: new Date(),
-          updated_at: new Date(),
-          reply_count: 0,
-          quote_count: 0,
-          incoming_link_count: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          replyCount: 0,
+          quoteCount: 0,
+          incomingLinkCount: 0,
           reads: 0,
-          readers_count: 0,
+          readersCount: 0,
           score: 0,
           version: 1,
         })
@@ -379,10 +383,11 @@ describe('Notification Flow Integration Tests', () => {
 
       // Verify notification was recorded
       const notifications = await db
-        .selectFrom('testdao.user_notification')
+        .withSchema('testdao')
+        .selectFrom('userNotification')
         .selectAll()
-        .where('user_id', '=', testData.user.id)
-        .where('target_id', '=', topic.id)
+        .where('userId', '=', testData.user.id)
+        .where('targetId', '=', topic.id)
         .where('type', '=', 'new_discussion')
         .execute();
 
@@ -394,50 +399,50 @@ describe('Notification Flow Integration Tests', () => {
 
       // Create a new discourse topic
       const [topic] = await db
-        .insertInto('public.discourse_topic')
+        .insertInto('discourseTopic')
         .values({
-          dao_discourse_id: testData.discourse.id,
-          external_id: 456,
+          daoDiscourseId: testData.discourse.id,
+          externalId: 456,
           title: 'Proposal Discussion',
           slug: 'proposal-discussion',
-          fancy_title: 'Proposal Discussion',
-          category_id: 1,
+          fancyTitle: 'Proposal Discussion',
+          categoryId: 1,
           archived: false,
           closed: false,
           pinned: false,
-          pinned_globally: false,
+          pinnedGlobally: false,
           visible: true,
-          posts_count: 1,
-          reply_count: 0,
-          like_count: 0,
+          postsCount: 1,
+          replyCount: 0,
+          likeCount: 0,
           views: 10,
-          created_at: new Date(),
-          bumped_at: new Date(),
-          last_posted_at: new Date(),
+          createdAt: new Date(),
+          bumpedAt: new Date(),
+          lastPostedAt: new Date(),
         })
-        .returning(['slug', 'external_id'])
+        .returning(['slug', 'externalId'])
         .execute();
 
       // Create a discourse post
       await db
-        .insertInto('public.discourse_post')
+        .insertInto('discoursePost')
         .values({
-          dao_discourse_id: testData.discourse.id,
-          external_id: 2,
-          topic_id: topic.externalId,
-          topic_slug: topic.slug,
-          post_number: 1,
-          post_type: 1,
-          user_id: testData.discourseUser.externalId,
+          daoDiscourseId: testData.discourse.id,
+          externalId: 2,
+          topicId: topic.externalId,
+          topicSlug: topic.slug,
+          postNumber: 1,
+          postType: 1,
+          userId: testData.discourseUser.externalId,
           username: testData.discourseUser.username,
           deleted: false,
-          created_at: new Date(),
-          updated_at: new Date(),
-          reply_count: 0,
-          quote_count: 0,
-          incoming_link_count: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          replyCount: 0,
+          quoteCount: 0,
+          incomingLinkCount: 0,
           reads: 0,
-          readers_count: 0,
+          readersCount: 0,
           score: 0,
           version: 1,
         })
@@ -446,9 +451,9 @@ describe('Notification Flow Integration Tests', () => {
       // Create a proposal group that links to this discussion
       const topicUrl = `https://forum.arbitrum.foundation/t/${topic.slug}/${topic.externalId}`;
       await db
-        .insertInto('public.proposal_group')
+        .insertInto('proposalGroup')
         .values({
-          dao_id: testData.dao.id,
+          daoId: testData.dao.id,
           name: 'Test Proposal Group',
           items: JSON.stringify([
             {
@@ -477,29 +482,30 @@ describe('Notification Flow Integration Tests', () => {
 
       // Update user to disable new proposal notifications
       await db
-        .updateTable('testdao.user')
-        .set({ email_settings_new_proposals: false })
+        .withSchema('testdao')
+        .updateTable('user')
+        .set({ emailSettingsNewProposals: false })
         .where('id', '=', testData.user.id)
         .execute();
 
       // Create a new proposal
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
-          dao_id: testData.dao.id,
-          governor_id: testData.governor.id,
-          external_id: 'test-proposal-disabled',
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'test-proposal-disabled',
           name: 'Test Proposal (Disabled)',
           body: 'This proposal should not trigger notifications',
           url: 'https://example.com/proposal/disabled',
           author: '0x1234567890123456789012345678901234567890',
-          proposal_state: ProposalState.ACTIVE,
-          start_at: new Date(),
-          end_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          proposalState: ProposalState.ACTIVE,
+          startAt: new Date(),
+          endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           quorum: 100,
           choices: JSON.stringify(['For', 'Against']),
-          marked_spam: false,
-          created_at: new Date(),
+          markedSpam: false,
+          createdAt: new Date(),
         })
         .execute();
 
@@ -516,29 +522,30 @@ describe('Notification Flow Integration Tests', () => {
 
       // Update user to be unverified
       await db
-        .updateTable('testdao.user')
-        .set({ email_verified: false })
+        .withSchema('testdao')
+        .updateTable('user')
+        .set({ emailVerified: false })
         .where('id', '=', testData.user.id)
         .execute();
 
       // Create a new proposal
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
-          dao_id: testData.dao.id,
-          governor_id: testData.governor.id,
-          external_id: 'test-proposal-unverified',
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'test-proposal-unverified',
           name: 'Test Proposal (Unverified User)',
           body: 'This proposal should not trigger notifications',
           url: 'https://example.com/proposal/unverified',
           author: '0x1234567890123456789012345678901234567890',
-          proposal_state: ProposalState.ACTIVE,
-          start_at: new Date(),
-          end_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          proposalState: ProposalState.ACTIVE,
+          startAt: new Date(),
+          endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           quorum: 100,
           choices: JSON.stringify(['For', 'Against']),
-          marked_spam: false,
-          created_at: new Date(),
+          markedSpam: false,
+          createdAt: new Date(),
         })
         .execute();
 
@@ -562,22 +569,22 @@ describe('Notification Flow Integration Tests', () => {
 
       // Create a new proposal
       const [proposal] = await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
-          dao_id: testData.dao.id,
-          governor_id: testData.governor.id,
-          external_id: 'test-proposal-error',
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'test-proposal-error',
           name: 'Test Proposal (Error)',
           body: 'This proposal will cause email error',
           url: 'https://example.com/proposal/error',
           author: '0x1234567890123456789012345678901234567890',
-          proposal_state: ProposalState.ACTIVE,
-          start_at: new Date(),
-          end_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          proposalState: ProposalState.ACTIVE,
+          startAt: new Date(),
+          endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           quorum: 100,
           choices: JSON.stringify(['For', 'Against']),
-          marked_spam: false,
-          created_at: new Date(),
+          markedSpam: false,
+          createdAt: new Date(),
         })
         .returning(['id'])
         .execute();
@@ -593,10 +600,12 @@ describe('Notification Flow Integration Tests', () => {
 
       // Verify notification was NOT recorded (due to failure)
       const notifications = await db
-        .selectFrom('testdao.user_notification')
+        .withSchema('testdao')
+        .withSchema('testdao')
+        .selectFrom('userNotification')
         .selectAll()
-        .where('user_id', '=', testData.user.id)
-        .where('target_id', '=', proposal.id)
+        .where('userId', '=', testData.user.id)
+        .where('targetId', '=', proposal.id)
         .where('type', '=', 'new_proposal')
         .execute();
 

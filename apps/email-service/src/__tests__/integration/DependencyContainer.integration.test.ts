@@ -188,7 +188,7 @@ describe('DependencyContainer Integration Tests', () => {
 
       // Create a test proposal
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -309,7 +309,7 @@ describe('DependencyContainer Integration Tests', () => {
       // Create a recent proposal (within timeframe)
       const db = getTestDb();
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,

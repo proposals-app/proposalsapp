@@ -28,7 +28,7 @@ describe('Configuration Integration Tests', () => {
       const db = getTestDb();
 
       // Clean any existing proposals from test data
-      await db.deleteFrom('public.proposal').execute();
+      await db.deleteFrom('proposal').execute();
 
       // Create proposals at different times
       const now = new Date();
@@ -37,7 +37,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create old proposal (should not trigger notification)
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -58,7 +58,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create recent proposal (should trigger notification)
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -135,7 +135,7 @@ describe('Configuration Integration Tests', () => {
       const now = new Date();
 
       // Clean any existing proposals from test data
-      await db.deleteFrom('public.proposal').execute();
+      await db.deleteFrom('proposal').execute();
 
       // Create proposals ending at different times
       const endsIn30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
@@ -143,7 +143,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create proposal ending soon
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -164,7 +164,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create proposal ending later
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -213,7 +213,7 @@ describe('Configuration Integration Tests', () => {
       vi.clearAllMocks();
 
       // Clear notification history to avoid cooldown issues
-      await db.deleteFrom('testdao.user_notification').execute();
+      await db.withSchema('testdao').deleteFrom('userNotification').execute();
 
       // Test with 240-minute (4 hour) ending timeframe
       const container240 = new DependencyContainer(
@@ -248,7 +248,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create a proposal
       const [proposal] = await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -270,7 +270,8 @@ describe('Configuration Integration Tests', () => {
 
       // Create a recent notification (within cooldown period)
       await db
-        .insertInto('testdao.user_notification')
+        .withSchema('testdao')
+        .insertInto('userNotification')
         .values({
           userId: testData.user.id,
           targetId: proposal.id,
@@ -336,7 +337,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create a proposal
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -387,7 +388,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create a proposal
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -556,7 +557,7 @@ describe('Configuration Integration Tests', () => {
       // Create a proposal that's 5 minutes old to ensure it's outside 0-minute timeframe
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,

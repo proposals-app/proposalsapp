@@ -67,8 +67,8 @@ describe('Circuit Breaker Integration Tests', () => {
         const [proposal] = await db
           .insertInto('proposal')
           .values({
-            daoId: testData.dao.id,
-            governorId: testData.governor.id,
+            daoId: testData.dao.id as string,
+            governorId: testData.governor.id as string,
             externalId: `circuit-breaker-proposal-${i}`,
             name: `Circuit Breaker Test Proposal ${i}`,
             body: 'This will test circuit breaker',
@@ -90,7 +90,12 @@ describe('Circuit Breaker Integration Tests', () => {
 
       // Process notifications multiple times to trigger circuit breaker
       for (let i = 0; i < 5; i++) {
-        await notificationService.processNewProposalNotifications(testData.dao);
+        await notificationService.processNewProposalNotifications({
+          id: testData.dao.id as string,
+          name: testData.dao.name as string,
+          picture: testData.dao.picture,
+          slug: testData.dao.slug,
+        });
       }
 
       // Verify that email service was called initially but stopped due to circuit breaker
@@ -139,7 +144,12 @@ describe('Circuit Breaker Integration Tests', () => {
 
       // Trigger circuit breaker to open
       for (let i = 0; i < 3; i++) {
-        await notificationService.processNewProposalNotifications(testData.dao);
+        await notificationService.processNewProposalNotifications({
+          id: testData.dao.id as string,
+          name: testData.dao.name as string,
+          picture: testData.dao.picture,
+          slug: testData.dao.slug,
+        });
       }
 
       // Reset email client to succeed
@@ -192,9 +202,12 @@ describe('Circuit Breaker Integration Tests', () => {
         newContainer.getNotificationService('testdao');
 
       // Process notifications with the new service (circuit breaker should be reset)
-      await newNotificationService.processNewProposalNotifications(
-        testData.dao
-      );
+      await newNotificationService.processNewProposalNotifications({
+        id: testData.dao.id as string,
+        name: testData.dao.name as string,
+        picture: testData.dao.picture,
+        slug: testData.dao.slug,
+      });
 
       // Verify that email was sent successfully after recovery
       expect(mockEmailClient.send).toHaveBeenCalled();
@@ -218,8 +231,8 @@ describe('Circuit Breaker Integration Tests', () => {
         await db
           .insertInto('proposal')
           .values({
-            daoId: testData.dao.id,
-            governorId: testData.governor.id,
+            daoId: testData.dao.id as string,
+            governorId: testData.governor.id as string,
             externalId: `mixed-scenario-proposal-${i}`,
             name: `Mixed Scenario Proposal ${i}`,
             body: 'Testing mixed success/failure',
@@ -243,7 +256,8 @@ describe('Circuit Breaker Integration Tests', () => {
 
       // Check that some notifications were recorded (for successful sends)
       const notifications = await db
-        .selectFrom('testdao.user_notification')
+        .withSchema('testdao')
+        .selectFrom('userNotification')
         .selectAll()
         .where('userId', '=', testData.user.id)
         .where('type', '=', 'new_proposal')
@@ -395,7 +409,8 @@ describe('Circuit Breaker Integration Tests', () => {
       const users = [];
       for (let i = 0; i < 3; i++) {
         const [user] = await db
-          .insertInto('testdao.user')
+          .withSchema('testdao')
+          .insertInto('user')
           .values({
             id: sql`gen_random_uuid()`,
             email: `user${i}@example.com`,
@@ -423,7 +438,7 @@ describe('Circuit Breaker Integration Tests', () => {
 
       // Create a proposal
       await db
-        .insertInto('public.proposal')
+        .insertInto('proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -454,7 +469,8 @@ describe('Circuit Breaker Integration Tests', () => {
 
       // Check that successful notifications were recorded
       const notifications = await db
-        .selectFrom('testdao.user_notification')
+        .withSchema('testdao')
+        .selectFrom('userNotification')
         .selectAll()
         .where('type', '=', 'new_proposal')
         .execute();

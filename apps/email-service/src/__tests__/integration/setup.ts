@@ -439,16 +439,17 @@ async function createTestTables() {
 async function cleanTestData() {
   try {
     // Clean in dependency order
-    await testDb.deleteFrom('testdao.user_notification').execute();
-    await testDb.deleteFrom('public.discourse_post').execute();
-    await testDb.deleteFrom('public.discourse_topic').execute();
-    await testDb.deleteFrom('public.discourse_user').execute();
-    await testDb.deleteFrom('public.proposal_group').execute();
-    await testDb.deleteFrom('public.proposal').execute();
-    await testDb.deleteFrom('testdao.user').execute();
-    await testDb.deleteFrom('public.dao_discourse').execute();
-    await testDb.deleteFrom('public.dao_governor').execute();
-    await testDb.deleteFrom('public.dao').execute();
+    // Note: We need to use the .withSchema() method for DAO-specific tables
+    await testDb.withSchema('testdao').deleteFrom('userNotification').execute();
+    await testDb.deleteFrom('discoursePost').execute();
+    await testDb.deleteFrom('discourseTopic').execute();
+    await testDb.deleteFrom('discourseUser').execute();
+    await testDb.deleteFrom('proposalGroup').execute();
+    await testDb.deleteFrom('proposal').execute();
+    await testDb.withSchema('testdao').deleteFrom('user').execute();
+    await testDb.deleteFrom('daoDiscourse').execute();
+    await testDb.deleteFrom('daoGovernor').execute();
+    await testDb.deleteFrom('dao').execute();
   } catch (error) {
     console.error('Error cleaning test data:', error);
     throw error;
@@ -462,7 +463,7 @@ export function getTestDb(): Kysely<DB> {
 export async function createTestData() {
   // Create test DAO
   const [dao] = await testDb
-    .insertInto('public.dao')
+    .insertInto('dao')
     .values({
       name: 'Test DAO',
       slug: 'testdao',
@@ -473,9 +474,9 @@ export async function createTestData() {
 
   // Create test governor
   const [governor] = await testDb
-    .insertInto('public.dao_governor')
+    .insertInto('daoGovernor')
     .values({
-      dao_id: dao.id,
+      daoId: dao.id,
       name: 'Test Governor',
       type: 'governor',
       enabled: true,
@@ -486,52 +487,53 @@ export async function createTestData() {
 
   // Create test discourse
   const [discourse] = await testDb
-    .insertInto('public.dao_discourse')
+    .insertInto('daoDiscourse')
     .values({
-      dao_id: dao.id,
-      discourse_base_url: 'https://forum.example.com',
+      daoId: dao.id,
+      discourseBaseUrl: 'https://forum.example.com',
       enabled: true,
-      with_user_agent: false,
+      withUserAgent: false,
     })
     .returning('id')
     .execute();
 
   // Create test user
   const [user] = await testDb
-    .insertInto('testdao.user')
+    .withSchema('testdao')
+    .insertInto('user')
     .values({
       id: 'test-user-id',
       email: 'test@example.com',
       name: 'Test User',
-      email_verified: true,
-      email_settings_new_proposals: true,
-      email_settings_new_discussions: true,
-      email_settings_ending_proposals: true,
-      is_onboarded: true,
-      created_at: sql`now()`,
-      updated_at: sql`now()`,
+      emailVerified: true,
+      emailSettingsNewProposals: true,
+      emailSettingsNewDiscussions: true,
+      emailSettingsEndingProposals: true,
+      isOnboarded: true,
+      createdAt: sql`now()`,
+      updatedAt: sql`now()`,
     })
     .returning('id')
     .execute();
 
   // Create test discourse user
   const [discourseUser] = await testDb
-    .insertInto('public.discourse_user')
+    .insertInto('discourseUser')
     .values({
-      dao_discourse_id: discourse.id,
-      external_id: 1,
+      daoDiscourseId: discourse.id,
+      externalId: 1,
       username: 'testuser',
       name: 'Test User',
-      avatar_template: '/avatar/{size}.jpg',
-      likes_given: 10n,
-      likes_received: 20n,
-      days_visited: 30n,
-      posts_read: 100n,
-      topics_entered: 50n,
-      post_count: 25n,
-      topic_count: 15n,
+      avatarTemplate: '/avatar/{size}.jpg',
+      likesGiven: 10n,
+      likesReceived: 20n,
+      daysVisited: 30n,
+      postsRead: 100n,
+      topicsEntered: 50n,
+      postCount: 25n,
+      topicCount: 15n,
     })
-    .returning(['id', 'external_id', 'username'])
+    .returning(['id', 'externalId', 'username'])
     .execute();
 
   return {
