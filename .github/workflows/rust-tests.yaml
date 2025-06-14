@@ -8,8 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTC_WRAPPER: "sccache"
-  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   build-test-coverage:
@@ -48,8 +46,20 @@ jobs:
           override: true
           components: llvm-tools-preview
 
-      - name: Install sccache
+      - name: Install and configure sccache (optional)
+        continue-on-error: true
+        id: sccache
         uses: mozilla-actions/sccache-action@v0.0.3
+        
+      - name: Configure Rust wrapper
+        run: |
+          if [ "${{ steps.sccache.outcome }}" == "success" ]; then
+            echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+            echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+            echo "::notice::Using sccache for compilation caching"
+          else
+            echo "::warning::sccache setup failed, continuing without cache"
+          fi
 
       - name: Cache dependencies
         uses: actions/cache@v4
