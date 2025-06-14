@@ -6048,6 +6048,7 @@ __metadata:
     "@types/supertest": "npm:^6.0.3"
     "@vitest/coverage-v8": "npm:^3.2.3"
     axios: "npm:^1.10.0"
+    date-fns: "npm:^4.1.0"
     dotenv: "npm:^16.5.0"
     express: "npm:^5.1.0"
     node-cron: "npm:^4.1.0"
