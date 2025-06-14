@@ -52,33 +52,9 @@ jobs:
           override: true
           components: llvm-tools-preview
 
-      - name: Install and configure sccache (optional)
-        continue-on-error: true
-        id: sccache
-        uses: mozilla-actions/sccache-action@v0.0.3
 
-      - name: Configure Rust wrapper
-        run: |
-          if [ "${{ steps.sccache.outcome }}" == "success" ]; then
-            echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-            echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-            echo "::notice::Using sccache for compilation caching"
-          else
-            echo "::warning::sccache setup failed, continuing without cache"
-          fi
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
 
       - name: Install latest cargo-llvm-cov
         uses: taiki-e/install-action@v2
@@ -87,13 +63,7 @@ jobs:
 
       - name: Build
         run: |
-          # Try building with sccache if available
-          if ! cargo build --verbose; then
-            echo "::warning::Build failed with sccache, retrying without cache"
-            unset RUSTC_WRAPPER
-            unset SCCACHE_GHA_ENABLED
-            cargo build --verbose
-          fi
+          cargo build --verbose
           # Clean up unnecessary build artifacts to save space
           rm -rf target/debug/deps/*.d
           rm -rf target/debug/incremental
@@ -110,13 +80,7 @@ jobs:
           OPTIMISTIC_SCAN_API_KEY: ${{ secrets.OPTIMISTIC_SCAN_API_KEY }}
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
         run: |
-          # Try running tests with sccache if available
-          if ! cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info; then
-            echo "::warning::Tests failed with sccache, retrying without cache"
-            unset RUSTC_WRAPPER
-            unset SCCACHE_GHA_ENABLED
-            cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
-          fi
+          cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
