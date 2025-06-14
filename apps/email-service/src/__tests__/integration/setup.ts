@@ -1,5 +1,26 @@
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { Kysely, sql, PostgresDialect } from 'kysely';
+
+// Set environment variables for testing BEFORE any imports that might validate them
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+}
+if (!process.env.ARBITRUM_DATABASE_URL) {
+  process.env.ARBITRUM_DATABASE_URL =
+    'postgresql://test:test@localhost:5432/test';
+}
+if (!process.env.UNISWAP_DATABASE_URL) {
+  process.env.UNISWAP_DATABASE_URL =
+    'postgresql://test:test@localhost:5432/test';
+}
+
+import {
+  Kysely,
+  sql,
+  PostgresDialect,
+  CamelCasePlugin,
+  DeduplicateJoinsPlugin,
+  ParseJSONResultsPlugin,
+} from 'kysely';
 import { Pool } from 'pg';
 import {
   type StartedPostgreSqlContainer,
@@ -37,6 +58,11 @@ export const setupTestDatabase = () => {
       dialect: new PostgresDialect({
         pool: testDbPool,
       }),
+      plugins: [
+        new CamelCasePlugin(),
+        new DeduplicateJoinsPlugin(),
+        new ParseJSONResultsPlugin(),
+      ],
     });
 
     // Create test tables
@@ -87,214 +113,319 @@ export const setupTestDatabase = () => {
 };
 
 async function createTestTables() {
-  // Create minimal tables needed for integration tests
+  // Create test schemas first
   try {
+    await sql`CREATE SCHEMA IF NOT EXISTS "public";`.execute(testDb);
+    await sql`CREATE SCHEMA IF NOT EXISTS testdao;`.execute(testDb);
+
+    // Create enum types
     await testDb.schema
-      .createTable('dao')
+      .createType('public.proposal_state')
+      .asEnum([
+        'PENDING',
+        'ACTIVE',
+        'CANCELED',
+        'DEFEATED',
+        'SUCCEEDED',
+        'QUEUED',
+        'EXPIRED',
+        'EXECUTED',
+        'HIDDEN',
+        'UNKNOWN',
+      ])
+      .execute();
+
+    // Create tables following the exact real schema
+    await testDb.schema
+      .createTable('public.dao')
       .ifNotExists()
       .addColumn('id', 'uuid', (col) =>
         col.primaryKey().defaultTo(sql`gen_random_uuid()`)
       )
       .addColumn('name', 'text', (col) => col.notNull())
-      .addColumn('slug', 'text', (col) => col.notNull().unique())
+      .addColumn('slug', 'text', (col) => col.notNull())
       .addColumn('picture', 'text', (col) => col.notNull())
       .execute();
 
     await testDb.schema
-      .createTable('daoGovernor')
+      .createIndex('dao_name_key')
+      .on('public.dao')
+      .column('name')
+      .unique()
+      .execute();
+    await testDb.schema
+      .createIndex('dao_slug_key')
+      .on('public.dao')
+      .column('slug')
+      .unique()
+      .execute();
+
+    await testDb.schema
+      .createTable('public.dao_governor')
       .ifNotExists()
       .addColumn('id', 'uuid', (col) =>
         col.primaryKey().defaultTo(sql`gen_random_uuid()`)
       )
-      .addColumn('daoId', 'uuid', (col) => col.notNull().references('dao.id'))
+      .addColumn('dao_id', 'uuid', (col) => col.notNull())
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('type', 'text', (col) => col.notNull())
-      .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
-      .addColumn('portalUrl', 'text')
       .addColumn('metadata', 'jsonb', (col) => col.notNull().defaultTo('{}'))
+      .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
+      .addColumn('portal_url', 'text')
+      .addForeignKeyConstraint(
+        'fk_dao_governor_dao_id',
+        ['dao_id'],
+        'public.dao',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
+      )
       .execute();
 
     await testDb.schema
-      .createTable('daoDiscourse')
+      .createTable('public.dao_discourse')
       .ifNotExists()
       .addColumn('id', 'uuid', (col) =>
         col.primaryKey().defaultTo(sql`gen_random_uuid()`)
       )
-      .addColumn('daoId', 'uuid', (col) => col.notNull().references('dao.id'))
-      .addColumn('discourseBaseUrl', 'text', (col) => col.notNull())
+      .addColumn('dao_id', 'uuid', (col) => col.notNull())
+      .addColumn('discourse_base_url', 'text', (col) => col.notNull())
       .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
-      .addColumn('withUserAgent', 'boolean', (col) =>
+      .addColumn('with_user_agent', 'boolean', (col) =>
         col.notNull().defaultTo(false)
       )
+      .addForeignKeyConstraint(
+        'fk_dao_discourse_dao_id',
+        ['dao_id'],
+        'public.dao',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
+      )
       .execute();
 
     await testDb.schema
-      .createTable('proposal')
+      .createTable('public.proposal')
       .ifNotExists()
       .addColumn('id', 'uuid', (col) =>
         col.primaryKey().defaultTo(sql`gen_random_uuid()`)
       )
-      .addColumn('daoId', 'uuid', (col) => col.notNull().references('dao.id'))
-      .addColumn('governorId', 'uuid', (col) =>
-        col.notNull().references('daoGovernor.id')
-      )
-      .addColumn('externalId', 'text', (col) => col.notNull())
+      .addColumn('external_id', 'text', (col) => col.notNull())
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('body', 'text', (col) => col.notNull())
       .addColumn('url', 'text', (col) => col.notNull())
-      .addColumn('discussionUrl', 'text')
-      .addColumn('author', 'text')
-      .addColumn('proposalState', 'text', (col) => col.notNull())
-      .addColumn('startAt', 'timestamp', (col) => col.notNull())
-      .addColumn('endAt', 'timestamp', (col) => col.notNull())
-      .addColumn('quorum', 'numeric', (col) => col.notNull())
-      .addColumn('choices', 'jsonb', (col) =>
-        col.notNull().defaultTo(sql`'[]'::jsonb`)
+      .addColumn('discussion_url', 'text')
+      .addColumn('choices', 'jsonb', (col) => col.notNull().defaultTo('[]'))
+      .addColumn('quorum', 'float8', (col) => col.notNull())
+      .addColumn('proposal_state', sql`public.proposal_state`, (col) =>
+        col.notNull()
       )
-      .addColumn('metadata', 'jsonb')
+      .addColumn('marked_spam', 'boolean', (col) =>
+        col.notNull().defaultTo(false)
+      )
+      .addColumn('created_at', 'timestamp', (col) => col.notNull())
+      .addColumn('start_at', 'timestamp', (col) => col.notNull())
+      .addColumn('end_at', 'timestamp', (col) => col.notNull())
+      .addColumn('block_created_at', 'integer')
       .addColumn('txid', 'text')
-      .addColumn('blockCreatedAt', 'bigint')
-      .addColumn('blockStartAt', 'bigint')
-      .addColumn('blockEndAt', 'bigint')
-      .addColumn('markedSpam', 'boolean', (col) =>
-        col.notNull().defaultTo(false)
+      .addColumn('metadata', 'jsonb')
+      .addColumn('dao_id', 'uuid', (col) => col.notNull())
+      .addColumn('author', 'text')
+      .addColumn('governor_id', 'uuid', (col) => col.notNull())
+      .addColumn('block_start_at', 'integer')
+      .addColumn('block_end_at', 'integer')
+      .addForeignKeyConstraint(
+        'fk_proposal_dao_id',
+        ['dao_id'],
+        'public.dao',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
       )
-      .addColumn('createdAt', 'timestamp', (col) =>
-        col.notNull().defaultTo(sql`now()`)
+      .addForeignKeyConstraint(
+        'fk_proposal_governor_id',
+        ['governor_id'],
+        'public.dao_governor',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
       )
       .execute();
 
+    // Create DAO-specific user table (like arbitrum.user)
     await testDb.schema
-      .createTable('user')
+      .createTable('testdao.user')
       .ifNotExists()
-      .addColumn('id', 'uuid', (col) =>
-        col.primaryKey().defaultTo(sql`gen_random_uuid()`)
-      )
-      .addColumn('email', 'text', (col) => col.notNull().unique())
+      .addColumn('id', 'text', (col) => col.primaryKey())
       .addColumn('name', 'text', (col) => col.notNull())
-      .addColumn('emailVerified', 'boolean', (col) =>
-        col.notNull().defaultTo(false)
-      )
-      .addColumn('emailSettingsNewProposals', 'boolean', (col) =>
-        col.notNull().defaultTo(true)
-      )
-      .addColumn('emailSettingsNewDiscussions', 'boolean', (col) =>
-        col.notNull().defaultTo(true)
-      )
-      .addColumn('emailSettingsEndingProposals', 'boolean', (col) =>
-        col.notNull().defaultTo(true)
-      )
-      .addColumn('isOnboarded', 'boolean', (col) =>
-        col.notNull().defaultTo(false)
-      )
+      .addColumn('email', 'text', (col) => col.notNull())
+      .addColumn('email_verified', 'boolean', (col) => col.notNull())
       .addColumn('image', 'text')
-      .addColumn('createdAt', 'timestamp', (col) =>
-        col.notNull().defaultTo(sql`now()`)
+      .addColumn('created_at', 'timestamp', (col) => col.notNull())
+      .addColumn('updated_at', 'timestamp', (col) => col.notNull())
+      .addColumn('email_settings_new_proposals', 'boolean', (col) =>
+        col.notNull().defaultTo(true)
       )
-      .addColumn('updatedAt', 'timestamp', (col) =>
-        col.notNull().defaultTo(sql`now()`)
+      .addColumn('email_settings_new_discussions', 'boolean', (col) =>
+        col.notNull().defaultTo(true)
       )
-      .execute();
-
-    await testDb.schema
-      .createTable('userNotification')
-      .ifNotExists()
-      .addColumn('id', 'uuid', (col) =>
-        col.primaryKey().defaultTo(sql`gen_random_uuid()`)
-      )
-      .addColumn('userId', 'uuid', (col) => col.notNull().references('user.id'))
-      .addColumn('targetId', 'text', (col) => col.notNull())
-      .addColumn('type', 'text', (col) => col.notNull())
-      .addColumn('sentAt', 'timestamp', (col) =>
-        col.notNull().defaultTo(sql`now()`)
-      )
-      .execute();
-
-    await testDb.schema
-      .createTable('discourseTopic')
-      .ifNotExists()
-      .addColumn('id', 'uuid', (col) =>
-        col.primaryKey().defaultTo(sql`gen_random_uuid()`)
-      )
-      .addColumn('daoDiscourseId', 'uuid', (col) =>
-        col.notNull().references('daoDiscourse.id')
-      )
-      .addColumn('externalId', 'integer', (col) => col.notNull())
-      .addColumn('title', 'text', (col) => col.notNull())
-      .addColumn('slug', 'text', (col) => col.notNull())
-      .addColumn('fancyTitle', 'text', (col) => col.notNull())
-      .addColumn('categoryId', 'integer', (col) => col.notNull())
-      .addColumn('archived', 'boolean', (col) => col.notNull().defaultTo(false))
-      .addColumn('closed', 'boolean', (col) => col.notNull().defaultTo(false))
-      .addColumn('pinned', 'boolean', (col) => col.notNull().defaultTo(false))
-      .addColumn('pinnedGlobally', 'boolean', (col) =>
+      .addColumn('is_onboarded', 'boolean', (col) =>
         col.notNull().defaultTo(false)
       )
-      .addColumn('visible', 'boolean', (col) => col.notNull().defaultTo(true))
-      .addColumn('postsCount', 'integer', (col) => col.notNull().defaultTo(0))
-      .addColumn('replyCount', 'integer', (col) => col.notNull().defaultTo(0))
-      .addColumn('likeCount', 'integer', (col) => col.notNull().defaultTo(0))
-      .addColumn('views', 'integer', (col) => col.notNull().defaultTo(0))
-      .addColumn('createdAt', 'timestamp', (col) =>
-        col.notNull().defaultTo(sql`now()`)
-      )
-      .addColumn('bumpedAt', 'timestamp', (col) =>
-        col.notNull().defaultTo(sql`now()`)
-      )
-      .addColumn('lastPostedAt', 'timestamp', (col) =>
-        col.notNull().defaultTo(sql`now()`)
+      .addColumn('email_settings_ending_proposals', 'boolean', (col) =>
+        col.notNull().defaultTo(true)
       )
       .execute();
 
     await testDb.schema
-      .createTable('discourseUser')
+      .createIndex('user_email_key')
+      .on('testdao.user')
+      .column('email')
+      .unique()
+      .execute();
+
+    // Create DAO-specific user_notification table
+    await testDb.schema
+      .createTable('testdao.user_notification')
       .ifNotExists()
       .addColumn('id', 'uuid', (col) =>
         col.primaryKey().defaultTo(sql`gen_random_uuid()`)
       )
-      .addColumn('daoDiscourseId', 'uuid', (col) =>
-        col.notNull().references('daoDiscourse.id')
+      .addColumn('user_id', 'text', (col) => col.notNull())
+      .addColumn('type', 'text', (col) => col.notNull())
+      .addColumn('target_id', 'text', (col) => col.notNull())
+      .addColumn('sent_at', 'timestamp', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
       )
-      .addColumn('externalId', 'integer', (col) => col.notNull())
+      .addForeignKeyConstraint(
+        'user_notification_userId_fkey',
+        ['user_id'],
+        'testdao.user',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
+      )
+      .execute();
+
+    await testDb.schema
+      .createTable('public.discourse_topic')
+      .ifNotExists()
+      .addColumn('id', 'uuid', (col) =>
+        col.primaryKey().defaultTo(sql`gen_random_uuid()`)
+      )
+      .addColumn('external_id', 'integer', (col) => col.notNull())
+      .addColumn('title', 'text', (col) => col.notNull())
+      .addColumn('fancy_title', 'text', (col) => col.notNull())
+      .addColumn('slug', 'text', (col) => col.notNull())
+      .addColumn('posts_count', 'integer', (col) => col.notNull())
+      .addColumn('reply_count', 'integer', (col) => col.notNull())
+      .addColumn('created_at', 'timestamp', (col) => col.notNull())
+      .addColumn('last_posted_at', 'timestamp', (col) => col.notNull())
+      .addColumn('bumped_at', 'timestamp', (col) => col.notNull())
+      .addColumn('pinned', 'boolean', (col) => col.notNull())
+      .addColumn('pinned_globally', 'boolean', (col) => col.notNull())
+      .addColumn('visible', 'boolean', (col) => col.notNull())
+      .addColumn('closed', 'boolean', (col) => col.notNull())
+      .addColumn('archived', 'boolean', (col) => col.notNull())
+      .addColumn('views', 'integer', (col) => col.notNull())
+      .addColumn('like_count', 'integer', (col) => col.notNull())
+      .addColumn('category_id', 'integer', (col) => col.notNull())
+      .addColumn('dao_discourse_id', 'uuid', (col) => col.notNull())
+      .addForeignKeyConstraint(
+        'fk_discourse_topic_dao_discourse_id',
+        ['dao_discourse_id'],
+        'public.dao_discourse',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
+      )
+      .execute();
+
+    await testDb.schema
+      .createTable('public.discourse_user')
+      .ifNotExists()
+      .addColumn('id', 'uuid', (col) =>
+        col.primaryKey().defaultTo(sql`gen_random_uuid()`)
+      )
+      .addColumn('external_id', 'integer', (col) => col.notNull())
       .addColumn('username', 'text', (col) => col.notNull())
       .addColumn('name', 'text')
-      .addColumn('avatarTemplate', 'text', (col) => col.notNull())
+      .addColumn('avatar_template', 'text', (col) => col.notNull())
       .addColumn('title', 'text')
-      .addColumn('likesGiven', 'bigint')
-      .addColumn('likesReceived', 'bigint')
-      .addColumn('daysVisited', 'bigint')
-      .addColumn('postsRead', 'bigint')
-      .addColumn('topicsEntered', 'bigint')
-      .addColumn('postCount', 'bigint')
-      .addColumn('topicCount', 'bigint')
+      .addColumn('likes_received', 'bigint')
+      .addColumn('likes_given', 'bigint')
+      .addColumn('topics_entered', 'bigint')
+      .addColumn('topic_count', 'bigint')
+      .addColumn('post_count', 'bigint')
+      .addColumn('posts_read', 'bigint')
+      .addColumn('days_visited', 'bigint')
+      .addColumn('dao_discourse_id', 'uuid', (col) => col.notNull())
+      .addForeignKeyConstraint(
+        'fk_discourse_user_dao_discourse_id',
+        ['dao_discourse_id'],
+        'public.dao_discourse',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
+      )
       .execute();
 
     await testDb.schema
-      .createTable('discoursePost')
+      .createTable('public.discourse_post')
       .ifNotExists()
       .addColumn('id', 'uuid', (col) =>
         col.primaryKey().defaultTo(sql`gen_random_uuid()`)
       )
-      .addColumn('daoDiscourseId', 'uuid', (col) =>
-        col.notNull().references('daoDiscourse.id')
+      .addColumn('external_id', 'integer', (col) => col.notNull())
+      .addColumn('name', 'text')
+      .addColumn('username', 'text', (col) => col.notNull())
+      .addColumn('created_at', 'timestamp', (col) => col.notNull())
+      .addColumn('cooked', 'text')
+      .addColumn('post_number', 'integer', (col) => col.notNull())
+      .addColumn('post_type', 'integer', (col) => col.notNull())
+      .addColumn('updated_at', 'timestamp', (col) => col.notNull())
+      .addColumn('reply_count', 'integer', (col) => col.notNull())
+      .addColumn('reply_to_post_number', 'integer')
+      .addColumn('quote_count', 'integer', (col) => col.notNull())
+      .addColumn('incoming_link_count', 'integer', (col) => col.notNull())
+      .addColumn('reads', 'integer', (col) => col.notNull())
+      .addColumn('readers_count', 'integer', (col) => col.notNull())
+      .addColumn('score', 'float8', (col) => col.notNull())
+      .addColumn('topic_id', 'integer', (col) => col.notNull())
+      .addColumn('topic_slug', 'text', (col) => col.notNull())
+      .addColumn('display_username', 'text')
+      .addColumn('primary_group_name', 'text')
+      .addColumn('flair_name', 'text')
+      .addColumn('flair_url', 'text')
+      .addColumn('flair_bg_color', 'text')
+      .addColumn('flair_color', 'text')
+      .addColumn('version', 'integer', (col) => col.notNull())
+      .addColumn('user_id', 'integer', (col) => col.notNull())
+      .addColumn('dao_discourse_id', 'uuid', (col) => col.notNull())
+      .addColumn('can_view_edit_history', 'boolean', (col) =>
+        col.notNull().defaultTo(false)
       )
-      .addColumn('topicId', 'integer', (col) => col.notNull())
-      .addColumn('postNumber', 'integer', (col) => col.notNull())
-      .addColumn('userId', 'integer', (col) => col.notNull())
       .addColumn('deleted', 'boolean', (col) => col.notNull().defaultTo(false))
+      .addForeignKeyConstraint(
+        'fk_discourse_post_dao_discourse_id',
+        ['dao_discourse_id'],
+        'public.dao_discourse',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
+      )
       .execute();
 
     await testDb.schema
-      .createTable('proposalGroup')
+      .createTable('public.proposal_group')
       .ifNotExists()
       .addColumn('id', 'uuid', (col) =>
         col.primaryKey().defaultTo(sql`gen_random_uuid()`)
       )
-      .addColumn('daoId', 'uuid', (col) => col.notNull().references('dao.id'))
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('items', 'jsonb', (col) => col.notNull().defaultTo('[]'))
-      .addColumn('createdAt', 'timestamp', (col) =>
-        col.notNull().defaultTo(sql`now()`)
+      .addColumn('created_at', 'timestamp', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+      )
+      .addColumn('dao_id', 'uuid', (col) => col.notNull())
+      .addForeignKeyConstraint(
+        'fk_proposal_group_dao_id',
+        ['dao_id'],
+        'public.dao',
+        ['id'],
+        (cb) => cb.onDelete('cascade')
       )
       .execute();
 
@@ -308,16 +439,16 @@ async function createTestTables() {
 async function cleanTestData() {
   try {
     // Clean in dependency order
-    await testDb.deleteFrom('userNotification').execute();
-    await testDb.deleteFrom('discoursePost').execute();
-    await testDb.deleteFrom('discourseTopic').execute();
-    await testDb.deleteFrom('discourseUser').execute();
-    await testDb.deleteFrom('proposalGroup').execute();
-    await testDb.deleteFrom('proposal').execute();
-    await testDb.deleteFrom('user').execute();
-    await testDb.deleteFrom('daoDiscourse').execute();
-    await testDb.deleteFrom('daoGovernor').execute();
-    await testDb.deleteFrom('dao').execute();
+    await testDb.deleteFrom('testdao.user_notification').execute();
+    await testDb.deleteFrom('public.discourse_post').execute();
+    await testDb.deleteFrom('public.discourse_topic').execute();
+    await testDb.deleteFrom('public.discourse_user').execute();
+    await testDb.deleteFrom('public.proposal_group').execute();
+    await testDb.deleteFrom('public.proposal').execute();
+    await testDb.deleteFrom('testdao.user').execute();
+    await testDb.deleteFrom('public.dao_discourse').execute();
+    await testDb.deleteFrom('public.dao_governor').execute();
+    await testDb.deleteFrom('public.dao').execute();
   } catch (error) {
     console.error('Error cleaning test data:', error);
     throw error;
@@ -331,10 +462,10 @@ export function getTestDb(): Kysely<DB> {
 export async function createTestData() {
   // Create test DAO
   const [dao] = await testDb
-    .insertInto('dao')
+    .insertInto('public.dao')
     .values({
       name: 'Test DAO',
-      slug: 'test-dao',
+      slug: 'testdao',
       picture: 'https://example.com/dao.jpg',
     })
     .returning(['id', 'name', 'slug', 'picture'])
@@ -342,9 +473,9 @@ export async function createTestData() {
 
   // Create test governor
   const [governor] = await testDb
-    .insertInto('daoGovernor')
+    .insertInto('public.dao_governor')
     .values({
-      daoId: dao.id,
+      dao_id: dao.id,
       name: 'Test Governor',
       type: 'governor',
       enabled: true,
@@ -355,52 +486,52 @@ export async function createTestData() {
 
   // Create test discourse
   const [discourse] = await testDb
-    .insertInto('daoDiscourse')
+    .insertInto('public.dao_discourse')
     .values({
-      daoId: dao.id,
-      discourseBaseUrl: 'https://forum.example.com',
+      dao_id: dao.id,
+      discourse_base_url: 'https://forum.example.com',
       enabled: true,
-      withUserAgent: false,
+      with_user_agent: false,
     })
     .returning('id')
     .execute();
 
   // Create test user
   const [user] = await testDb
-    .insertInto('user')
+    .insertInto('testdao.user')
     .values({
-      id: sql`gen_random_uuid()`,
+      id: 'test-user-id',
       email: 'test@example.com',
       name: 'Test User',
-      emailVerified: true,
-      emailSettingsNewProposals: true,
-      emailSettingsNewDiscussions: true,
-      emailSettingsEndingProposals: true,
-      isOnboarded: true,
-      createdAt: sql`now()`,
-      updatedAt: sql`now()`,
+      email_verified: true,
+      email_settings_new_proposals: true,
+      email_settings_new_discussions: true,
+      email_settings_ending_proposals: true,
+      is_onboarded: true,
+      created_at: sql`now()`,
+      updated_at: sql`now()`,
     })
     .returning('id')
     .execute();
 
   // Create test discourse user
   const [discourseUser] = await testDb
-    .insertInto('discourseUser')
+    .insertInto('public.discourse_user')
     .values({
-      daoDiscourseId: discourse.id,
-      externalId: 1,
+      dao_discourse_id: discourse.id,
+      external_id: 1,
       username: 'testuser',
       name: 'Test User',
-      avatarTemplate: '/avatar/{size}.jpg',
-      likesGiven: '10',
-      likesReceived: '20',
-      daysVisited: '30',
-      postsRead: '100',
-      topicsEntered: '50',
-      postCount: '25',
-      topicCount: '15',
+      avatar_template: '/avatar/{size}.jpg',
+      likes_given: 10n,
+      likes_received: 20n,
+      days_visited: 30n,
+      posts_read: 100n,
+      topics_entered: 50n,
+      post_count: 25n,
+      topic_count: 15n,
     })
-    .returning(['id', 'externalId'])
+    .returning(['id', 'external_id', 'username'])
     .execute();
 
   return {

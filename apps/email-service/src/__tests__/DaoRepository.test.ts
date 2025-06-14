@@ -1,17 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { Kysely } from 'kysely';
-import type { DB } from '@proposalsapp/db';
 import { DaoRepository } from '../repositories/DaoRepository';
 
 describe('DaoRepository', () => {
-  let mockDb: jest.Mocked<Kysely<DB>>;
+  let mockDb: any;
   let daoRepository: DaoRepository;
 
   beforeEach(() => {
     const mockExecute = vi.fn();
     const mockExecuteTakeFirst = vi.fn();
     const mockWhere = vi.fn().mockReturnThis();
-    const mockSelect = vi.fn().mockReturnThis();
     const mockSelectAll = vi.fn().mockReturnThis();
     const mockSelectFrom = vi.fn().mockReturnThis();
 
@@ -58,7 +55,7 @@ describe('DaoRepository', () => {
       const mockSelectAll = vi.fn().mockReturnValue({
         where: mockWhere,
       });
-      
+
       mockDb.selectFrom.mockReturnValue({
         selectAll: mockSelectAll,
       } as any);
@@ -80,7 +77,7 @@ describe('DaoRepository', () => {
       const mockSelectAll = vi.fn().mockReturnValue({
         where: mockWhere,
       });
-      
+
       mockDb.selectFrom.mockReturnValue({
         selectAll: mockSelectAll,
       } as any);
@@ -103,12 +100,14 @@ describe('DaoRepository', () => {
       const mockSelectAll = vi.fn().mockReturnValue({
         where: mockWhere,
       });
-      
+
       mockDb.selectFrom.mockReturnValue({
         selectAll: mockSelectAll,
       } as any);
 
-      await expect(daoRepository.getDaoBySlug('test-dao')).rejects.toThrow('Database connection failed');
+      await expect(daoRepository.getDaoBySlug('test-dao')).rejects.toThrow(
+        'Database connection failed'
+      );
     });
   });
 });

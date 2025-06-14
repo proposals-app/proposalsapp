@@ -10,11 +10,14 @@ import { UptimeMonitor } from './services/UptimeMonitor';
 validateConfig();
 
 // Initialize dependency container
-const container = new DependencyContainer({
-  resendApiKey: config.resendApiKey,
-  fromEmail: config.fromEmail,
-  notificationConfig: config.notifications,
-});
+const container = new DependencyContainer(
+  {
+    resendApiKey: config.resendApiKey,
+    fromEmail: config.fromEmail,
+    notificationConfig: config.notifications,
+  },
+  db
+);
 
 // Initialize circuit breaker if enabled
 const circuitBreaker = config.circuitBreaker.enabled

@@ -47,7 +47,7 @@ describe('Circuit Breaker Integration Tests', () => {
       },
       {
         public: getTestDb(),
-        'test-dao': getTestDb(),
+        testdao: getTestDb().withSchema('testdao'),
       }
     );
   });
@@ -86,7 +86,7 @@ describe('Circuit Breaker Integration Tests', () => {
         proposals.push(proposal);
       }
 
-      const notificationService = container.getNotificationService('test-dao');
+      const notificationService = container.getNotificationService('testdao');
 
       // Process notifications multiple times to trigger circuit breaker
       for (let i = 0; i < 5; i++) {
@@ -135,7 +135,7 @@ describe('Circuit Breaker Integration Tests', () => {
         })
         .execute();
 
-      const notificationService = container.getNotificationService('test-dao');
+      const notificationService = container.getNotificationService('testdao');
 
       // Trigger circuit breaker to open
       for (let i = 0; i < 3; i++) {
@@ -163,7 +163,7 @@ describe('Circuit Breaker Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
@@ -189,7 +189,7 @@ describe('Circuit Breaker Integration Tests', () => {
         .execute();
 
       const newNotificationService =
-        newContainer.getNotificationService('test-dao');
+        newContainer.getNotificationService('testdao');
 
       // Process notifications with the new service (circuit breaker should be reset)
       await newNotificationService.processNewProposalNotifications(
@@ -235,7 +235,7 @@ describe('Circuit Breaker Integration Tests', () => {
           .execute();
       }
 
-      const notificationService = container.getNotificationService('test-dao');
+      const notificationService = container.getNotificationService('testdao');
       await notificationService.processNewProposalNotifications(testData.dao);
 
       // Verify that some emails were sent successfully
@@ -243,7 +243,7 @@ describe('Circuit Breaker Integration Tests', () => {
 
       // Check that some notifications were recorded (for successful sends)
       const notifications = await db
-        .selectFrom('userNotification')
+        .selectFrom('testdao.user_notification')
         .selectAll()
         .where('userId', '=', testData.user.id)
         .where('type', '=', 'new_proposal')
@@ -311,7 +311,7 @@ describe('Circuit Breaker Integration Tests', () => {
         .insertInto('dao')
         .values({
           name: 'Test DAO 2',
-          slug: 'test-dao-2',
+          slug: 'testdao2',
           picture: 'https://example.com/dao2.jpg',
         })
         .returning('id')
@@ -377,7 +377,7 @@ describe('Circuit Breaker Integration Tests', () => {
         workingNotificationService.processNewProposalNotifications({
           id: dao2.id,
           name: 'Test DAO 2',
-          slug: 'test-dao-2',
+          slug: 'testdao2',
           picture: 'https://example.com/dao2.jpg',
         })
       ).resolves.not.toThrow();
@@ -395,7 +395,7 @@ describe('Circuit Breaker Integration Tests', () => {
       const users = [];
       for (let i = 0; i < 3; i++) {
         const [user] = await db
-          .insertInto('user')
+          .insertInto('testdao.user')
           .values({
             id: sql`gen_random_uuid()`,
             email: `user${i}@example.com`,
@@ -423,7 +423,7 @@ describe('Circuit Breaker Integration Tests', () => {
 
       // Create a proposal
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -442,7 +442,7 @@ describe('Circuit Breaker Integration Tests', () => {
         })
         .execute();
 
-      const notificationService = container.getNotificationService('test-dao');
+      const notificationService = container.getNotificationService('testdao');
 
       // Should complete without throwing despite individual failures
       await expect(
@@ -454,7 +454,7 @@ describe('Circuit Breaker Integration Tests', () => {
 
       // Check that successful notifications were recorded
       const notifications = await db
-        .selectFrom('userNotification')
+        .selectFrom('testdao.user_notification')
         .selectAll()
         .where('type', '=', 'new_proposal')
         .execute();

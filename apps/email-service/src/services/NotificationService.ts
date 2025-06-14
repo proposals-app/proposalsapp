@@ -49,9 +49,8 @@ export class NotificationService {
         return;
       }
 
-      const users = await this.userRepository.getUsersForNewProposalNotifications(
-        dao.slug
-      );
+      const users =
+        await this.userRepository.getUsersForNewProposalNotifications(dao.slug);
       console.log(
         `Found ${users.length} users to notify for new proposals in ${dao.name}`
       );

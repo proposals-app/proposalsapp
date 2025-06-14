@@ -38,13 +38,13 @@ describe('DependencyContainer Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       // Verify all repository instances are created
       expect(container.getProposalRepository()).toBeDefined();
-      expect(container.getUserNotificationRepository()).toBeDefined();
+      expect(container.getUserNotificationRepository('testdao')).toBeDefined();
       expect(container.getDaoRepository()).toBeDefined();
       expect(container.getDiscourseRepository()).toBeDefined();
       expect(container.getProposalGroupRepository()).toBeDefined();
@@ -115,15 +115,15 @@ describe('DependencyContainer Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
-      const notificationService = container.getNotificationService('test-dao');
+      const notificationService = container.getNotificationService('testdao');
       expect(notificationService).toBeDefined();
 
       // Each call should return a new instance with the correct DAO-specific user repository
-      const notificationService2 = container.getNotificationService('test-dao');
+      const notificationService2 = container.getNotificationService('testdao');
       expect(notificationService2).toBeDefined();
       expect(notificationService).not.toBe(notificationService2);
     });
@@ -143,7 +143,7 @@ describe('DependencyContainer Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
@@ -153,7 +153,7 @@ describe('DependencyContainer Integration Tests', () => {
       expect(Array.isArray(daos)).toBe(true);
       expect(daos.length).toBe(1);
       expect(daos[0].name).toBe('Test DAO');
-      expect(daos[0].slug).toBe('test-dao');
+      expect(daos[0].slug).toBe('testdao');
     });
 
     it('should allow user repository to access DAO-specific users', async () => {
@@ -169,13 +169,13 @@ describe('DependencyContainer Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
-      const userRepository = container.getUserRepository('test-dao');
+      const userRepository = container.getUserRepository('testdao');
       const users =
-        await userRepository.getUsersForNewProposalNotifications('test-dao');
+        await userRepository.getUsersForNewProposalNotifications('testdao');
 
       expect(Array.isArray(users)).toBe(true);
       expect(users.length).toBe(1);
@@ -188,7 +188,7 @@ describe('DependencyContainer Integration Tests', () => {
 
       // Create a test proposal
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -218,7 +218,7 @@ describe('DependencyContainer Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
@@ -250,7 +250,7 @@ describe('DependencyContainer Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
@@ -278,7 +278,7 @@ describe('DependencyContainer Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
@@ -302,14 +302,14 @@ describe('DependencyContainer Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       // Create a recent proposal (within timeframe)
       const db = getTestDb();
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,

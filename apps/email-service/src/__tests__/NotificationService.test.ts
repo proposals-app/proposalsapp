@@ -403,6 +403,17 @@ describe('NotificationService', () => {
         mockTopics
       );
       (
+        mockUserRepository.getUsersForNewDiscussionNotifications as any
+      ).mockResolvedValue([
+        {
+          id: 'user-1',
+          email: 'user1@example.com',
+          name: 'Test User',
+          emailVerified: true,
+          emailSettingsNewDiscussions: true,
+        },
+      ]);
+      (
         mockProposalGroupRepository.getProposalGroupsByDiscourseUrl as any
       ).mockResolvedValue(mockProposalGroups);
 

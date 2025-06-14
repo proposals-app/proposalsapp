@@ -1,5 +1,4 @@
 import {
-  sql,
   ProposalState,
   type Selectable,
   type DB,
@@ -18,7 +17,7 @@ export class ProposalRepository implements IProposalRepository {
     // Calculate the cutoff time in JavaScript to avoid PostgreSQL interval issues
     const now = new Date();
     const cutoffTime = new Date(now.getTime() - timeFrameInMinutes * 60 * 1000);
-    
+
     const result = await this.db
       .selectFrom('proposal')
       .selectAll()
@@ -38,7 +37,7 @@ export class ProposalRepository implements IProposalRepository {
     // Calculate the cutoff time in JavaScript to avoid PostgreSQL interval issues
     const now = new Date();
     const cutoffTime = new Date(now.getTime() + timeFrameInMinutes * 60 * 1000);
-    
+
     const result = await this.db
       .selectFrom('proposal')
       .selectAll()

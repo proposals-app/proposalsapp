@@ -1,4 +1,4 @@
-import { db, type Kysely, type DB } from '@proposalsapp/db';
+import { type Kysely, type DB } from '@proposalsapp/db';
 import { ProposalRepository } from '../repositories/ProposalRepository';
 import { UserNotificationRepository } from '../repositories/UserNotificationRepository';
 import { UserRepository } from '../repositories/UserRepository';
@@ -29,7 +29,10 @@ export interface DependencyContainerConfig {
 
 export class DependencyContainer {
   private proposalRepository: IProposalRepository;
-  private userNotificationRepository: IUserNotificationRepository;
+  private userNotificationRepositories: Map<
+    string,
+    IUserNotificationRepository
+  > = new Map();
   private userRepositories: Map<string, IUserRepository> = new Map();
   private daoRepository: IDaoRepository;
   private discourseRepository: IDiscourseRepository;
@@ -41,13 +44,10 @@ export class DependencyContainer {
     private databases: {
       public: Kysely<DB>;
       [daoSlug: string]: Kysely<DB>;
-    } = db
+    }
   ) {
     // Initialize repositories with public database
     this.proposalRepository = new ProposalRepository(this.databases.public);
-    this.userNotificationRepository = new UserNotificationRepository(
-      this.databases.public
-    );
     this.daoRepository = new DaoRepository(this.databases.public);
     this.discourseRepository = new DiscourseRepository(this.databases.public);
     this.proposalGroupRepository = new ProposalGroupRepository(
@@ -63,8 +63,18 @@ export class DependencyContainer {
     return this.proposalRepository;
   }
 
-  getUserNotificationRepository(): IUserNotificationRepository {
-    return this.userNotificationRepository;
+  getUserNotificationRepository(daoSlug: string): IUserNotificationRepository {
+    if (!this.userNotificationRepositories.has(daoSlug)) {
+      const daoDb = this.databases[daoSlug];
+      if (!daoDb) {
+        throw new Error(`Database for DAO ${daoSlug} not found`);
+      }
+      this.userNotificationRepositories.set(
+        daoSlug,
+        new UserNotificationRepository(daoDb)
+      );
+    }
+    return this.userNotificationRepositories.get(daoSlug)!;
   }
 
   getUserRepository(daoSlug: string): IUserRepository {
@@ -98,7 +108,7 @@ export class DependencyContainer {
     // Create a new instance with the correct user repository for the DAO
     return new NotificationService(
       this.proposalRepository,
-      this.userNotificationRepository,
+      this.getUserNotificationRepository(daoSlug),
       this.getUserRepository(daoSlug),
       this.daoRepository,
       this.discourseRepository,

@@ -161,7 +161,7 @@ describe('CircuitBreaker', () => {
     it('should handle shouldAttemptReset when lastFailureTime is null', () => {
       // Create a fresh circuit breaker with no failures
       const freshCircuitBreaker = new CircuitBreaker(3, 1000);
-      
+
       // Access the private method through a workaround to test the branch
       // This tests the uncovered branch in shouldAttemptReset
       const shouldAttempt = (freshCircuitBreaker as any).shouldAttemptReset();

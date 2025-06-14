@@ -28,7 +28,7 @@ describe('Configuration Integration Tests', () => {
       const db = getTestDb();
 
       // Clean any existing proposals from test data
-      await db.deleteFrom('proposal').execute();
+      await db.deleteFrom('public.proposal').execute();
 
       // Create proposals at different times
       const now = new Date();
@@ -37,7 +37,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create old proposal (should not trigger notification)
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -58,7 +58,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create recent proposal (should trigger notification)
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -91,12 +91,12 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       const notificationService60 =
-        container60.getNotificationService('test-dao');
+        container60.getNotificationService('testdao');
       await notificationService60.processNewProposalNotifications(testData.dao);
 
       // Should send notification for recent proposal only
@@ -118,12 +118,12 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       const notificationService15 =
-        container15.getNotificationService('test-dao');
+        container15.getNotificationService('testdao');
       await notificationService15.processNewProposalNotifications(testData.dao);
 
       // Should not send any notifications (30-minute-old proposal is outside timeframe)
@@ -135,7 +135,7 @@ describe('Configuration Integration Tests', () => {
       const now = new Date();
 
       // Clean any existing proposals from test data
-      await db.deleteFrom('proposal').execute();
+      await db.deleteFrom('public.proposal').execute();
 
       // Create proposals ending at different times
       const endsIn30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
@@ -143,7 +143,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create proposal ending soon
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -164,7 +164,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create proposal ending later
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -197,12 +197,12 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       const notificationService60 =
-        container60.getNotificationService('test-dao');
+        container60.getNotificationService('testdao');
       await notificationService60.processEndingProposalNotifications(
         testData.dao
       );
@@ -211,9 +211,9 @@ describe('Configuration Integration Tests', () => {
       expect(mockEmailClient.send).toHaveBeenCalledOnce();
 
       vi.clearAllMocks();
-      
+
       // Clear notification history to avoid cooldown issues
-      await db.deleteFrom('userNotification').execute();
+      await db.deleteFrom('testdao.user_notification').execute();
 
       // Test with 240-minute (4 hour) ending timeframe
       const container240 = new DependencyContainer(
@@ -229,12 +229,12 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       const notificationService240 =
-        container240.getNotificationService('test-dao');
+        container240.getNotificationService('testdao');
       await notificationService240.processEndingProposalNotifications(
         testData.dao
       );
@@ -248,7 +248,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create a proposal
       const [proposal] = await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -270,7 +270,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create a recent notification (within cooldown period)
       await db
-        .insertInto('userNotification')
+        .insertInto('testdao.user_notification')
         .values({
           userId: testData.user.id,
           targetId: proposal.id,
@@ -293,12 +293,12 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       const notificationService24 =
-        container24.getNotificationService('test-dao');
+        container24.getNotificationService('testdao');
       await notificationService24.processNewProposalNotifications(testData.dao);
 
       // Should not send notification due to cooldown
@@ -318,12 +318,11 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
-      const notificationService6 =
-        container6.getNotificationService('test-dao');
+      const notificationService6 = container6.getNotificationService('testdao');
       await notificationService6.processNewProposalNotifications(testData.dao);
 
       // Should send notification (outside cooldown period)
@@ -337,7 +336,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create a proposal
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -370,11 +369,11 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
-      const notificationService = container.getNotificationService('test-dao');
+      const notificationService = container.getNotificationService('testdao');
       await notificationService.processNewProposalNotifications(testData.dao);
 
       // Verify email was sent with custom from address
@@ -388,7 +387,7 @@ describe('Configuration Integration Tests', () => {
 
       // Create a proposal
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -420,11 +419,11 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
-      const notificationService = container.getNotificationService('test-dao');
+      const notificationService = container.getNotificationService('testdao');
       await notificationService.processNewProposalNotifications(testData.dao);
 
       // Verify email was sent with default from address
@@ -449,7 +448,7 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
@@ -482,8 +481,8 @@ describe('Configuration Integration Tests', () => {
       );
 
       // Should throw error when trying to get user repository for missing DAO
-      expect(() => container.getUserRepository('test-dao')).toThrow(
-        'Database for DAO test-dao not found'
+      expect(() => container.getUserRepository('testdao')).toThrow(
+        'Database for DAO testdao not found'
       );
     });
 
@@ -536,14 +535,14 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       // Getting the same repository multiple times should return the same instance
-      const repo1 = container.getUserRepository('test-dao');
-      const repo2 = container.getUserRepository('test-dao');
-      const repo3 = container.getUserRepository('test-dao');
+      const repo1 = container.getUserRepository('testdao');
+      const repo2 = container.getUserRepository('testdao');
+      const repo3 = container.getUserRepository('testdao');
 
       expect(repo1).toBe(repo2);
       expect(repo2).toBe(repo3);
@@ -557,7 +556,7 @@ describe('Configuration Integration Tests', () => {
       // Create a proposal that's 5 minutes old to ensure it's outside 0-minute timeframe
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       await db
-        .insertInto('proposal')
+        .insertInto('public.proposal')
         .values({
           daoId: testData.dao.id,
           governorId: testData.governor.id,
@@ -590,12 +589,12 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       const notificationServiceZero =
-        containerZero.getNotificationService('test-dao');
+        containerZero.getNotificationService('testdao');
 
       // Should handle gracefully without throwing
       await expect(
@@ -620,13 +619,13 @@ describe('Configuration Integration Tests', () => {
         },
         {
           public: getTestDb(),
-          'test-dao': getTestDb(),
+          testdao: getTestDb().withSchema('testdao'),
         }
       );
 
       // Should create services without errors
-      expect(() => container.getNotificationService('test-dao')).not.toThrow();
-      expect(container.getNotificationService('test-dao')).toBeDefined();
+      expect(() => container.getNotificationService('testdao')).not.toThrow();
+      expect(container.getNotificationService('testdao')).toBeDefined();
     });
   });
 });
