@@ -3,25 +3,25 @@ name: Email Service Tests
 on:
   pull_request:
     paths:
-      - 'apps/email-service/**'
-      - 'libs/ts/db/**'
-      - 'libs/ts/emails/**'
-      - '.github/workflows/email-service-tests.yaml'
+      - "apps/email-service/**"
+      - "libs/ts/db/**"
+      - "libs/ts/emails/**"
+      - ".github/workflows/email-service-tests.yaml"
   push:
     branches:
       - main
     paths:
-      - 'apps/email-service/**'
-      - 'libs/ts/db/**'
-      - 'libs/ts/emails/**'
-      - '.github/workflows/email-service-tests.yaml'
+      - "apps/email-service/**"
+      - "libs/ts/db/**"
+      - "libs/ts/emails/**"
+      - ".github/workflows/email-service-tests.yaml"
 
 jobs:
   email-service-tests:
     name: Email Service Full Test Suite
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -86,12 +86,12 @@ jobs:
           echo "=========================================="
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: email-service
           name: codecov-email-service
-          file: ./apps/email-service/coverage/lcov.info
+          files: ./apps/email-service/coverage/lcov.info
           verbose: true
 
       - name: Verify all tests passed

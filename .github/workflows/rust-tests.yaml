@@ -52,7 +52,6 @@ jobs:
           override: true
           components: llvm-tools-preview
 
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
@@ -83,11 +82,11 @@ jobs:
           cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./lcov.info
-          flags: unittests
+          flags: rust
           name: codecov-rust
           verbose: true
 
