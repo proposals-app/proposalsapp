@@ -81,7 +81,13 @@ jobs:
 
       - name: Build
         run: |
-          cargo build --verbose
+          # Try building with sccache if available
+          if ! cargo build --verbose; then
+            echo "::warning::Build failed with sccache, retrying without cache"
+            unset RUSTC_WRAPPER
+            unset SCCACHE_GHA_ENABLED
+            cargo build --verbose
+          fi
           # Clean up unnecessary build artifacts to save space
           rm -rf target/debug/deps/*.d
           rm -rf target/debug/incremental
@@ -98,7 +104,13 @@ jobs:
           OPTIMISTIC_SCAN_API_KEY: ${{ secrets.OPTIMISTIC_SCAN_API_KEY }}
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
         run: |
-          cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
+          # Try running tests with sccache if available
+          if ! cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info; then
+            echo "::warning::Tests failed with sccache, retrying without cache"
+            unset RUSTC_WRAPPER
+            unset SCCACHE_GHA_ENABLED
+            cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
+          fi
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
