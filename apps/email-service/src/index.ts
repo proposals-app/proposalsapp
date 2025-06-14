@@ -49,6 +49,11 @@ const uptimeMonitor =
       )
     : null;
 
+// Initialize Betterstack heartbeat monitor
+const betterstackMonitor = config.betterstackKey
+  ? new UptimeMonitor(config.betterstackKey, 30) // 30 second interval
+  : null;
+
 // Express app for health checks
 const app = express();
 
@@ -163,6 +168,11 @@ app.listen(config.port, () => {
   if (uptimeMonitor) {
     uptimeMonitor.start();
   }
+
+  if (betterstackMonitor) {
+    betterstackMonitor.start();
+    console.log('Betterstack heartbeat monitor started (30s interval)');
+  }
 });
 
 // Graceful shutdown
@@ -173,6 +183,10 @@ process.on('SIGINT', () => {
 
   if (uptimeMonitor) {
     uptimeMonitor.stop();
+  }
+
+  if (betterstackMonitor) {
+    betterstackMonitor.stop();
   }
 
   // Close all database pools

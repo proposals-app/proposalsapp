@@ -9,6 +9,7 @@ export interface Config {
   uptimeMonitoringEnabled: boolean;
   uptimeMonitoringUrl?: string;
   uptimeMonitoringInterval: number;
+  betterstackKey?: string;
   notifications: {
     newProposalTimeframeMinutes: number;
     endingProposalTimeframeMinutes: number;
@@ -64,6 +65,7 @@ export const config: Config = {
     'UPTIME_MONITORING_INTERVAL',
     60
   ),
+  betterstackKey: process.env.BETTERSTACK_KEY,
   notifications: {
     newProposalTimeframeMinutes: getOptionalNumberEnv(
       'NEW_PROPOSAL_TIMEFRAME_MINUTES',
