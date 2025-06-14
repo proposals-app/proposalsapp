@@ -51,5 +51,22 @@ export const sql = {
 
 export const traverseJSON = () => ({});
 
+// Mock any other common database exports
+export const jsonArrayFrom = () => Promise.resolve([]);
+
+// Ensure all common database types are available
+export const Selectable = {};
+export const Insertable = {};
+export const SelectQueryBuilder = {};
+
 // Mock any other exports that might be needed
-export default {};
+export default {
+  db,
+  dbPool,
+  ProposalState,
+  TimelineEventType,
+  Kysely,
+  sql,
+  traverseJSON,
+  jsonArrayFrom,
+};

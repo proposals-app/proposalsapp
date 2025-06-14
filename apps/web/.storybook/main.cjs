@@ -59,7 +59,13 @@ const config = {
     config.plugins = config.plugins || [];
     config.plugins.push(
       new webpack.DefinePlugin({
-        'process.env': JSON.stringify({}),
+        'process.env': JSON.stringify({
+          // Mock environment variables to prevent database connections
+          DATABASE_URL: 'mock://localhost/test',
+          ARBITRUM_DATABASE_URL: 'mock://localhost/test',
+          UNISWAP_DATABASE_URL: 'mock://localhost/test',
+          NODE_ENV: 'test',
+        }),
         'process.cwd': 'function() { return "/"; }',
         global: 'globalThis',
       })
@@ -79,19 +85,30 @@ const config = {
       config.externals.push('pg', 'pg-native');
     }
 
-    // Remove null-loader rule to allow our alias to work
-
     // Add webpack alias to mock @proposalsapp/db
     config.resolve.alias = {
       ...config.resolve.alias,
       '@proposalsapp/db': path.resolve(__dirname, '../storybook-mocks/db.js'),
     };
 
-    // Also handle the package resolution
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      '@proposalsapp/db': path.resolve(__dirname, '../storybook-mocks/db.js'),
-    };
+    // Add a module replacement rule for the database package
+    config.plugins.push({
+      apply(compiler) {
+        compiler.hooks.normalModuleFactory.tap(
+          'DatabaseMockPlugin',
+          (factory) => {
+            factory.hooks.beforeResolve.tap(
+              'DatabaseMockPlugin',
+              (resolveData) => {
+                if (resolveData.request === '@proposalsapp/db') {
+                  resolveData.request = path.resolve(__dirname, '../storybook-mocks/db.js');
+                }
+              }
+            );
+          }
+        );
+      },
+    });
 
     if (config.module?.rules) {
       // Find the existing rule that handles SVG files
