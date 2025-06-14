@@ -144,7 +144,7 @@ describe('Notification Flow Integration Tests', () => {
 
       expect(emailCall.idempotencyKey).toBeDefined();
       expect(emailCall.idempotencyKey).toMatch(
-        new RegExp(`^${testData.user.id}-${proposal.id}-new_proposal-\\d+$`)
+        new RegExp(`^${testData.user.id}-${proposal.id}-new_proposal-\\d{4}-\\d{2}-\\d{2}$`)
       );
     });
 
@@ -410,7 +410,8 @@ describe('Notification Flow Integration Tests', () => {
       const notificationService = container.getNotificationService('testdao');
       await notificationService.processNewDiscussionNotifications(
         testData.dao,
-        testData.discourse.id
+        testData.discourse.id,
+        testData.discourse.discourseBaseUrl
       );
 
       // Verify email was sent
@@ -488,7 +489,7 @@ describe('Notification Flow Integration Tests', () => {
         .execute();
 
       // Create a proposal group that links to this discussion
-      const topicUrl = `https://forum.arbitrum.foundation/t/${topic.slug}/${topic.externalId}`;
+      const topicUrl = `${testData.discourse.discourseBaseUrl}/t/${topic.slug}/${topic.externalId}`;
       await db
         .insertInto('proposalGroup')
         .values({
@@ -507,7 +508,8 @@ describe('Notification Flow Integration Tests', () => {
       const notificationService = container.getNotificationService('testdao');
       await notificationService.processNewDiscussionNotifications(
         testData.dao,
-        testData.discourse.id
+        testData.discourse.id,
+        testData.discourse.discourseBaseUrl
       );
 
       // Verify no email was sent (discussion is linked to proposal)

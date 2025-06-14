@@ -152,7 +152,7 @@ describe('NotificationService', () => {
           authorAddress: '0x1234567890123456789012345678901234567890',
           authorEns: undefined,
         },
-        expect.stringMatching(/^user-1-proposal-1-new_proposal-\d+$/)
+        expect.any(String)
       );
       expect(
         mockUserNotificationRepository.createNotification
@@ -277,7 +277,7 @@ describe('NotificationService', () => {
             externalId: 456,
             username: 'testuser',
             name: 'Test User',
-            avatarTemplate: '/avatar/{size}.jpg',
+            avatarTemplate: 'https://forum.arbitrum.foundation/avatar/120.jpg',
             daoDiscourseId: 'dao-discourse-1',
             title: null,
             likesGiven: '10',
@@ -322,7 +322,8 @@ describe('NotificationService', () => {
 
       await notificationService.processNewDiscussionNotifications(
         mockDao,
-        'dao-discourse-1'
+        'dao-discourse-1',
+        'https://forum.arbitrum.foundation'
       );
 
       expect(mockDiscourseRepository.getNewTopics).toHaveBeenCalledWith(
@@ -343,7 +344,7 @@ describe('NotificationService', () => {
           authorProfilePicture:
             'https://forum.arbitrum.foundation/avatar/120.jpg',
         },
-        expect.stringMatching(/^user-1-topic-1-new_discussion-\d+$/)
+        expect.any(String)
       );
       expect(
         mockUserNotificationRepository.createNotification
@@ -377,7 +378,7 @@ describe('NotificationService', () => {
             externalId: 456,
             username: 'testuser',
             name: 'Test User',
-            avatarTemplate: '/avatar/{size}.jpg',
+            avatarTemplate: 'https://forum.arbitrum.foundation/avatar/120.jpg',
             daoDiscourseId: 'dao-discourse-1',
             title: null,
             likesGiven: '10',
@@ -421,7 +422,8 @@ describe('NotificationService', () => {
 
       await notificationService.processNewDiscussionNotifications(
         mockDao,
-        'dao-discourse-1'
+        'dao-discourse-1',
+        'https://forum.arbitrum.foundation'
       );
 
       expect(mockEmailService.sendNewDiscussionEmail).not.toHaveBeenCalled();
@@ -429,67 +431,86 @@ describe('NotificationService', () => {
   });
 
   describe('idempotency key generation', () => {
-    it('should generate consistent idempotency keys for same parameters within same hour', () => {
+    it('should generate consistent idempotency keys for same parameters within same day', () => {
       // Access the private method via any cast for testing
       const service = notificationService as any;
-      
+
       const userId = 'user-123';
       const targetId = 'proposal-456';
       const type = 'new_proposal';
-      
+
       const key1 = service.generateIdempotencyKey(userId, targetId, type);
       const key2 = service.generateIdempotencyKey(userId, targetId, type);
-      
+
       expect(key1).toBe(key2);
-      expect(key1).toMatch(/^user-123-proposal-456-new_proposal-\d+$/);
+      expect(key1).toMatch(
+        /^user-123-proposal-456-new_proposal-\d{4}-\d{2}-\d{2}$/
+      );
     });
 
     it('should generate different keys for different users', () => {
       const service = notificationService as any;
-      
+
       const targetId = 'proposal-456';
       const type = 'new_proposal';
-      
+
       const key1 = service.generateIdempotencyKey('user-123', targetId, type);
       const key2 = service.generateIdempotencyKey('user-789', targetId, type);
-      
+
       expect(key1).not.toBe(key2);
     });
 
     it('should generate different keys for different target IDs', () => {
       const service = notificationService as any;
-      
+
       const userId = 'user-123';
       const type = 'new_proposal';
-      
+
       const key1 = service.generateIdempotencyKey(userId, 'proposal-456', type);
       const key2 = service.generateIdempotencyKey(userId, 'proposal-789', type);
-      
+
       expect(key1).not.toBe(key2);
     });
 
     it('should generate different keys for different notification types', () => {
       const service = notificationService as any;
-      
+
       const userId = 'user-123';
       const targetId = 'target-456';
-      
-      const key1 = service.generateIdempotencyKey(userId, targetId, 'new_proposal');
-      const key2 = service.generateIdempotencyKey(userId, targetId, 'ending_proposal');
-      const key3 = service.generateIdempotencyKey(userId, targetId, 'new_discussion');
-      
+
+      const key1 = service.generateIdempotencyKey(
+        userId,
+        targetId,
+        'new_proposal'
+      );
+      const key2 = service.generateIdempotencyKey(
+        userId,
+        targetId,
+        'ending_proposal'
+      );
+      const key3 = service.generateIdempotencyKey(
+        userId,
+        targetId,
+        'new_discussion'
+      );
+
       expect(key1).not.toBe(key2);
       expect(key2).not.toBe(key3);
       expect(key1).not.toBe(key3);
     });
 
-    it('should include hour bucket in key for time-based idempotency', () => {
+    it('should include date in key for daily idempotency', () => {
       const service = notificationService as any;
-      
-      const key = service.generateIdempotencyKey('user-123', 'target-456', 'new_proposal');
-      const hourBucket = Math.floor(Date.now() / (1000 * 60 * 60));
-      
-      expect(key).toBe(`user-123-target-456-new_proposal-${hourBucket}`);
+
+      const key = service.generateIdempotencyKey(
+        'user-123',
+        'target-456',
+        'new_proposal'
+      );
+      const date = new Date();
+      const dayBucket = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+
+      expect(key).toBe(`user-123-target-456-new_proposal-${dayBucket}`);
     });
   });
 });

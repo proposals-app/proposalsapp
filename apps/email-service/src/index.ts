@@ -19,13 +19,26 @@ const container = new DependencyContainer(
   db
 );
 
-// Initialize circuit breaker if enabled
-const circuitBreaker = config.circuitBreaker.enabled
+// Initialize circuit breakers
+const mainCircuitBreaker = config.circuitBreaker.enabled
   ? new CircuitBreaker(
       config.circuitBreaker.threshold,
       config.circuitBreaker.timeout
     )
   : null;
+
+// Create a separate circuit breaker for email operations with lower threshold
+const emailCircuitBreaker = config.circuitBreaker.enabled
+  ? new CircuitBreaker(
+      Math.max(3, Math.floor(config.circuitBreaker.threshold / 2)), // Lower threshold for emails
+      config.circuitBreaker.timeout
+    )
+  : null;
+
+// Set the email circuit breaker in the container
+if (emailCircuitBreaker) {
+  container.setEmailCircuitBreaker(emailCircuitBreaker);
+}
 
 // Initialize uptime monitor if enabled
 const uptimeMonitor =
@@ -46,7 +59,8 @@ app.get('/health', async (req, res) => {
 
     const status = {
       status: 'healthy',
-      circuitBreaker: circuitBreaker?.getState() || 'DISABLED',
+      mainCircuitBreaker: mainCircuitBreaker?.getState() || 'DISABLED',
+      emailCircuitBreaker: emailCircuitBreaker?.getState() || 'DISABLED',
       timestamp: new Date().toISOString(),
     };
 
@@ -105,7 +119,8 @@ async function processDao(dao: Selectable<Dao>): Promise<void> {
     if (daoDiscourse) {
       await notificationService.processNewDiscussionNotifications(
         dao,
-        daoDiscourse.id
+        daoDiscourse.id,
+        daoDiscourse.discourseBaseUrl
       );
     }
   } catch (error) {
@@ -118,8 +133,8 @@ async function processDao(dao: Selectable<Dao>): Promise<void> {
 const task = cron.schedule(config.cronSchedule, async () => {
   console.log('\n--- Cron job triggered ---');
 
-  const executeWithCircuitBreaker = circuitBreaker
-    ? () => circuitBreaker.execute(() => processNotifications())
+  const executeWithCircuitBreaker = mainCircuitBreaker
+    ? () => mainCircuitBreaker.execute(() => processNotifications())
     : processNotifications;
 
   try {
@@ -160,12 +175,32 @@ process.on('SIGINT', () => {
     uptimeMonitor.stop();
   }
 
-  // Close database pools
-  dbPool.public.end();
-  dbPool.arbitrum.end();
-  dbPool.uniswap.end();
+  // Close all database pools
+  const closePools = async () => {
+    const poolsToClose = [];
 
-  process.exit(0);
+    // Always close public pool
+    poolsToClose.push(dbPool.public.end());
+
+    // Close all DAO-specific pools
+    for (const [key, pool] of Object.entries(dbPool)) {
+      if (key !== 'public' && pool && typeof pool.end === 'function') {
+        poolsToClose.push(pool.end());
+      }
+    }
+
+    await Promise.all(poolsToClose);
+  };
+
+  closePools()
+    .then(() => {
+      console.log('All database connections closed');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Error closing database connections:', error);
+      process.exit(1);
+    });
 });
 
 // Handle uncaught errors

@@ -32,7 +32,8 @@ export class NotificationService {
     private discourseRepository: IDiscourseRepository,
     private proposalGroupRepository: IProposalGroupRepository,
     private emailService: IEmailService,
-    private config: NotificationConfig
+    private config: NotificationConfig,
+    private emailCircuitBreaker?: any // Optional circuit breaker for email service
   ) {}
 
   async processNewProposalNotifications(dao: Selectable<Dao>): Promise<void> {
@@ -110,7 +111,8 @@ export class NotificationService {
 
   async processNewDiscussionNotifications(
     dao: Selectable<Dao>,
-    daoDiscourseId: string
+    daoDiscourseId: string,
+    discourseBaseUrl: string
   ): Promise<void> {
     console.log(`Processing new discussion notifications for ${dao.name}`);
 
@@ -132,7 +134,7 @@ export class NotificationService {
 
     for (const topic of newTopics) {
       // Check if this discussion is associated with a proposal
-      const topicUrl = `https://forum.arbitrum.foundation/t/${topic.slug}/${topic.externalId}`;
+      const topicUrl = `${discourseBaseUrl}/t/${topic.slug}/${topic.externalId}`;
       const proposalGroups =
         await this.proposalGroupRepository.getProposalGroupsByDiscourseUrl(
           topicUrl
@@ -150,7 +152,8 @@ export class NotificationService {
           user.email,
           user.id,
           topic,
-          dao
+          dao,
+          discourseBaseUrl
         );
       }
     }
@@ -186,22 +189,35 @@ export class NotificationService {
         'new_proposal'
       );
 
-      // Send email
-      await this.emailService.sendNewProposalEmail(email, {
-        proposalName: proposal.name,
-        proposalUrl: proposal.url,
-        daoName: dao.name,
-        authorAddress:
-          proposal.author || '0x0000000000000000000000000000000000000000',
-        authorEns: undefined, // Could be fetched from ENS service if needed
-      }, idempotencyKey);
+      // Execute email send and notification recording in a transaction-like manner
+      const executeEmailSend = async () => {
+        await this.emailService.sendNewProposalEmail(
+          email,
+          {
+            proposalName: proposal.name,
+            proposalUrl: proposal.url,
+            daoName: dao.name,
+            authorAddress:
+              proposal.author || '0x0000000000000000000000000000000000000000',
+            authorEns: undefined, // Could be fetched from ENS service if needed
+          },
+          idempotencyKey
+        );
 
-      // Record notification only after successful email send
-      await this.userNotificationRepository.createNotification(
-        userId,
-        proposal.id,
-        'new_proposal'
-      );
+        // Record notification only after successful email send
+        await this.userNotificationRepository.createNotification(
+          userId,
+          proposal.id,
+          'new_proposal'
+        );
+      };
+
+      // Use circuit breaker if available, otherwise execute directly
+      if (this.emailCircuitBreaker) {
+        await this.emailCircuitBreaker.execute(() => executeEmailSend());
+      } else {
+        await executeEmailSend();
+      }
 
       console.log(
         `Sent new proposal notification to ${email} for proposal ${proposal.id}`
@@ -253,20 +269,33 @@ export class NotificationService {
         'ending_proposal'
       );
 
-      // Send email
-      await this.emailService.sendEndingProposalEmail(email, {
-        proposalName: proposal.name,
-        proposalUrl: proposal.url,
-        daoName: dao.name,
-        endTime,
-      }, idempotencyKey);
+      // Execute email send and notification recording in a transaction-like manner
+      const executeEmailSend = async () => {
+        await this.emailService.sendEndingProposalEmail(
+          email,
+          {
+            proposalName: proposal.name,
+            proposalUrl: proposal.url,
+            daoName: dao.name,
+            endTime,
+          },
+          idempotencyKey
+        );
 
-      // Record notification only after successful email send
-      await this.userNotificationRepository.createNotification(
-        userId,
-        proposal.id,
-        'ending_proposal'
-      );
+        // Record notification only after successful email send
+        await this.userNotificationRepository.createNotification(
+          userId,
+          proposal.id,
+          'ending_proposal'
+        );
+      };
+
+      // Use circuit breaker if available, otherwise execute directly
+      if (this.emailCircuitBreaker) {
+        await this.emailCircuitBreaker.execute(() => executeEmailSend());
+      } else {
+        await executeEmailSend();
+      }
 
       console.log(
         `Sent ending proposal notification to ${email} for proposal ${proposal.id}`
@@ -285,7 +314,8 @@ export class NotificationService {
     topic: Selectable<DiscourseTopic> & {
       discourseUser: Selectable<DiscourseUser>;
     },
-    dao: Selectable<Dao>
+    dao: Selectable<Dao>,
+    discourseBaseUrl: string
   ): Promise<void> {
     try {
       // Check if notification was already sent recently
@@ -305,12 +335,9 @@ export class NotificationService {
       }
 
       // Build discussion URL
-      const discussionUrl = `https://forum.arbitrum.foundation/t/${topic.slug}/${topic.externalId}`;
-      const authorAvatar = topic.discourseUser.avatarTemplate.replace(
-        '{size}',
-        '120'
-      );
-      const authorProfilePicture = `https://forum.arbitrum.foundation${authorAvatar}`;
+      const discussionUrl = `${discourseBaseUrl}/t/${topic.slug}/${topic.externalId}`;
+      // Avatar template is already a full URL processed by the indexer
+      const authorProfilePicture = topic.discourseUser.avatarTemplate || '';
 
       // Generate idempotency key to prevent duplicate email sends
       const idempotencyKey = this.generateIdempotencyKey(
@@ -319,21 +346,34 @@ export class NotificationService {
         'new_discussion'
       );
 
-      // Send email
-      await this.emailService.sendNewDiscussionEmail(email, {
-        discussionTitle: topic.title,
-        discussionUrl,
-        daoName: dao.name,
-        authorUsername: topic.discourseUser.username,
-        authorProfilePicture,
-      }, idempotencyKey);
+      // Execute email send and notification recording in a transaction-like manner
+      const executeEmailSend = async () => {
+        await this.emailService.sendNewDiscussionEmail(
+          email,
+          {
+            discussionTitle: topic.title,
+            discussionUrl,
+            daoName: dao.name,
+            authorUsername: topic.discourseUser.username,
+            authorProfilePicture,
+          },
+          idempotencyKey
+        );
 
-      // Record notification only after successful email send
-      await this.userNotificationRepository.createNotification(
-        userId,
-        topic.id,
-        'new_discussion'
-      );
+        // Record notification only after successful email send
+        await this.userNotificationRepository.createNotification(
+          userId,
+          topic.id,
+          'new_discussion'
+        );
+      };
+
+      // Use circuit breaker if available, otherwise execute directly
+      if (this.emailCircuitBreaker) {
+        await this.emailCircuitBreaker.execute(() => executeEmailSend());
+      } else {
+        await executeEmailSend();
+      }
 
       console.log(
         `Sent new discussion notification to ${email} for topic ${topic.id}`
@@ -348,16 +388,18 @@ export class NotificationService {
 
   /**
    * Generates an idempotency key for email notifications to prevent duplicate sends.
-   * The key is based on user ID, target ID, notification type, and time bucket.
-   * Uses hourly buckets to ensure retries within the same hour use the same key.
+   * The key is based on user ID, target ID, notification type, and date.
+   * Uses daily buckets with notification type to ensure consistent behavior.
    */
   private generateIdempotencyKey(
     userId: string,
     targetId: string,
     type: 'new_proposal' | 'ending_proposal' | 'new_discussion'
   ): string {
-    // Use hourly time buckets to ensure retries within the same hour use the same key
-    const hourBucket = Math.floor(Date.now() / (1000 * 60 * 60));
-    return `${userId}-${targetId}-${type}-${hourBucket}`;
+    // Use daily buckets to ensure retries within the same day use the same key
+    // This prevents issues at hour boundaries while still allowing daily notifications
+    const date = new Date();
+    const dayBucket = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+    return `${userId}-${targetId}-${type}-${dayBucket}`;
   }
 }

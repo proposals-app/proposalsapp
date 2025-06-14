@@ -38,6 +38,7 @@ export class DependencyContainer {
   private discourseRepository: IDiscourseRepository;
   private proposalGroupRepository: IProposalGroupRepository;
   private emailService: IEmailService;
+  private emailCircuitBreaker: any | null = null;
 
   constructor(
     private config: DependencyContainerConfig,
@@ -104,6 +105,10 @@ export class DependencyContainer {
     return this.emailService;
   }
 
+  setEmailCircuitBreaker(circuitBreaker: any): void {
+    this.emailCircuitBreaker = circuitBreaker;
+  }
+
   getNotificationService(daoSlug: string): NotificationService {
     // Create a new instance with the correct user repository for the DAO
     return new NotificationService(
@@ -114,7 +119,8 @@ export class DependencyContainer {
       this.discourseRepository,
       this.proposalGroupRepository,
       this.emailService,
-      this.config.notificationConfig
+      this.config.notificationConfig,
+      this.emailCircuitBreaker
     );
   }
 }
