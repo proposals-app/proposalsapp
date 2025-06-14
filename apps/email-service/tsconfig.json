@@ -3,7 +3,8 @@
   "compilerOptions": {
     "outDir": "dist",
     "jsx": "react",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "target": "es2020"
   },
   "include": ["src/**/*"],
   "references": [{ "path": "../../libs/ts/db" }, { "path": "../../libs/ts/emails" }]
