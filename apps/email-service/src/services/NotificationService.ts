@@ -179,6 +179,13 @@ export class NotificationService {
         return;
       }
 
+      // Generate idempotency key to prevent duplicate email sends
+      const idempotencyKey = this.generateIdempotencyKey(
+        userId,
+        proposal.id,
+        'new_proposal'
+      );
+
       // Send email
       await this.emailService.sendNewProposalEmail(email, {
         proposalName: proposal.name,
@@ -187,7 +194,7 @@ export class NotificationService {
         authorAddress:
           proposal.author || '0x0000000000000000000000000000000000000000',
         authorEns: undefined, // Could be fetched from ENS service if needed
-      });
+      }, idempotencyKey);
 
       // Record notification only after successful email send
       await this.userNotificationRepository.createNotification(
@@ -239,13 +246,20 @@ export class NotificationService {
         }
       );
 
+      // Generate idempotency key to prevent duplicate email sends
+      const idempotencyKey = this.generateIdempotencyKey(
+        userId,
+        proposal.id,
+        'ending_proposal'
+      );
+
       // Send email
       await this.emailService.sendEndingProposalEmail(email, {
         proposalName: proposal.name,
         proposalUrl: proposal.url,
         daoName: dao.name,
         endTime,
-      });
+      }, idempotencyKey);
 
       // Record notification only after successful email send
       await this.userNotificationRepository.createNotification(
@@ -298,6 +312,13 @@ export class NotificationService {
       );
       const authorProfilePicture = `https://forum.arbitrum.foundation${authorAvatar}`;
 
+      // Generate idempotency key to prevent duplicate email sends
+      const idempotencyKey = this.generateIdempotencyKey(
+        userId,
+        topic.id,
+        'new_discussion'
+      );
+
       // Send email
       await this.emailService.sendNewDiscussionEmail(email, {
         discussionTitle: topic.title,
@@ -305,7 +326,7 @@ export class NotificationService {
         daoName: dao.name,
         authorUsername: topic.discourseUser.username,
         authorProfilePicture,
-      });
+      }, idempotencyKey);
 
       // Record notification only after successful email send
       await this.userNotificationRepository.createNotification(
@@ -323,5 +344,20 @@ export class NotificationService {
         error
       );
     }
+  }
+
+  /**
+   * Generates an idempotency key for email notifications to prevent duplicate sends.
+   * The key is based on user ID, target ID, notification type, and time bucket.
+   * Uses hourly buckets to ensure retries within the same hour use the same key.
+   */
+  private generateIdempotencyKey(
+    userId: string,
+    targetId: string,
+    type: 'new_proposal' | 'ending_proposal' | 'new_discussion'
+  ): string {
+    // Use hourly time buckets to ensure retries within the same hour use the same key
+    const hourBucket = Math.floor(Date.now() / (1000 * 60 * 60));
+    return `${userId}-${targetId}-${type}-${hourBucket}`;
   }
 }

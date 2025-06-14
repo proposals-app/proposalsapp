@@ -21,7 +21,8 @@ export class EmailService implements IEmailService {
 
   async sendNewProposalEmail(
     to: string,
-    props: NewProposalEmailProps
+    props: NewProposalEmailProps,
+    idempotencyKey?: string
   ): Promise<void> {
     const html = await render(NewProposalEmailTemplate(props));
     const subject = `New proposal in ${props.daoName}`;
@@ -31,12 +32,14 @@ export class EmailService implements IEmailService {
       to,
       subject,
       html,
+      idempotencyKey,
     });
   }
 
   async sendNewDiscussionEmail(
     to: string,
-    props: NewDiscussionEmailProps
+    props: NewDiscussionEmailProps,
+    idempotencyKey?: string
   ): Promise<void> {
     const html = await render(NewDiscussionEmailTemplate(props));
     const subject = `New discussion in ${props.daoName}`;
@@ -46,12 +49,14 @@ export class EmailService implements IEmailService {
       to,
       subject,
       html,
+      idempotencyKey,
     });
   }
 
   async sendEndingProposalEmail(
     to: string,
-    props: EndingProposalEmailProps
+    props: EndingProposalEmailProps,
+    idempotencyKey?: string
   ): Promise<void> {
     const html = await render(EndingProposalEmailTemplate(props));
     const subject = `Proposal ending soon in ${props.daoName}`;
@@ -61,6 +66,7 @@ export class EmailService implements IEmailService {
       to,
       subject,
       html,
+      idempotencyKey,
     });
   }
 }

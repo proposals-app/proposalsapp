@@ -63,6 +63,32 @@ describe('EmailService', () => {
       const callArgs = (mockEmailClient.send as any).mock.calls[0][0];
       expect(callArgs.from).toBe('custom@example.com');
     });
+
+    it('should pass idempotency key when provided', async () => {
+      const idempotencyKey = 'test-idempotency-key';
+
+      await emailService.sendNewProposalEmail('user@example.com', {
+        proposalName: 'Test Proposal',
+        proposalUrl: 'https://example.com/proposal/123',
+        daoName: 'Test DAO',
+        authorAddress: '0x1234567890123456789012345678901234567890',
+      }, idempotencyKey);
+
+      const callArgs = (mockEmailClient.send as any).mock.calls[0][0];
+      expect(callArgs.idempotencyKey).toBe(idempotencyKey);
+    });
+
+    it('should not include idempotency key when not provided', async () => {
+      await emailService.sendNewProposalEmail('user@example.com', {
+        proposalName: 'Test Proposal',
+        proposalUrl: 'https://example.com/proposal/123',
+        daoName: 'Test DAO',
+        authorAddress: '0x1234567890123456789012345678901234567890',
+      });
+
+      const callArgs = (mockEmailClient.send as any).mock.calls[0][0];
+      expect(callArgs.idempotencyKey).toBeUndefined();
+    });
   });
 
   describe('sendNewDiscussionEmail', () => {
@@ -84,6 +110,21 @@ describe('EmailService', () => {
       expect(callArgs.subject).toBe('New discussion in Test DAO');
       expect(callArgs.html).toBeDefined();
     });
+
+    it('should pass idempotency key when provided', async () => {
+      const idempotencyKey = 'test-discussion-idempotency-key';
+
+      await emailService.sendNewDiscussionEmail('user@example.com', {
+        discussionTitle: 'Test Discussion',
+        discussionUrl: 'https://example.com/discussion/123',
+        daoName: 'Test DAO',
+        authorUsername: 'testuser',
+        authorProfilePicture: 'https://example.com/avatar.jpg',
+      }, idempotencyKey);
+
+      const callArgs = (mockEmailClient.send as any).mock.calls[0][0];
+      expect(callArgs.idempotencyKey).toBe(idempotencyKey);
+    });
   });
 
   describe('sendEndingProposalEmail', () => {
@@ -103,6 +144,20 @@ describe('EmailService', () => {
       expect(callArgs.to).toBe('user@example.com');
       expect(callArgs.subject).toBe('Proposal ending soon in Test DAO');
       expect(callArgs.html).toBeDefined();
+    });
+
+    it('should pass idempotency key when provided', async () => {
+      const idempotencyKey = 'test-ending-idempotency-key';
+
+      await emailService.sendEndingProposalEmail('user@example.com', {
+        proposalName: 'Test Proposal',
+        proposalUrl: 'https://example.com/proposal/123',
+        daoName: 'Test DAO',
+        endTime: '2 hours',
+      }, idempotencyKey);
+
+      const callArgs = (mockEmailClient.send as any).mock.calls[0][0];
+      expect(callArgs.idempotencyKey).toBe(idempotencyKey);
     });
   });
 

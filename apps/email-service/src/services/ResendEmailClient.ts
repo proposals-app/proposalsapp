@@ -13,12 +13,20 @@ export class ResendEmailClient implements IEmailClient {
     to: string;
     subject: string;
     html: string;
+    idempotencyKey?: string;
   }): Promise<void> {
-    await this.resend.emails.send({
-      from: params.from,
-      to: params.to,
-      subject: params.subject,
-      html: params.html,
-    });
+    const options = params.idempotencyKey
+      ? { idempotencyKey: params.idempotencyKey }
+      : undefined;
+
+    await this.resend.emails.send(
+      {
+        from: params.from,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+      },
+      options
+    );
   }
 }

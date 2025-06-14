@@ -5,16 +5,18 @@ import type {
 } from '@proposalsapp/emails';
 
 export interface IEmailService {
-  sendNewProposalEmail(to: string, props: NewProposalEmailProps): Promise<void>;
+  sendNewProposalEmail(to: string, props: NewProposalEmailProps, idempotencyKey?: string): Promise<void>;
 
   sendNewDiscussionEmail(
     to: string,
-    props: NewDiscussionEmailProps
+    props: NewDiscussionEmailProps,
+    idempotencyKey?: string
   ): Promise<void>;
 
   sendEndingProposalEmail(
     to: string,
-    props: EndingProposalEmailProps
+    props: EndingProposalEmailProps,
+    idempotencyKey?: string
   ): Promise<void>;
 }
 
@@ -24,5 +26,6 @@ export interface IEmailClient {
     to: string;
     subject: string;
     html: string;
+    idempotencyKey?: string;
   }): Promise<void>;
 }

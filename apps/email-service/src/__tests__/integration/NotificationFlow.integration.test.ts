@@ -109,6 +109,45 @@ describe('Notification Flow Integration Tests', () => {
       expect(notifications).toHaveLength(1);
     });
 
+    it('should generate and pass idempotency keys when sending emails', async () => {
+      const db = getTestDb();
+
+      // Create a new proposal
+      const [proposal] = await db
+        .insertInto('proposal')
+        .values({
+          daoId: testData.dao.id,
+          governorId: testData.governor.id,
+          externalId: 'test-proposal-idempotency',
+          name: 'Test Proposal Idempotency',
+          body: 'This proposal tests idempotency',
+          url: 'https://example.com/proposal/idempotency',
+          author: '0x1234567890123456789012345678901234567890',
+          proposalState: ProposalState.ACTIVE,
+          startAt: new Date(),
+          endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          quorum: 100,
+          choices: JSON.stringify(['For', 'Against']),
+          markedSpam: false,
+          createdAt: new Date(),
+        })
+        .returning(['id'])
+        .execute();
+
+      // Process notifications
+      const notificationService = container.getNotificationService('testdao');
+      await notificationService.processNewProposalNotifications(testData.dao);
+
+      // Verify email was sent with idempotency key
+      expect(mockEmailClient.send).toHaveBeenCalledOnce();
+      const emailCall = (mockEmailClient.send as any).mock.calls[0][0];
+
+      expect(emailCall.idempotencyKey).toBeDefined();
+      expect(emailCall.idempotencyKey).toMatch(
+        new RegExp(`^${testData.user.id}-${proposal.id}-new_proposal-\\d+$`)
+      );
+    });
+
     it('should not send duplicate notifications', async () => {
       const db = getTestDb();
 

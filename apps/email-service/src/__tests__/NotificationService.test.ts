@@ -151,7 +151,8 @@ describe('NotificationService', () => {
           daoName: 'Test DAO',
           authorAddress: '0x1234567890123456789012345678901234567890',
           authorEns: undefined,
-        }
+        },
+        expect.stringMatching(/^user-1-proposal-1-new_proposal-\d+$/)
       );
       expect(
         mockUserNotificationRepository.createNotification
@@ -341,7 +342,8 @@ describe('NotificationService', () => {
           authorUsername: 'testuser',
           authorProfilePicture:
             'https://forum.arbitrum.foundation/avatar/120.jpg',
-        }
+        },
+        expect.stringMatching(/^user-1-topic-1-new_discussion-\d+$/)
       );
       expect(
         mockUserNotificationRepository.createNotification
@@ -423,6 +425,71 @@ describe('NotificationService', () => {
       );
 
       expect(mockEmailService.sendNewDiscussionEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('idempotency key generation', () => {
+    it('should generate consistent idempotency keys for same parameters within same hour', () => {
+      // Access the private method via any cast for testing
+      const service = notificationService as any;
+      
+      const userId = 'user-123';
+      const targetId = 'proposal-456';
+      const type = 'new_proposal';
+      
+      const key1 = service.generateIdempotencyKey(userId, targetId, type);
+      const key2 = service.generateIdempotencyKey(userId, targetId, type);
+      
+      expect(key1).toBe(key2);
+      expect(key1).toMatch(/^user-123-proposal-456-new_proposal-\d+$/);
+    });
+
+    it('should generate different keys for different users', () => {
+      const service = notificationService as any;
+      
+      const targetId = 'proposal-456';
+      const type = 'new_proposal';
+      
+      const key1 = service.generateIdempotencyKey('user-123', targetId, type);
+      const key2 = service.generateIdempotencyKey('user-789', targetId, type);
+      
+      expect(key1).not.toBe(key2);
+    });
+
+    it('should generate different keys for different target IDs', () => {
+      const service = notificationService as any;
+      
+      const userId = 'user-123';
+      const type = 'new_proposal';
+      
+      const key1 = service.generateIdempotencyKey(userId, 'proposal-456', type);
+      const key2 = service.generateIdempotencyKey(userId, 'proposal-789', type);
+      
+      expect(key1).not.toBe(key2);
+    });
+
+    it('should generate different keys for different notification types', () => {
+      const service = notificationService as any;
+      
+      const userId = 'user-123';
+      const targetId = 'target-456';
+      
+      const key1 = service.generateIdempotencyKey(userId, targetId, 'new_proposal');
+      const key2 = service.generateIdempotencyKey(userId, targetId, 'ending_proposal');
+      const key3 = service.generateIdempotencyKey(userId, targetId, 'new_discussion');
+      
+      expect(key1).not.toBe(key2);
+      expect(key2).not.toBe(key3);
+      expect(key1).not.toBe(key3);
+    });
+
+    it('should include hour bucket in key for time-based idempotency', () => {
+      const service = notificationService as any;
+      
+      const key = service.generateIdempotencyKey('user-123', 'target-456', 'new_proposal');
+      const hourBucket = Math.floor(Date.now() / (1000 * 60 * 60));
+      
+      expect(key).toBe(`user-123-target-456-new_proposal-${hourBucket}`);
     });
   });
 });
