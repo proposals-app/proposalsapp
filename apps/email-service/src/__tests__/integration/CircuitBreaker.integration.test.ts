@@ -1,4 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock Resend at module level before any imports
+vi.mock('resend', () => ({
+  Resend: vi.fn().mockImplementation(() => ({
+    emails: {
+      send: vi.fn(),
+    },
+  })),
+}));
+
+// Mock emails package to prevent Resend instantiation
+vi.mock('@proposalsapp/emails', () => ({
+  resend: {
+    emails: {
+      send: vi.fn(),
+    },
+  },
+  render: vi.fn().mockResolvedValue('<html>Test Email</html>'),
+  NewProposalEmailTemplate: vi.fn(() => 'NewProposalEmailTemplate'),
+  NewDiscussionEmailTemplate: vi.fn(() => 'NewDiscussionEmailTemplate'),
+  EndingProposalEmailTemplate: vi.fn(() => 'EndingProposalEmailTemplate'),
+}));
+
+// Mock email templates
+vi.mock('@react-email/render', () => ({
+  render: vi.fn().mockResolvedValue('<html>Test Email</html>'),
+}));
+
 import { setupTestDatabase, getTestDb, createTestData } from './setup';
 import { DependencyContainer } from '../../services/DependencyContainer';
 import type { IEmailClient } from '../../types/services';
@@ -11,17 +39,6 @@ const mockEmailClient: IEmailClient = {
 
 vi.mock('../../services/ResendEmailClient', () => ({
   ResendEmailClient: vi.fn().mockImplementation(() => mockEmailClient),
-}));
-
-// Mock email templates
-vi.mock('@react-email/render', () => ({
-  render: vi.fn().mockResolvedValue('<html>Test Email</html>'),
-}));
-
-vi.mock('@proposalsapp/emails', () => ({
-  NewProposalEmailTemplate: vi.fn((props) => ({ props })),
-  NewDiscussionEmailTemplate: vi.fn((props) => ({ props })),
-  EndingProposalEmailTemplate: vi.fn((props) => ({ props })),
 }));
 
 setupTestDatabase();

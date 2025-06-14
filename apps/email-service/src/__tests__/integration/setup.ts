@@ -494,7 +494,7 @@ export async function createTestData() {
       enabled: true,
       withUserAgent: false,
     })
-    .returning('id')
+    .returning(['id', 'discourseBaseUrl'])
     .execute();
 
   // Create test user
