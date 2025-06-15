@@ -6,9 +6,6 @@ export interface Config {
   resendApiKey: string;
   fromEmail: string;
   port: number;
-  uptimeMonitoringEnabled: boolean;
-  uptimeMonitoringUrl?: string;
-  uptimeMonitoringInterval: number;
   betterstackKey?: string;
   notifications: {
     newProposalTimeframeMinutes: number;
@@ -56,15 +53,6 @@ export const config: Config = {
     'Proposals.app <no-reply@proposals.app>'
   ),
   port: getOptionalNumberEnv('PORT', 8080),
-  uptimeMonitoringEnabled: getOptionalBoolEnv(
-    'UPTIME_MONITORING_ENABLED',
-    false
-  ),
-  uptimeMonitoringUrl: process.env.UPTIME_MONITORING_URL,
-  uptimeMonitoringInterval: getOptionalNumberEnv(
-    'UPTIME_MONITORING_INTERVAL',
-    60
-  ),
   betterstackKey: process.env.BETTERSTACK_KEY,
   notifications: {
     newProposalTimeframeMinutes: getOptionalNumberEnv(
@@ -94,9 +82,4 @@ export const config: Config = {
 
 export function validateConfig(): void {
   // Additional validation logic if needed
-  if (config.uptimeMonitoringEnabled && !config.uptimeMonitoringUrl) {
-    throw new Error(
-      'UPTIME_MONITORING_URL is required when UPTIME_MONITORING_ENABLED is true'
-    );
-  }
 }

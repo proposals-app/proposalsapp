@@ -40,44 +40,19 @@ if (emailCircuitBreaker) {
   container.setEmailCircuitBreaker(emailCircuitBreaker);
 }
 
-// Initialize uptime monitor if enabled
-const uptimeMonitor =
-  config.uptimeMonitoringEnabled && config.uptimeMonitoringUrl
-    ? new UptimeMonitor(
-        config.uptimeMonitoringUrl,
-        config.uptimeMonitoringInterval
-      )
-    : null;
-
-// Initialize Betterstack heartbeat monitor
-const betterstackMonitor = config.betterstackKey
-  ? new UptimeMonitor(config.betterstackKey, 30) // 30 second interval
-  : null;
+// Initialize uptime monitor
+const uptimeMonitor = new UptimeMonitor(
+  db.public,
+  config.betterstackKey,
+  mainCircuitBreaker,
+  emailCircuitBreaker
+);
 
 // Express app for health checks
 const app = express();
 
-app.get('/health', async (req, res) => {
-  try {
-    // Check database connection
-    await db.public.selectFrom('dao').select('id').limit(1).execute();
-
-    const status = {
-      status: 'healthy',
-      mainCircuitBreaker: mainCircuitBreaker?.getState() || 'DISABLED',
-      emailCircuitBreaker: emailCircuitBreaker?.getState() || 'DISABLED',
-      timestamp: new Date().toISOString(),
-    };
-
-    res.json(status);
-  } catch (_error) {
-    res.status(500).json({
-      status: 'unhealthy',
-      error: 'Database connection failed',
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
+// Setup health endpoint via uptime monitor
+uptimeMonitor.setupHealthEndpoint(app);
 
 // Main notification processing function
 async function processNotifications(): Promise<void> {
@@ -165,14 +140,7 @@ app.listen(config.port, () => {
   task.start();
   console.log('Cron job scheduled to run:', config.cronSchedule);
 
-  if (uptimeMonitor) {
-    uptimeMonitor.start();
-  }
-
-  if (betterstackMonitor) {
-    betterstackMonitor.start();
-    console.log('Betterstack heartbeat monitor started (30s interval)');
-  }
+  uptimeMonitor.start();
 });
 
 // Graceful shutdown
@@ -181,13 +149,7 @@ process.on('SIGINT', () => {
 
   task.stop();
 
-  if (uptimeMonitor) {
-    uptimeMonitor.stop();
-  }
-
-  if (betterstackMonitor) {
-    betterstackMonitor.stop();
-  }
+  uptimeMonitor.stop();
 
   // Close all database pools
   const closePools = async () => {
