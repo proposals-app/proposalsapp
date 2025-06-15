@@ -12,6 +12,9 @@ const config = {
     name: '@storybook/nextjs',
     options: {},
   },
+  features: {
+    experimentalRSC: true,
+  },
   staticDirs: ['../public'],
   webpackFinal: async (config) => {
     // Add custom plugin to handle cloudflare: scheme
@@ -54,14 +57,43 @@ const config = {
       pg: false,
       'pg-native': false,
       child_process: false,
-      // Mock jsdom and related dependencies
+      // Mock jsdom and related dependencies completely
       jsdom: false,
       'agent-base': false,
       'http-proxy-agent': false,
       'https-proxy-agent': false,
       'socks-proxy-agent': false,
       'pac-proxy-agent': false,
-      'canvas': false,
+      canvas: false,
+      // Additional modules that jsdom tries to load
+      abab: false,
+      acorn: false,
+      'acorn-globals': false,
+      cssom: false,
+      cssstyle: false,
+      'data-urls': false,
+      'decimal.js': false,
+      domexception: false,
+      escodegen: false,
+      'form-data': false,
+      'html-encoding-sniffer': false,
+      'iconv-lite': false,
+      'is-potential-custom-element-name': false,
+      nwsapi: false,
+      parse5: false,
+      request: false,
+      'request-promise-native': false,
+      saxes: false,
+      'symbol-tree': false,
+      'tough-cookie': false,
+      'w3c-hr-time': false,
+      'w3c-xmlserializer': false,
+      'webidl-conversions': false,
+      'whatwg-encoding': false,
+      'whatwg-mimetype': false,
+      'whatwg-url': false,
+      ws: false,
+      'xml-name-validator': false,
     };
 
     // Add webpack DefinePlugin to provide process.env
@@ -99,29 +131,74 @@ const config = {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@proposalsapp/db': path.resolve(__dirname, 'db_mock.js'),
-      '@/lib/markdown-converter': path.resolve(__dirname, 'markdown-converter-mock.js'),
-      'next/server': path.resolve(__dirname, 'next-server-mock.js'),
+      '@/lib/markdown-converter$': path.resolve(
+        __dirname,
+        'markdown-converter-mock.js'
+      ),
+      // Also handle the absolute path resolution
+      [path.resolve(__dirname, '../lib/markdown-converter.ts')]: path.resolve(
+        __dirname,
+        'markdown-converter-mock.js'
+      ),
+      [path.resolve(__dirname, '../lib/markdown-converter')]: path.resolve(
+        __dirname,
+        'markdown-converter-mock.js'
+      ),
+      'next/server$': path.resolve(__dirname, 'mocks/next-server.js'),
+      'server-only$': path.resolve(__dirname, 'mocks/empty-module.js'),
     };
 
     // Add a module replacement rule for mocked packages
     config.plugins.push({
       apply(compiler) {
-        compiler.hooks.normalModuleFactory.tap(
-          'MockPlugin',
-          (factory) => {
-            factory.hooks.beforeResolve.tap(
-              'MockPlugin',
-              (resolveData) => {
-                if (resolveData.request === '@proposalsapp/db') {
-                  resolveData.request = path.resolve(
-                    __dirname,
-                    'db_mock.js'
-                  );
-                }
-              }
-            );
-          }
-        );
+        compiler.hooks.normalModuleFactory.tap('MockPlugin', (factory) => {
+          factory.hooks.beforeResolve.tap('MockPlugin', (resolveData) => {
+            if (resolveData.request === '@proposalsapp/db') {
+              resolveData.request = path.resolve(__dirname, 'db_mock.js');
+            }
+            // Mock the markdown converter - handle all variations
+            if (
+              resolveData.request === '@/lib/markdown-converter' ||
+              resolveData.request === '../lib/markdown-converter' ||
+              resolveData.request === './lib/markdown-converter' ||
+              resolveData.request?.endsWith('lib/markdown-converter') ||
+              resolveData.request?.endsWith('lib/markdown-converter.ts') ||
+              resolveData.request?.includes('markdown-converter')
+            ) {
+              console.log(
+                `[MockPlugin] Intercepting markdown-converter import: ${resolveData.request}`
+              );
+              resolveData.request = path.resolve(
+                __dirname,
+                'markdown-converter-mock.js'
+              );
+            }
+            // Block any direct imports to jsdom
+            if (
+              resolveData.request === 'jsdom' ||
+              resolveData.request?.includes('jsdom')
+            ) {
+              resolveData.request = false;
+            }
+            // Mock the server actions for feed components
+            if (
+              resolveData.request &&
+              resolveData.request.endsWith('/actions')
+            ) {
+              resolveData.request = path.resolve(
+                __dirname,
+                'mocks/feed-actions.js'
+              );
+            }
+            // Also handle relative imports to actions
+            if (resolveData.request === '../../actions') {
+              resolveData.request = path.resolve(
+                __dirname,
+                'mocks/feed-actions.js'
+              );
+            }
+          });
+        });
       },
     });
 

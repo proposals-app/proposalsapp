@@ -819,49 +819,108 @@ const SkeletonPostItem = React.forwardRef<
   { className?: string }
 >(({ className }, ref) => {
   return (
-    <div ref={ref} className={cn('flex w-full flex-col gap-4', className)}>
-      <div className='flex items-center gap-4'>
-        <div className='skeleton-blueprint skeleton-solid h-10 w-10 rounded-full' />
-        <div className='flex flex-col space-y-2'>
-          <div className='skeleton-blueprint skeleton-text h-4 w-48 rounded' />
-          <div className='skeleton-blueprint skeleton-text h-3 w-32 rounded' />
+    <div ref={ref} className={cn('w-full scroll-mt-36 py-4', className)}>
+      {/* Author section */}
+      <div className='flex cursor-default flex-row justify-between select-none'>
+        <div className='flex items-center gap-2'>
+          <div className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 dark:border-neutral-700'>
+            <div className='skeleton-blueprint skeleton-solid h-9 w-9 rounded-full' />
+          </div>
+          <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
+            <div className='skeleton-blueprint skeleton-text h-6 w-40 rounded' />
+            <div className='skeleton-blueprint skeleton-text mt-1 h-5 w-16 rounded' />
+          </div>
+        </div>
+        <div className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm text-neutral-600 select-none'>
+          <div className='skeleton-blueprint skeleton-text h-5 w-28 rounded' />
         </div>
       </div>
-      <div className='flex flex-col space-y-2'>
-        <div className='skeleton-blueprint skeleton-text h-4 w-full rounded' />
-        <div className='skeleton-blueprint skeleton-text h-4 w-5/6 rounded' />
-        <div className='skeleton-blueprint skeleton-text h-4 w-3/4 rounded' />
-      </div>
-      <div className='mt-2 flex justify-end'>
-        <div className='skeleton-blueprint skeleton-text h-3 w-20 rounded' />
+
+      {/* Simple content section without Read More - matching minimal content */}
+      <div className='w-full'>
+        <div className='prose prose-lg mt-4 max-w-none break-words text-ellipsis'>
+          <div className='skeleton-blueprint skeleton-text mb-4 h-8 w-5/6 rounded' />
+        </div>
+
+        {/* Likes and views */}
+        <div className='flex flex-row items-center gap-4 self-end justify-self-end'>
+          <div className='ml-auto flex flex-row items-center gap-2'>
+            <div className='flex items-center gap-1'>
+              <div className='skeleton-blueprint skeleton-text h-5 w-8 rounded' />
+            </div>
+            <div className='flex items-center gap-1'>
+              <div className='skeleton-blueprint skeleton-text h-5 w-8 rounded' />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 });
 SkeletonPostItem.displayName = 'SkeletonPostItem';
 
+// Skeleton for AggregateVoteItem - matches the opacity-50 version
+const SkeletonAggregateVoteItem = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn('flex w-full flex-col gap-2 py-4 opacity-50', className)}
+    >
+      <div className='flex cursor-default flex-row justify-between select-none'>
+        <div className='flex items-start gap-2'>
+          <div className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 dark:border-neutral-700'>
+            <div className='skeleton-blueprint skeleton-solid h-9 w-9 rounded-full' />
+          </div>
+          <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
+            <div className='skeleton-blueprint skeleton-text h-6 w-32 rounded' />
+          </div>
+        </div>
+        <div className='dark:text-neutral-350 flex items-start text-sm text-neutral-600'>
+          <div className='skeleton-blueprint skeleton-text h-5 w-28 rounded' />
+        </div>
+      </div>
+      <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
+        <div className='skeleton-blueprint skeleton-text h-6 w-48 rounded' />
+      </div>
+    </div>
+  );
+});
+SkeletonAggregateVoteItem.displayName = 'SkeletonAggregateVoteItem';
+
+// Skeleton for regular VoteItemFeed - includes color bar and reason section
 const SkeletonVoteItemFeed = React.forwardRef<
   HTMLDivElement,
   { className?: string }
 >(({ className }, ref) => {
   return (
-    <div ref={ref} className={cn('flex w-full flex-col gap-4', className)}>
-      <div className='skeleton-blueprint skeleton-text mb-2 h-2 w-full' />
-      <div className='flex items-center justify-between'>
-        <div className='flex items-center gap-4'>
-          <div className='skeleton-blueprint skeleton-solid h-10 w-10 rounded-full' />
-          <div className='flex flex-col space-y-2'>
-            <div className='skeleton-blueprint skeleton-text h-4 w-48 rounded' />
-            <div className='skeleton-blueprint skeleton-text h-3 w-32 rounded' />
+    <div ref={ref} className={cn('flex w-full flex-col gap-3 py-4', className)}>
+      {/* Color bar skeleton */}
+      <div className='skeleton-blueprint skeleton-text h-2 w-3/4 rounded' />
+
+      <div className='flex cursor-default flex-row justify-between select-none'>
+        <div className='flex items-start gap-2'>
+          <div className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 dark:border-neutral-700'>
+            <div className='skeleton-blueprint skeleton-solid h-9 w-9 rounded-full' />
+          </div>
+          <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
+            <div className='skeleton-blueprint skeleton-text h-6 w-32 rounded' />
           </div>
         </div>
-        <div className='skeleton-blueprint skeleton-text h-3 w-24 rounded' />
+        <div className='dark:text-neutral-350 flex items-start text-sm text-neutral-600'>
+          <div className='skeleton-blueprint skeleton-text h-5 w-28 rounded' />
+        </div>
       </div>
-      <div className='flex flex-col space-y-2'>
-        <div className='skeleton-blueprint skeleton-text h-4 w-1/2 rounded' />
+
+      <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
+        <div className='skeleton-blueprint skeleton-text h-6 w-48 rounded' />
       </div>
-      <div className='mt-2 flex justify-end'>
-        <div className='skeleton-blueprint skeleton-text h-3 w-20 rounded' />
+
+      {/* Reason section skeleton - single line to match typical short reason */}
+      <div className='flex flex-col'>
+        <div className='skeleton-blueprint skeleton-text h-4 w-3/4 rounded' />
       </div>
     </div>
   );
@@ -1597,6 +1656,7 @@ export {
   SkeletonFeed,
   SkeletonPostItem,
   SkeletonVoteItemFeed,
+  SkeletonAggregateVoteItem,
   // Results
   SkeletonResults,
   SkeletonResultsTitle,
