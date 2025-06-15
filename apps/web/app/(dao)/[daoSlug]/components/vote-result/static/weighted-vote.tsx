@@ -11,7 +11,10 @@ interface WeightedVoteProps {
   currentTime: Date;
 }
 
-export const WeightedVoteStatic = ({ result, currentTime }: WeightedVoteProps) => {
+export const WeightedVoteStatic = ({
+  result,
+  currentTime,
+}: WeightedVoteProps) => {
   const isHidden = result.hiddenVote && result.scoresState !== 'final';
 
   const finalResults = isHidden ? {} : result.finalResults || {};

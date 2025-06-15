@@ -1,0 +1,10 @@
+{
+  "name": "storybook-dom-sizer-addon",
+  "version": "1.0.0",
+  "main": "preset.js",
+  "exports": {
+    ".": "./preset.js",
+    "./manager": "./manager.tsx",
+    "./preview": "./preview.tsx"
+  }
+}

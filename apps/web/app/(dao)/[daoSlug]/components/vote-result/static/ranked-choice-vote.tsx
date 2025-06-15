@@ -11,7 +11,10 @@ interface RankedChoiceVoteProps {
   currentTime: Date;
 }
 
-export const RankedChoiceVoteStatic = ({ result, currentTime }: RankedChoiceVoteProps) => {
+export const RankedChoiceVoteStatic = ({
+  result,
+  currentTime,
+}: RankedChoiceVoteProps) => {
   const isHidden = result.hiddenVote && result.scoresState !== 'final';
 
   const finalResults = isHidden ? {} : result.finalResults || {};

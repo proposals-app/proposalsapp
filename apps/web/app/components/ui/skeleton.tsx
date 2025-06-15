@@ -473,48 +473,55 @@ const SkeletonBodyHeader = React.forwardRef<
   { className?: string }
 >(({ className }, ref) => {
   return (
-    <div
-      ref={ref}
-      className={cn(
-        'flex w-full flex-col-reverse gap-6 sm:flex-col',
-        className
-      )}
-    >
-      {/* Title Loading */}
-      <div className='skeleton-blueprint skeleton-text h-8 w-3/4 self-center sm:self-start' />
+    <div ref={ref} className={cn('flex w-full flex-col gap-6', className)}>
+      {/* Header skeleton would go here if needed */}
 
-      {/* Author Info and Posted Time Loading */}
-      <div className='flex flex-col'>
-        <div className='flex flex-row items-start justify-between md:items-center'>
-          {/* Author Info Loading */}
+      {/* Desktop layout - matching the real page structure */}
+      <div className='hidden flex-col gap-6 sm:flex'>
+        {/* Title */}
+        <div className='skeleton-blueprint skeleton-text h-8 w-3/4' />
+
+        {/* Author info and timestamps */}
+        <div className='flex flex-col'>
+          <div className='flex flex-row items-start justify-between'>
+            {/* Author Info */}
+            <div className='flex flex-row items-center gap-2'>
+              <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 dark:border-neutral-700'>
+                <div className='skeleton-blueprint skeleton-solid h-full w-full rounded-full' />
+              </div>
+              <div className='skeleton-blueprint skeleton-text h-5 w-32' />
+            </div>
+
+            {/* Timestamps */}
+            <div className='flex flex-col items-center gap-2'>
+              <div className='flex gap-2'>
+                <SkeletonInitiallyPosted />
+                <SkeletonPostedRevisions />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile layout - matching the real page structure */}
+      <div className='flex flex-col gap-2 sm:hidden'>
+        <div className='flex items-start justify-between'>
+          {/* Author Info */}
           <div className='flex flex-row items-center gap-2'>
             <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-200 dark:border-neutral-700'>
               <div className='skeleton-blueprint skeleton-solid h-full w-full rounded-full' />
             </div>
             <div className='skeleton-blueprint skeleton-text h-5 w-32' />
           </div>
-          {/* Posted Time and Revisions Loading */}
-          <div className='flex flex-col items-end gap-2'>
-            <div className='flex flex-row gap-4'>
-              {/* Initially Posted */}
-              <div className='hidden flex-row items-center gap-2 px-2 py-1 sm:flex'>
-                <div className='flex flex-col items-end space-y-1'>
-                  <div className='skeleton-blueprint skeleton-text h-3 w-24' />
-                  <div className='skeleton-blueprint skeleton-text h-4 w-32' />
-                </div>
-              </div>
 
-              {/* Latest Revision */}
-              <div className='flex flex-row items-center gap-2 bg-white px-2 py-1 dark:bg-neutral-950'>
-                <div className='flex flex-col items-end space-y-1'>
-                  <div className='skeleton-blueprint skeleton-text h-3 w-24' />
-                  <div className='skeleton-blueprint skeleton-text h-4 w-32' />
-                </div>
-                <div className='skeleton-blueprint skeleton-text h-6 w-6' />
-              </div>
-            </div>
+          {/* Only PostedRevisions on mobile */}
+          <div className='flex-col'>
+            <SkeletonPostedRevisions />
           </div>
         </div>
+
+        {/* Title centered on mobile */}
+        <div className='skeleton-blueprint skeleton-text h-8 w-3/4 self-center' />
       </div>
     </div>
   );
@@ -590,8 +597,25 @@ SkeletonBody.displayName = 'SkeletonBody';
 
 const SkeletonMenuBar = React.forwardRef<
   HTMLDivElement,
-  { className?: string }
->(({ className }, ref) => {
+  { className?: string; variant?: 'full' | 'body' | 'comments' }
+>(({ className, variant = 'full' }, ref) => {
+  // Position classes for different variants
+  const positionClasses = {
+    full: 'mt-4 w-full min-w-full self-center overflow-visible sm:min-w-4xl sm:px-2',
+    body: 'fixed bottom-20 mt-4 w-full max-w-4xl self-center px-4 pb-4 sm:bottom-0 sm:px-2',
+    comments:
+      'fixed top-0 mt-22 w-full max-w-4xl self-center px-4 pb-4 sm:mt-24 sm:px-2',
+  };
+
+  // Gap classes - body view uses gap-2, others use gap-3
+  const gapClass = variant === 'body' ? 'gap-2' : 'gap-3';
+
+  // Flex direction for body view is slightly different
+  const flexClasses =
+    variant === 'body'
+      ? 'md:flex-row md:items-center'
+      : 'sm:flex-row sm:items-center';
+
   return (
     <div
       ref={ref}
@@ -600,17 +624,45 @@ const SkeletonMenuBar = React.forwardRef<
         className
       )}
     >
-      <div className='mt-4 min-w-full self-center overflow-visible px-2 opacity-100 sm:min-w-4xl sm:px-2'>
-        <div className='dark:border-neutral-450 flex w-full items-center justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
-          <div className='flex w-full justify-between'>
-            <div className='flex items-center gap-4'>
-              <div className='skeleton-blueprint skeleton-solid h-6 w-6 rounded-full' />
-              <div className='skeleton-blueprint skeleton-text h-5 w-16 sm:w-32' />
+      <div className={cn(positionClasses[variant], 'opacity-100')}>
+        <div
+          className={cn(
+            'dark:border-neutral-450 flex w-full flex-col items-stretch justify-between rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200',
+            gapClass,
+            flexClasses
+          )}
+        >
+          <div
+            className={cn(
+              'flex w-full flex-col justify-between',
+              variant === 'body'
+                ? 'flex-row gap-2'
+                : 'gap-3 sm:flex-row sm:items-center'
+            )}
+          >
+            {/* Collapse/Expand Button */}
+            <div
+              className={cn(
+                'sm:flex sm:justify-start sm:pl-2',
+                variant === 'comments' ? 'hidden' : 'hidden justify-between',
+                variant === 'body' && 'flex w-auto items-center justify-start'
+              )}
+            >
+              <button className='flex cursor-pointer items-center gap-2 hover:underline sm:gap-4'>
+                <div className='skeleton-blueprint skeleton-text h-8 w-[120px]' />
+              </button>
             </div>
 
-            <div className='flex space-x-2'>
-              <div className='skeleton-blueprint skeleton-text h-8 w-24 sm:w-44' />
-              <div className='skeleton-blueprint skeleton-text h-8 w-24 sm:w-44' />
+            {/* Filters - matching exact dimensions of real selects */}
+            <div className='flex flex-row gap-2 self-center sm:items-center sm:space-x-2'>
+              {/* First select: w-48 = 192px to match "Comments and Votes" */}
+              <div className='relative'>
+                <div className='skeleton-blueprint skeleton-text h-8 w-full rounded-xs sm:w-48' />
+              </div>
+              {/* Second select: w-44 = 176px to match "from everyone" */}
+              <div className='relative'>
+                <div className='skeleton-blueprint skeleton-text h-8 w-full rounded-xs sm:w-44' />
+              </div>
             </div>
           </div>
         </div>
@@ -619,6 +671,58 @@ const SkeletonMenuBar = React.forwardRef<
   );
 });
 SkeletonMenuBar.displayName = 'SkeletonMenuBar';
+
+// Initially Posted and Posted Revisions skeleton components
+const SkeletonInitiallyPosted = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'flex w-[140px] flex-row items-center gap-2 p-2',
+        className
+      )}
+    >
+      <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
+        {/* Label text like "initially posted" - matching truncate span */}
+        <div className='skeleton-blueprint skeleton-text h-3.5 w-[82px]' />
+        {/* Time text with bold weight like "about 1 hour ago" - matching truncate font-bold span */}
+        <div className='skeleton-blueprint skeleton-text mt-0.5 h-3.5 w-[108px] font-bold' />
+      </div>
+    </div>
+  );
+});
+SkeletonInitiallyPosted.displayName = 'SkeletonInitiallyPosted';
+
+const SkeletonPostedRevisions = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'relative w-[180px] bg-white p-2 dark:bg-neutral-950',
+        className
+      )}
+    >
+      {/* Mimics the SelectTrigger structure */}
+      <div className='flex h-8 w-full cursor-pointer items-center justify-between rounded-xs px-3 text-sm'>
+        <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
+          {/* Label text like "offchain revision" - matching truncate span */}
+          <div className='skeleton-blueprint skeleton-text h-3.5 w-24' />
+          {/* Time text with bold weight like "about 1 hour ago" - matching truncate font-bold span */}
+          <div className='skeleton-blueprint skeleton-text mt-0.5 h-3.5 w-[108px] font-bold' />
+        </div>
+        {/* Chevron icon skeleton - ml-2 flex-shrink-0 to match the actual component */}
+        <div className='skeleton-blueprint skeleton-text ml-2 h-6 w-6 flex-shrink-0' />
+      </div>
+    </div>
+  );
+});
+SkeletonPostedRevisions.displayName = 'SkeletonPostedRevisions';
 
 // List and group components
 const SkeletonGroupList = React.forwardRef<
@@ -1333,7 +1437,7 @@ const SkeletonActiveGroupItem = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'group block rounded-xs border border-neutral-200 bg-white p-2 sm:p-3 dark:border-neutral-700 dark:bg-neutral-950',
+        'group block rounded-xs border border-neutral-200 bg-white p-2 hover:bg-neutral-200/50 sm:p-3 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:bg-neutral-800',
         className
       )}
     >
@@ -1374,11 +1478,11 @@ const SkeletonInactiveGroupItem = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'group block rounded-xs border border-neutral-200 bg-white p-3 sm:p-3 dark:border-neutral-700 dark:bg-neutral-800/50',
+        'group block rounded-xs border border-neutral-200 bg-white p-2 hover:bg-neutral-200/50 sm:p-3 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800',
         className
       )}
     >
-      <div className='flex flex-col gap-1 sm:gap-5'>
+      <div className='flex flex-col gap-1 sm:gap-2'>
         <div className='flex items-start justify-between'>
           {/* Left side: Avatar + Title + Author */}
           <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
@@ -1416,7 +1520,7 @@ const SkeletonDiscussionGroupItem = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'group block rounded-xs border border-neutral-200 bg-white p-2 sm:p-3 dark:border-neutral-700 dark:bg-neutral-800/50',
+        'group block rounded-xs border border-neutral-200 bg-white p-2 hover:bg-neutral-200/50 sm:p-3 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800',
         className
       )}
     >
@@ -1472,6 +1576,8 @@ export {
   // Content
   SkeletonBody,
   SkeletonMenuBar,
+  SkeletonInitiallyPosted,
+  SkeletonPostedRevisions,
   // Lists and groups
   SkeletonGroupList,
   SkeletonGroupItem,

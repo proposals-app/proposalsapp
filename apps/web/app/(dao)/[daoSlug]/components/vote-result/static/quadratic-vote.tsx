@@ -11,7 +11,10 @@ interface QuadraticVoteProps {
   currentTime: Date;
 }
 
-export const QuadraticVoteStatic = ({ result, currentTime }: QuadraticVoteProps) => {
+export const QuadraticVoteStatic = ({
+  result,
+  currentTime,
+}: QuadraticVoteProps) => {
   const isHidden = result.hiddenVote && result.scoresState !== 'final';
 
   const finalResults = isHidden ? {} : result.finalResults || {};

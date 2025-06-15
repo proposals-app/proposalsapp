@@ -36,7 +36,13 @@ export function StaticResultCard({
     if (result.voteType) {
       const StaticComponent = VoteComponentsStatic[result.voteType];
       if (StaticComponent) {
-        return <StaticComponent result={result} debugBar={debugBar} currentTime={currentTime} />;
+        return (
+          <StaticComponent
+            result={result}
+            debugBar={debugBar}
+            currentTime={currentTime}
+          />
+        );
       }
     }
 

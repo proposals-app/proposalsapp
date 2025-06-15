@@ -67,12 +67,16 @@ describe('EmailService', () => {
     it('should pass idempotency key when provided', async () => {
       const idempotencyKey = 'test-idempotency-key';
 
-      await emailService.sendNewProposalEmail('user@example.com', {
-        proposalName: 'Test Proposal',
-        proposalUrl: 'https://example.com/proposal/123',
-        daoName: 'Test DAO',
-        authorAddress: '0x1234567890123456789012345678901234567890',
-      }, idempotencyKey);
+      await emailService.sendNewProposalEmail(
+        'user@example.com',
+        {
+          proposalName: 'Test Proposal',
+          proposalUrl: 'https://example.com/proposal/123',
+          daoName: 'Test DAO',
+          authorAddress: '0x1234567890123456789012345678901234567890',
+        },
+        idempotencyKey
+      );
 
       const callArgs = (mockEmailClient.send as any).mock.calls[0][0];
       expect(callArgs.idempotencyKey).toBe(idempotencyKey);
@@ -114,13 +118,17 @@ describe('EmailService', () => {
     it('should pass idempotency key when provided', async () => {
       const idempotencyKey = 'test-discussion-idempotency-key';
 
-      await emailService.sendNewDiscussionEmail('user@example.com', {
-        discussionTitle: 'Test Discussion',
-        discussionUrl: 'https://example.com/discussion/123',
-        daoName: 'Test DAO',
-        authorUsername: 'testuser',
-        authorProfilePicture: 'https://example.com/avatar.jpg',
-      }, idempotencyKey);
+      await emailService.sendNewDiscussionEmail(
+        'user@example.com',
+        {
+          discussionTitle: 'Test Discussion',
+          discussionUrl: 'https://example.com/discussion/123',
+          daoName: 'Test DAO',
+          authorUsername: 'testuser',
+          authorProfilePicture: 'https://example.com/avatar.jpg',
+        },
+        idempotencyKey
+      );
 
       const callArgs = (mockEmailClient.send as any).mock.calls[0][0];
       expect(callArgs.idempotencyKey).toBe(idempotencyKey);
@@ -149,12 +157,16 @@ describe('EmailService', () => {
     it('should pass idempotency key when provided', async () => {
       const idempotencyKey = 'test-ending-idempotency-key';
 
-      await emailService.sendEndingProposalEmail('user@example.com', {
-        proposalName: 'Test Proposal',
-        proposalUrl: 'https://example.com/proposal/123',
-        daoName: 'Test DAO',
-        endTime: '2 hours',
-      }, idempotencyKey);
+      await emailService.sendEndingProposalEmail(
+        'user@example.com',
+        {
+          proposalName: 'Test Proposal',
+          proposalUrl: 'https://example.com/proposal/123',
+          daoName: 'Test DAO',
+          endTime: '2 hours',
+        },
+        idempotencyKey
+      );
 
       const callArgs = (mockEmailClient.send as any).mock.calls[0][0];
       expect(callArgs.idempotencyKey).toBe(idempotencyKey);

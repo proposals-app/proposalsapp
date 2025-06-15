@@ -13,6 +13,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import '../styles/globals.css';
 import { Toaster } from '../app/components/ui/sonner';
 import { chromaticDecorator } from './chromatic-decorator';
+import { withDomSizer } from './dom-sizer-addon/preview';
 
 // Define a local version of the Arbitrum chain for onchain testing
 const arbitrumLocalhost = defineChain({
@@ -121,6 +122,7 @@ const preview: Preview = {
       </TestWalletProvider>
     ),
     chromaticDecorator,
+    withDomSizer,
   ],
 };
 

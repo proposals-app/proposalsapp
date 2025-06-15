@@ -38,12 +38,15 @@ describe('ResendEmailClient', () => {
       await resendEmailClient.send(emailParams);
 
       expect(mockEmailSend).toHaveBeenCalledOnce();
-      expect(mockEmailSend).toHaveBeenCalledWith({
-        from: 'sender@example.com',
-        to: 'recipient@example.com',
-        subject: 'Test Subject',
-        html: '<h1>Test HTML</h1>',
-      }, undefined);
+      expect(mockEmailSend).toHaveBeenCalledWith(
+        {
+          from: 'sender@example.com',
+          to: 'recipient@example.com',
+          subject: 'Test Subject',
+          html: '<h1>Test HTML</h1>',
+        },
+        undefined
+      );
     });
 
     it('should send email with idempotency key when provided', async () => {
@@ -60,14 +63,17 @@ describe('ResendEmailClient', () => {
       await resendEmailClient.send(emailParams);
 
       expect(mockEmailSend).toHaveBeenCalledOnce();
-      expect(mockEmailSend).toHaveBeenCalledWith({
-        from: 'sender@example.com',
-        to: 'recipient@example.com',
-        subject: 'Test Subject',
-        html: '<h1>Test HTML</h1>',
-      }, {
-        idempotencyKey: 'test-idempotency-key',
-      });
+      expect(mockEmailSend).toHaveBeenCalledWith(
+        {
+          from: 'sender@example.com',
+          to: 'recipient@example.com',
+          subject: 'Test Subject',
+          html: '<h1>Test HTML</h1>',
+        },
+        {
+          idempotencyKey: 'test-idempotency-key',
+        }
+      );
     });
 
     it('should propagate errors from Resend API', async () => {

@@ -18,7 +18,7 @@ export function ArbitrumActionBar({
       <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-300'>
         All Proposal Groups
       </h2>
-      <div className='h-9 flex items-center'>
+      <div className='flex h-9 items-center'>
         {showMarkAllAsRead && (
           <button
             onClick={onMarkAllAsRead}

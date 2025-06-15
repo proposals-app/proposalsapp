@@ -15,7 +15,7 @@ import { Feed, FeedLoading } from './components/feed/feed';
 import { MenuBar } from './components/menubar/menu-bar';
 import { Timeline } from './components/timeline/timeline';
 import { Suspense } from 'react';
-import { LoadingMenuBar } from './components/menubar/loading-menu-bar';
+import { DynamicLoadingMenuBar } from './components/menubar/loading-menu-bar';
 import { InitiallyPosted } from './components/body/initially-posted';
 import { Header } from '../../components/header/header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
@@ -50,12 +50,13 @@ async function GroupPage({
   const {
     version,
     diff,
+    expanded,
     feed: feedFilter,
     from: fromFilter,
   } = await searchParamsCache.parse(searchParams);
 
   const bodyKey = `body-${groupId}-${version}-${diff ? 'diff' : 'nodiff'}`;
-  const menuBarKey = `menubar-${groupId}`;
+  const menuBarKey = `menubar-${groupId}-${expanded ? 'expanded' : 'collapsed'}`;
   const feedKey = `feed-${groupId}-${feedFilter}-${fromFilter}`;
   const timelineKey = `timeline-${groupId}-${feedFilter}-${fromFilter}`;
 
@@ -75,7 +76,10 @@ async function GroupPage({
           <BodySection groupId={groupId} version={version} diff={diff} />
         </Suspense>
 
-        <Suspense fallback={<LoadingMenuBar />} key={menuBarKey}>
+        <Suspense
+          fallback={<DynamicLoadingMenuBar expanded={expanded} />}
+          key={menuBarKey}
+        >
           <MenuBarSection groupId={groupId} version={version} diff={diff} />
         </Suspense>
 
@@ -172,10 +176,7 @@ async function BodyHeaderSection({ groupId }: { groupId: string }) {
 
             <div className='flex flex-col items-center gap-2'>
               <div className='flex gap-2'>
-                <InitiallyPosted
-                  label='initially posted'
-                  createdAt={firstBodyVersion.createdAt}
-                />
+                <InitiallyPosted createdAt={firstBodyVersion.createdAt} />
 
                 <PostedRevisions versions={bodyVersionsNoContent} />
               </div>

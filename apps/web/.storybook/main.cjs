@@ -6,6 +6,7 @@ const config = {
     '@storybook/addon-docs',
     '@storybook/addon-onboarding',
     '@chromatic-com/storybook',
+    path.resolve(__dirname, './dom-sizer-addon'),
   ],
   framework: {
     name: '@storybook/nextjs',
@@ -101,7 +102,10 @@ const config = {
               'DatabaseMockPlugin',
               (resolveData) => {
                 if (resolveData.request === '@proposalsapp/db') {
-                  resolveData.request = path.resolve(__dirname, '../storybook-mocks/db.js');
+                  resolveData.request = path.resolve(
+                    __dirname,
+                    '../storybook-mocks/db.js'
+                  );
                 }
               }
             );

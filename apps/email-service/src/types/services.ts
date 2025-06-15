@@ -5,7 +5,11 @@ import type {
 } from '@proposalsapp/emails';
 
 export interface IEmailService {
-  sendNewProposalEmail(to: string, props: NewProposalEmailProps, idempotencyKey?: string): Promise<void>;
+  sendNewProposalEmail(
+    to: string,
+    props: NewProposalEmailProps,
+    idempotencyKey?: string
+  ): Promise<void>;
 
   sendNewDiscussionEmail(
     to: string,

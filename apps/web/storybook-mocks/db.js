@@ -37,11 +37,21 @@ export const TimelineEventType = {
 // Mock Kysely
 export class Kysely {
   constructor() {}
-  withSchema() { return this; }
-  selectFrom() { return this; }
-  select() { return this; }
-  where() { return this; }
-  execute() { return Promise.resolve([]); }
+  withSchema() {
+    return this;
+  }
+  selectFrom() {
+    return this;
+  }
+  select() {
+    return this;
+  }
+  where() {
+    return this;
+  }
+  execute() {
+    return Promise.resolve([]);
+  }
 }
 
 export const sql = {

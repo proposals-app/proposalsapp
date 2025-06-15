@@ -11,8 +11,6 @@ import {
   SelectTrigger,
 } from '@/app/components/ui/select';
 import ChevronDown from '@/public/assets/web/icons/chevron-down.svg';
-
-// Helper component to display the time with a tooltip
 export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
   const [selectedVersionIndex, setSelectedVersionIndex] = useState(
     versions.length - 1
@@ -43,22 +41,24 @@ export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
   });
 
   return (
-    <div className='relative bg-white p-2 dark:bg-neutral-950'>
+    <div className='relative w-[180px] bg-white p-2 dark:bg-neutral-950'>
       <Select value={selectedVersionIndex} onValueChange={handleVersionSelect}>
-        <SelectTrigger aria-label='Select version' withChevron={false}>
+        <SelectTrigger
+          aria-label='Select version'
+          withChevron={false}
+          className='w-full'
+        >
           <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
-            {' '}
-            {/* Added items-start here */}
-            <span>
+            <span className='truncate'>
               {latestVersion.type === 'topic'
                 ? 'discourse revision'
                 : latestVersion.type === 'onchain'
                   ? 'onchain revision'
                   : 'offchain revision'}
             </span>
-            <span className='font-bold'>{relativeTime}</span>
+            <span className='truncate font-bold'>{relativeTime}</span>
           </div>
-          <ChevronDown className='pl-1' />
+          <ChevronDown className='ml-2 flex-shrink-0' />
         </SelectTrigger>
         <SelectContent>
           {versions.map((version, index) => (
