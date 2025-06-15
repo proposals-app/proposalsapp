@@ -827,29 +827,29 @@ const SkeletonPostItem = React.forwardRef<
             <div className='skeleton-blueprint skeleton-solid h-9 w-9 rounded-full' />
           </div>
           <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
-            <div className='skeleton-blueprint skeleton-text h-6 w-40 rounded' />
-            <div className='skeleton-blueprint skeleton-text mt-1 h-5 w-16 rounded' />
+            <div className='skeleton-blueprint skeleton-text h-6 w-40' />
+            <div className='skeleton-blueprint skeleton-text mt-1 h-5 w-16' />
           </div>
         </div>
         <div className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm text-neutral-600 select-none'>
-          <div className='skeleton-blueprint skeleton-text h-5 w-28 rounded' />
+          <div className='skeleton-blueprint skeleton-text h-5 w-28' />
         </div>
       </div>
 
       {/* Simple content section without Read More - matching minimal content */}
       <div className='w-full'>
         <div className='prose prose-lg mt-4 max-w-none break-words text-ellipsis'>
-          <div className='skeleton-blueprint skeleton-text mb-4 h-8 w-5/6 rounded' />
+          <div className='skeleton-blueprint skeleton-text mb-4 h-8 w-5/6' />
         </div>
 
         {/* Likes and views */}
         <div className='flex flex-row items-center gap-4 self-end justify-self-end'>
           <div className='ml-auto flex flex-row items-center gap-2'>
             <div className='flex items-center gap-1'>
-              <div className='skeleton-blueprint skeleton-text h-5 w-8 rounded' />
+              <div className='skeleton-blueprint skeleton-text h-5 w-8' />
             </div>
             <div className='flex items-center gap-1'>
-              <div className='skeleton-blueprint skeleton-text h-5 w-8 rounded' />
+              <div className='skeleton-blueprint skeleton-text h-5 w-8' />
             </div>
           </div>
         </div>
@@ -875,15 +875,15 @@ const SkeletonAggregateVoteItem = React.forwardRef<
             <div className='skeleton-blueprint skeleton-solid h-9 w-9 rounded-full' />
           </div>
           <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
-            <div className='skeleton-blueprint skeleton-text h-6 w-32 rounded' />
+            <div className='skeleton-blueprint skeleton-text h-6 w-32' />
           </div>
         </div>
         <div className='dark:text-neutral-350 flex items-start text-sm text-neutral-600'>
-          <div className='skeleton-blueprint skeleton-text h-5 w-28 rounded' />
+          <div className='skeleton-blueprint skeleton-text h-5 w-28' />
         </div>
       </div>
       <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
-        <div className='skeleton-blueprint skeleton-text h-6 w-48 rounded' />
+        <div className='skeleton-blueprint skeleton-text h-6 w-48' />
       </div>
     </div>
   );
@@ -898,7 +898,7 @@ const SkeletonVoteItemFeed = React.forwardRef<
   return (
     <div ref={ref} className={cn('flex w-full flex-col gap-3 py-4', className)}>
       {/* Color bar skeleton */}
-      <div className='skeleton-blueprint skeleton-text h-2 w-3/4 rounded' />
+      <div className='skeleton-blueprint skeleton-text h-2 w-3/4' />
 
       <div className='flex cursor-default flex-row justify-between select-none'>
         <div className='flex items-start gap-2'>
@@ -906,21 +906,21 @@ const SkeletonVoteItemFeed = React.forwardRef<
             <div className='skeleton-blueprint skeleton-solid h-9 w-9 rounded-full' />
           </div>
           <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>
-            <div className='skeleton-blueprint skeleton-text h-6 w-32 rounded' />
+            <div className='skeleton-blueprint skeleton-text h-6 w-32' />
           </div>
         </div>
         <div className='dark:text-neutral-350 flex items-start text-sm text-neutral-600'>
-          <div className='skeleton-blueprint skeleton-text h-5 w-28 rounded' />
+          <div className='skeleton-blueprint skeleton-text h-5 w-28' />
         </div>
       </div>
 
       <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
-        <div className='skeleton-blueprint skeleton-text h-6 w-48 rounded' />
+        <div className='skeleton-blueprint skeleton-text h-6 w-48' />
       </div>
 
       {/* Reason section skeleton - single line to match typical short reason */}
       <div className='flex flex-col'>
-        <div className='skeleton-blueprint skeleton-text h-4 w-3/4 rounded' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-3/4' />
       </div>
     </div>
   );
@@ -1015,16 +1015,16 @@ const SkeletonResultsList = React.forwardRef<
         {[...Array(3)].map((_, index) => (
           <div
             key={index}
-            className='relative h-10 w-full overflow-hidden rounded border-2 border-neutral-200 dark:border-neutral-700'
+            className='relative h-10 w-full overflow-hidden border-2 border-neutral-200 dark:border-neutral-700'
           />
         ))}
       </div>
 
       {/* Quorum bar placeholder */}
       <div className='mb-4'>
-        <div className='relative mb-2 h-4 w-full overflow-hidden rounded border border-neutral-200 dark:border-neutral-700'>
+        <div className='relative mb-2 h-4 w-full overflow-hidden border border-neutral-200 dark:border-neutral-700'>
           <div className='skeleton-blueprint skeleton-text h-full w-1/2' />
-          <div className='absolute top-[-4px] left-1/2 h-6 w-0.5 rounded bg-neutral-300 dark:bg-neutral-600' />
+          <div className='absolute top-[-4px] left-1/2 h-6 w-0.5 bg-neutral-300 dark:bg-neutral-600' />
         </div>
       </div>
     </div>
