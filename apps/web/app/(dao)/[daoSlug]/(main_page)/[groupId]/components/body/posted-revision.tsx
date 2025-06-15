@@ -3,7 +3,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
 import React, { useState } from 'react';
-import type { BodyVersionType } from '../../actions';
+import type { BodyVersionNoContentType } from '../../actions';
 import {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
 } from '@/app/components/ui/select';
 import ChevronDown from '@/public/assets/web/icons/chevron-down.svg';
-export function PostedRevisions({ versions }: { versions: BodyVersionType[] }) {
+export function PostedRevisions({ versions }: { versions: BodyVersionNoContentType[] }) {
   const [selectedVersionIndex, setSelectedVersionIndex] = useState(
     versions.length - 1
   );

@@ -1,19 +1,16 @@
-import { Header } from '../../../../components/header/header';
 import { InitiallyPosted } from './initially-posted';
 import { PostedRevisions } from './posted-revision';
-import { AuthorInfo } from './body';
+import { AuthorInfo } from './author-info';
 import { SkeletonBodyHeader } from '@/app/components/ui/skeleton';
 import type { BodyVersionNoContentType } from '../../actions';
 
 export function BodyHeader({
-  groupId,
   groupName,
   originalAuthorName,
   originalAuthorPicture,
   firstBodyVersionCreatedAt,
   bodyVersionsNoContent,
 }: {
-  groupId: string;
   groupName: string;
   originalAuthorName: string;
   originalAuthorPicture: string;
@@ -22,15 +19,6 @@ export function BodyHeader({
 }) {
   return (
     <div className='flex w-full flex-col gap-6'>
-      <Header
-        groupId={groupId}
-        withBack={false}
-        withHide={true}
-        originalAuthorName={originalAuthorName}
-        originalAuthorPicture={originalAuthorPicture}
-        groupName={groupName}
-      />
-
       <div className='hidden flex-col gap-6 sm:flex'>
         <h1 className='text-2xl font-bold text-neutral-700 dark:text-neutral-300'>
           {groupName}

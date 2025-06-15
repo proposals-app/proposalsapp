@@ -201,6 +201,8 @@ export type BodyVersionType = {
   type: VersionType;
 };
 
+export type BodyVersionNoContentType = Omit<BodyVersionType, 'content'>;
+
 export type VersionType = 'topic' | 'onchain' | 'offchain';
 
 export async function getBodyVersions(groupId: string, withContent: boolean) {

@@ -17,6 +17,7 @@ import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 import { LastReadUpdater } from './components/last-read-updater';
 import type { ResultEvent } from '@/lib/types';
 import Loading from './loading';
+import { Header } from '../../components/header/header';
 
 export default async function Page({
   params,
@@ -145,14 +146,23 @@ async function BodyHeaderSection({ groupId }: { groupId: string }) {
   const firstBodyVersion = bodyVersions[0];
 
   return (
-    <BodyHeader
-      groupId={group.groupId}
-      groupName={groupName}
-      originalAuthorName={originalAuthorName}
-      originalAuthorPicture={originalAuthorPicture}
-      firstBodyVersionCreatedAt={firstBodyVersion.createdAt}
-      bodyVersionsNoContent={bodyVersionsNoContent}
-    />
+    <div>
+      <Header
+        groupId={groupId}
+        withBack={false}
+        withHide={true}
+        originalAuthorName={originalAuthorName}
+        originalAuthorPicture={originalAuthorPicture}
+        groupName={groupName}
+      />
+      <BodyHeader
+        groupName={groupName}
+        originalAuthorName={originalAuthorName}
+        originalAuthorPicture={originalAuthorPicture}
+        firstBodyVersionCreatedAt={firstBodyVersion.createdAt}
+        bodyVersionsNoContent={bodyVersionsNoContent}
+      />
+    </div>
   );
 }
 

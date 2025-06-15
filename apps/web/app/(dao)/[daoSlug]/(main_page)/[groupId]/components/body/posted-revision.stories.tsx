@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { PostedRevisions } from './posted-revision';
 import { SkeletonPostedRevisions } from '@/app/components/ui/skeleton';
-import type { BodyVersionType } from '../../actions';
+import type { BodyVersionNoContentType } from '../../actions';
 import { NuqsAdapter } from 'nuqs/adapters/react';
 
 // Wrapper to provide nuqs adapter for Storybook
@@ -44,22 +44,20 @@ const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-const singleVersion: BodyVersionType[] = [
+const singleVersion: BodyVersionNoContentType[] = [
   {
     type: 'offchain',
     title: 'Sample Proposal',
-    content: 'Sample proposal content',
     createdAt: oneHourAgo,
     author_name: 'John Doe',
     author_picture: 'https://avatars.githubusercontent.com/u/1?v=4',
   },
 ];
 
-const multipleVersionsContent: BodyVersionType[] = [
+const multipleVersionsContent: BodyVersionNoContentType[] = [
   {
     type: 'offchain',
     title: 'Original Proposal',
-    content: 'Original proposal content',
     createdAt: oneWeekAgo,
     author_name: 'John Doe',
     author_picture: 'https://avatars.githubusercontent.com/u/1?v=4',
@@ -67,7 +65,6 @@ const multipleVersionsContent: BodyVersionType[] = [
   {
     type: 'offchain',
     title: 'Updated Proposal',
-    content: 'Updated proposal content',
     createdAt: oneDayAgo,
     author_name: 'John Doe',
     author_picture: 'https://avatars.githubusercontent.com/u/1?v=4',
@@ -75,18 +72,16 @@ const multipleVersionsContent: BodyVersionType[] = [
   {
     type: 'offchain',
     title: 'Latest Proposal',
-    content: 'Latest proposal content',
     createdAt: oneHourAgo,
     author_name: 'John Doe',
     author_picture: 'https://avatars.githubusercontent.com/u/1?v=4',
   },
 ];
 
-const mixedVersions: BodyVersionType[] = [
+const mixedVersions: BodyVersionNoContentType[] = [
   {
     type: 'topic',
     title: 'Original Discussion Topic',
-    content: 'Original discourse post',
     createdAt: oneWeekAgo,
     author_name: 'Jane Smith',
     author_picture: 'https://avatars.githubusercontent.com/u/2?v=4',
@@ -94,7 +89,6 @@ const mixedVersions: BodyVersionType[] = [
   {
     type: 'offchain',
     title: 'Offchain Proposal Revision',
-    content: 'Offchain revision',
     createdAt: oneDayAgo,
     author_name: 'John Doe',
     author_picture: 'https://avatars.githubusercontent.com/u/1?v=4',
@@ -102,7 +96,6 @@ const mixedVersions: BodyVersionType[] = [
   {
     type: 'onchain',
     title: 'Onchain Proposal',
-    content: 'Onchain version',
     createdAt: oneHourAgo,
     author_name: 'Alice Johnson',
     author_picture: 'https://avatars.githubusercontent.com/u/3?v=4',
@@ -156,7 +149,6 @@ export const DiscourseVersion: Story = {
       {
         type: 'topic',
         title: 'Discourse Topic',
-        content: 'Discourse forum post',
         createdAt: oneHourAgo,
         author_name: 'Forum User',
         author_picture: 'https://avatars.githubusercontent.com/u/4?v=4',
@@ -178,7 +170,6 @@ export const OnchainVersion: Story = {
       {
         type: 'onchain',
         title: 'Onchain Proposal',
-        content: 'Onchain proposal',
         createdAt: oneHourAgo,
         author_name: 'DAO Member',
         author_picture: 'https://avatars.githubusercontent.com/u/5?v=4',
