@@ -479,9 +479,9 @@ const SkeletonBodyHeader = React.forwardRef<
       {/* Desktop layout - matching the real page structure */}
       <div className='hidden flex-col gap-6 sm:flex'>
         {/* Title */}
-        <div className='flex flex-col gap-1'>
-          <div className='skeleton-blueprint skeleton-text h-8 w-3/4' />
-          <div className='skeleton-blueprint skeleton-text h-8 w-3/4' />
+        <div className='flex flex-col gap-2'>
+          <div className='skeleton-blueprint skeleton-text h-7 w-3/4' />
+          <div className='skeleton-blueprint skeleton-text h-7 w-3/4' />
         </div>
         {/* Author info and timestamps */}
         <div className='flex flex-col'>
