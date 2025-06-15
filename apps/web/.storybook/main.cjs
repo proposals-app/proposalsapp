@@ -53,6 +53,15 @@ const config = {
       buffer: 'buffer',
       pg: false,
       'pg-native': false,
+      child_process: false,
+      // Mock jsdom and related dependencies
+      jsdom: false,
+      'agent-base': false,
+      'http-proxy-agent': false,
+      'https-proxy-agent': false,
+      'socks-proxy-agent': false,
+      'pac-proxy-agent': false,
+      'canvas': false,
     };
 
     // Add webpack DefinePlugin to provide process.env
@@ -86,25 +95,27 @@ const config = {
       config.externals.push('pg', 'pg-native');
     }
 
-    // Add webpack alias to mock @proposalsapp/db
+    // Add webpack alias to mock dependencies
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@proposalsapp/db': path.resolve(__dirname, '../storybook-mocks/db.js'),
+      '@proposalsapp/db': path.resolve(__dirname, 'db_mock.js'),
+      '@/lib/markdown-converter': path.resolve(__dirname, 'markdown-converter-mock.js'),
+      'next/server': path.resolve(__dirname, 'next-server-mock.js'),
     };
 
-    // Add a module replacement rule for the database package
+    // Add a module replacement rule for mocked packages
     config.plugins.push({
       apply(compiler) {
         compiler.hooks.normalModuleFactory.tap(
-          'DatabaseMockPlugin',
+          'MockPlugin',
           (factory) => {
             factory.hooks.beforeResolve.tap(
-              'DatabaseMockPlugin',
+              'MockPlugin',
               (resolveData) => {
                 if (resolveData.request === '@proposalsapp/db') {
                   resolveData.request = path.resolve(
                     __dirname,
-                    '../storybook-mocks/db.js'
+                    'db_mock.js'
                   );
                 }
               }

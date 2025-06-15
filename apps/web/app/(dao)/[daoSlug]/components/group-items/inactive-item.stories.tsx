@@ -3,7 +3,7 @@ import { InactiveGroupItem } from './inactive-item';
 import { SkeletonInactiveGroupItem } from '../../../../components/ui/skeleton';
 
 const meta: Meta<typeof InactiveGroupItem> = {
-  title: 'DAO/Group Items/InactiveGroupItem',
+  title: 'DAO/Groups/Items/Inactive',
   component: InactiveGroupItem,
   parameters: {
     layout: 'padded',

@@ -12,7 +12,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { useState } from 'react';
 
 const meta: Meta<typeof MenuBar> = {
-  title: 'DAO/MenuBar',
+  title: 'DAO/Proposal/MenuBar',
   component: MenuBar,
   decorators: [
     (Story) => (

@@ -5,7 +5,7 @@ import { ProposalState } from '@proposalsapp/db';
 import { SkeletonActiveGroupItem } from '../../../../components/ui/skeleton';
 
 const meta: Meta<typeof ActiveGroupItem> = {
-  title: 'DAO/Group Items/ActiveGroupItem',
+  title: 'DAO/Groups/Items/Active',
   component: ActiveGroupItem,
   parameters: {
     layout: 'padded',

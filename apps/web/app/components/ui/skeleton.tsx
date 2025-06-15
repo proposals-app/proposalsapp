@@ -568,10 +568,10 @@ const SkeletonBody = React.forwardRef<HTMLDivElement, { className?: string }>(
       <div ref={ref} className={cn('w-full', className)}>
         <div className='relative overflow-hidden'>
           <div
-            className='prose prose-lg max-w-none overflow-hidden p-2 sm:p-6'
+            className='prose prose-lg max-w-none overflow-hidden py-2 sm:py-6'
             style={{ maxHeight: '25rem' }}
           >
-            <div className='space-y-4'>
+            <div className='space-y-5'>
               {/* Title line */}
               <div className='skeleton-blueprint skeleton-text h-8 w-3/4' />
               {/* Paragraph lines */}
@@ -581,14 +581,12 @@ const SkeletonBody = React.forwardRef<HTMLDivElement, { className?: string }>(
               <div className='skeleton-blueprint skeleton-text mt-6 h-6 w-1/2' />
               {/* More Paragraphs */}
               <div className='skeleton-blueprint skeleton-text mt-6 h-4 w-full' />
+              <div className='skeleton-blueprint skeleton-text mt-6 h-4 w-full' />
               <div className='skeleton-blueprint skeleton-text h-4 w-11/12' />
               <div className='skeleton-blueprint skeleton-text mt-4 h-4 w-3/4' />
               <div className='skeleton-blueprint skeleton-text h-4 w-full' />
               <div className='skeleton-blueprint skeleton-text h-4 w-10/12' />
             </div>
-
-            {/* Gradient overlay */}
-            <div className='skeleton-blueprint skeleton-text absolute right-0 bottom-0 left-0 h-24 bg-neutral-50/80 dark:bg-neutral-900/80' />
           </div>
         </div>
       </div>

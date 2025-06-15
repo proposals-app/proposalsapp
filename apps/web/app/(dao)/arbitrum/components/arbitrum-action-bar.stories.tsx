@@ -4,7 +4,7 @@ import { SkeletonActionBar } from '@/app/components/ui/skeleton';
 import { chromaticModes } from '@/.storybook/chromatic-decorator';
 
 const meta: Meta<typeof ArbitrumActionBar> = {
-  title: 'DAO Components/Arbitrum Action Bar',
+  title: 'DAO/Headers/ActionBar',
   component: ArbitrumActionBar,
   parameters: {
     layout: 'fullscreen',

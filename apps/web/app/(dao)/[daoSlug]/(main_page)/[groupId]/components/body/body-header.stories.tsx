@@ -4,7 +4,7 @@ import type { BodyVersionNoContentType } from '../../actions';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
 const meta = {
-  title: 'Group Page/Body/BodyHeader',
+  title: 'DAO/Proposal/Header',
   component: BodyHeader,
   decorators: [
     (Story) => (

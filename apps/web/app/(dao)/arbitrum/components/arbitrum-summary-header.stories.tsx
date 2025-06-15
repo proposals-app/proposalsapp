@@ -4,7 +4,7 @@ import { SkeletonHeader } from '@/app/components/ui/skeleton';
 import { chromaticModes } from '@/.storybook/chromatic-decorator';
 
 const meta: Meta<typeof ArbitrumSummaryHeader> = {
-  title: 'DAO Components/Arbitrum Summary Header',
+  title: 'DAO/Headers/SummaryHeader',
   component: ArbitrumSummaryHeader,
   parameters: {
     layout: 'fullscreen',

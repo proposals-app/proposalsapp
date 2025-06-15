@@ -3,7 +3,7 @@ import { DiscussionGroupItem } from './discussion-item';
 import { SkeletonDiscussionGroupItem } from '../../../../components/ui/skeleton';
 
 const meta: Meta<typeof DiscussionGroupItem> = {
-  title: 'DAO/Group Items/DiscussionGroupItem',
+  title: 'DAO/Groups/Items/Discussion',
   component: DiscussionGroupItem,
   parameters: {
     layout: 'padded',

@@ -3,7 +3,7 @@ import { InitiallyPosted } from './initially-posted';
 import { SkeletonInitiallyPosted } from '@/app/components/ui/skeleton';
 
 const meta: Meta<typeof InitiallyPosted> = {
-  title: 'Group Page/Body/InitiallyPosted',
+  title: 'DAO/Proposal/Body/InitiallyPosted',
   component: InitiallyPosted,
   parameters: {
     layout: 'centered',

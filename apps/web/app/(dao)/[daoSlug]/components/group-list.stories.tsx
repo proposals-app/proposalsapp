@@ -3,7 +3,7 @@ import { GroupList } from './group-list';
 import { SkeletonGroupListWithControls } from '../../../components/ui/skeleton';
 
 const meta: Meta<typeof GroupList> = {
-  title: 'DAO/Group List/GroupList',
+  title: 'DAO/Groups/List',
   component: GroupList,
   parameters: {
     layout: 'padded',

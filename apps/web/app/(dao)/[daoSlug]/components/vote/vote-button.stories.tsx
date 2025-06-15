@@ -903,7 +903,7 @@ const OnchainProposalStory: React.FC<{
 
 // --- Storybook Configuration ---
 const meta: Meta<typeof VoteButton> = {
-  title: 'Vote Button',
+  title: 'DAO/Voting/VoteButton',
   component: VoteButton,
   parameters: {
     layout: 'centered',

@@ -10,7 +10,7 @@ function StorybookWrapper({ children }: { children: React.ReactNode }) {
 }
 
 const meta: Meta<typeof PostedRevisions> = {
-  title: 'Group Page/Body/PostedRevisions',
+  title: 'DAO/Proposal/Body/PostedRevisions',
   component: PostedRevisions,
   decorators: [
     (Story) => (
