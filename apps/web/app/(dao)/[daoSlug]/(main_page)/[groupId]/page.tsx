@@ -5,21 +5,14 @@ import {
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
 import { getBodyVersions, getFeed, getGroup, getGroupHeader } from './actions';
-import {
-  AuthorInfo,
-  Body,
-  BodyLoading,
-  LoadingBodyHeader,
-} from './components/body/body';
+import { Body, BodyLoading } from './components/body/body';
 import { Feed, FeedLoading } from './components/feed/feed';
 import { MenuBar } from './components/menubar/menu-bar';
 import { Timeline } from './components/timeline/timeline';
 import { Suspense } from 'react';
 import { DynamicLoadingMenuBar } from './components/menubar/loading-menu-bar';
-import { InitiallyPosted } from './components/body/initially-posted';
-import { Header } from '../../components/header/header';
 import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
-import { PostedRevisions } from './components/body/posted-revision';
+import { BodyHeader, BodyHeaderLoading } from './components/body/body-header';
 import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 import { LastReadUpdater } from './components/last-read-updater';
 import type { ResultEvent } from '@/lib/types';
@@ -67,7 +60,7 @@ async function GroupPage({
           <LastReadUpdater groupId={groupId} daoSlug={daoSlug} />
         </Suspense>
 
-        <Suspense fallback={<LoadingBodyHeader />}>
+        <Suspense fallback={<BodyHeaderLoading />}>
           <BodyHeaderSection groupId={groupId} />
         </Suspense>
 
@@ -152,56 +145,14 @@ async function BodyHeaderSection({ groupId }: { groupId: string }) {
   const firstBodyVersion = bodyVersions[0];
 
   return (
-    <div className='flex w-full flex-col gap-6'>
-      <Header
-        groupId={group.groupId}
-        withBack={false}
-        withHide={true}
-        originalAuthorName={originalAuthorName}
-        originalAuthorPicture={originalAuthorPicture}
-        groupName={groupName}
-      />
-
-      <div className='hidden flex-col gap-6 sm:flex'>
-        <h1 className='text-2xl font-bold text-neutral-700 dark:text-neutral-300'>
-          {groupName}
-        </h1>
-
-        <div className='flex flex-col'>
-          <div className='flex flex-row items-start justify-between'>
-            <AuthorInfo
-              authorName={originalAuthorName}
-              authorPicture={originalAuthorPicture}
-            />
-
-            <div className='flex flex-col items-center gap-2'>
-              <div className='flex gap-2'>
-                <InitiallyPosted createdAt={firstBodyVersion.createdAt} />
-
-                <PostedRevisions versions={bodyVersionsNoContent} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className='flex flex-col gap-2 sm:hidden'>
-        <div className='flex items-start justify-between'>
-          <AuthorInfo
-            authorName={originalAuthorName}
-            authorPicture={originalAuthorPicture}
-          />
-
-          <div className='flex-col'>
-            <PostedRevisions versions={bodyVersionsNoContent} />
-          </div>
-        </div>
-
-        <h1 className='text-center text-2xl font-bold text-neutral-700 dark:text-neutral-300'>
-          {groupName}
-        </h1>
-      </div>
-    </div>
+    <BodyHeader
+      groupId={group.groupId}
+      groupName={groupName}
+      originalAuthorName={originalAuthorName}
+      originalAuthorPicture={originalAuthorPicture}
+      firstBodyVersionCreatedAt={firstBodyVersion.createdAt}
+      bodyVersionsNoContent={bodyVersionsNoContent}
+    />
   );
 }
 
