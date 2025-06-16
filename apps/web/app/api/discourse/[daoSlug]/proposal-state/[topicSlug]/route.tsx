@@ -142,6 +142,12 @@ export async function GET(
     return new Response(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers':
+          'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+        'Access-Control-Allow-Credentials': 'true',
+        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
       },
     });
   }
@@ -201,6 +207,12 @@ export async function GET(
     return new Response(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers':
+          'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+        'Access-Control-Allow-Credentials': 'true',
+        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
       },
     });
   }
@@ -242,6 +254,25 @@ export async function GET(
   return new Response(svg, {
     headers: {
       'Content-Type': 'image/svg+xml',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers':
+        'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+      'Access-Control-Allow-Credentials': 'true',
+      'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+    },
+  });
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers':
+        'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+      'Access-Control-Allow-Credentials': 'true',
     },
   });
 }
