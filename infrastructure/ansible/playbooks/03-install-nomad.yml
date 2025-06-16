@@ -51,7 +51,7 @@
 
     - name: Wait for leader election
       shell: |
-        nomad operator raft list-peers | grep -q "leader=true"
+        nomad operator raft list-peers | grep -q "leader"
       register: leader_check
       until: leader_check.rc == 0
       retries: 10
@@ -179,7 +179,7 @@
 
     - name: Check Nomad leader election
       shell: |
-        if ! nomad operator raft list-peers 2>&1 | grep -q "leader=true"; then
+        if ! nomad operator raft list-peers 2>&1 | grep -q "leader"; then
           echo "ERROR: No Nomad leader elected"
           exit 1
         fi
@@ -190,12 +190,12 @@
 
     - name: Check Nomad regions
       shell: |
-        regions=$(nomad region list 2>&1)
+        regions=$(nomad server members 2>&1)
         if [ $? -ne 0 ]; then
-          echo "ERROR: Cannot query regions: $regions"
+          echo "ERROR: Cannot query server members: $regions"
           exit 1
         fi
-        echo "OK: Nomad regions configured"
+        echo "OK: Nomad servers configured"
         echo "$regions"
       register: nomad_regions
       changed_when: false

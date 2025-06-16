@@ -166,7 +166,6 @@
             timeout: 60
       when: datacenter != "dc1"
 
-    
     - name: Check existing WAN members
       shell: consul members -wan | grep -v "$(hostname)" | awk '{print $2}' | cut -d':' -f1
       register: existing_wan_members
@@ -302,7 +301,7 @@
   tasks:
     - name: Wait for Consul to stabilize
       pause:
-        seconds: "{{ 30 if datacenter != 'dc1' else 10 }}"
+        seconds: "10"
         prompt: "Waiting for Consul to stabilize ({{ datacenter }})"
 
     - name: Check Consul cluster health
@@ -312,21 +311,21 @@
           echo "ERROR: Consul service is not running"
           exit 1
         fi
-        
+
         # Check cluster members
         members=$(consul members 2>&1)
         if [ $? -ne 0 ]; then
           echo "ERROR: Cannot query Consul members: $members"
           exit 1
         fi
-        
+
         # Count alive servers
         alive_servers=$(echo "$members" | grep -c "alive.*server")
         if [ $alive_servers -lt 1 ]; then
           echo "ERROR: No alive Consul servers found"
           exit 1
         fi
-        
+
         echo "OK: Found $alive_servers alive Consul servers"
         echo "$members"
       register: consul_health
@@ -346,7 +345,7 @@
           consul members
         else
           # Primary DC must have a leader
-          if ! consul operator raft list-peers 2>&1 | grep -q "leader=true"; then
+          if ! consul operator raft list-peers 2>&1 | awk '{print $4}' | grep -q "leader"; then
             echo "ERROR: No Consul leader elected in primary DC"
             exit 1
           fi
@@ -365,17 +364,17 @@
           echo "ERROR: Cannot query WAN members: $wan_members"
           exit 1
         fi
-        
+
         # Count datacenters
         dc_count=$(echo "$wan_members" | grep -c "server.*alive")
         expected_dcs={{ groups['consul_servers'] | map('extract', hostvars, 'datacenter') | unique | list | length }}
-        
+
         if [ $dc_count -ne $expected_dcs ]; then
           echo "ERROR: Expected $expected_dcs datacenters, found $dc_count"
           echo "$wan_members"
           exit 1
         fi
-        
+
         echo "OK: WAN federation established with $dc_count datacenters"
         echo "$wan_members"
       register: wan_federation
@@ -404,15 +403,15 @@
           Leader Election: {{ 'YES' if consul_leader.rc == 0 else 'NO' }}
           WAN Federation: {{ 'ESTABLISHED' if (datacenter != 'dc1' or (wan_federation is defined and wan_federation.rc == 0)) else 'N/A' }}
           DNS Resolution: {{ 'WORKING' if consul_dns.rc == 0 else 'FAILED' }}
-          
+
           Cluster Members:
           {{ consul_health.stdout | indent(2) }}
-          
+
           {% if datacenter == 'dc1' and wan_federation is defined %}
           WAN Members:
           {{ wan_federation.stdout | indent(2) }}
           {% endif %}
-          
+
           Access Consul UI at: http://{{ tailscale_ip | default(ansible_default_ipv4.address) }}:8500
           ========================================
       run_once: true
@@ -427,13 +426,13 @@
           echo "ERROR: Consul service is not running"
           exit 1
         fi
-        
+
         # Check if connected to cluster
         if ! consul members | grep -q "{{ inventory_hostname }}.*alive"; then
           echo "ERROR: Not connected to Consul cluster"
           exit 1
         fi
-        
+
         echo "OK: Consul client connected"
       register: client_health
       changed_when: false

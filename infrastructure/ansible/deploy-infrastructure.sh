@@ -20,7 +20,7 @@ SKIP_DESTROY="true"
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --destroy|--recreate)
+        --recreate)
             MODE="recreate"
             SKIP_DESTROY="false"
             shift
@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --destroy, --recreate    Destroy existing infrastructure before creating"
+            echo "  --recreate    Destroy existing infrastructure before creating"
             echo "  --help, -h              Show this help message"
             echo ""
             echo "Default behavior (no flags): Update existing infrastructure (idempotent)"
@@ -87,7 +87,7 @@ if [ "$MODE" = "recreate" ]; then
     echo "  4. Recreate everything from scratch"
     echo ""
     read -p "Are you ABSOLUTELY SURE you want to continue? Type 'yes-destroy-all' to confirm: " confirmation
-    
+
     if [ "$confirmation" != "yes-destroy-all" ]; then
         echo -e "${YELLOW}Aborted. No changes were made.${NC}"
         exit 0
@@ -98,11 +98,11 @@ fi
 run_playbook() {
     local playbook=$1
     local description=$2
-    
+
     echo -e "\n${CYAN}========================================${NC}"
     echo -e "${CYAN}${description}${NC}"
     echo -e "${CYAN}========================================${NC}"
-    
+
     if ansible-playbook -i inventory.yml "$playbook"; then
         echo -e "${GREEN}✓ ${description} completed successfully${NC}"
         return 0
@@ -118,7 +118,7 @@ if [ "$SKIP_DESTROY" = "false" ]; then
     ansible-playbook -i inventory.yml playbooks/99-destroy-lxc-containers.yml -e "confirm_destroy=yes-destroy-all" || {
         echo -e "${YELLOW}Warning: Some containers may not have existed${NC}"
     }
-    
+
     # Wait a bit for cleanup
     echo -e "${YELLOW}Waiting for cleanup to complete...${NC}"
     sleep 10
@@ -150,7 +150,7 @@ PLAYBOOKS=(
 failed=0
 for playbook_info in "${PLAYBOOKS[@]}"; do
     IFS=':' read -r playbook description <<< "$playbook_info"
-    
+
     if ! run_playbook "$playbook" "$description"; then
         failed=1
         echo -e "${RED}Failed to run $playbook${NC}"
@@ -159,7 +159,7 @@ for playbook_info in "${PLAYBOOKS[@]}"; do
             break
         fi
     fi
-    
+
     # Small delay between playbooks
     sleep 5
 done
@@ -204,7 +204,7 @@ echo ""
 echo -e "${CYAN}Useful commands:${NC}"
 echo "• Check all hosts: ansible all -i inventory.yml -m ping"
 echo "• Update only: $0"
-echo "• Full recreate: $0 --destroy"
+echo "• Full recreate: $0 --recreate"
 echo "• View Consul UI: http://<any-consul-server-ip>:8500"
 echo "• View Nomad UI: http://<any-nomad-server-ip>:4646"
 

@@ -20,6 +20,18 @@ server {
   # Enable multi-region federation
   authoritative_region = "{{ nomad_region }}"
   
+  # Enable cross-datacenter scheduling
+  default_scheduler_config {
+    scheduler_algorithm = "spread"
+    
+    # Preemption allows higher priority jobs to evict lower priority ones
+    preemption_config {
+      system_scheduler_enabled = true
+      service_scheduler_enabled = true
+      batch_scheduler_enabled = true
+    }
+  }
+  
   server_join {
     retry_join = [
       {% for host in groups['nomad_servers'] %}
