@@ -1,0 +1,137 @@
+---
+- name: Install and Configure Nomad Servers
+  hosts: nomad_servers
+  become: true
+  tasks:
+    - name: Install Nomad
+      apt:
+        name: nomad
+        state: present
+
+    - name: Create Nomad server configuration
+      template:
+        src: ../templates/nomad-server.hcl.j2
+        dest: /etc/nomad/nomad.hcl
+        owner: nomad
+        group: nomad
+        mode: "0640"
+      notify: restart nomad
+
+    - name: Create systemd override directory for Nomad
+      file:
+        path: /etc/systemd/system/nomad.service.d
+        state: directory
+        mode: '0755'
+
+    - name: Create Nomad systemd service override
+      copy:
+        content: |
+          [Service]
+          Environment="CONSUL_HTTP_ADDR=http://127.0.0.1:{{ consul_client_port }}"
+        dest: /etc/systemd/system/nomad.service.d/override.conf
+      notify:
+        - reload systemd
+        - restart nomad
+
+    - name: Start and enable Nomad
+      systemd:
+        name: nomad
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Wait for Nomad to be ready
+      wait_for:
+        port: "{{ nomad_http_port }}"
+        delay: 5
+
+    - name: Bootstrap Nomad ACL system
+      shell: nomad acl bootstrap -json
+      register: nomad_bootstrap_result
+      run_once: true
+      ignore_errors: true
+
+    - name: Save bootstrap token
+      copy:
+        content: "{{ nomad_bootstrap_result.stdout }}"
+        dest: /root/nomad-bootstrap.json
+        mode: "0600"
+      when: nomad_bootstrap_result is succeeded
+      run_once: true
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: restart nomad
+      systemd:
+        name: nomad
+        state: restarted
+
+- name: Install and Configure Nomad Clients
+  hosts: nomad_clients
+  become: true
+  tasks:
+    - name: Install Nomad
+      apt:
+        name: nomad
+        state: present
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Add nomad user to docker group
+      user:
+        name: nomad
+        groups: docker
+        append: yes
+
+    - name: Create Nomad client configuration
+      template:
+        src: ../templates/nomad-client.hcl.j2
+        dest: /etc/nomad/nomad.hcl
+        owner: nomad
+        group: nomad
+        mode: "0640"
+      notify: restart nomad
+
+    - name: Create Docker daemon configuration
+      copy:
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "10m",
+              "max-file": "3"
+            },
+            "storage-driver": "overlay2",
+            "metrics-addr": "127.0.0.1:9323",
+            "experimental": true
+          }
+        dest: /etc/docker/daemon.json
+      notify: restart docker
+
+    - name: Start and enable services
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - docker
+        - nomad
+
+  handlers:
+    - name: restart nomad
+      systemd:
+        name: nomad
+        state: restarted
+
+    - name: restart docker
+      systemd:
+        name: docker
+        state: restarted

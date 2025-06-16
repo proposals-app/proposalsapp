@@ -1,0 +1,204 @@
+---
+- name: Destroy All LXC Containers
+  hosts: proxmox_nodes
+  gather_facts: false
+  vars_prompt:
+    - name: confirm_destroy
+      prompt: "Are you sure you want to DESTROY all containers? Type 'yes-destroy-all' to confirm"
+      private: false
+
+  tasks:
+    - name: Abort if not confirmed
+      fail:
+        msg: "Destruction cancelled. You must type 'yes-destroy-all' to confirm."
+      when: confirm_destroy != 'yes-destroy-all'
+
+    - name: Get containers from inventory for this host
+      set_fact:
+        my_containers: []
+
+    - name: Build container list from inventory
+      set_fact:
+        my_containers: "{{ my_containers + [{'id': hostvars[item].container_id, 'name': item}] }}"
+      when: hostvars[item].proxmox_node == inventory_hostname
+      loop: "{{ groups['lxc_containers'] }}"
+
+    - name: Check which containers exist
+      shell: "pct status {{ item.id }} 2>/dev/null || echo 'not_found'"
+      loop: "{{ my_containers }}"
+      register: container_exists
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display containers to be destroyed
+      debug:
+        msg: |
+          ========================================
+          Containers on {{ inventory_hostname }}:
+          ========================================
+          {% for idx in range(my_containers|length) %}
+          {% set container = my_containers[idx] %}
+          {% set exists = 'not_found' not in container_exists.results[idx].stdout %}
+          - {{ container.name }} (ID: {{ container.id }}): {{ 'EXISTS - WILL BE DESTROYED' if exists else 'Does not exist' }}
+          {% endfor %}
+          ========================================
+          
+          Tailscale cleanup will be attempted for all running containers.
+          Device IDs will be collected for API removal.
+
+    - name: Get Tailscale hostname for API lookup
+      shell: |
+        pct exec {{ item.0.id }} -- bash -c '
+          if command -v tailscale &> /dev/null && systemctl is-active --quiet tailscaled; then
+            hostname -s 2>/dev/null || echo "{{ item.0.name }}"
+          else
+            echo ""
+          fi
+        ' || echo ""
+      when:
+        - "'not_found' not in item.1.stdout"
+        - "'running' in item.1.stdout"
+      loop: "{{ my_containers | zip(container_exists.results) | list }}"
+      register: tailscale_hostnames
+      ignore_errors: true
+
+    - name: Logout from Tailscale before stopping containers
+      shell: "pct exec {{ item.0.id }} -- bash -c 'tailscale logout || true' || true"
+      when:
+        - "'not_found' not in item.1.stdout"
+        - "'running' in item.1.stdout"
+      loop: "{{ my_containers | zip(container_exists.results) | list }}"
+      ignore_errors: true
+      register: tailscale_logout
+
+    - name: Stop running containers
+      shell: "pct stop {{ item.0.id }} --skiplock 1"
+      when:
+        - "'not_found' not in item.1.stdout"
+        - "'running' in item.1.stdout"
+      loop: "{{ my_containers | zip(container_exists.results) | list }}"
+      ignore_errors: true
+      register: stop_result
+
+    - name: Wait for containers to stop
+      pause:
+        seconds: 5
+      when: stop_result.changed
+
+    - name: Destroy containers
+      shell: "pct destroy {{ item.0.id }} --purge 1"
+      when: "'not_found' not in item.1.stdout"
+      loop: "{{ my_containers | zip(container_exists.results) | list }}"
+      register: destroy_result
+
+    - name: Clean up container facts
+      file:
+        path: /etc/ansible/facts.d/lxc_containers.fact
+        state: absent
+      ignore_errors: true
+
+    - name: Get all devices from Tailscale API
+      uri:
+        url: "https://api.tailscale.com/api/v2/tailnet/{{ tailscale_tailnet | default('-') }}/devices"
+        method: GET
+        user: "{{ vault_tailscale_api_key }}"
+        password: ""
+        force_basic_auth: true
+        status_code: [200]
+      when: 
+        - vault_tailscale_api_key is defined
+        - tailscale_hostnames is defined
+      register: tailscale_devices_api
+      ignore_errors: true
+      delegate_to: localhost
+      run_once: true
+
+    - name: Build device removal list
+      set_fact:
+        devices_to_remove: |
+          {%- set devices = [] -%}
+          {%- if tailscale_devices_api.json is defined and tailscale_devices_api.json.devices is defined -%}
+            {%- for device in tailscale_devices_api.json.devices -%}
+              {%- for idx in range(my_containers|length) -%}
+                {%- if tailscale_hostnames.results[idx].stdout is defined and tailscale_hostnames.results[idx].stdout != "" -%}
+                  {%- set hostname = tailscale_hostnames.results[idx].stdout.strip() -%}
+                  {%- if device.hostname == hostname or device.name.startswith(hostname + '.') -%}
+                    {%- set _ = devices.append({'id': device.id, 'name': device.hostname}) -%}
+                  {%- endif -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ devices }}
+      when: tailscale_devices_api is defined and tailscale_devices_api.json is defined
+
+    - name: Debug Tailscale device removal
+      debug:
+        msg: |
+          Tailscale API Response: {{ tailscale_devices_api.status | default('No response') }}
+          Devices found to remove: {{ devices_to_remove | default([]) | length }}
+          {% if devices_to_remove is defined and devices_to_remove | length > 0 %}
+          Devices:
+          {% for device in devices_to_remove %}
+          - {{ device.name }} (ID: {{ device.id }})
+          {% endfor %}
+          {% endif %}
+      when: vault_tailscale_api_key is defined
+
+    - name: Remove devices from Tailscale using API
+      uri:
+        url: "https://api.tailscale.com/api/v2/device/{{ item.id }}"
+        method: DELETE
+        user: "{{ vault_tailscale_api_key }}"
+        password: ""
+        force_basic_auth: true
+        status_code: [200, 204, 404]
+      loop: "{{ devices_to_remove | default([]) }}"
+      when: 
+        - devices_to_remove is defined
+        - devices_to_remove | length > 0
+        - vault_tailscale_api_key is defined
+      register: tailscale_api_removal
+      ignore_errors: true
+      delegate_to: localhost
+
+    - name: Final destruction report
+      debug:
+        msg: |
+          ========================================
+          Destruction Complete on {{ inventory_hostname }}
+          ========================================
+          {% for idx in range(my_containers|length) %}
+          {% set container = my_containers[idx] %}
+          {% set existed = 'not_found' not in container_exists.results[idx].stdout %}
+          {% set destroyed = destroy_result.results[idx].changed if existed else false %}
+          {{ container.name }}: {{ 'DESTROYED' if destroyed else 'Was not present' if not existed else 'FAILED TO DESTROY' }}
+          {% endfor %}
+          ========================================
+
+- name: Summary across all nodes
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display final summary
+      debug:
+        msg: |
+          ========================================
+          CONTAINER DESTRUCTION COMPLETE
+          ========================================
+
+          All containers have been processed.
+
+          Next steps if you want to recreate:
+          1. Run the container creation playbook
+          2. Provide a new Tailscale auth key
+          
+          Note: Tailscale cleanup attempted:
+          - Logged out from each container
+          - API removal attempted for matching devices
+          
+          If devices remain, check:
+          - API key permissions (needs device:delete scope)
+          - Correct tailnet name in config
+          - Manual removal at https://login.tailscale.com/admin/machines
+          ========================================

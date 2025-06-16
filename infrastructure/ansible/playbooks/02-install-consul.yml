@@ -1,0 +1,263 @@
+---
+# Gather facts from all hosts first
+- name: Gather facts from all hosts
+  hosts: all
+  gather_facts: true
+  tasks: []
+
+# Ensure we have facts from servers before configuring clients
+- name: Refresh facts for consul servers
+  hosts: consul_servers
+  gather_facts: true
+  tasks: []
+
+- name: Install and Configure Consul
+  hosts: consul_servers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - consul
+        state: present
+
+    - name: Fix Consul directory permissions
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: consul
+        group: consul
+        mode: "0755"
+      loop:
+        - /var/lib/consul
+        - /opt/consul
+        - /etc/consul
+
+    - name: Generate Consul CA
+      shell: consul tls ca create
+      args:
+        creates: /opt/consul/consul-agent-ca.pem
+        chdir: /opt/consul
+      run_once: true
+      delegate_to: consul-nomad-sib-01
+
+    - name: Generate Consul server certificates
+      shell: |
+        consul tls cert create -server -dc {{ datacenter }} \
+          -additional-dnsname={{ inventory_hostname }}.consul
+      args:
+        creates: /opt/consul/{{ datacenter }}-server-consul-0.pem
+        chdir: /opt/consul
+      delegate_to: consul-nomad-sib-01
+
+    - name: Fetch CA cert from primary server
+      fetch:
+        src: /opt/consul/consul-agent-ca.pem
+        dest: /tmp/consul-ca/
+        flat: yes
+      run_once: true
+      delegate_to: consul-nomad-sib-01
+
+    - name: Distribute CA cert to all servers
+      copy:
+        src: /tmp/consul-ca/consul-agent-ca.pem
+        dest: /opt/consul/consul-agent-ca.pem
+        owner: consul
+        group: consul
+        mode: "0644"
+
+    - name: Create Consul config directory
+      file:
+        path: /etc/consul.d
+        state: directory
+        owner: consul
+        group: consul
+        mode: "0755"
+
+    - name: Create Consul server configuration
+      template:
+        src: ../templates/consul-server.hcl.j2
+        dest: /etc/consul.d/consul.hcl
+        owner: consul
+        group: consul
+        mode: "0640"
+      notify: restart consul
+
+    - name: Create systemd service directory
+      file:
+        path: /etc/systemd/system/consul.service.d
+        state: directory
+        mode: "0755"
+
+    - name: Create Consul systemd service override
+      copy:
+        content: |
+          [Service]
+          Environment="CONSUL_CACERT=/opt/consul/consul-agent-ca.pem"
+          Environment="CONSUL_CLIENT_CERT=/opt/consul/{{ datacenter }}-server-consul-0.pem"
+          Environment="CONSUL_CLIENT_KEY=/opt/consul/{{ datacenter }}-server-consul-0-key.pem"
+        dest: /etc/systemd/system/consul.service.d/override.conf
+      notify:
+        - reload systemd
+        - restart consul
+
+    - name: Bootstrap primary datacenter first
+      block:
+        - name: Start Consul on primary DC
+          systemd:
+            name: consul
+            state: started
+            enabled: yes
+            daemon_reload: yes
+          environment:
+            CONSUL_BOOTSTRAP_EXPECT: "1"
+
+        - name: Wait for primary DC to be ready
+          wait_for:
+            port: 8500
+            host: "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
+            delay: 5
+            timeout: 60
+      when: datacenter == "dc1"
+
+    - name: Start Consul on secondary datacenters
+      block:
+        - name: Find primary DC server
+          set_fact:
+            primary_dc_ip: "{{ hostvars[item].tailscale_ip | default(hostvars[item].ansible_tailscale0.ipv4.address | default(hostvars[item].ansible_default_ipv4.address)) }}"
+          loop: "{{ groups['consul_servers'] }}"
+          when:
+            - hostvars[item]['datacenter'] == "dc1"
+            - datacenter != "dc1"
+
+        - name: Wait for primary DC to be up
+          wait_for:
+            port: 8302
+            host: "{{ primary_dc_ip }}"
+            delay: 10
+            timeout: 60
+          when:
+            - datacenter != "dc1"
+            - primary_dc_ip is defined
+
+        - name: Start Consul on secondary DCs
+          systemd:
+            name: consul
+            state: started
+            enabled: yes
+            daemon_reload: yes
+
+        - name: Wait for Consul to be ready
+          wait_for:
+            port: 8500
+            host: "{{ ansible_tailscale0.ipv4.address }}"
+            delay: 5
+            timeout: 60
+      when: datacenter != "dc1"
+
+    - name: Establish WAN federation from primary DC
+      shell: |
+        {% for host in groups['consul_servers'] %}
+        {% if hostvars[host]['datacenter'] != "dc1" and hostvars[host].ansible_tailscale0 is defined %}
+        consul join -wan {{ hostvars[host].ansible_tailscale0.ipv4.address }}:8302
+        {% endif %}
+        {% endfor %}
+      when: datacenter == "dc1"
+      run_once: true
+      ignore_errors: true
+
+    - name: Bootstrap Consul ACL system
+      shell: consul acl bootstrap -format=json
+      register: consul_bootstrap_result
+      when: datacenter == "dc1" # Bootstrap only in primary datacenter
+      run_once: true
+      ignore_errors: true
+
+    - name: Save bootstrap token
+      copy:
+        content: "{{ consul_bootstrap_result.stdout }}"
+        dest: /root/consul-bootstrap.json
+        mode: "0600"
+      when:
+        - consul_bootstrap_result is succeeded
+        - datacenter == "dc1"
+      run_once: true
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: restart consul
+      systemd:
+        name: consul
+        state: restarted
+
+- name: Configure Consul Clients
+  hosts: nomad_clients
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - consul
+        state: present
+
+    - name: Fix Consul directory permissions
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: consul
+        group: consul
+        mode: "0755"
+      loop:
+        - /var/lib/consul
+        - /opt/consul
+        - /etc/consul
+
+    - name: Fetch CA cert from server
+      fetch:
+        src: /opt/consul/consul-agent-ca.pem
+        dest: /tmp/consul-ca/
+        flat: yes
+      delegate_to: consul-nomad-sib-01
+      run_once: true
+
+    - name: Copy CA cert to clients
+      copy:
+        src: /tmp/consul-ca/consul-agent-ca.pem
+        dest: /opt/consul/consul-agent-ca.pem
+        owner: consul
+        group: consul
+        mode: "0644"
+
+    - name: Create Consul config directory
+      file:
+        path: /etc/consul.d
+        state: directory
+        owner: consul
+        group: consul
+        mode: "0755"
+
+    - name: Create Consul client configuration
+      template:
+        src: ../templates/consul-client.hcl.j2
+        dest: /etc/consul.d/consul.hcl
+        owner: consul
+        group: consul
+        mode: "0640"
+      notify: restart consul
+
+    - name: Start and enable Consul
+      systemd:
+        name: consul
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: restart consul
+      systemd:
+        name: consul
+        state: restarted

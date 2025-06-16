@@ -1,0 +1,57 @@
+---
+# Non-sensitive variables
+
+# Container configuration
+container_user: proposalsapp
+container_group: proposalsapp
+
+# Security settings
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_pubkey_authentication: "yes"
+
+# Network security
+firewall_allowed_tcp_ports:
+  - 22    # SSH
+  - 80    # HTTP
+  - 443   # HTTPS
+  - 8301  # Consul LAN Serf
+  - 8302  # Consul WAN Serf
+  - 8500  # Consul HTTP API
+  - 8600  # Consul DNS
+  - 4646  # Nomad HTTP
+  - 4647  # Nomad RPC
+  - 4648  # Nomad Serf
+  - 5432  # PostgreSQL
+
+# Database configuration
+postgres_version: 15
+postgres_user: proposalsapp
+postgres_database: proposalsapp
+postgres_max_connections: 200
+postgres_shared_buffers: "2GB"
+
+# Application configuration
+app_domain: proposals.app
+app_environment: production
+
+# Consul configuration
+consul_client_port: 8500
+consul_dns_port: 8600
+consul_serf_lan_port: 8301
+consul_serf_wan_port: 8302
+consul_server_port: 8300
+internal_domain: consul
+consul_encrypt_key: "{{ vault_consul_encrypt_key }}"
+
+# Nomad configuration
+nomad_datacenter: "dc1"
+nomad_region: "global"
+nomad_http_port: 4646
+nomad_rpc_port: 4647
+nomad_serf_port: 4648
+nomad_encrypt_key: "{{ vault_nomad_encrypt_key }}"
+
+# Backup configuration
+backup_retention_days: 30
+backup_schedule: "0 2 * * *"  # 2 AM daily

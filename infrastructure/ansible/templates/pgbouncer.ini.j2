@@ -1,0 +1,22 @@
+[databases]
+proposalsapp = host=127.0.0.1 port={{ postgres_port }} dbname={{ postgres_db_name }}
+
+[pgbouncer]
+listen_port = 6432
+listen_addr = *
+auth_type = md5
+auth_file = /etc/pgbouncer/userlist.txt
+pool_mode = transaction
+max_client_conn = 1000
+default_pool_size = 25
+min_pool_size = 5
+reserve_pool_size = 5
+reserve_pool_timeout = 5
+server_lifetime = 3600
+server_idle_timeout = 600
+log_connections = 0
+log_disconnections = 0
+log_pooler_errors = 1
+stats_period = 60
+admin_users = postgres, patroni
+stats_users = postgres, patroni

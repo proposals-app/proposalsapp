@@ -21,3 +21,9 @@ Cargo.lock
 .yarn
 lcov.info
 .secrets
+
+# infrastructure security
+infrastructure/ansible/vault-password.txt
+infrastructure/ansible/vault-password.txt.*
+infrastructure/ansible/.vault_pass
+*.vault_pass

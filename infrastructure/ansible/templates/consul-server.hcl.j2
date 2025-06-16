@@ -1,0 +1,76 @@
+datacenter = "{{ datacenter }}"
+primary_datacenter = "dc1"
+data_dir = "/var/lib/consul"
+log_level = "INFO"
+node_name = "{{ inventory_hostname }}"
+server = true
+bootstrap_expect = 1
+encrypt = "{{ consul_encrypt_key }}"
+
+ui_config {
+  enabled = true
+}
+
+client_addr = "0.0.0.0"
+bind_addr = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
+advertise_addr = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
+advertise_addr_wan = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
+
+# Join servers in same datacenter
+retry_join = [
+  {% for host in groups['consul_servers'] %}
+  {% if host != inventory_hostname and hostvars[host]['datacenter'] == datacenter %}
+  "{{ hostvars[host].tailscale_ip | default(hostvars[host].ansible_tailscale0.ipv4.address | default(hostvars[host].ansible_default_ipv4.address)) }}",
+  {% endif %}
+  {% endfor %}
+]
+
+# WAN join to servers in other datacenters
+{% if datacenter != "dc1" %}
+retry_join_wan = [
+  {% for host in groups['consul_servers'] %}
+  {% if hostvars[host]['datacenter'] == "dc1" %}
+  "{{ hostvars[host].tailscale_ip | default(hostvars[host].ansible_tailscale0.ipv4.address | default(hostvars[host].ansible_default_ipv4.address)) }}",
+  {% endif %}
+  {% endfor %}
+]
+{% endif %}
+
+ports {
+  grpc = 8502
+  dns = 8600
+  http = 8500
+  https = -1
+  serf_lan = 8301
+  serf_wan = 8302
+  server = 8300
+}
+
+connect {
+  enabled = true
+}
+
+acl {
+  enabled = true
+  default_policy = "allow"
+  enable_token_persistence = true
+}
+
+performance {
+  raft_multiplier = 1
+}
+
+telemetry {
+  prometheus_retention_time = "60s"
+  disable_hostname = true
+}
+
+dns_config {
+  enable_truncate = true
+  only_passing = true
+}
+
+limits {
+  http_max_conns_per_client = 200
+  rpc_max_conns_per_client = 100
+}

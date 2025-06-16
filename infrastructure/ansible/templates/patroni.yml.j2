@@ -1,0 +1,98 @@
+scope: proposalsapp-{{ postgres_role }}
+namespace: /service/
+name: {{ inventory_hostname }}
+
+restapi:
+  listen: 0.0.0.0:{{ patroni_rest_api_port }}
+  connect_address: {{ ansible_default_ipv4.address }}:{{ patroni_rest_api_port }}
+  authentication:
+    username: patroni
+    password: {{ postgres_password }}
+
+consul:
+  host: 127.0.0.1:{{ consul_client_port }}
+  register_service: true
+  service_check_interval: 5s
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    master_start_timeout: 300
+    synchronous_mode: true
+    synchronous_mode_strict: false
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        max_connections: 200
+        shared_buffers: 256MB
+        effective_cache_size: 1GB
+        maintenance_work_mem: 64MB
+        checkpoint_completion_target: 0.9
+        wal_buffers: 16MB
+        default_statistics_target: 100
+        random_page_cost: 1.1
+        effective_io_concurrency: 200
+        work_mem: 4MB
+        min_wal_size: 1GB
+        max_wal_size: 4GB
+        max_worker_processes: 8
+        max_parallel_workers_per_gather: 4
+        max_parallel_workers: 8
+        max_parallel_maintenance_workers: 4
+        wal_level: replica
+        hot_standby: "on"
+        max_wal_senders: 10
+        max_replication_slots: 10
+        hot_standby_feedback: "on"
+        wal_log_hints: "on"
+        shared_preload_libraries: 'pg_stat_statements'
+
+  initdb:
+  - encoding: UTF8
+  - data-checksums
+
+  pg_hba:
+  - host replication replicator 0.0.0.0/0 md5
+  - host all all 0.0.0.0/0 md5
+  - local all all peer
+
+  users:
+    proposalsapp:
+      password: {{ postgres_password }}
+      options:
+        - createrole
+        - createdb
+    replicator:
+      password: {{ postgres_replication_password }}
+      options:
+        - replication
+
+postgresql:
+  listen: 0.0.0.0:{{ postgres_port }}
+  connect_address: {{ ansible_default_ipv4.address }}:{{ postgres_port }}
+  data_dir: /var/lib/postgresql/{{ postgres_version }}/data
+  bin_dir: /usr/lib/postgresql/{{ postgres_version }}/bin
+  pgpass: /tmp/pgpass0
+  authentication:
+    replication:
+      username: replicator
+      password: {{ postgres_replication_password }}
+    superuser:
+      username: postgres
+      password: {{ postgres_password }}
+  
+  create_replica_methods:
+    - basebackup
+  
+  basebackup:
+    checkpoint: 'fast'
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false

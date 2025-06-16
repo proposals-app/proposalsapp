@@ -1,0 +1,85 @@
+datacenter = "{{ datacenter }}"
+region = "{{ nomad_region }}"
+data_dir = "/var/lib/nomad"
+log_level = "INFO"
+name = "{{ inventory_hostname }}"
+
+bind_addr = "0.0.0.0"
+
+# Use Tailscale IP for cluster communication
+advertise {
+  http = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"
+  rpc = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"
+  serf = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"
+}
+
+server {
+  enabled = false
+}
+
+client {
+  enabled = true
+  
+  server_join {
+    retry_join = [
+      {% for host in groups['nomad_servers'] %}
+      "{{ hostvars[host].tailscale_ip | default(hostvars[host].ansible_default_ipv4.address) }}",
+      {% endfor %}
+    ]
+  }
+
+  meta {
+    "datacenter" = "{{ datacenter }}"
+    "location" = "{{ location }}"
+  }
+
+  host_volume "docker-sock" {
+    path = "/var/run/docker.sock"
+    read_only = true
+  }
+}
+
+consul {
+  address = "127.0.0.1:{{ consul_client_port }}"
+  server_service_name = "nomad"
+  client_service_name = "nomad-client"
+  auto_advertise = true
+  server_auto_join = true
+  client_auto_join = true
+}
+
+telemetry {
+  collection_interval = "1s"
+  disable_hostname = true
+  prometheus_metrics = true
+  publish_allocation_metrics = true
+  publish_node_metrics = true
+}
+
+plugin "docker" {
+  config {
+    endpoint = "unix:///var/run/docker.sock"
+    
+    gc {
+      image = true
+      image_delay = "3m"
+      container = true
+    }
+    
+    volumes {
+      enabled = true
+    }
+    
+    allow_privileged = false
+    
+    auth {
+      config = "/etc/docker/config.json"
+    }
+  }
+}
+
+plugin "raw_exec" {
+  config {
+    enabled = false
+  }
+}

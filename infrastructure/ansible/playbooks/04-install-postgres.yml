@@ -1,0 +1,157 @@
+---
+- name: Install PostgreSQL with Patroni HA
+  hosts: postgres_nodes
+  become: true
+  vars:
+    postgresql_version: "15"
+    patroni_version: "3.2.0"
+
+  tasks:
+    - name: Add PostgreSQL APT key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+        state: present
+
+    - name: Install PostgreSQL and dependencies
+      apt:
+        name:
+          - "postgresql-{{ postgresql_version }}"
+          - "postgresql-contrib-{{ postgresql_version }}"
+          - "postgresql-{{ postgresql_version }}-repack"
+          - python3-pip
+          - python3-psycopg2
+          - python3-etcd
+          - libpq-dev
+        state: present
+
+    - name: Stop PostgreSQL service
+      systemd:
+        name: postgresql
+        state: stopped
+        enabled: no
+
+    - name: Install Patroni and dependencies
+      pip:
+        name:
+          - "patroni[consul]=={{ patroni_version }}"
+          - psycopg2-binary
+          - python-consul
+        state: present
+
+    - name: Create Patroni configuration directory
+      file:
+        path: /etc/patroni
+        state: directory
+        mode: "0755"
+
+    - name: Create PostgreSQL data directory
+      file:
+        path: /var/lib/postgresql/{{ postgresql_version }}/data
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0700"
+
+    - name: Generate Patroni configuration
+      template:
+        src: patroni.yml.j2
+        dest: /etc/patroni/patroni.yml
+        owner: postgres
+        group: postgres
+        mode: "0640"
+
+    - name: Create Patroni systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Patroni PostgreSQL HA
+          After=syslog.target network.target consul.service
+          Wants=consul.service
+
+          [Service]
+          Type=simple
+          User=postgres
+          Group=postgres
+          ExecStart=/usr/local/bin/patroni /etc/patroni/patroni.yml
+          ExecReload=/bin/kill -s HUP $MAINPID
+          KillMode=process
+          TimeoutSec=30
+          Restart=always
+          RestartSec=10
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/patroni.service
+      notify:
+        - reload systemd
+        - restart patroni
+
+    - name: Install PgBouncer
+      apt:
+        name: pgbouncer
+        state: present
+
+    - name: Configure PgBouncer
+      template:
+        src: pgbouncer.ini.j2
+        dest: /etc/pgbouncer/pgbouncer.ini
+        owner: postgres
+        group: postgres
+        mode: "0640"
+      notify: restart pgbouncer
+
+    - name: Configure PgBouncer userlist
+      copy:
+        content: |
+          "proposalsapp" "{{ postgres_password }}"
+          "replicator" "{{ postgres_replication_password }}"
+        dest: /etc/pgbouncer/userlist.txt
+        owner: postgres
+        group: postgres
+        mode: "0600"
+      notify: restart pgbouncer
+
+    - name: Start services
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - patroni
+        - pgbouncer
+
+    - name: Register PostgreSQL services in Consul
+      uri:
+        url: "http://localhost:{{ consul_client_port }}/v1/agent/service/register"
+        method: PUT
+        body_format: json
+        body:
+          ID: "postgres-{{ inventory_hostname }}"
+          Name: "postgres"
+          Tags:
+            - "{{ postgres_role }}"
+            - "{{ datacenter }}"
+          Port: 5432
+          Check:
+            TCP: "localhost:5432"
+            Interval: "10s"
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: restart patroni
+      systemd:
+        name: patroni
+        state: restarted
+
+    - name: restart pgbouncer
+      systemd:
+        name: pgbouncer
+        state: restarted

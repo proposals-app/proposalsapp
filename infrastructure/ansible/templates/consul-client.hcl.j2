@@ -1,0 +1,39 @@
+datacenter = "{{ datacenter }}"
+data_dir = "/var/lib/consul"
+log_level = "INFO"
+node_name = "{{ inventory_hostname }}"
+server = false
+encrypt = "tGXWJplk5REWa5wGpOLGELv4zqeuxaxiL7+q1HRGsnc="
+
+client_addr = "0.0.0.0"
+bind_addr = "{{ ansible_tailscale0.ipv4.address }}"
+advertise_addr = "{{ ansible_tailscale0.ipv4.address }}"
+
+# Join only the consul server in the same datacenter
+retry_join = [
+{% for host in groups['consul_servers'] %}
+{% if hostvars[host]['datacenter'] == datacenter and hostvars[host].ansible_tailscale0 is defined %}
+  "{{ hostvars[host].ansible_tailscale0.ipv4.address }}",
+{% endif %}
+{% endfor %}
+]
+
+ports {
+  grpc = 8502
+  dns = 8600
+  http = 8500
+}
+
+services {
+  name = "node-exporter"
+  port = 9100
+  check {
+    http = "http://localhost:9100/metrics"
+    interval = "10s"
+  }
+}
+
+telemetry {
+  prometheus_retention_time = "60s"
+  disable_hostname = true
+}

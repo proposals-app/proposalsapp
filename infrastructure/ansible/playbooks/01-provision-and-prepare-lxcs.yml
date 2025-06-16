@@ -1,0 +1,586 @@
+---
+# This playbook combines container provisioning and base setup into a single operation
+# It first creates LXC containers on Proxmox nodes, then prepares them with base packages
+
+- name: Create LXC Containers on Proxmox
+  hosts: proxmox_nodes
+  gather_facts: true
+  vars:
+    proxmox_credentials:
+      sib-01: "{{ vault_proxmox_password_sib01 }}"
+      sib-03: "{{ vault_proxmox_password_sib03 }}"
+      fsn-01: "{{ vault_proxmox_password_fsn01 }}"
+    # Use higher ID ranges to avoid conflicts - starting from 500
+    container_id_base:
+      sib-01: 500 # Will use 501, 511, 521
+      sib-03: 530 # Will use 531, 541, 551
+      fsn-01: 560 # Will use 561, 571, 581
+    # Determine bridge based on location
+    network_bridge:
+      sib-01: sibnet
+      sib-03: sibnet
+      fsn-01: sibnet
+    lxc_defaults:
+      consul_nomad:
+        cores: 2
+        memory: 4096
+        swap: 0
+        disk: 20
+      database:
+        cores: 4
+        memory: 8192
+        swap: 0
+        disk: 100
+      apps:
+        cores: 8
+        memory: 16384
+        swap: 0
+        disk: 50
+  tasks:
+    - name: Install Python3 and pip
+      apt:
+        name:
+          - python3
+          - python3-pip
+        state: present
+        update_cache: yes
+
+    - name: Get list of existing containers
+      shell: "pct list | awk 'NR>1 {print $1}' | sort -n"
+      register: existing_containers
+      changed_when: false
+
+    - name: Set container IDs based on hostname
+      set_fact:
+        my_containers:
+          - name: "consul-nomad-{{ inventory_hostname }}"
+            id: "{{ container_id_base[inventory_hostname] + 1 }}"
+            type: consul_nomad
+          - name: "db-{{ inventory_hostname }}"
+            id: "{{ container_id_base[inventory_hostname] + 11 }}"
+            type: database
+          - name: "apps-{{ inventory_hostname }}"
+            id: "{{ container_id_base[inventory_hostname] + 21 }}"
+            type: apps
+
+    - name: Check if our containers exist
+      shell: "pct list | grep -E '^{{ item.id }}\\s' || echo 'not_found'"
+      register: container_exists
+      loop: "{{ my_containers }}"
+      changed_when: false
+
+    - name: Create containers
+      shell: |
+        pct create {{ item.0.id }} \
+          local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
+          --hostname {{ item.0.name }} \
+          --cores {{ lxc_defaults[item.0.type].cores }} \
+          --memory {{ lxc_defaults[item.0.type].memory }} \
+          --swap {{ lxc_defaults[item.0.type].swap }} \
+          --rootfs local-lvm:{{ lxc_defaults[item.0.type].disk }} \
+          --net0 name=eth0,bridge={{ network_bridge[inventory_hostname] }},firewall=1,ip=dhcp,type=veth \
+          --nameserver 8.8.8.8 \
+          --features nesting=1,fuse=1 \
+          --unprivileged 1 \
+          --onboot 1 \
+          --ssh-public-keys /root/.ssh/authorized_keys \
+          --start 0
+      when: "'not_found' in item.1.stdout"
+      loop: "{{ my_containers | zip(container_exists.results) | list }}"
+      register: container_created
+
+    - name: Configure Tailscale /dev/tun access in containers
+      shell: |
+        echo "Configuring /dev/tun for container {{ item.0.id }}..."
+
+        # For unprivileged containers, we need different device permissions
+        if ! grep -q 'lxc.cgroup2.devices.allow: c 10:200 rwm' /etc/pve/lxc/{{ item.0.id }}.conf; then
+          echo 'lxc.cgroup2.devices.allow: c 10:200 rwm' >> /etc/pve/lxc/{{ item.0.id }}.conf
+          echo 'Added cgroup2 device access'
+        else
+          echo 'cgroup2 device access already configured'
+        fi
+
+        if ! grep -q 'lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file' /etc/pve/lxc/{{ item.0.id }}.conf; then
+          echo 'lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file' >> /etc/pve/lxc/{{ item.0.id }}.conf
+          echo 'Added mount entry for /dev/net/tun'
+        else
+          echo 'Mount entry already configured'
+        fi
+
+        # Add ID mapping for unprivileged containers
+        if ! grep -q 'lxc.idmap' /etc/pve/lxc/{{ item.0.id }}.conf; then
+          echo 'lxc.idmap: u 0 100000 65536' >> /etc/pve/lxc/{{ item.0.id }}.conf
+          echo 'lxc.idmap: g 0 100000 65536' >> /etc/pve/lxc/{{ item.0.id }}.conf
+        fi
+
+        echo "Current config:"
+        grep -E '(cgroup2.devices.allow|mount.entry.*tun)' /etc/pve/lxc/{{ item.0.id }}.conf || echo "No tun config found!"
+      when: "'not_found' in item.1.stdout"
+      loop: "{{ my_containers | zip(container_exists.results) | list }}"
+      register: tun_config
+
+    - name: Start containers
+      shell: "pct start {{ item.id }}"
+      loop: "{{ my_containers }}"
+      register: containers_started
+
+    - name: Wait for containers to be ready
+      pause:
+        seconds: 15
+      when: container_created.changed
+
+    - name: Enable SSH in containers
+      shell: |
+        pct exec {{ item.id }} -- bash -c "
+          # Wait for network
+          sleep 5
+
+          # Update package list
+          apt-get update
+
+          # Install SSH server and other essentials
+          apt-get install -y openssh-server curl
+
+          # Configure SSH
+          mkdir -p /root/.ssh
+          chmod 700 /root/.ssh
+
+          # Add your SSH key
+          echo '{{ lookup('file', '~/.ssh/id_rsa.pub', errors='ignore') }}' > /root/.ssh/authorized_keys
+          chmod 600 /root/.ssh/authorized_keys
+
+          # Configure SSH daemon
+          sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+          sed -i 's/#PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+
+          # Enable and start SSH
+          systemctl enable ssh
+          systemctl restart ssh
+        "
+      loop: "{{ my_containers }}"
+      ignore_errors: true
+      when: container_created.changed
+
+    - name: Install and start Tailscale in containers
+      shell: |
+        pct exec {{ item.id }} -- bash -c "
+          echo '=== Setting up Tailscale in {{ item.name }} ==='
+
+          # Verify /dev/net/tun exists
+          echo 'Checking /dev/net/tun...'
+          if [ -e /dev/net/tun ]; then
+            echo '/dev/net/tun exists and is properly configured'
+            ls -la /dev/net/tun
+          else
+            echo 'ERROR: /dev/net/tun does NOT exist!'
+            echo 'This indicates the container was not properly configured.'
+            echo 'The container needs to be stopped and restarted with proper TUN configuration.'
+            exit 1
+          fi
+
+          # Check if Tailscale is already installed
+          if ! command -v tailscale &> /dev/null; then
+            echo 'Installing Tailscale...'
+            curl -fsSL https://tailscale.com/install.sh | sh
+          else
+            echo 'Tailscale already installed'
+          fi
+
+          # Enable IP forwarding
+          if ! grep -q 'net.ipv4.ip_forward=1' /etc/sysctl.conf; then
+            echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+          fi
+          if ! grep -q 'net.ipv6.conf.all.forwarding=1' /etc/sysctl.conf; then
+            echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
+          fi
+          sysctl -p
+
+          # Start and enable tailscaled
+          echo 'Starting tailscaled...'
+          systemctl enable tailscaled
+          systemctl start tailscaled
+
+          # Wait for daemon to be ready
+          for i in {1..10}; do
+            if systemctl is-active --quiet tailscaled; then
+              echo 'Tailscale daemon is running'
+              break
+            fi
+            echo 'Waiting for tailscaled to start...'
+            sleep 2
+          done
+
+          # Verify it's running
+          systemctl status tailscaled --no-pager || true
+
+          # Check logs for any errors
+          echo -e '\nChecking tailscaled logs for errors...'
+          journalctl -u tailscaled -n 20 --no-pager | grep -i error || echo 'No errors in logs'
+        "
+      loop: "{{ my_containers }}"
+      ignore_errors: true
+      register: tailscale_install
+
+    - name: Configure Tailscale with auth key
+      shell: |
+        pct exec {{ item.id }} -- bash -c "
+          echo '=== Configuring Tailscale for {{ item.name }} ==='
+
+          # Check if tailscaled is running
+          if ! systemctl is-active --quiet tailscaled; then
+            echo 'ERROR: tailscaled is not running!'
+            systemctl status tailscaled --no-pager
+            exit 1
+          fi
+
+          # Configure Tailscale with hostname
+          echo 'Running: tailscale up --authkey=REDACTED --hostname={{ item.name }} --accept-routes'
+          tailscale up --authkey={{ vault_tailscale_auth_key }} --hostname={{ item.name }} --accept-routes 2>&1
+
+          # Check the result
+          echo 'Exit code:' $?
+        "
+      loop: "{{ my_containers }}"
+      when: vault_tailscale_auth_key is defined
+      register: tailscale_setup
+
+    - name: Wait for Tailscale to connect
+      pause:
+        seconds: 20
+      when: vault_tailscale_auth_key is defined
+
+    - name: Check Tailscale status in all containers
+      shell: |
+        pct exec {{ item.id }} -- bash -c "
+          echo '=== Tailscale Status for {{ item.name }} ==='
+          echo 'Checking if tailscaled is running...'
+          systemctl is-active tailscaled || echo 'tailscaled is NOT active'
+
+          echo -e '\nChecking Tailscale status...'
+          tailscale status 2>&1 || echo 'Failed to get status'
+
+          echo -e '\nChecking Tailscale IP...'
+          tailscale ip -4 2>&1 || echo 'No IP assigned'
+
+          echo -e '\nChecking network interfaces...'
+          ip addr show tailscale0 2>&1 || echo 'No tailscale0 interface'
+
+          echo -e '\nChecking if logged in...'
+          tailscale status --json 2>/dev/null | jq -r '.BackendState' || echo 'Cannot get backend state'
+        "
+      loop: "{{ my_containers }}"
+      register: tailscale_status
+      when: vault_tailscale_auth_key is defined
+
+    - name: Configure DNS for Tailscale hostnames
+      shell: |
+        pct exec {{ item.id }} -- bash -c "
+          # Add tailscale DNS to resolv.conf if not already present
+          if ! grep -q '100.100.100.100' /etc/resolv.conf; then
+            echo 'nameserver 100.100.100.100' > /etc/resolv.conf.new
+            cat /etc/resolv.conf >> /etc/resolv.conf.new
+            mv /etc/resolv.conf.new /etc/resolv.conf
+          fi
+        "
+      loop: "{{ my_containers }}"
+      when: vault_tailscale_auth_key is defined
+
+    - name: Capture Tailscale IPs for all containers
+      shell: |
+        pct exec {{ item.id }} -- bash -c "tailscale ip -4 2>/dev/null || echo ''"
+      loop: "{{ my_containers }}"
+      register: container_tailscale_ips
+      when: vault_tailscale_auth_key is defined
+
+    - name: Clean up old known hosts backup
+      file:
+        path: "~/.ssh/known_hosts.old"
+        state: absent
+      delegate_to: localhost
+      run_once: true
+
+    - name: Remove old SSH known hosts entries for containers
+      known_hosts:
+        name: "{{ item.name }}"
+        state: absent
+      loop: "{{ my_containers }}"
+      delegate_to: localhost
+      run_once: false
+      ignore_errors: true
+
+    - name: Create facts directory
+      file:
+        path: /etc/ansible/facts.d
+        state: directory
+        mode: "0755"
+
+    - name: Store container information as facts
+      copy:
+        content: |
+          {
+            "containers": {
+          {% for idx in range(my_containers | length) %}
+          {% set container = my_containers[idx] %}
+          {% set tailscale_ip = container_tailscale_ips.results[idx].stdout | default('') if container_tailscale_ips is defined else '' %}
+              "{{ container.name }}": {
+                "id": "{{ container.id }}",
+                "hostname": "{{ container.name }}",
+                "proxmox_node": "{{ inventory_hostname }}",
+                "tailscale_ip": "{{ tailscale_ip | trim }}"
+              }{% if not loop.last %},{% endif %}
+          {% endfor %}
+            }
+          }
+        dest: /etc/ansible/facts.d/lxc_containers.fact
+        mode: "0644"
+
+    - name: Store fresh Tailscale IPs for containers
+      set_fact:
+        fresh_container_ips: >-
+          {%- set ips = {} -%}
+          {%- for idx in range(my_containers | length) -%}
+            {%- set container = my_containers[idx] -%}
+            {%- set tailscale_ip = container_tailscale_ips.results[idx].stdout | default('') | trim if container_tailscale_ips is defined else '' -%}
+            {%- set _ = ips.update({container.name: tailscale_ip}) -%}
+          {%- endfor -%}
+          {{ ips }}
+      when: container_tailscale_ips is defined
+
+    - name: Final container information
+      debug:
+        msg: |
+          ========================================
+          Container Setup Complete on {{ inventory_hostname }}
+          ========================================
+          {% for idx in range(my_containers | length) %}
+          {% set container = my_containers[idx] %}
+          {% set tailscale_ip = container_tailscale_ips.results[idx].stdout | default('') | trim if container_tailscale_ips is defined else '' %}
+          {{ container.name }}:
+            - Container ID: {{ container.id }}
+            - Tailscale hostname: {{ container.name }}
+            - Tailscale IP: {{ tailscale_ip if tailscale_ip else 'Not assigned' }}
+            - Bridge: {{ network_bridge[inventory_hostname] }}
+          {% endfor %}
+
+          {% if vault_tailscale_auth_key is defined %}
+          Tailscale has been configured. Containers are accessible via:
+          {% for idx in range(my_containers | length) %}
+          {% set container = my_containers[idx] %}
+          {% set tailscale_ip = container_tailscale_ips.results[idx].stdout | default('') | trim if container_tailscale_ips is defined else '' %}
+            ssh root@{{ container.name }} ({{ tailscale_ip if tailscale_ip else 'IP pending' }})
+          {% endfor %}
+          {% else %}
+          WARNING: Tailscale auth key not found in vault!
+          Add vault_tailscale_auth_key to your vault file:
+          ansible-vault edit group_vars/all/vault.yml --vault-password-file vault-password.txt
+          {% endif %}
+          ========================================
+
+- name: Update inventory with Tailscale IPs
+  hosts: proxmox_nodes
+  gather_facts: false
+  tasks:
+    - name: Read current inventory
+      slurp:
+        src: "{{ playbook_dir }}/../inventory.yml"
+      register: inventory_content
+      delegate_to: localhost
+      run_once: true
+
+    - name: Parse inventory
+      set_fact:
+        inventory_data: "{{ inventory_content.content | b64decode | from_yaml }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Update inventory with Tailscale IPs
+      set_fact:
+        updated_inventory: |
+          {% set inv = inventory_data %}
+          {%- for host in groups['proxmox_nodes'] -%}
+            {%- if hostvars[host]['container_tailscale_ips'] is defined -%}
+              {%- for idx in range(hostvars[host]['my_containers'] | length) -%}
+                {%- set container = hostvars[host]['my_containers'][idx] -%}
+                {%- set ip = hostvars[host]['container_tailscale_ips']['results'][idx]['stdout'] | default('') | trim -%}
+                {%- if ip and container.name in inv.all.children.lxc_containers.hosts -%}
+                  {%- set _ = inv.all.children.lxc_containers.hosts[container.name].update({'tailscale_ip': ip}) -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ inv | to_nice_yaml(indent=2) }}
+      delegate_to: localhost
+      run_once: true
+
+    - name: Write updated inventory
+      copy:
+        content: "{{ updated_inventory }}"
+        dest: "{{ playbook_dir }}/../inventory.yml"
+        backup: false
+        mode: "0644"
+      delegate_to: localhost
+      run_once: true
+
+# Now run base setup on all newly created containers
+- name: Base Setup for All LXC Containers
+  hosts: lxc_containers
+  become: true
+  gather_facts: false
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
+  tasks:
+    - name: Get fresh Tailscale IP from proxmox hosts
+      set_fact:
+        fresh_ip: "{{ hostvars[proxmox_node]['fresh_container_ips'][inventory_hostname] }}"
+      when: 
+        - hostvars[proxmox_node]['fresh_container_ips'] is defined
+        - inventory_hostname in hostvars[proxmox_node]['fresh_container_ips']
+
+    - name: Use fresh Tailscale IP for connection
+      set_fact:
+        ansible_host: "{{ fresh_ip }}"
+      when: fresh_ip is defined and fresh_ip != ''
+
+    - name: Remove old SSH known hosts entries for all containers
+      shell: |
+        ssh-keygen -R "{{ item }}" 2>/dev/null || true
+      loop:
+        - "{{ inventory_hostname }}"
+        - "{{ tailscale_ip | default('') }}"
+        - "{{ fresh_ip | default('') }}"
+        - "{{ ansible_host | default('') }}"
+      when: item != ''
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+    - name: Wait for container network to be ready
+      wait_for:
+        host: "{{ ansible_host | default(inventory_hostname) }}"
+        port: 22
+        delay: 5
+        timeout: 60
+      delegate_to: localhost
+      become: false
+
+    - name: Wait for SSH connection
+      wait_for_connection:
+        delay: 5
+        timeout: 180
+
+    - name: Gather facts after connection
+      setup:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install base packages
+      apt:
+        name:
+          - curl
+          - wget
+          - gnupg
+          - lsb-release
+          - ca-certificates
+          - apt-transport-https
+          - software-properties-common
+          - python3-pip
+          - git
+          - vim
+          - htop
+          - net-tools
+          - dnsutils
+          - jq
+          - unzip
+          - rsync
+        state: present
+
+    - name: Set timezone
+      timezone:
+        name: UTC
+
+    - name: Configure sysctl for better performance
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        sysctl_set: yes
+      loop:
+        - { name: "net.ipv4.tcp_keepalive_time", value: "120" }
+        - { name: "net.ipv4.ip_forward", value: "1" }
+        - { name: "net.bridge.bridge-nf-call-iptables", value: "1" }
+        - { name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+
+    - name: Create necessary directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /etc/consul
+        - /etc/nomad
+        - /opt/consul
+        - /opt/nomad
+        - /var/lib/consul
+        - /var/lib/nomad
+
+    - name: Add HashiCorp GPG key
+      apt_key:
+        url: https://apt.releases.hashicorp.com/gpg
+        state: present
+
+    - name: Add HashiCorp repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+        state: present
+
+    - name: Check if systemd-resolved is available
+      stat:
+        path: /etc/systemd/resolved.conf
+      register: systemd_resolved_check
+
+    - name: Configure systemd-resolved for Consul DNS
+      blockinfile:
+        path: /etc/systemd/resolved.conf
+        block: |
+          [Resolve]
+          DNS=127.0.0.1
+          Domains=~consul
+          DNSStubListener=no
+      when: systemd_resolved_check.stat.exists
+      notify: restart systemd-resolved
+
+    - name: Configure /etc/resolv.conf for Consul DNS (fallback)
+      lineinfile:
+        path: /etc/resolv.conf
+        line: "nameserver 127.0.0.1"
+        insertbefore: BOF
+      when: not systemd_resolved_check.stat.exists
+
+    - name: Final base setup summary
+      debug:
+        msg: |
+          ========================================
+          Base Setup Complete for {{ inventory_hostname }}
+          ========================================
+          - Base packages installed
+          - Timezone set to UTC
+          - Sysctl settings configured
+          - HashiCorp repository added
+          - Consul/Nomad directories created
+          - DNS configuration prepared for Consul
+
+          Container is ready for service installation:
+          - Run 02-install-consul.yml to install Consul
+          - Run 03-install-nomad.yml to install Nomad
+          - Run 04-install-postgres.yml for database nodes
+          ========================================
+
+  handlers:
+    - name: restart systemd-resolved
+      systemd:
+        name: systemd-resolved
+        state: restarted
