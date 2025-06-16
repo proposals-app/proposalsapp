@@ -3,8 +3,16 @@
   hosts: postgres_nodes
   become: true
   vars:
-    postgresql_version: "15"
-    patroni_version: "3.2.0"
+    postgresql_version: "17"
+    patroni_version: "4.0.6"
+    postgres_version: "17"
+    postgres_port: 5432
+    patroni_rest_api_port: 8008
+    consul_client_port: 8500
+    postgres_password: "{{ vault_postgres_password }}"
+    postgres_replication_password: "{{ vault_postgres_replication_password }}"
+    postgres_user: "postgres"
+    postgres_db_name: "proposalsapp"
 
   tasks:
     - name: Set connection to use tailscale IP if available
@@ -60,12 +68,21 @@
       register: patroni_installed
 
     - name: Install Patroni and dependencies for postgres user
-      become_user: postgres
       shell: |
+        su - postgres -c '
         export PATH="/usr/bin:$PATH"
         pipx install "patroni[consul]=={{ patroni_version }}" --include-deps
-        pipx inject patroni psycopg2-binary python-consul
+        pipx inject patroni psycopg2-binary python-consul cdiff
+        '
       when: not patroni_installed.stat.exists
+
+    - name: Ensure Patroni has all dependencies
+      shell: |
+        su - postgres -c '
+        export PATH="/usr/bin:$PATH"
+        pipx inject patroni cdiff --force
+        '
+      when: patroni_installed.stat.exists
 
     - name: Create Patroni configuration directory
       file:
@@ -83,7 +100,7 @@
 
     - name: Generate Patroni configuration
       template:
-        src: patroni.yml.j2
+        src: ../templates/patroni.yml.j2
         dest: /etc/patroni/patroni.yml
         owner: postgres
         group: postgres
@@ -123,7 +140,7 @@
 
     - name: Configure PgBouncer
       template:
-        src: pgbouncer.ini.j2
+        src: ../templates/pgbouncer.ini.j2
         dest: /etc/pgbouncer/pgbouncer.ini
         owner: postgres
         group: postgres
@@ -175,6 +192,25 @@
             Interval: "10s"
       when: postgres_service_check.status == 404
 
+    - name: Wait for PostgreSQL to be ready
+      wait_for:
+        port: 5432
+        host: localhost
+        delay: 5
+        timeout: 60
+
+    - name: Create application database
+      postgresql_db:
+        name: "{{ postgres_db_name }}"
+        state: present
+        login_host: localhost
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
+      become: yes
+      become_user: postgres
+      run_once: true
+      when: postgres_role == 'primary'
+
   handlers:
     - name: reload systemd
       systemd:
@@ -194,6 +230,11 @@
 - name: Verify PostgreSQL Cluster
   hosts: postgres_nodes
   gather_facts: false
+  vars:
+    postgres_user: "postgres"
+    postgres_db_name: "proposalsapp"
+    postgres_password: "{{ vault_postgres_password }}"
+    consul_client_port: 8500
   tasks:
     - name: Wait for PostgreSQL to stabilize
       pause:
@@ -206,7 +247,7 @@
           echo "ERROR: Patroni service is not running"
           exit 1
         fi
-        
+
         echo "OK: Patroni service is active"
       register: patroni_health
       changed_when: false
@@ -215,26 +256,26 @@
     - name: Check Patroni cluster status
       shell: |
         # Check Patroni cluster status
-        cluster_info=$(patronictl -c /etc/patroni/patroni.yml list 2>&1)
+        cluster_info=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list 2>&1)
         if [ $? -ne 0 ]; then
           echo "ERROR: Cannot query Patroni cluster: $cluster_info"
           exit 1
         fi
-        
+
         # Check if this node is in the cluster
         if ! echo "$cluster_info" | grep -q "{{ inventory_hostname }}"; then
           echo "ERROR: This node is not in the Patroni cluster"
           echo "$cluster_info"
           exit 1
         fi
-        
+
         # Check for a leader
         if ! echo "$cluster_info" | grep -q "Leader"; then
           echo "ERROR: No leader in Patroni cluster"
           echo "$cluster_info"
           exit 1
         fi
-        
+
         echo "OK: Patroni cluster healthy"
         echo "$cluster_info"
       register: patroni_cluster
@@ -248,7 +289,7 @@
           echo "ERROR: Cannot connect to PostgreSQL"
           exit 1
         fi
-        
+
         echo "OK: PostgreSQL is accessible"
       register: postgres_connectivity
       changed_when: false
@@ -261,13 +302,13 @@
           echo "ERROR: PgBouncer service is not running"
           exit 1
         fi
-        
+
         # Check if PgBouncer port is listening
         if ! netstat -tuln | grep -q ":6432"; then
           echo "ERROR: PgBouncer not listening on port 6432"
           exit 1
         fi
-        
+
         echo "OK: PgBouncer is active and listening"
       register: pgbouncer_health
       changed_when: false
@@ -281,7 +322,7 @@
           echo "ERROR: PostgreSQL service not registered in Consul"
           exit 1
         fi
-        
+
         echo "OK: PostgreSQL service registered in Consul"
         echo "$service_info" | jq -r '.ID + " - " + .Service + " - Port: " + (.Port|tostring)'
       register: consul_service
@@ -300,14 +341,14 @@
           PostgreSQL Access: {{ 'OK' if postgres_connectivity.rc == 0 else 'FAILED' }}
           PgBouncer Status: {{ 'RUNNING' if pgbouncer_health.rc == 0 else 'FAILED' }}
           Consul Registration: {{ 'REGISTERED' if consul_service.rc == 0 else 'NOT REGISTERED' }}
-          
+
           Cluster Status:
           {{ patroni_cluster.stdout | indent(2) }}
-          
+
           Connection Details:
           - Direct PostgreSQL: {{ inventory_hostname }}:5432
           - Via PgBouncer: {{ inventory_hostname }}:6432
-          - Database: {{ postgres_database }}
+          - Database: {{ postgres_db_name }}
           - User: {{ postgres_user }}
           ========================================
 

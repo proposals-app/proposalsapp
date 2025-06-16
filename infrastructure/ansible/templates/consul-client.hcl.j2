@@ -24,15 +24,6 @@ ports {
   http = 8500
 }
 
-services {
-  name = "node-exporter"
-  port = 9100
-  check {
-    http = "http://localhost:9100/metrics"
-    interval = "10s"
-  }
-}
-
 telemetry {
   prometheus_retention_time = "60s"
   disable_hostname = true
