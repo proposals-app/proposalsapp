@@ -5,6 +5,30 @@
 - name: Create LXC Containers on Proxmox
   hosts: proxmox_nodes
   gather_facts: true
+  pre_tasks:
+    - name: Clean all SSH known hosts for containers before provisioning
+      shell: |
+        # Clean up any old backup files
+        rm -f ~/.ssh/known_hosts.old 2>/dev/null || true
+        
+        # Remove all container-related entries
+        if [ -f ~/.ssh/known_hosts ]; then
+          # Remove Tailscale IP range (100.x.x.x)
+          grep -v "^100\." ~/.ssh/known_hosts > ~/.ssh/known_hosts.tmp 2>/dev/null || true
+          mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
+          
+          # Remove container network range (10.10.x.x)
+          grep -v "^10\.10\." ~/.ssh/known_hosts > ~/.ssh/known_hosts.tmp 2>/dev/null || true
+          mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
+          
+          # Remove known container hostnames
+          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01; do
+            ssh-keygen -f ~/.ssh/known_hosts -R "$host" 2>/dev/null || true
+          done
+        fi
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
   vars:
     proxmox_credentials:
       sib-01: "{{ vault_proxmox_password_sib01 }}"
@@ -77,7 +101,7 @@
           --cores {{ lxc_defaults[item.0.type].cores }} \
           --memory {{ lxc_defaults[item.0.type].memory }} \
           --swap {{ lxc_defaults[item.0.type].swap }} \
-          --rootfs local-lvm:{{ lxc_defaults[item.0.type].disk }} \
+          --rootfs zfs-ssd-m2:{{ lxc_defaults[item.0.type].disk }} \
           --net0 name=eth0,bridge={{ network_bridge[inventory_hostname] }},firewall=1,ip=dhcp,type=veth \
           --nameserver 8.8.8.8 \
           --features nesting=1,fuse=1 \
@@ -427,8 +451,6 @@
   hosts: lxc_containers
   become: true
   gather_facts: false
-  vars:
-    ansible_ssh_common_args: "-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
   tasks:
     - name: Get fresh Tailscale IP from proxmox hosts
       set_fact:
@@ -444,7 +466,10 @@
 
     - name: Remove old SSH known hosts entries for all containers
       shell: |
-        ssh-keygen -R "{{ item }}" 2>/dev/null || true
+        # Remove any existing backup file first
+        rm -f ~/.ssh/known_hosts.old 2>/dev/null || true
+        # Now remove the host entry
+        ssh-keygen -f ~/.ssh/known_hosts -R "{{ item }}" 2>/dev/null || true
       loop:
         - "{{ inventory_hostname }}"
         - "{{ tailscale_ip | default('') }}"
@@ -454,6 +479,7 @@
       delegate_to: localhost
       become: false
       changed_when: false
+      ignore_errors: true  # Continue even if ssh-keygen fails
 
     - name: Wait for container network to be ready
       wait_for:

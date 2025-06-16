@@ -165,7 +165,7 @@
     "e2e:onchain-ui": "yarn e2e:start-anvil & yarn e2e:start-storybook & start-server-and-test storybook http://localhost:6006 \"yarn synpress-setup && npx playwright test e2e/vote-onchain.spec.ts --ui\"",
     "e2e:ui": "start-server-and-test e2e:services-offchain http://localhost:6006 \"yarn synpress-setup && yarn test-ui\"",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
+    "build-storybook": "storybook build --webpack-stats-json",
     "chromatic": "chromatic --config-file chromatic.config.json",
     "chromatic:ci": "chromatic --config-file chromatic.config.json --ci",
     "chromatic:only-changed": "chromatic --config-file chromatic.config.json --only-changed",

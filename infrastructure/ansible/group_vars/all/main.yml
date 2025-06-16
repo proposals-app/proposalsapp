@@ -55,3 +55,6 @@ nomad_encrypt_key: "{{ vault_nomad_encrypt_key }}"
 # Backup configuration
 backup_retention_days: 30
 backup_schedule: "0 2 * * *"  # 2 AM daily
+# Postgres passwords from vault
+postgres_password: "{{ vault_postgres_password }}"
+postgres_replication_password: "{{ vault_postgres_replication_password }}"

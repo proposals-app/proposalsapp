@@ -30,7 +30,7 @@ client {
 
   meta {
     "datacenter" = "{{ datacenter }}"
-    "location" = "{{ location }}"
+    "location" = "{{ hostvars[proxmox_node].location | default(datacenter) }}"
   }
 
   host_volume "docker-sock" {

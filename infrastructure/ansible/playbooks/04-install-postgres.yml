@@ -7,6 +7,10 @@
     patroni_version: "3.2.0"
 
   tasks:
+    - name: Set connection to use tailscale IP if available
+      set_fact:
+        ansible_host: "{{ tailscale_ip }}"
+      when: tailscale_ip is defined and tailscale_ip != ''
     - name: Add PostgreSQL APT key
       apt_key:
         url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
@@ -35,13 +39,22 @@
         state: stopped
         enabled: no
 
-    - name: Install Patroni and dependencies
-      pip:
-        name:
-          - "patroni[consul]=={{ patroni_version }}"
-          - psycopg2-binary
-          - python-consul
+    - name: Install pipx and venv support
+      apt:
+        name: 
+          - pipx
+          - python3-venv
+          - python3-full
         state: present
+
+    - name: Install Patroni and dependencies for postgres user
+      become_user: postgres
+      shell: |
+        export PATH="/usr/bin:$PATH"
+        pipx install "patroni[consul]=={{ patroni_version }}" --include-deps
+        pipx inject patroni psycopg2-binary python-consul
+      args:
+        creates: /var/lib/postgresql/.local/bin/patroni
 
     - name: Create Patroni configuration directory
       file:
@@ -77,7 +90,8 @@
           Type=simple
           User=postgres
           Group=postgres
-          ExecStart=/usr/local/bin/patroni /etc/patroni/patroni.yml
+          Environment="PATH=/var/lib/postgresql/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+          ExecStart=/var/lib/postgresql/.local/bin/patroni /etc/patroni/patroni.yml
           ExecReload=/bin/kill -s HUP $MAINPID
           KillMode=process
           TimeoutSec=30

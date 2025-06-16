@@ -3,13 +3,21 @@
 - name: Gather facts from all hosts
   hosts: all
   gather_facts: true
-  tasks: []
+  tasks:
+    - name: Set connection to use tailscale IP if available
+      set_fact:
+        ansible_host: "{{ tailscale_ip }}"
+      when: tailscale_ip is defined and tailscale_ip != ''
 
 # Ensure we have facts from servers before configuring clients
 - name: Refresh facts for consul servers
   hosts: consul_servers
   gather_facts: true
-  tasks: []
+  tasks:
+    - name: Set connection to use tailscale IP if available
+      set_fact:
+        ansible_host: "{{ tailscale_ip }}"
+      when: tailscale_ip is defined and tailscale_ip != ''
 
 - name: Install and Configure Consul
   hosts: consul_servers
@@ -94,9 +102,13 @@
       copy:
         content: |
           [Service]
+          Type=simple
           Environment="CONSUL_CACERT=/opt/consul/consul-agent-ca.pem"
           Environment="CONSUL_CLIENT_CERT=/opt/consul/{{ datacenter }}-server-consul-0.pem"
           Environment="CONSUL_CLIENT_KEY=/opt/consul/{{ datacenter }}-server-consul-0-key.pem"
+          TimeoutStartSec=0
+          Restart=on-failure
+          RestartSec=5
         dest: /etc/systemd/system/consul.service.d/override.conf
       notify:
         - reload systemd
@@ -104,14 +116,12 @@
 
     - name: Bootstrap primary datacenter first
       block:
-        - name: Start Consul on primary DC
+        - name: Reload systemd and start Consul on primary DC
           systemd:
             name: consul
             state: started
             enabled: yes
             daemon_reload: yes
-          environment:
-            CONSUL_BOOTSTRAP_EXPECT: "1"
 
         - name: Wait for primary DC to be ready
           wait_for:
@@ -151,7 +161,7 @@
         - name: Wait for Consul to be ready
           wait_for:
             port: 8500
-            host: "{{ ansible_tailscale0.ipv4.address }}"
+            host: "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
             delay: 5
             timeout: 60
       when: datacenter != "dc1"
@@ -159,8 +169,9 @@
     - name: Establish WAN federation from primary DC
       shell: |
         {% for host in groups['consul_servers'] %}
-        {% if hostvars[host]['datacenter'] != "dc1" and hostvars[host].ansible_tailscale0 is defined %}
-        consul join -wan {{ hostvars[host].ansible_tailscale0.ipv4.address }}:8302
+        {% if hostvars[host]['datacenter'] != "dc1" %}
+        {% set host_ip = hostvars[host].tailscale_ip | default(hostvars[host].ansible_tailscale0.ipv4.address | default(hostvars[host].ansible_default_ipv4.address)) %}
+        consul join -wan {{ host_ip }}:8302
         {% endif %}
         {% endfor %}
       when: datacenter == "dc1"
@@ -250,13 +261,37 @@
         mode: "0640"
       notify: restart consul
 
-    - name: Start and enable Consul
+    - name: Create systemd service directory for clients
+      file:
+        path: /etc/systemd/system/consul.service.d
+        state: directory
+        mode: "0755"
+
+    - name: Create Consul systemd service override for clients
+      copy:
+        content: |
+          [Service]
+          Type=simple
+          TimeoutStartSec=0
+          Restart=on-failure
+          RestartSec=5
+        dest: /etc/systemd/system/consul.service.d/override.conf
+      notify:
+        - reload systemd
+        - restart consul
+
+    - name: Reload systemd and start Consul
       systemd:
         name: consul
         state: started
         enabled: yes
+        daemon_reload: yes
 
   handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
     - name: restart consul
       systemd:
         name: consul

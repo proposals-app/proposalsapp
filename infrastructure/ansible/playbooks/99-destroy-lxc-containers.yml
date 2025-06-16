@@ -180,6 +180,28 @@
   hosts: localhost
   gather_facts: false
   tasks:
+    - name: Clean SSH known hosts for destroyed containers
+      shell: |
+        # Clean up any old backup files
+        rm -f ~/.ssh/known_hosts.old 2>/dev/null || true
+        
+        # Remove all container-related entries
+        if [ -f ~/.ssh/known_hosts ]; then
+          # Remove Tailscale IP range (100.x.x.x)
+          grep -v "^100\." ~/.ssh/known_hosts > ~/.ssh/known_hosts.tmp 2>/dev/null || true
+          mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
+          
+          # Remove container network range (10.10.x.x)
+          grep -v "^10\.10\." ~/.ssh/known_hosts > ~/.ssh/known_hosts.tmp 2>/dev/null || true
+          mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
+          
+          # Remove known container hostnames
+          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01; do
+            ssh-keygen -f ~/.ssh/known_hosts -R "$host" 2>/dev/null || true
+          done
+        fi
+      changed_when: false
+
     - name: Display final summary
       debug:
         msg: |
@@ -188,6 +210,7 @@
           ========================================
 
           All containers have been processed.
+          SSH known hosts have been cleaned.
 
           Next steps if you want to recreate:
           1. Run the container creation playbook

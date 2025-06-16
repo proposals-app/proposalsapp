@@ -3,6 +3,10 @@
   hosts: nomad_servers
   become: true
   tasks:
+    - name: Set connection to use tailscale IP if available
+      set_fact:
+        ansible_host: "{{ tailscale_ip }}"
+      when: tailscale_ip is defined and tailscale_ip != ''
     - name: Install Nomad
       apt:
         name: nomad
@@ -45,18 +49,29 @@
         port: "{{ nomad_http_port }}"
         delay: 5
 
+    - name: Wait for leader election
+      shell: nomad operator raft list-peers
+      register: raft_result
+      until: raft_result.rc == 0
+      retries: 10
+      delay: 5
+      run_once: true
+
     - name: Bootstrap Nomad ACL system
       shell: nomad acl bootstrap -json
       register: nomad_bootstrap_result
       run_once: true
       ignore_errors: true
+      when: nomad_acl_enabled | default(false)
 
     - name: Save bootstrap token
       copy:
         content: "{{ nomad_bootstrap_result.stdout }}"
         dest: /root/nomad-bootstrap.json
         mode: "0600"
-      when: nomad_bootstrap_result is succeeded
+      when: 
+        - nomad_bootstrap_result is succeeded
+        - nomad_bootstrap_result.stdout != ""
       run_once: true
 
   handlers:
@@ -73,6 +88,10 @@
   hosts: nomad_clients
   become: true
   tasks:
+    - name: Set connection to use tailscale IP if available
+      set_fact:
+        ansible_host: "{{ tailscale_ip }}"
+      when: tailscale_ip is defined and tailscale_ip != ''
     - name: Install Nomad
       apt:
         name: nomad

@@ -3,17 +3,17 @@ data_dir = "/var/lib/consul"
 log_level = "INFO"
 node_name = "{{ inventory_hostname }}"
 server = false
-encrypt = "tGXWJplk5REWa5wGpOLGELv4zqeuxaxiL7+q1HRGsnc="
+encrypt = "{{ consul_encrypt_key }}"
 
 client_addr = "0.0.0.0"
-bind_addr = "{{ ansible_tailscale0.ipv4.address }}"
-advertise_addr = "{{ ansible_tailscale0.ipv4.address }}"
+bind_addr = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
+advertise_addr = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
 
 # Join only the consul server in the same datacenter
 retry_join = [
 {% for host in groups['consul_servers'] %}
-{% if hostvars[host]['datacenter'] == datacenter and hostvars[host].ansible_tailscale0 is defined %}
-  "{{ hostvars[host].ansible_tailscale0.ipv4.address }}",
+{% if hostvars[host]['datacenter'] == datacenter %}
+  "{{ hostvars[host].tailscale_ip | default(hostvars[host].ansible_tailscale0.ipv4.address | default(hostvars[host].ansible_default_ipv4.address)) }}",
 {% endif %}
 {% endfor %}
 ]
