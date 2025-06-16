@@ -16,11 +16,11 @@
           # Remove Tailscale IP range (100.x.x.x)
           grep -v "^100\." ~/.ssh/known_hosts > ~/.ssh/known_hosts.tmp 2>/dev/null || true
           mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
-          
+
           # Remove container network range (10.10.x.x)
           grep -v "^10\.10\." ~/.ssh/known_hosts > ~/.ssh/known_hosts.tmp 2>/dev/null || true
           mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
-          
+
           # Remove known container hostnames
           for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01; do
             ssh-keygen -f ~/.ssh/known_hosts -R "$host" 2>/dev/null || true
@@ -144,9 +144,16 @@
       loop: "{{ my_containers | zip(container_exists.results) | list }}"
       register: tun_config
 
-    - name: Start containers
-      shell: "pct start {{ item.id }}"
+    - name: Check container status
+      shell: "pct status {{ item.id }} | grep -q 'status: running' && echo 'running' || echo 'stopped'"
       loop: "{{ my_containers }}"
+      register: container_status
+      changed_when: false
+
+    - name: Start containers
+      shell: "pct start {{ item.0.id }}"
+      loop: "{{ my_containers | zip(container_status.results) | list }}"
+      when: "'stopped' in item.1.stdout"
       register: containers_started
 
     - name: Wait for containers to be ready
@@ -190,6 +197,14 @@
       shell: |
         pct exec {{ item.id }} -- bash -c "
           echo '=== Setting up Tailscale in {{ item.name }} ==='
+
+          # Check if Tailscale is already running and configured
+          if systemctl is-active --quiet tailscaled && tailscale status &>/dev/null; then
+            echo 'Tailscale is already installed and running'
+            echo 'Current status:'
+            tailscale ip -4 2>/dev/null || echo 'No IP assigned yet'
+            exit 0
+          fi
 
           # Verify /dev/net/tun exists
           echo 'Checking /dev/net/tun...'
@@ -246,10 +261,25 @@
       ignore_errors: true
       register: tailscale_install
 
-    - name: Configure Tailscale with auth key
+    - name: Check if Tailscale is already configured
       shell: |
         pct exec {{ item.id }} -- bash -c "
-          echo '=== Configuring Tailscale for {{ item.name }} ==='
+          # Check if already connected and configured
+          if tailscale status &>/dev/null && tailscale ip -4 &>/dev/null; then
+            echo 'already_configured'
+          else
+            echo 'needs_configuration'
+          fi
+        "
+      loop: "{{ my_containers }}"
+      register: tailscale_status_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Configure Tailscale with auth key
+      shell: |
+        pct exec {{ item.0.id }} -- bash -c "
+          echo '=== Configuring Tailscale for {{ item.0.name }} ==='
 
           # Check if tailscaled is running
           if ! systemctl is-active --quiet tailscaled; then
@@ -259,20 +289,25 @@
           fi
 
           # Configure Tailscale with hostname
-          echo 'Running: tailscale up --authkey=REDACTED --hostname={{ item.name }} --accept-routes'
-          tailscale up --authkey={{ vault_tailscale_auth_key }} --hostname={{ item.name }} --accept-routes 2>&1
+          echo 'Running: tailscale up --authkey=REDACTED --hostname={{ item.0.name }} --accept-routes'
+          tailscale up --authkey={{ vault_tailscale_auth_key }} --hostname={{ item.0.name }} --accept-routes 2>&1
 
           # Check the result
           echo 'Exit code:' $?
         "
-      loop: "{{ my_containers }}"
-      when: vault_tailscale_auth_key is defined
+      loop: "{{ my_containers | zip(tailscale_status_check.results) | list }}"
+      when:
+        - vault_tailscale_auth_key is defined
+        - "'needs_configuration' in item.1.stdout"
       register: tailscale_setup
 
     - name: Wait for Tailscale to connect
       pause:
         seconds: 20
-      when: vault_tailscale_auth_key is defined
+      when:
+        - vault_tailscale_auth_key is defined
+        - tailscale_setup is defined
+        - tailscale_setup.changed
 
     - name: Check Tailscale status in all containers
       shell: |
@@ -604,6 +639,94 @@
           - Run 03-install-nomad.yml to install Nomad
           - Run 04-install-postgres.yml for database nodes
           ========================================
+
+# Verification checks at the end
+- name: Verify Infrastructure Setup
+  hosts: proxmox_nodes
+  gather_facts: false
+  tasks:
+    - name: Run infrastructure verification checks
+      block:
+        - name: Check all containers are running
+          shell: |
+            failed=0
+            for vmid in {% for container in hostvars[inventory_hostname]['my_containers'] %}{{ container.id }} {% endfor %}; do
+              status=$(pct status $vmid 2>/dev/null | grep -oP 'status: \K\w+' || echo "not_found")
+              if [ "$status" != "running" ]; then
+                echo "Container $vmid is not running (status: $status)"
+                failed=1
+              fi
+            done
+            exit $failed
+          register: container_check
+          changed_when: false
+          failed_when: container_check.rc != 0
+
+        - name: Verify Tailscale connectivity
+          shell: |
+            failed=0
+            {% for container in hostvars[inventory_hostname]['my_containers'] %}
+            # Check if tailscale is running and get IP
+            ip=$(pct exec {{ container.id }} -- bash -c "tailscale ip -4 2>/dev/null || echo ''" 2>/dev/null | tr -d '\n')
+            if [ -z "$ip" ]; then
+              echo "Container {{ container.id }} ({{ container.name }}) - No Tailscale IP assigned"
+              failed=1
+            else
+              echo "Container {{ container.id }} ({{ container.name }}) - Tailscale IP: $ip"
+            fi
+            {% endfor %}
+            exit $failed
+          register: tailscale_check
+          changed_when: false
+          failed_when: tailscale_check.rc != 0
+          retries: 3
+          delay: 20
+          until: tailscale_check.rc == 0
+
+        - name: Verify SSH connectivity to containers
+          shell: |
+            failed=0
+            {% for container in hostvars[inventory_hostname]['my_containers'] %}
+            {% set container_name = container.name %}
+            {% for host in groups['all'] %}
+            {% if hostvars[host]['inventory_hostname'] == container_name %}
+            if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ hostvars[host].tailscale_ip | default('') }} "echo 'SSH OK'" &>/dev/null; then
+              echo "Cannot SSH to {{ container_name }} ({{ hostvars[host].tailscale_ip | default('no IP') }})"
+              failed=1
+            fi
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+            exit $failed
+          register: ssh_check
+          changed_when: false
+          failed_when: false # Don't fail, just report
+
+        - name: Display verification summary
+          debug:
+            msg: |
+              ========================================
+              Infrastructure Verification Summary
+              ========================================
+              Container Status: {{ 'PASS' if container_check.rc == 0 else 'FAIL' }}
+              Tailscale Status: {{ 'PASS' if tailscale_check.rc == 0 else 'FAIL' }}
+              SSH Connectivity: {{ 'PASS' if ssh_check.rc == 0 else 'WARNING' }}
+
+              {% if container_check.stdout %}
+              Container Issues:
+              {{ container_check.stdout }}
+              {% endif %}
+
+              {% if tailscale_check.stdout %}
+              Tailscale Info:
+              {{ tailscale_check.stdout }}
+              {% endif %}
+
+              {% if ssh_check.stdout %}
+              SSH Issues:
+              {{ ssh_check.stdout }}
+              {% endif %}
+              ========================================
 
   handlers:
     - name: restart systemd-resolved

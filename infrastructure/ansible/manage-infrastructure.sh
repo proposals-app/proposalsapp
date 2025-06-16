@@ -13,11 +13,49 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-echo -e "${RED}========================================${NC}"
-echo -e "${RED}Infrastructure Recreation Script${NC}"
-echo -e "${RED}========================================${NC}"
-echo -e "${YELLOW}WARNING: This will DESTROY all existing containers and data!${NC}"
-echo -e "${YELLOW}Make sure you have backups of any important data.${NC}"
+# Default mode
+MODE="update"
+SKIP_DESTROY="true"
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --destroy|--recreate)
+            MODE="recreate"
+            SKIP_DESTROY="false"
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --destroy, --recreate    Destroy existing infrastructure before creating"
+            echo "  --help, -h              Show this help message"
+            echo ""
+            echo "Default behavior (no flags): Update existing infrastructure (idempotent)"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+# Display mode
+echo -e "${CYAN}========================================${NC}"
+if [ "$MODE" = "recreate" ]; then
+    echo -e "${RED}Infrastructure Recreation Mode${NC}"
+    echo -e "${CYAN}========================================${NC}"
+    echo -e "${YELLOW}WARNING: This will DESTROY all existing containers and data!${NC}"
+    echo -e "${YELLOW}Make sure you have backups of any important data.${NC}"
+else
+    echo -e "${GREEN}Infrastructure Update Mode${NC}"
+    echo -e "${CYAN}========================================${NC}"
+    echo -e "${GREEN}This will ensure your infrastructure matches the desired state.${NC}"
+    echo -e "${GREEN}Existing containers and data will be preserved.${NC}"
+fi
 echo ""
 
 # Check prerequisites
@@ -40,18 +78,20 @@ if ! command -v ansible-playbook &> /dev/null; then
     exit 1
 fi
 
-# Prompt for confirmation
-echo -e "${RED}This will:${NC}"
-echo "  1. Destroy ALL existing LXC containers"
-echo "  2. Remove all container data"
-echo "  3. Clean up Tailscale devices"
-echo "  4. Recreate everything from scratch"
-echo ""
-read -p "Are you ABSOLUTELY SURE you want to continue? Type 'yes-destroy-all' to confirm: " confirmation
-
-if [ "$confirmation" != "yes-destroy-all" ]; then
-    echo -e "${YELLOW}Aborted. No changes were made.${NC}"
-    exit 0
+# Confirmation for destroy mode
+if [ "$MODE" = "recreate" ]; then
+    echo -e "${RED}This will:${NC}"
+    echo "  1. Destroy ALL existing LXC containers"
+    echo "  2. Remove all container data"
+    echo "  3. Clean up Tailscale devices"
+    echo "  4. Recreate everything from scratch"
+    echo ""
+    read -p "Are you ABSOLUTELY SURE you want to continue? Type 'yes-destroy-all' to confirm: " confirmation
+    
+    if [ "$confirmation" != "yes-destroy-all" ]; then
+        echo -e "${YELLOW}Aborted. No changes were made.${NC}"
+        exit 0
+    fi
 fi
 
 # Function to run playbook with error handling
@@ -72,21 +112,27 @@ run_playbook() {
     fi
 }
 
-# Step 1: Destroy existing infrastructure
-echo -e "\n${RED}Phase 1: Destroying existing infrastructure${NC}"
-ansible-playbook -i inventory.yml playbooks/99-destroy-lxc-containers.yml -e "confirm_destroy=yes-destroy-all" || {
-    echo -e "${YELLOW}Warning: Some containers may not have existed${NC}"
-}
+# Step 1: Destroy existing infrastructure (only if requested)
+if [ "$SKIP_DESTROY" = "false" ]; then
+    echo -e "\n${RED}Phase 1: Destroying existing infrastructure${NC}"
+    ansible-playbook -i inventory.yml playbooks/99-destroy-lxc-containers.yml -e "confirm_destroy=yes-destroy-all" || {
+        echo -e "${YELLOW}Warning: Some containers may not have existed${NC}"
+    }
+    
+    # Wait a bit for cleanup
+    echo -e "${YELLOW}Waiting for cleanup to complete...${NC}"
+    sleep 10
+fi
 
-# Wait a bit for cleanup
-echo -e "${YELLOW}Waiting for cleanup to complete...${NC}"
-sleep 10
+# Step 2: Create/Update infrastructure
+if [ "$MODE" = "recreate" ]; then
+    echo -e "\n${GREEN}Phase 2: Recreating infrastructure${NC}"
+else
+    echo -e "\n${GREEN}Running infrastructure playbooks${NC}"
+fi
 
-# Step 2: Recreate infrastructure
-echo -e "\n${GREEN}Phase 2: Recreating infrastructure${NC}"
-
-# Check if we need Tailscale auth key
-if ! grep -q "vault_tailscale_auth_key" group_vars/all/vault.yml 2>/dev/null; then
+# Check if we need Tailscale auth key (only for new deployments)
+if [ "$MODE" = "recreate" ] && ! grep -q "vault_tailscale_auth_key" group_vars/all/vault.yml 2>/dev/null; then
     echo -e "${YELLOW}Note: You'll need a Tailscale auth key for the containers${NC}"
     echo "Get one from: https://login.tailscale.com/admin/settings/keys"
     echo "Add it to your vault with: ansible-vault edit group_vars/all/vault.yml"
@@ -120,13 +166,21 @@ done
 
 # Summary
 echo -e "\n${BLUE}========================================${NC}"
-echo -e "${BLUE}Infrastructure Recreation Summary${NC}"
+if [ "$MODE" = "recreate" ]; then
+    echo -e "${BLUE}Infrastructure Recreation Summary${NC}"
+else
+    echo -e "${BLUE}Infrastructure Update Summary${NC}"
+fi
 echo -e "${BLUE}========================================${NC}"
 
 if [ $failed -eq 0 ]; then
     echo -e "${GREEN}✓ All playbooks completed successfully!${NC}"
     echo ""
-    echo -e "${GREEN}Infrastructure has been recreated with:${NC}"
+    if [ "$MODE" = "recreate" ]; then
+        echo -e "${GREEN}Infrastructure has been recreated with:${NC}"
+    else
+        echo -e "${GREEN}Infrastructure has been updated/verified:${NC}"
+    fi
     echo "  • 3 Consul/Nomad servers (one per datacenter)"
     echo "  • 3 Nomad client nodes for applications"
     echo "  • 3 PostgreSQL nodes with Patroni HA"
@@ -149,7 +203,8 @@ fi
 echo ""
 echo -e "${CYAN}Useful commands:${NC}"
 echo "• Check all hosts: ansible all -i inventory.yml -m ping"
-echo "• Update inventory IPs: ansible-playbook -i inventory.yml playbooks/01-provision-and-prepare-lxcs.yml --tags update_inventory"
+echo "• Update only: $0"
+echo "• Full recreate: $0 --destroy"
 echo "• View Consul UI: http://<any-consul-server-ip>:8500"
 echo "• View Nomad UI: http://<any-nomad-server-ip>:4646"
 

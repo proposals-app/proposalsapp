@@ -33,11 +33,18 @@
           - libpq-dev
         state: present
 
+    - name: Check PostgreSQL service status
+      systemd:
+        name: postgresql
+      register: postgresql_service
+      failed_when: false
+
     - name: Stop PostgreSQL service
       systemd:
         name: postgresql
         state: stopped
         enabled: no
+      when: postgresql_service.status.ActiveState is defined and postgresql_service.status.ActiveState == "active"
 
     - name: Install pipx and venv support
       apt:
@@ -47,14 +54,18 @@
           - python3-full
         state: present
 
+    - name: Check if Patroni is already installed
+      stat:
+        path: /var/lib/postgresql/.local/bin/patroni
+      register: patroni_installed
+
     - name: Install Patroni and dependencies for postgres user
       become_user: postgres
       shell: |
         export PATH="/usr/bin:$PATH"
         pipx install "patroni[consul]=={{ patroni_version }}" --include-deps
         pipx inject patroni psycopg2-binary python-consul
-      args:
-        creates: /var/lib/postgresql/.local/bin/patroni
+      when: not patroni_installed.stat.exists
 
     - name: Create Patroni configuration directory
       file:
@@ -139,6 +150,14 @@
         - patroni
         - pgbouncer
 
+    - name: Check if PostgreSQL service is already registered
+      uri:
+        url: "http://localhost:{{ consul_client_port }}/v1/agent/service/postgres-{{ inventory_hostname }}"
+        method: GET
+        status_code: [200, 404]
+      register: postgres_service_check
+      changed_when: false
+
     - name: Register PostgreSQL services in Consul
       uri:
         url: "http://localhost:{{ consul_client_port }}/v1/agent/service/register"
@@ -154,6 +173,7 @@
           Check:
             TCP: "localhost:5432"
             Interval: "10s"
+      when: postgres_service_check.status == 404
 
   handlers:
     - name: reload systemd
@@ -169,3 +189,148 @@
       systemd:
         name: pgbouncer
         state: restarted
+
+# Verification checks at the end
+- name: Verify PostgreSQL Cluster
+  hosts: postgres_nodes
+  gather_facts: false
+  tasks:
+    - name: Wait for PostgreSQL to stabilize
+      pause:
+        seconds: 15
+
+    - name: Check Patroni service health
+      shell: |
+        # Check if Patroni is running
+        if ! systemctl is-active patroni >/dev/null 2>&1; then
+          echo "ERROR: Patroni service is not running"
+          exit 1
+        fi
+        
+        echo "OK: Patroni service is active"
+      register: patroni_health
+      changed_when: false
+      failed_when: patroni_health.rc != 0
+
+    - name: Check Patroni cluster status
+      shell: |
+        # Check Patroni cluster status
+        cluster_info=$(patronictl -c /etc/patroni/patroni.yml list 2>&1)
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Cannot query Patroni cluster: $cluster_info"
+          exit 1
+        fi
+        
+        # Check if this node is in the cluster
+        if ! echo "$cluster_info" | grep -q "{{ inventory_hostname }}"; then
+          echo "ERROR: This node is not in the Patroni cluster"
+          echo "$cluster_info"
+          exit 1
+        fi
+        
+        # Check for a leader
+        if ! echo "$cluster_info" | grep -q "Leader"; then
+          echo "ERROR: No leader in Patroni cluster"
+          echo "$cluster_info"
+          exit 1
+        fi
+        
+        echo "OK: Patroni cluster healthy"
+        echo "$cluster_info"
+      register: patroni_cluster
+      changed_when: false
+      failed_when: patroni_cluster.rc != 0
+
+    - name: Check PostgreSQL connectivity
+      shell: |
+        export PGPASSWORD="{{ postgres_password }}"
+        if ! psql -h localhost -U {{ postgres_user }} -d postgres -c "SELECT version();" >/dev/null 2>&1; then
+          echo "ERROR: Cannot connect to PostgreSQL"
+          exit 1
+        fi
+        
+        echo "OK: PostgreSQL is accessible"
+      register: postgres_connectivity
+      changed_when: false
+      failed_when: postgres_connectivity.rc != 0
+
+    - name: Check PgBouncer service
+      shell: |
+        # Check if PgBouncer is running
+        if ! systemctl is-active pgbouncer >/dev/null 2>&1; then
+          echo "ERROR: PgBouncer service is not running"
+          exit 1
+        fi
+        
+        # Check if PgBouncer port is listening
+        if ! netstat -tuln | grep -q ":6432"; then
+          echo "ERROR: PgBouncer not listening on port 6432"
+          exit 1
+        fi
+        
+        echo "OK: PgBouncer is active and listening"
+      register: pgbouncer_health
+      changed_when: false
+      failed_when: pgbouncer_health.rc != 0
+
+    - name: Verify Consul service registration
+      shell: |
+        # Check if PostgreSQL service is registered in Consul
+        service_info=$(curl -s http://localhost:{{ consul_client_port }}/v1/agent/service/postgres-{{ inventory_hostname }})
+        if [ $? -ne 0 ] || [ -z "$service_info" ] || [ "$service_info" = "null" ]; then
+          echo "ERROR: PostgreSQL service not registered in Consul"
+          exit 1
+        fi
+        
+        echo "OK: PostgreSQL service registered in Consul"
+        echo "$service_info" | jq -r '.ID + " - " + .Service + " - Port: " + (.Port|tostring)'
+      register: consul_service
+      changed_when: false
+      failed_when: consul_service.rc != 0
+
+    - name: Display PostgreSQL verification summary
+      debug:
+        msg: |
+          ========================================
+          PostgreSQL Cluster Verification Summary
+          ========================================
+          Node: {{ inventory_hostname }}
+          Patroni Status: {{ 'RUNNING' if patroni_health.rc == 0 else 'FAILED' }}
+          Cluster Health: {{ 'HEALTHY' if patroni_cluster.rc == 0 else 'UNHEALTHY' }}
+          PostgreSQL Access: {{ 'OK' if postgres_connectivity.rc == 0 else 'FAILED' }}
+          PgBouncer Status: {{ 'RUNNING' if pgbouncer_health.rc == 0 else 'FAILED' }}
+          Consul Registration: {{ 'REGISTERED' if consul_service.rc == 0 else 'NOT REGISTERED' }}
+          
+          Cluster Status:
+          {{ patroni_cluster.stdout | indent(2) }}
+          
+          Connection Details:
+          - Direct PostgreSQL: {{ inventory_hostname }}:5432
+          - Via PgBouncer: {{ inventory_hostname }}:6432
+          - Database: {{ postgres_database }}
+          - User: {{ postgres_user }}
+          ========================================
+
+- name: Display Overall Cluster Summary
+  hosts: postgres_nodes[0]
+  gather_facts: false
+  tasks:
+    - name: Get full cluster overview
+      shell: |
+        echo "=== PATRONI CLUSTER OVERVIEW ==="
+        patronictl -c /etc/patroni/patroni.yml list
+        echo ""
+        echo "=== REPLICATION STATUS ==="
+        export PGPASSWORD="{{ postgres_password }}"
+        psql -h localhost -U {{ postgres_user }} -d postgres -c "SELECT client_addr, state, sync_state FROM pg_stat_replication;" 2>/dev/null || echo "No replicas (this might be a replica node)"
+      register: cluster_overview
+      changed_when: false
+
+    - name: Display cluster overview
+      debug:
+        msg: |
+          ========================================
+          PostgreSQL HA Cluster Overview
+          ========================================
+          {{ cluster_overview.stdout }}
+          ========================================

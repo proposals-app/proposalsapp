@@ -139,3 +139,159 @@
       systemd:
         name: docker
         state: restarted
+
+# Verification checks at the end
+- name: Verify Nomad Cluster
+  hosts: nomad_servers
+  gather_facts: false
+  tasks:
+    - name: Wait for Nomad to stabilize
+      pause:
+        seconds: 10
+
+    - name: Check Nomad server health
+      shell: |
+        # Check if Nomad is running
+        if ! systemctl is-active nomad >/dev/null 2>&1; then
+          echo "ERROR: Nomad service is not running"
+          exit 1
+        fi
+        
+        # Check server members
+        members=$(nomad server members 2>&1)
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Cannot query Nomad members: $members"
+          exit 1
+        fi
+        
+        # Count alive servers
+        alive_servers=$(echo "$members" | grep -c "alive.*true")
+        if [ $alive_servers -lt 1 ]; then
+          echo "ERROR: No alive Nomad servers found"
+          exit 1
+        fi
+        
+        echo "OK: Found $alive_servers alive Nomad servers"
+        echo "$members"
+      register: nomad_health
+      changed_when: false
+      failed_when: nomad_health.rc != 0
+
+    - name: Check Nomad leader election
+      shell: |
+        if ! nomad operator raft list-peers 2>&1 | grep -q "leader=true"; then
+          echo "ERROR: No Nomad leader elected"
+          exit 1
+        fi
+        nomad operator raft list-peers
+      register: nomad_leader
+      changed_when: false
+      run_once: true
+
+    - name: Check Nomad regions
+      shell: |
+        regions=$(nomad region list 2>&1)
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Cannot query regions: $regions"
+          exit 1
+        fi
+        echo "OK: Nomad regions configured"
+        echo "$regions"
+      register: nomad_regions
+      changed_when: false
+      run_once: true
+
+    - name: Display Nomad server verification summary
+      debug:
+        msg: |
+          ========================================
+          Nomad Cluster Verification Summary
+          ========================================
+          Service Status: {{ 'RUNNING' if 'OK' in nomad_health.stdout else 'FAILED' }}
+          Leader Election: {{ 'YES' if nomad_leader.rc == 0 else 'NO' }}
+          
+          Server Members:
+          {{ nomad_health.stdout | indent(2) }}
+          
+          Regions:
+          {{ nomad_regions.stdout | indent(2) }}
+          
+          Access Nomad UI at: http://{{ tailscale_ip | default(ansible_default_ipv4.address) }}:4646
+          ========================================
+      run_once: true
+
+- name: Verify Nomad Clients
+  hosts: nomad_clients
+  gather_facts: false
+  tasks:
+    - name: Check Nomad client health
+      shell: |
+        # Check if Nomad is running
+        if ! systemctl is-active nomad >/dev/null 2>&1; then
+          echo "ERROR: Nomad service is not running"
+          exit 1
+        fi
+        
+        # Check node status
+        node_status=$(nomad node status -self -short 2>&1)
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Cannot query node status: $node_status"
+          exit 1
+        fi
+        
+        # Check if node is ready
+        if ! echo "$node_status" | grep -q "ready"; then
+          echo "ERROR: Node is not ready"
+          echo "$node_status"
+          exit 1
+        fi
+        
+        echo "OK: Nomad client ready"
+        echo "$node_status"
+      register: client_health
+      changed_when: false
+      failed_when: client_health.rc != 0
+
+    - name: Check Docker availability
+      shell: |
+        if ! systemctl is-active docker >/dev/null 2>&1; then
+          echo "ERROR: Docker service is not running"
+          exit 1
+        fi
+        
+        if ! docker info >/dev/null 2>&1; then
+          echo "ERROR: Cannot connect to Docker daemon"
+          exit 1
+        fi
+        
+        echo "OK: Docker is available"
+      register: docker_health
+      changed_when: false
+      failed_when: docker_health.rc != 0
+
+    - name: Check Consul integration
+      shell: |
+        # Check if Consul agent is running and accessible
+        if ! consul members | grep -q "{{ inventory_hostname }}.*alive"; then
+          echo "ERROR: Consul integration not working"
+          exit 1
+        fi
+        
+        echo "OK: Consul integration working"
+      register: consul_integration
+      changed_when: false
+      failed_when: consul_integration.rc != 0
+
+    - name: Display client verification summary
+      debug:
+        msg: |
+          ========================================
+          Nomad Client Verification - {{ inventory_hostname }}
+          ========================================
+          Client Status: {{ 'READY' if client_health.rc == 0 else 'FAILED' }}
+          Docker Status: {{ 'RUNNING' if docker_health.rc == 0 else 'FAILED' }}
+          Consul Integration: {{ 'WORKING' if consul_integration.rc == 0 else 'FAILED' }}
+          
+          Node Info:
+          {{ client_health.stdout | indent(2) }}
+          ========================================

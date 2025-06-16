@@ -167,12 +167,23 @@
       when: datacenter != "dc1"
 
     
+    - name: Check existing WAN members
+      shell: consul members -wan | grep -v "$(hostname)" | awk '{print $2}' | cut -d':' -f1
+      register: existing_wan_members
+      changed_when: false
+      when: datacenter == "dc1"
+      run_once: true
+
     - name: Establish WAN federation from primary DC
       shell: |
         {% for host in groups['consul_servers'] %}
         {% if hostvars[host]['datacenter'] != "dc1" %}
         {% set host_ip = hostvars[host].tailscale_ip | default(hostvars[host].ansible_tailscale0.ipv4.address | default(hostvars[host].ansible_default_ipv4.address)) %}
-        consul join -wan {{ host_ip }}:8302
+        if ! echo "{{ existing_wan_members.stdout }}" | grep -q "{{ host_ip }}"; then
+          consul join -wan {{ host_ip }}:8302
+        else
+          echo "{{ host_ip }} already in WAN federation"
+        fi
         {% endif %}
         {% endfor %}
       when: datacenter == "dc1"
@@ -283,3 +294,151 @@
       systemd:
         name: consul
         state: restarted
+
+# Verification checks at the end
+- name: Verify Consul Cluster
+  hosts: consul_servers
+  gather_facts: false
+  tasks:
+    - name: Wait for Consul to stabilize
+      pause:
+        seconds: "{{ 30 if datacenter != 'dc1' else 10 }}"
+        prompt: "Waiting for Consul to stabilize ({{ datacenter }})"
+
+    - name: Check Consul cluster health
+      shell: |
+        # Check if Consul is running
+        if ! systemctl is-active consul >/dev/null 2>&1; then
+          echo "ERROR: Consul service is not running"
+          exit 1
+        fi
+        
+        # Check cluster members
+        members=$(consul members 2>&1)
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Cannot query Consul members: $members"
+          exit 1
+        fi
+        
+        # Count alive servers
+        alive_servers=$(echo "$members" | grep -c "alive.*server")
+        if [ $alive_servers -lt 1 ]; then
+          echo "ERROR: No alive Consul servers found"
+          exit 1
+        fi
+        
+        echo "OK: Found $alive_servers alive Consul servers"
+        echo "$members"
+      register: consul_health
+      changed_when: false
+      failed_when: consul_health.rc != 0
+
+    - name: Check Consul leader election
+      shell: |
+        # For secondary datacenters, check if we can see the cluster status
+        if [ "{{ datacenter }}" != "dc1" ]; then
+          # Secondary DCs should be able to query their local leader
+          if ! consul info 2>&1 | grep -q "leader = true\|leader = false"; then
+            echo "ERROR: Cannot query Consul status in {{ datacenter }}"
+            exit 1
+          fi
+          echo "OK: Secondary DC {{ datacenter }} connected to cluster"
+          consul members
+        else
+          # Primary DC must have a leader
+          if ! consul operator raft list-peers 2>&1 | grep -q "leader=true"; then
+            echo "ERROR: No Consul leader elected in primary DC"
+            exit 1
+          fi
+          consul operator raft list-peers
+        fi
+      register: consul_leader
+      changed_when: false
+      retries: 5
+      delay: 10
+      until: consul_leader.rc == 0
+
+    - name: Verify WAN federation (from dc1)
+      shell: |
+        wan_members=$(consul members -wan 2>&1)
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Cannot query WAN members: $wan_members"
+          exit 1
+        fi
+        
+        # Count datacenters
+        dc_count=$(echo "$wan_members" | grep -c "server.*alive")
+        expected_dcs={{ groups['consul_servers'] | map('extract', hostvars, 'datacenter') | unique | list | length }}
+        
+        if [ $dc_count -ne $expected_dcs ]; then
+          echo "ERROR: Expected $expected_dcs datacenters, found $dc_count"
+          echo "$wan_members"
+          exit 1
+        fi
+        
+        echo "OK: WAN federation established with $dc_count datacenters"
+        echo "$wan_members"
+      register: wan_federation
+      changed_when: false
+      when: datacenter == "dc1"
+      run_once: true
+
+    - name: Test Consul DNS resolution
+      shell: |
+        # Test resolving consul service
+        if ! dig @127.0.0.1 -p 8600 consul.service.consul +short | grep -q "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"; then
+          echo "ERROR: Consul DNS not resolving properly"
+          exit 1
+        fi
+        echo "OK: Consul DNS working"
+      register: consul_dns
+      changed_when: false
+
+    - name: Display Consul verification summary
+      debug:
+        msg: |
+          ========================================
+          Consul Cluster Verification Summary
+          ========================================
+          Service Status: {{ 'RUNNING' if 'OK' in consul_health.stdout else 'FAILED' }}
+          Leader Election: {{ 'YES' if consul_leader.rc == 0 else 'NO' }}
+          WAN Federation: {{ 'ESTABLISHED' if (datacenter != 'dc1' or (wan_federation is defined and wan_federation.rc == 0)) else 'N/A' }}
+          DNS Resolution: {{ 'WORKING' if consul_dns.rc == 0 else 'FAILED' }}
+          
+          Cluster Members:
+          {{ consul_health.stdout | indent(2) }}
+          
+          {% if datacenter == 'dc1' and wan_federation is defined %}
+          WAN Members:
+          {{ wan_federation.stdout | indent(2) }}
+          {% endif %}
+          
+          Access Consul UI at: http://{{ tailscale_ip | default(ansible_default_ipv4.address) }}:8500
+          ========================================
+      run_once: true
+
+- name: Verify Consul Clients
+  hosts: nomad_clients
+  gather_facts: false
+  tasks:
+    - name: Check Consul client health
+      shell: |
+        if ! systemctl is-active consul >/dev/null 2>&1; then
+          echo "ERROR: Consul service is not running"
+          exit 1
+        fi
+        
+        # Check if connected to cluster
+        if ! consul members | grep -q "{{ inventory_hostname }}.*alive"; then
+          echo "ERROR: Not connected to Consul cluster"
+          exit 1
+        fi
+        
+        echo "OK: Consul client connected"
+      register: client_health
+      changed_when: false
+      failed_when: client_health.rc != 0
+
+    - name: Display client status
+      debug:
+        msg: "Consul client on {{ inventory_hostname }}: {{ client_health.stdout }}"
