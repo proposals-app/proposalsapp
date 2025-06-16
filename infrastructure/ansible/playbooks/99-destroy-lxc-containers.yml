@@ -42,7 +42,7 @@
           - {{ container.name }} (ID: {{ container.id }}): {{ 'EXISTS - WILL BE DESTROYED' if exists else 'Does not exist' }}
           {% endfor %}
           ========================================
-          
+
           Tailscale cleanup will be attempted for all running containers.
           Device IDs will be collected for API removal.
 
@@ -105,7 +105,7 @@
         password: ""
         force_basic_auth: true
         status_code: [200]
-      when: 
+      when:
         - vault_tailscale_api_key is defined
         - tailscale_hostnames is defined
       register: tailscale_devices_api
@@ -154,7 +154,7 @@
         force_basic_auth: true
         status_code: [200, 204, 404]
       loop: "{{ devices_to_remove | default([]) }}"
-      when: 
+      when:
         - devices_to_remove is defined
         - devices_to_remove | length > 0
         - vault_tailscale_api_key is defined
@@ -184,7 +184,7 @@
       shell: |
         # Clean up any old backup files
         rm -f ~/.ssh/known_hosts.old 2>/dev/null || true
-        
+
         # Remove all container-related entries
         if [ -f ~/.ssh/known_hosts ]; then
           # Remove Tailscale IP range (100.x.x.x)
@@ -215,11 +215,11 @@
           Next steps if you want to recreate:
           1. Run the container creation playbook
           2. Provide a new Tailscale auth key
-          
+
           Note: Tailscale cleanup attempted:
           - Logged out from each container
           - API removal attempted for matching devices
-          
+
           If devices remain, check:
           - API key permissions (needs device:delete scope)
           - Correct tailnet name in config

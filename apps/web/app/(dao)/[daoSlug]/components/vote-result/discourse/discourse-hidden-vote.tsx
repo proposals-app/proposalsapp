@@ -8,7 +8,7 @@ interface HiddenVoteProps {
   };
 }
 
-export const HiddenVoteStatic = ({ result }: HiddenVoteProps) => {
+export const DiscourseHiddenVote = ({ result }: HiddenVoteProps) => {
   return (
     <div tw='bg-[rgba(239,239,239,0.25)] w-full border border-[#e9e9e9] flex'>
       <div tw='flex items-center w-full p-[10px] justify-center'>

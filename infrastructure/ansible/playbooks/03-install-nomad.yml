@@ -25,7 +25,7 @@
       file:
         path: /etc/systemd/system/nomad.service.d
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Create Nomad systemd service override
       copy:
@@ -68,7 +68,7 @@
       register: nomad_bootstrap_result
       run_once: true
       ignore_errors: true
-      when: 
+      when:
         - nomad_acl_enabled | default(false)
         - not nomad_bootstrap_exists.stat.exists
 
@@ -77,7 +77,7 @@
         content: "{{ nomad_bootstrap_result.stdout }}"
         dest: /root/nomad-bootstrap.json
         mode: "0600"
-      when: 
+      when:
         - nomad_acl_enabled | default(false)
         - nomad_bootstrap_result is defined
         - nomad_bootstrap_result is succeeded

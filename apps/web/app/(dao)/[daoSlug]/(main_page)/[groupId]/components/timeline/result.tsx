@@ -6,7 +6,7 @@ import {
   RankedChoiceVote,
   SingleChoiceVote,
   WeightedVote,
-} from '@/app/(dao)/[daoSlug]/components/vote-result/types';
+} from '@/app/(dao)/[daoSlug]/components/vote-result/web';
 import type { ProcessedResults } from '@/lib/results_processing';
 import type { VoteSegmentData } from '@/lib/types';
 

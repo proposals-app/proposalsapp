@@ -4,4 +4,3 @@ export {
   type SegmentedQuorumBarProps,
 } from './segmented-quorum-bar';
 export { Result } from './result';
-export { ResultCard } from './result-card';

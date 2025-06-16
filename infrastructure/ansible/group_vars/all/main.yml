@@ -12,17 +12,17 @@ ssh_pubkey_authentication: "yes"
 
 # Network security
 firewall_allowed_tcp_ports:
-  - 22    # SSH
-  - 80    # HTTP
-  - 443   # HTTPS
-  - 8301  # Consul LAN Serf
-  - 8302  # Consul WAN Serf
-  - 8500  # Consul HTTP API
-  - 8600  # Consul DNS
-  - 4646  # Nomad HTTP
-  - 4647  # Nomad RPC
-  - 4648  # Nomad Serf
-  - 5432  # PostgreSQL
+  - 22 # SSH
+  - 80 # HTTP
+  - 443 # HTTPS
+  - 8301 # Consul LAN Serf
+  - 8302 # Consul WAN Serf
+  - 8500 # Consul HTTP API
+  - 8600 # Consul DNS
+  - 4646 # Nomad HTTP
+  - 4647 # Nomad RPC
+  - 4648 # Nomad Serf
+  - 5432 # PostgreSQL
 
 # Database configuration
 postgres_version: 15
@@ -57,7 +57,7 @@ nomad_acl_enabled: true
 
 # Backup configuration
 backup_retention_days: 30
-backup_schedule: "0 2 * * *"  # 2 AM daily
+backup_schedule: "0 2 * * *" # 2 AM daily
 # Postgres passwords from vault
 postgres_password: "{{ vault_postgres_password }}"
 postgres_replication_password: "{{ vault_postgres_replication_password }}"

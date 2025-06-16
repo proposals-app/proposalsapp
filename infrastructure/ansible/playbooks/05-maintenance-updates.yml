@@ -2,8 +2,8 @@
 - name: Perform Maintenance Updates on All Systems
   hosts: all
   become: true
-  serial: "50%"  # Update 50% of hosts at a time
-  max_fail_percentage: 30  # Stop if more than 30% of hosts fail
+  serial: "50%" # Update 50% of hosts at a time
+  max_fail_percentage: 30 # Stop if more than 30% of hosts fail
   tasks:
     - name: Set connection to use tailscale IP if available
       set_fact:
@@ -48,7 +48,7 @@
 - name: Update HashiCorp Services
   hosts: consul_servers:nomad_servers:nomad_clients
   become: true
-  serial: 1  # Update one at a time for critical services
+  serial: 1 # Update one at a time for critical services
   tasks:
     - name: Set connection to use tailscale IP if available
       set_fact:
@@ -77,7 +77,7 @@
 - name: Update Database Servers
   hosts: postgres_nodes
   become: true
-  serial: 1  # Update one database at a time
+  serial: 1 # Update one database at a time
   tasks:
     - name: Set connection to use tailscale IP if available
       set_fact:
@@ -121,14 +121,14 @@
           ========================================
           Maintenance Update Complete
           ========================================
-          
+
           Total hosts updated: {{ groups['all'] | length }}
-          
+
           Next steps:
           1. Review any hosts that require reboot
           2. Plan maintenance window for reboots if needed
           3. Check service health after updates
-          
+
           To reboot hosts that require it:
           ansible <host> -m reboot -b
           ========================================

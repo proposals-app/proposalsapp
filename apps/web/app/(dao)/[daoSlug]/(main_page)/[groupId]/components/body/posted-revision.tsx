@@ -11,7 +11,11 @@ import {
   SelectTrigger,
 } from '@/app/components/ui/select';
 import ChevronDown from '@/public/assets/web/icons/chevron-down.svg';
-export function PostedRevisions({ versions }: { versions: BodyVersionNoContentType[] }) {
+export function PostedRevisions({
+  versions,
+}: {
+  versions: BodyVersionNoContentType[];
+}) {
   const [selectedVersionIndex, setSelectedVersionIndex] = useState(
     versions.length - 1
   );

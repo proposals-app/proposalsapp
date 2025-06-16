@@ -10,13 +10,15 @@ interface BasicVoteProps {
   };
   debugBar?: boolean;
   currentTime: Date;
+  width?: number;
 }
 
 // Static version for ImageResponse - no hooks allowed
-export const BasicVoteStatic = ({
+export const DiscourseBasicVote = ({
   result,
   debugBar = false,
   currentTime,
+  width = 1200,
 }: BasicVoteProps) => {
   const isHidden = result.hiddenVote && result.scoresState !== 'final';
 
@@ -59,83 +61,139 @@ export const BasicVoteStatic = ({
     ([, aVotes], [, bVotes]) => Number(bVotes) - Number(aVotes)
   );
 
+  // Check if we need responsive layout
+  const isNarrow = width < 600;
+
   return (
     <div
       tw='bg-[rgba(239,239,239,0.25)] w-full h-full border border-[#e9e9e9] flex'
       style={{ maxWidth: '100%' }}
     >
       <div
-        tw='flex items-center w-full justify-between h-full'
-        style={{ padding: '10px', minWidth: '0' }}
+        tw='flex w-full h-full'
+        style={{
+          padding: '10px',
+          minWidth: '0',
+          flexDirection: isNarrow ? 'column' : 'row',
+          alignItems: isNarrow ? 'stretch' : 'center',
+          justifyContent: 'space-between',
+        }}
       >
-        {/* Left section - Status indicator and text */}
-        <div tw='flex items-start' style={{ gap: '12px', flex: '0 0 auto' }}>
-          {/* Green status indicator - only for active proposals */}
-          {isLive && (
-            <div
-              tw='relative flex'
-              style={{ width: '32px', height: '32px', flexShrink: '0' }}
-            >
-              <svg width='32' height='32' viewBox='0 0 32 32'>
-                {/* Outer pulsing ring */}
-                <circle
-                  cx='16'
-                  cy='16'
-                  r='12'
-                  fill='rgba(47,255,0,0.5)'
-                  opacity='0.7'
-                >
-                  <animate
-                    attributeName='r'
-                    values='8;12;8'
-                    dur='2s'
-                    repeatCount='indefinite'
-                  />
-                  <animate
-                    attributeName='opacity'
-                    values='0.7;0.5;0.7'
-                    dur='2s'
-                    repeatCount='indefinite'
-                  />
-                </circle>
-                {/* Inner solid dot */}
-                <circle cx='16' cy='16' r='4' fill='#2FFF00' />
-              </svg>
-            </div>
-          )}
+        {/* First row when narrow: Status, time, and button */}
+        <div
+          tw='flex items-center justify-between'
+          style={{
+            gap: '12px',
+            width: isNarrow ? '100%' : 'auto',
+            flex: isNarrow ? '0 0 auto' : '0 0 auto',
+          }}
+        >
+          {/* Left section - Status indicator and text */}
+          <div tw='flex items-start' style={{ gap: '12px', flex: '0 0 auto' }}>
+            {/* Green status indicator - only for active proposals */}
+            {isLive && (
+              <div
+                tw='relative flex'
+                style={{ width: '32px', height: '32px', flexShrink: '0' }}
+              >
+                <svg width='32' height='32' viewBox='0 0 32 32'>
+                  {/* Outer pulsing ring */}
+                  <circle
+                    cx='16'
+                    cy='16'
+                    r='12'
+                    fill='rgba(47,255,0,0.5)'
+                    opacity='0.7'
+                  >
+                    <animate
+                      attributeName='r'
+                      values='8;12;8'
+                      dur='2s'
+                      repeatCount='indefinite'
+                    />
+                    <animate
+                      attributeName='opacity'
+                      values='0.7;0.5;0.7'
+                      dur='2s'
+                      repeatCount='indefinite'
+                    />
+                  </circle>
+                  {/* Inner solid dot */}
+                  <circle cx='16' cy='16' r='4' fill='#2FFF00' />
+                </svg>
+              </div>
+            )}
 
-          {/* Status text */}
-          <div
-            tw='flex flex-col justify-between'
-            style={{ flex: '0 0 auto', height: '40px' }}
-          >
+            {/* Status text */}
             <div
-              tw='text-[16px] font-bold text-[#374249] flex'
-              style={{ fontFamily: 'Fira Sans Condensed', lineHeight: '16px' }}
+              tw='flex flex-col justify-between'
+              style={{ flex: '0 0 auto', height: '40px' }}
             >
-              {statusText}
-            </div>
-            <div
-              tw='text-[16px] font-normal flex'
-              style={{
-                fontFamily: 'Fira Sans Condensed',
-                lineHeight: '16px',
-                color: timeColor,
-              }}
-            >
-              {timeText}
+              <div
+                tw='text-[16px] font-bold text-[#374249] flex'
+                style={{
+                  fontFamily: 'Fira Sans Condensed',
+                  lineHeight: '16px',
+                }}
+              >
+                {statusText}
+              </div>
+              <div
+                tw='text-[16px] font-normal flex'
+                style={{
+                  fontFamily: 'Fira Sans Condensed',
+                  lineHeight: '16px',
+                  color: timeColor,
+                }}
+              >
+                {timeText}
+              </div>
             </div>
           </div>
+
+          {/* Vote button - moves here when narrow */}
+          {isNarrow && (
+            <div
+              tw='bg-[#12aaff] flex'
+              style={{ flex: '0 0 auto', height: '40px' }}
+            >
+              <div
+                tw='flex items-center justify-center h-full'
+                style={{ gap: '8px', padding: '0 14px' }}
+              >
+                <div
+                  tw='text-[16px] font-bold text-white flex'
+                  style={{
+                    fontFamily: 'Fira Sans Condensed',
+                    lineHeight: '16px',
+                  }}
+                >
+                  Vote {onchain ? 'onchain' : 'offchain'}
+                </div>
+                {/* External link icon */}
+                <div tw='flex' style={{ width: '18px', height: '18px' }}>
+                  <svg width='18' height='18' viewBox='0 0 18 18' fill='none'>
+                    <path
+                      d='M5.70898 2H2V16H16V12.7051L18 10.7051V18H0V0H7.70898L5.70898 2ZM18 5.88086L16 7.88086V3.41797L6.00391 13.4141L4.58984 12L14.5898 2H10.5332L12.5332 0H18V5.88086Z'
+                      fill='white'
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Center section - Vote results */}
         <div
           tw='flex flex-col justify-between'
           style={{
-            flex: '1 1 auto',
-            marginLeft: '20px',
-            marginRight: '20px',
-            height: '40px',
+            flex: isNarrow ? '1 1 auto' : '1 1 auto',
+            marginLeft: isNarrow ? '0' : '20px',
+            marginRight: isNarrow ? '0' : '20px',
+            height: isNarrow ? 'auto' : '40px',
+            width: isNarrow ? '100%' : 'auto',
+            marginTop: isNarrow ? '10px' : '0',
           }}
         >
           {/* Progress bar with individual segments */}
@@ -235,7 +293,10 @@ export const BasicVoteStatic = ({
           </div>
 
           {/* Vote counts */}
-          <div tw='flex justify-between w-full'>
+          <div
+            tw='flex justify-between w-full'
+            style={{ marginTop: isNarrow ? '8px' : '0' }}
+          >
             <div tw='flex items-center text-[#374249]' style={{ gap: '8px' }}>
               <div
                 tw='text-[16px] font-bold flex'
@@ -283,32 +344,37 @@ export const BasicVoteStatic = ({
           </div>
         </div>
 
-        {/* Right section - Vote button */}
-        <div
-          tw='bg-[#12aaff] flex'
-          style={{ flex: '0 0 auto', height: '40px' }}
-        >
+        {/* Right section - Vote button (only when not narrow) */}
+        {!isNarrow && (
           <div
-            tw='flex items-center justify-center h-full'
-            style={{ gap: '8px', padding: '0 14px' }}
+            tw='bg-[#12aaff] flex'
+            style={{ flex: '0 0 auto', height: '40px' }}
           >
             <div
-              tw='text-[16px] font-bold text-white flex'
-              style={{ fontFamily: 'Fira Sans Condensed', lineHeight: '16px' }}
+              tw='flex items-center justify-center h-full'
+              style={{ gap: '8px', padding: '0 14px' }}
             >
-              Vote {onchain ? 'onchain' : 'offchain'}
-            </div>
-            {/* External link icon */}
-            <div tw='flex' style={{ width: '18px', height: '18px' }}>
-              <svg width='18' height='18' viewBox='0 0 18 18' fill='none'>
-                <path
-                  d='M5.70898 2H2V16H16V12.7051L18 10.7051V18H0V0H7.70898L5.70898 2ZM18 5.88086L16 7.88086V3.41797L6.00391 13.4141L4.58984 12L14.5898 2H10.5332L12.5332 0H18V5.88086Z'
-                  fill='white'
-                />
-              </svg>
+              <div
+                tw='text-[16px] font-bold text-white flex'
+                style={{
+                  fontFamily: 'Fira Sans Condensed',
+                  lineHeight: '16px',
+                }}
+              >
+                Vote {onchain ? 'onchain' : 'offchain'}
+              </div>
+              {/* External link icon */}
+              <div tw='flex' style={{ width: '18px', height: '18px' }}>
+                <svg width='18' height='18' viewBox='0 0 18 18' fill='none'>
+                  <path
+                    d='M5.70898 2H2V16H16V12.7051L18 10.7051V18H0V0H7.70898L5.70898 2ZM18 5.88086L16 7.88086V3.41797L6.00391 13.4141L4.58984 12L14.5898 2H10.5332L12.5332 0H18V5.88086Z'
+                    fill='white'
+                  />
+                </svg>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

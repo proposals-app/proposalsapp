@@ -10,7 +10,7 @@
       shell: |
         # Clean up any old backup files
         rm -f ~/.ssh/known_hosts.old 2>/dev/null || true
-        
+
         # Remove all container-related entries
         if [ -f ~/.ssh/known_hosts ]; then
           # Remove Tailscale IP range (100.x.x.x)
@@ -455,7 +455,7 @@
     - name: Get fresh Tailscale IP from proxmox hosts
       set_fact:
         fresh_ip: "{{ hostvars[proxmox_node]['fresh_container_ips'][inventory_hostname] }}"
-      when: 
+      when:
         - hostvars[proxmox_node]['fresh_container_ips'] is defined
         - inventory_hostname in hostvars[proxmox_node]['fresh_container_ips']
 
@@ -479,7 +479,7 @@
       delegate_to: localhost
       become: false
       changed_when: false
-      ignore_errors: true  # Continue even if ssh-keygen fails
+      ignore_errors: true # Continue even if ssh-keygen fails
 
     - name: Wait for container network to be ready
       wait_for:

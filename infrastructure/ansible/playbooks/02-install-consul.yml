@@ -169,7 +169,7 @@
     - name: Bootstrap Consul ACL system first
       shell: consul acl bootstrap -format=json
       register: consul_bootstrap_result
-      when: 
+      when:
         - consul_acl_enabled | default(true)
         - datacenter == "dc1"
       run_once: true
@@ -222,7 +222,6 @@
         - datacenter == "dc1"
       run_once: true
       ignore_errors: true
-
 
   handlers:
     - name: reload systemd

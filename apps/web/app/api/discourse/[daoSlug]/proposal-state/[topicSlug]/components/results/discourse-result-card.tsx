@@ -1,46 +1,49 @@
 import type { VoteSegmentData } from '@/lib/types';
 import {
-  ApprovalVoteStatic,
-  BasicVoteStatic,
-  QuadraticVoteStatic,
-  RankedChoiceVoteStatic,
-  SingleChoiceVoteStatic,
-  WeightedVoteStatic,
-} from '@/app/(dao)/[daoSlug]/components/vote-result/static';
+  DiscourseApprovalVote,
+  DiscourseBasicVote,
+  DiscourseQuadraticVote,
+  DiscourseRankedChoiceVote,
+  DiscourseSingleChoiceVote,
+  DiscourseWeightedVote,
+} from '@/app/(dao)/[daoSlug]/components/vote-result/discourse';
 import type { ProcessedResults } from '@/lib/results_processing';
 
-interface StaticResultCardProps {
+interface DiscourseResultCardProps {
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
   debugBar?: boolean;
   currentTime?: Date;
+  width?: number;
 }
 
-const VoteComponentsStatic = {
-  'single-choice': SingleChoiceVoteStatic,
-  weighted: WeightedVoteStatic,
-  approval: ApprovalVoteStatic,
-  basic: BasicVoteStatic,
-  quadratic: QuadraticVoteStatic,
-  'ranked-choice': RankedChoiceVoteStatic,
+const DiscourseVoteComponents = {
+  'single-choice': DiscourseSingleChoiceVote,
+  weighted: DiscourseWeightedVote,
+  approval: DiscourseApprovalVote,
+  basic: DiscourseBasicVote,
+  quadratic: DiscourseQuadraticVote,
+  'ranked-choice': DiscourseRankedChoiceVote,
 } as const;
 
-export function StaticResultCard({
+export function DiscourseResultCard({
   result,
   debugBar = false,
   currentTime = new Date(),
-}: StaticResultCardProps) {
+  width,
+}: DiscourseResultCardProps) {
   // Render vote component
   const renderVoteComponent = () => {
     if (result.voteType) {
-      const StaticComponent = VoteComponentsStatic[result.voteType];
-      if (StaticComponent) {
+      const DiscourseComponent = DiscourseVoteComponents[result.voteType];
+      if (DiscourseComponent) {
         return (
-          <StaticComponent
+          <DiscourseComponent
             result={result}
             debugBar={debugBar}
             currentTime={currentTime}
+            width={width}
           />
         );
       }

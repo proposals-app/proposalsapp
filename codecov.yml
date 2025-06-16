@@ -2,7 +2,7 @@ coverage:
   precision: 2
   round: down
   range: "70...100"
-  
+
   status:
     project:
       default:
@@ -26,11 +26,11 @@ flags:
   rust:
     paths:
       - apps/discourse
-      - apps/mapper  
+      - apps/mapper
       - apps/rindexer
       - libs/rust
     carryforward: true
-  
+
   email-service:
     paths:
       - apps/email-service
@@ -40,7 +40,7 @@ ignore:
   - "node_modules"
   - "target"
   - "dist"
-  - "build" 
+  - "build"
   - "coverage"
   - "**/*.test.ts"
   - "**/*.test.js"

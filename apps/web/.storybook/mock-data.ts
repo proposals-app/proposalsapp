@@ -36,7 +36,8 @@ export const mockVoterAuthor = {
   choice: 1,
   createdAt: new Date('2024-01-16T14:22:00Z'),
   proposalId: 'proposal-456',
-  reason: 'I strongly support this proposal because it aligns with our long-term vision for decentralized governance.',
+  reason:
+    'I strongly support this proposal because it aligns with our long-term vision for decentralized governance.',
   voterAddress: '0x742d35Cc6634C0532925a3b8D56B5FB2E6e7a8aB',
   votingPower: 1250000,
   ens: 'vitalik.eth',

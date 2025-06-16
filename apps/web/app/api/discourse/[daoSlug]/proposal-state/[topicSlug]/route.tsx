@@ -2,7 +2,7 @@ import { getFeed } from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import satori from 'satori';
 import type { NextRequest } from 'next/server';
-import { StaticResultCard } from './components/results/static-result-card';
+import { DiscourseResultCard } from './components/results/discourse-result-card';
 import { TimelineEventType, type ProposalGroupItem } from '@/lib/types';
 import { db } from '@proposalsapp/db';
 
@@ -97,7 +97,9 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   // Use higher resolution defaults for better image quality
   const width = parseInt(searchParams.get('width') || '1200', 10);
-  const height = parseInt(searchParams.get('height') || '60', 10);
+  const baseHeight = parseInt(searchParams.get('height') || '60', 10);
+  // Double the height when width < 600 for two-row layout
+  const height = width < 600 ? baseHeight * 2 : baseHeight;
   const debug = searchParams.get('debug') === 'true';
 
   // Get the group ID from the topic slug
@@ -180,9 +182,7 @@ export async function GET(
           justifyContent: 'center',
         }}
       >
-        <div style={{ color: '#000000' }}>
-          No valid result found
-        </div>
+        <div style={{ color: '#000000' }}>No valid result found</div>
       </div>,
       {
         width,
@@ -229,7 +229,11 @@ export async function GET(
         padding: '0',
       }}
     >
-      <StaticResultCard result={result.result} debugBar={debug} />
+      <DiscourseResultCard
+        result={result.result}
+        debugBar={debug}
+        width={width}
+      />
     </div>,
     {
       width,

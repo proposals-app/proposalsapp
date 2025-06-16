@@ -41,7 +41,7 @@
 
     - name: Install pipx and venv support
       apt:
-        name: 
+        name:
           - pipx
           - python3-venv
           - python3-full
