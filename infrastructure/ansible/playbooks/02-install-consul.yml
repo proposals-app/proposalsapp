@@ -166,8 +166,6 @@
             timeout: 60
       when: datacenter != "dc1"
 
-    # ACL bootstrap moved to separate playbook (02a-bootstrap-acls.yml)
-    # This ensures services are running before attempting ACL operations
     
     - name: Establish WAN federation from primary DC
       shell: |

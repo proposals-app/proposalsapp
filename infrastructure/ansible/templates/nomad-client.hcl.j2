@@ -49,7 +49,7 @@ consul {
 }
 
 acl {
-  enabled = {{ nomad_acl_enabled | default(true) | lower }}
+  enabled = false
 }
 
 telemetry {

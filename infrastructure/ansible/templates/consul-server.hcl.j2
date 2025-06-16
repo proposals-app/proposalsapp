@@ -51,9 +51,9 @@ connect {
 }
 
 acl {
-  enabled = {{ consul_acl_enabled | default(true) | lower }}
-  default_policy = "{{ consul_acl_default_policy | default('deny') }}"
-  enable_token_persistence = true
+  enabled = false
+  default_policy = "allow"
+  enable_token_persistence = false
 }
 
 performance {

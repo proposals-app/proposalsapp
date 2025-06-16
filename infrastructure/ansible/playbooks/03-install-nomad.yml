@@ -51,22 +51,13 @@
 
     - name: Wait for leader election
       shell: |
-        if [ "{{ nomad_acl_enabled | default(false) | string | lower }}" = "true" ] && [ ! -f /root/nomad-bootstrap.json ]; then
-          # When ACLs enabled but not bootstrapped, use server members (doesn't require token)
-          nomad server members | grep -q "alive.*leader"
-        else
-          # When ACLs disabled or already bootstrapped
-          nomad operator raft list-peers | grep -q "leader=true"
-        fi
+        nomad operator raft list-peers | grep -q "leader=true"
       register: leader_check
       until: leader_check.rc == 0
       retries: 10
       delay: 5
       run_once: true
       changed_when: false
-
-    # ACL bootstrap moved to separate playbook (02a-bootstrap-acls.yml)
-    # This ensures services are running before attempting ACL operations
 
   handlers:
     - name: reload systemd

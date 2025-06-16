@@ -43,8 +43,8 @@ consul_serf_wan_port: 8302
 consul_server_port: 8300
 internal_domain: consul
 consul_encrypt_key: "{{ vault_consul_encrypt_key }}"
-consul_acl_enabled: true
-consul_acl_default_policy: "deny"
+consul_acl_enabled: false
+consul_acl_default_policy: "allow"
 
 # Nomad configuration
 nomad_datacenter: "dc1"
@@ -53,7 +53,7 @@ nomad_http_port: 4646
 nomad_rpc_port: 4647
 nomad_serf_port: 4648
 nomad_encrypt_key: "{{ vault_nomad_encrypt_key }}"
-nomad_acl_enabled: true
+nomad_acl_enabled: false
 
 # Backup configuration
 backup_retention_days: 30
