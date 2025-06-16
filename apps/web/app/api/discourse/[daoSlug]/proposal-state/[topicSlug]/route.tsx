@@ -92,7 +92,7 @@ export async function GET(
   { params }: { params: Promise<{ daoSlug: string; topicSlug: string }> }
 ) {
   const { daoSlug, topicSlug } = await params;
-  
+
   // Add cache jitter: 60 seconds base + random 0-30 seconds
   const cacheMaxAge = 60 + Math.floor(Math.random() * 30);
 

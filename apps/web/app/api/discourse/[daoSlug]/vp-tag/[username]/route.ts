@@ -10,7 +10,7 @@ const IGNORED_USERS: Record<string, string[]> = {
 const getHeaders = () => {
   // Add cache jitter: 5 minutes base (300 seconds) + random 0-60 seconds
   const cacheMaxAge = 300 + Math.floor(Math.random() * 60);
-  
+
   return {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
