@@ -173,12 +173,24 @@ Default container resources:
 
 ## Monitoring
 
+### Getting Management Tokens
+After infrastructure setup with ACLs enabled, retrieve management tokens:
+```bash
+./scripts/get-tokens.sh
+```
+
+This will show both Consul and Nomad management tokens. Export them:
+```bash
+export CONSUL_HTTP_TOKEN=<your-consul-token>
+export NOMAD_TOKEN=<your-nomad-token>
+```
+
 ### Check Service Status
 ```bash
-# Consul
+# Consul (with ACL token)
 consul members
 
-# Nomad
+# Nomad (with ACL token)  
 nomad server members
 nomad node status
 
@@ -187,8 +199,8 @@ nomad job status
 ```
 
 ### Access UIs
-- Consul: http://consul-nomad-sib-01:8500
-- Nomad: http://consul-nomad-sib-01:4646
+- Consul: http://consul-nomad-sib-01:8500 (requires token)
+- Nomad: http://consul-nomad-sib-01:4646 (requires token)
 - Your app: https://your-domain.com (via Cloudflare tunnel)
 
 ## Troubleshooting

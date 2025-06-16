@@ -44,10 +44,9 @@ consul {
   client_auto_join = true
 }
 
-# ACL can be enabled later
-# acl {
-#   enabled = true
-# }
+acl {
+  enabled = {{ nomad_acl_enabled | default(true) | lower }}
+}
 
 telemetry {
   collection_interval = "1s"
