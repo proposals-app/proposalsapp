@@ -110,12 +110,12 @@ export async function GET(
           display: 'flex',
           width: '100%',
           height: '100%',
-          backgroundColor: debug ? '#000000' : '#ffffff',
+          backgroundColor: '#ffffff',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <div style={{ color: debug ? '#ffffff' : '#000000' }}>
+        <div style={{ color: '#000000' }}>
           Topic not found or not part of any proposal group
         </div>
       </div>,
@@ -175,12 +175,12 @@ export async function GET(
           display: 'flex',
           width: '100%',
           height: '100%',
-          backgroundColor: debug ? '#000000' : '#ffffff',
+          backgroundColor: '#ffffff',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <div style={{ color: debug ? '#ffffff' : '#000000' }}>
+        <div style={{ color: '#000000' }}>
           No valid result found
         </div>
       </div>,
@@ -223,7 +223,7 @@ export async function GET(
         display: 'flex',
         width: '100%',
         height: '100%',
-        backgroundColor: debug ? '#000000' : 'transparent',
+        backgroundColor: '#ffffff',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '0',
