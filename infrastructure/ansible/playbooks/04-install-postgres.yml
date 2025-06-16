@@ -211,6 +211,23 @@
       run_once: true
       when: postgres_role == 'primary'
 
+    - name: Store PostgreSQL connection details in Consul KV
+      uri:
+        url: "http://localhost:{{ consul_client_port }}/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "postgresql/primary_host", value: "proposalsapp.service.consul" }
+        - { key: "postgresql/port", value: "5432" }
+        - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
+        - { key: "postgresql/username", value: "{{ postgres_user }}" }
+        - { key: "postgresql/password", value: "{{ postgres_password }}" }
+        - { key: "postgresql/connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/pgbouncer_port", value: "6432" }
+        - { key: "postgresql/pgbouncer_connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:6432/{{ postgres_db_name }}" }
+      run_once: true
+      when: postgres_role == 'primary'
+
   handlers:
     - name: reload systemd
       systemd:
