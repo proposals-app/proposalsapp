@@ -49,65 +49,24 @@
         port: "{{ nomad_http_port }}"
         delay: 5
 
-    - name: Wait for leader election (always needed before any operations)
-      shell: nomad operator raft list-peers
-      register: raft_result
-      until: raft_result.rc == 0
+    - name: Wait for leader election
+      shell: |
+        if [ "{{ nomad_acl_enabled | default(false) | string | lower }}" = "true" ] && [ ! -f /root/nomad-bootstrap.json ]; then
+          # When ACLs enabled but not bootstrapped, use server members (doesn't require token)
+          nomad server members | grep -q "alive.*leader"
+        else
+          # When ACLs disabled or already bootstrapped
+          nomad operator raft list-peers | grep -q "leader=true"
+        fi
+      register: leader_check
+      until: leader_check.rc == 0
       retries: 10
       delay: 5
       run_once: true
+      changed_when: false
 
-    - name: Check if ACL bootstrap already exists
-      stat:
-        path: /root/nomad-bootstrap.json
-      register: nomad_bootstrap_exists
-      when: nomad_acl_enabled | default(false)
-
-    - name: Bootstrap Nomad ACL system
-      shell: nomad acl bootstrap -json
-      register: nomad_bootstrap_result
-      run_once: true
-      ignore_errors: true
-      when:
-        - nomad_acl_enabled | default(false)
-        - not nomad_bootstrap_exists.stat.exists
-
-    - name: Save bootstrap token
-      copy:
-        content: "{{ nomad_bootstrap_result.stdout }}"
-        dest: /root/nomad-bootstrap.json
-        mode: "0600"
-      when:
-        - nomad_acl_enabled | default(false)
-        - nomad_bootstrap_result is defined
-        - nomad_bootstrap_result is succeeded
-        - nomad_bootstrap_result.stdout is defined
-        - nomad_bootstrap_result.stdout != ""
-      run_once: true
-
-    - name: Create node-read policy for anonymous token
-      shell: |
-        if [ -f /root/nomad-bootstrap.json ]; then
-          export NOMAD_TOKEN=$(cat /root/nomad-bootstrap.json | grep -o '"SecretID":"[^"]*' | cut -d'"' -f4)
-          
-          # Create policy for anonymous token to allow basic read operations
-          nomad acl policy apply -description "Anonymous read access" anonymous-read - <<EOF
-          namespace "*" {
-            policy = "read"
-            capabilities = ["list-jobs", "read-job"]
-          }
-          node {
-            policy = "read"
-          }
-          agent {
-            policy = "read"
-          }
-          EOF
-        fi
-      when:
-        - nomad_acl_enabled | default(false)
-      run_once: true
-      ignore_errors: true
+    # ACL bootstrap moved to separate playbook (02a-bootstrap-acls.yml)
+    # This ensures services are running before attempting ACL operations
 
   handlers:
     - name: reload systemd

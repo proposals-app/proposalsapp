@@ -6,14 +6,20 @@ const IGNORED_USERS: Record<string, string[]> = {
   uniswap: ['admin', 'system'],
 };
 
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers':
-    'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
-  'Access-Control-Allow-Credentials': 'true',
-  'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+// Function to get headers with randomized cache duration
+const getHeaders = () => {
+  // Add cache jitter: 5 minutes base (300 seconds) + random 0-60 seconds
+  const cacheMaxAge = 300 + Math.floor(Math.random() * 60);
+  
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers':
+      'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+    'Access-Control-Allow-Credentials': 'true',
+    'Cache-Control': `public, max-age=${cacheMaxAge}, stale-while-revalidate=60`,
+  };
 };
 
 const emptyResponse = NextResponse.json(
@@ -21,7 +27,7 @@ const emptyResponse = NextResponse.json(
     currentVotingPower: 0,
     historicalVotingPower: 0,
   },
-  { headers: HEADERS }
+  { headers: getHeaders() }
 );
 
 export async function GET(
@@ -36,7 +42,7 @@ export async function GET(
       {
         error: 'Access denied for this user.',
       },
-      { status: 403, headers: HEADERS }
+      { status: 403, headers: getHeaders() }
     );
   }
 
@@ -52,7 +58,7 @@ export async function GET(
           error:
             'Invalid timestamp format. Please use a Unix timestamp (seconds).',
         },
-        { status: 400, headers: HEADERS }
+        { status: 400, headers: getHeaders() }
       );
     }
     parsedTimestamp = new Date(timestampNum * 1000);
@@ -62,7 +68,7 @@ export async function GET(
           error:
             'Invalid timestamp value after parsing. Please provide a valid Unix timestamp (seconds).',
         },
-        { status: 400, headers: HEADERS }
+        { status: 400, headers: getHeaders() }
       );
     }
   }
@@ -169,7 +175,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(responseBody, { headers: HEADERS });
+    return NextResponse.json(responseBody, { headers: getHeaders() });
   } catch (error) {
     console.error('Error fetching voting power:', error);
     return emptyResponse;
@@ -179,6 +185,6 @@ export async function GET(
 export async function OPTIONS() {
   return new Response(null, {
     status: 204,
-    headers: HEADERS,
+    headers: getHeaders(),
   });
 }

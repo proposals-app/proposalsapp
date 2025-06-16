@@ -166,36 +166,11 @@
             timeout: 60
       when: datacenter != "dc1"
 
-    - name: Bootstrap Consul ACL system first
-      shell: consul acl bootstrap -format=json
-      register: consul_bootstrap_result
-      when:
-        - consul_acl_enabled | default(true)
-        - datacenter == "dc1"
-      run_once: true
-      ignore_errors: true
-
-    - name: Save bootstrap token immediately
-      copy:
-        content: "{{ consul_bootstrap_result.stdout }}"
-        dest: /root/consul-bootstrap.json
-        mode: "0600"
-      when:
-        - consul_acl_enabled | default(true)
-        - datacenter == "dc1"
-        - consul_bootstrap_result is defined
-        - consul_bootstrap_result is succeeded
-        - consul_bootstrap_result.stdout is defined
-        - consul_bootstrap_result.stdout != ""
-      run_once: true
-
+    # ACL bootstrap moved to separate playbook (02a-bootstrap-acls.yml)
+    # This ensures services are running before attempting ACL operations
+    
     - name: Establish WAN federation from primary DC
       shell: |
-        {% if consul_acl_enabled | default(true) %}
-        if [ -f /root/consul-bootstrap.json ]; then
-          export CONSUL_HTTP_TOKEN=$(cat /root/consul-bootstrap.json | grep -o '"SecretID":"[^"]*' | cut -d'"' -f4)
-        fi
-        {% endif %}
         {% for host in groups['consul_servers'] %}
         {% if hostvars[host]['datacenter'] != "dc1" %}
         {% set host_ip = hostvars[host].tailscale_ip | default(hostvars[host].ansible_tailscale0.ipv4.address | default(hostvars[host].ansible_default_ipv4.address)) %}
@@ -204,24 +179,10 @@
         {% endfor %}
       when: datacenter == "dc1"
       run_once: true
-      ignore_errors: true
-
-    - name: Create anonymous token policy for basic operations
-      shell: |
-        if [ -f /root/consul-bootstrap.json ]; then
-          export CONSUL_HTTP_TOKEN=$(cat /root/consul-bootstrap.json | grep -o '"SecretID":"[^"]*' | cut -d'"' -f4)
-          
-          # Create policy for anonymous token to allow basic read operations
-          consul acl policy create -name "anonymous-read" -rules 'node_prefix "" { policy = "read" } service_prefix "" { policy = "read" }' || true
-          
-          # Update anonymous token
-          consul acl token update -id anonymous -policy-name anonymous-read || true
-        fi
-      when:
-        - consul_acl_enabled | default(true)
-        - datacenter == "dc1"
-      run_once: true
-      ignore_errors: true
+      retries: 3
+      delay: 5
+      register: wan_join_result
+      until: wan_join_result.rc == 0
 
   handlers:
     - name: reload systemd

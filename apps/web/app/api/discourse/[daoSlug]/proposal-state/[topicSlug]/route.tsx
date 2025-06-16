@@ -92,6 +92,9 @@ export async function GET(
   { params }: { params: Promise<{ daoSlug: string; topicSlug: string }> }
 ) {
   const { daoSlug, topicSlug } = await params;
+  
+  // Add cache jitter: 60 seconds base + random 0-30 seconds
+  const cacheMaxAge = 60 + Math.floor(Math.random() * 30);
 
   // Extract query parameters for width, height, and debug mode
   const { searchParams } = new URL(request.url);
@@ -149,7 +152,7 @@ export async function GET(
         'Access-Control-Allow-Headers':
           'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
         'Access-Control-Allow-Credentials': 'true',
-        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+        'Cache-Control': `public, max-age=${cacheMaxAge}, stale-while-revalidate=30`,
       },
     });
   }
@@ -212,7 +215,7 @@ export async function GET(
         'Access-Control-Allow-Headers':
           'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
         'Access-Control-Allow-Credentials': 'true',
-        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+        'Cache-Control': `public, max-age=${cacheMaxAge}, stale-while-revalidate=30`,
       },
     });
   }

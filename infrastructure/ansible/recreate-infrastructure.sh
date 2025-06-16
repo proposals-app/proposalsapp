@@ -97,6 +97,8 @@ fi
 PLAYBOOKS=(
     "playbooks/01-provision-and-prepare-lxcs.yml:Provisioning LXC containers and base setup"
     "playbooks/02-install-consul.yml:Installing and configuring Consul"
+    "playbooks/02a-bootstrap-acls.yml:Bootstrapping ACLs for Consul and Nomad"
+    "playbooks/02b-distribute-tokens.yml:Distributing ACL tokens to all nodes"
     "playbooks/03-install-nomad.yml:Installing and configuring Nomad"
     "playbooks/04-install-postgres.yml:Installing PostgreSQL with Patroni HA"
 )
