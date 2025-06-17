@@ -15,6 +15,8 @@ import type {
 } from '../types/repositories';
 import type { IEmailService } from '../types/services';
 import { formatDistanceStrict } from 'date-fns';
+import { DAO_DISCOURSE_CATEGORIES } from '../config/daoDiscourseCategories';
+import type { CircuitBreaker } from './CircuitBreaker';
 
 export interface NotificationConfig {
   newProposalTimeframeMinutes: number;
@@ -33,7 +35,7 @@ export class NotificationService {
     private proposalGroupRepository: IProposalGroupRepository,
     private emailService: IEmailService,
     private config: NotificationConfig,
-    private emailCircuitBreaker?: any // Optional circuit breaker for email service
+    private emailCircuitBreaker?: CircuitBreaker // Optional circuit breaker for email service
   ) {}
 
   async processNewProposalNotifications(dao: Selectable<Dao>): Promise<void> {
@@ -116,9 +118,18 @@ export class NotificationService {
   ): Promise<void> {
     console.log(`Processing new discussion notifications for ${dao.name}`);
 
+    // Get allowed category IDs for the DAO
+    const allowedCategoryIds = DAO_DISCOURSE_CATEGORIES[dao.slug];
+    if (allowedCategoryIds) {
+      console.log(
+        `Filtering discussions for ${dao.name} to categories: ${allowedCategoryIds.join(', ')}`
+      );
+    }
+
     const newTopics = await this.discourseRepository.getNewTopics(
       this.config.newDiscussionTimeframeMinutes,
-      daoDiscourseId
+      daoDiscourseId,
+      allowedCategoryIds
     );
 
     if (newTopics.length === 0) {

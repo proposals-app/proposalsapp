@@ -32,8 +32,8 @@ min_pool_size = {{ keyOrDefault "pgcat/min_pool_size" "10" }}
 reserve_pool_size = {{ keyOrDefault "pgcat/reserve_pool_size" "5" }}
 
 query_parser_enabled = true
-query_parser_read_write_splitting = true
-primary_reads_enabled = false
+query_parser_read_write_splitting = false
+primary_reads_enabled = true
 
 connect_timeout = 5000
 idle_timeout = 1800000
@@ -46,9 +46,9 @@ worker_threads = {{ keyOrDefault "pgcat/worker_threads" "4" }}
 
 [pools.{{ keyOrDefault "database/name" "proposalsapp" }}]
 pool_mode = "transaction"
-primary_reads_enabled = false
+primary_reads_enabled = true
 query_parser_enabled = true
-query_parser_read_write_splitting = true
+query_parser_read_write_splitting = false
 
 [pools.{{ keyOrDefault "database/name" "proposalsapp" }}.users.0]
 username = "{{ keyOrDefault "database/user" "proposalsapp" }}"

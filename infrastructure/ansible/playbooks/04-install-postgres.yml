@@ -98,13 +98,6 @@
         group: postgres
         mode: "0700"
 
-    - name: Copy post-initialization script
-      copy:
-        src: ../files/post_init.sh
-        dest: /var/lib/postgresql/post_init.sh
-        owner: postgres
-        group: postgres
-        mode: "0755"
 
     - name: Generate Patroni configuration
       template:
@@ -141,11 +134,33 @@
         - reload systemd
         - restart patroni
 
-    - name: Start Patroni service
+    - name: Start Patroni service on primary node first
       systemd:
         name: patroni
         state: started
         enabled: yes
+      when: postgres_role == 'primary'
+
+    - name: Wait for primary PostgreSQL to be ready
+      wait_for:
+        port: 5432
+        host: localhost
+        delay: 10
+        timeout: 120
+      when: postgres_role == 'primary'
+
+    - name: Pause before starting standby nodes
+      pause:
+        seconds: 15
+      when: postgres_role == 'primary'
+      run_once: true
+
+    - name: Start Patroni service on standby nodes
+      systemd:
+        name: patroni
+        state: started
+        enabled: yes
+      when: postgres_role != 'primary'
 
     - name: Check if PostgreSQL service is already registered
       uri:
@@ -179,17 +194,6 @@
         delay: 5
         timeout: 60
 
-    - name: Create application database
-      postgresql_db:
-        name: "{{ postgres_db_name }}"
-        state: present
-        login_host: localhost
-        login_user: "{{ postgres_user }}"
-        login_password: "{{ postgres_password }}"
-      become: yes
-      become_user: postgres
-      run_once: true
-      when: postgres_role == 'primary'
 
     - name: Store PostgreSQL connection details in Consul KV
       uri:
@@ -204,6 +208,25 @@
         - { key: "postgresql/password", value: "{{ postgres_password }}" }
         - { key: "postgresql/connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
         - { key: "postgresql/direct_connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
+      run_once: true
+      when: postgres_role == 'primary'
+
+    - name: Wait for all PostgreSQL nodes to join cluster
+      pause:
+        seconds: 30
+      run_once: true
+
+    - name: Check if replicas exist and enable synchronous replication
+      shell: |
+        replica_count=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep -c "running" | awk '{print $1-1}' || echo "0")
+        if [ "$replica_count" -gt 0 ]; then
+          echo "Found $replica_count replicas, enabling synchronous replication..."
+          /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml edit-config -s "synchronous_mode=true" --force
+        else
+          echo "No replicas found, keeping synchronous mode disabled"
+        fi
+      register: sync_result
+      changed_when: "'enabling synchronous replication' in sync_result.stdout"
       run_once: true
       when: postgres_role == 'primary'
 
@@ -261,9 +284,9 @@
           exit 1
         fi
 
-        # Check for a leader
-        if ! echo "$cluster_info" | grep -q "Leader"; then
-          echo "ERROR: No leader in Patroni cluster"
+        # Check for a leader (but allow time for election during initial setup)
+        if ! echo "$cluster_info" | grep -q -E "(Leader|initializing)"; then
+          echo "ERROR: No leader in Patroni cluster and not initializing"
           echo "$cluster_info"
           exit 1
         fi

@@ -13,7 +13,8 @@ export class DiscourseRepository implements IDiscourseRepository {
 
   async getNewTopics(
     timeFrameInMinutes: number,
-    daoDiscourseId: string
+    daoDiscourseId: string,
+    allowedCategoryIds?: number[]
   ): Promise<
     Array<
       Selectable<DiscourseTopic> & { discourseUser: Selectable<DiscourseUser> }
@@ -59,6 +60,10 @@ export class DiscourseRepository implements IDiscourseRepository {
       )
       .where('discourseTopic.visible', '=', true)
       .where('discoursePost.deleted', '=', false)
+      .$if(
+        allowedCategoryIds !== undefined && allowedCategoryIds.length > 0,
+        (qb) => qb.where('discourseTopic.categoryId', 'in', allowedCategoryIds!)
+      )
       .execute();
 
     // Transform the flat result into nested structure

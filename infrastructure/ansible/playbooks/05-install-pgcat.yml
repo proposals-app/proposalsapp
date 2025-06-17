@@ -12,6 +12,18 @@
     pgcat_admin_password: "{{ vault_pgcat_admin_password | default(vault_postgres_password) }}"
     
   tasks:
+    - name: Ensure PostgreSQL cluster is ready
+      pause:
+        seconds: 20
+        prompt: "Waiting for PostgreSQL cluster to be fully ready..."
+      run_once: true
+
+    - name: Gather facts from postgres nodes
+      setup:
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      loop: "{{ groups['postgres_nodes'] }}"
+
     - name: Create pgcat directories
       file:
         path: "{{ item }}"

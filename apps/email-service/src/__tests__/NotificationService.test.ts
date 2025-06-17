@@ -328,7 +328,8 @@ describe('NotificationService', () => {
 
       expect(mockDiscourseRepository.getNewTopics).toHaveBeenCalledWith(
         5,
-        'dao-discourse-1'
+        'dao-discourse-1',
+        undefined
       );
       expect(
         mockUserRepository.getUsersForNewDiscussionNotifications
@@ -426,6 +427,150 @@ describe('NotificationService', () => {
         'https://forum.arbitrum.foundation'
       );
 
+      expect(mockEmailService.sendNewDiscussionEmail).not.toHaveBeenCalled();
+    });
+
+    it('should filter discussions by category for Arbitrum DAO', async () => {
+      const arbitrumDao = {
+        id: 'dao-arbitrum',
+        name: 'Arbitrum',
+        slug: 'arbitrum',
+        picture: 'https://example.com/arbitrum.jpg',
+      };
+
+      const mockTopics = [
+        {
+          id: 'topic-1',
+          externalId: 123,
+          title: 'Test Discussion in Category 7',
+          slug: 'test-discussion-7',
+          fancyTitle: 'Test Discussion',
+          categoryId: 7,
+          daoDiscourseId: 'dao-discourse-arbitrum',
+          archived: false,
+          closed: false,
+          pinned: false,
+          pinnedGlobally: false,
+          visible: true,
+          postsCount: 1,
+          replyCount: 0,
+          likeCount: 0,
+          views: 10,
+          createdAt: new Date(),
+          bumpedAt: new Date(),
+          lastPostedAt: new Date(),
+          discourseUser: {
+            id: 'user-1',
+            externalId: 456,
+            username: 'testuser',
+            name: 'Test User',
+            avatarTemplate: 'avatar.png',
+            daoDiscourseId: 'dao-discourse-arbitrum',
+            title: null,
+            likesGiven: '10',
+            likesReceived: '20',
+            daysVisited: '30',
+            postsRead: '100',
+            topicsEntered: '50',
+            postCount: '25',
+            topicCount: '15',
+          },
+        },
+      ];
+
+      (mockDiscourseRepository.getNewTopics as any).mockResolvedValue(
+        mockTopics
+      );
+      (
+        mockUserRepository.getUsersForNewDiscussionNotifications as any
+      ).mockResolvedValue([]);
+
+      await notificationService.processNewDiscussionNotifications(
+        arbitrumDao,
+        'dao-discourse-arbitrum',
+        'https://forum.arbitrum.foundation'
+      );
+
+      // Verify that getNewTopics was called with the allowed category IDs for Arbitrum
+      expect(mockDiscourseRepository.getNewTopics).toHaveBeenCalledWith(
+        5,
+        'dao-discourse-arbitrum',
+        [7, 8]
+      );
+    });
+
+    it('should not filter discussions by category for non-Arbitrum DAOs', async () => {
+      const uniswapDao = {
+        id: 'dao-uniswap',
+        name: 'Uniswap',
+        slug: 'uniswap',
+        picture: 'https://example.com/uniswap.jpg',
+      };
+
+      (mockDiscourseRepository.getNewTopics as any).mockResolvedValue([]);
+      (
+        mockUserRepository.getUsersForNewDiscussionNotifications as any
+      ).mockResolvedValue([]);
+
+      await notificationService.processNewDiscussionNotifications(
+        uniswapDao,
+        'dao-discourse-uniswap',
+        'https://forum.uniswap.org'
+      );
+
+      // Verify that getNewTopics was called without category filtering
+      expect(mockDiscourseRepository.getNewTopics).toHaveBeenCalledWith(
+        5,
+        'dao-discourse-uniswap',
+        undefined
+      );
+    });
+
+    it('should not send email for Arbitrum discussions in category 10', async () => {
+      const arbitrumDao = {
+        id: 'dao-arbitrum',
+        name: 'Arbitrum',
+        slug: 'arbitrum',
+        picture: 'https://example.com/arbitrum.jpg',
+      };
+
+      // Mock that no topics are returned because category 10 is filtered out
+      (mockDiscourseRepository.getNewTopics as any).mockResolvedValue([]);
+      
+      const mockUsers = [
+        {
+          id: 'user-1',
+          email: 'user1@example.com',
+          name: 'User 1',
+          emailSettingsNewProposals: true,
+          emailSettingsNewDiscussions: true,
+          emailSettingsEndingProposals: true,
+          emailVerified: true,
+          isOnboarded: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          image: null,
+        },
+      ];
+
+      (
+        mockUserRepository.getUsersForNewDiscussionNotifications as any
+      ).mockResolvedValue(mockUsers);
+
+      await notificationService.processNewDiscussionNotifications(
+        arbitrumDao,
+        'dao-discourse-arbitrum',
+        'https://forum.arbitrum.foundation'
+      );
+
+      // Verify that getNewTopics was called with only categories 7 and 8
+      expect(mockDiscourseRepository.getNewTopics).toHaveBeenCalledWith(
+        5,
+        'dao-discourse-arbitrum',
+        [7, 8]
+      );
+
+      // Verify that no email was sent since no topics were returned
       expect(mockEmailService.sendNewDiscussionEmail).not.toHaveBeenCalled();
     });
   });

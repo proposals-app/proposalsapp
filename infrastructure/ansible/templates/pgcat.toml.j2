@@ -24,8 +24,8 @@ reserve_pool_timeout = {{ pgcat_reserve_pool_timeout | default(3000) }}
 
 # Query parsing for intelligent routing
 query_parser_enabled = true
-query_parser_read_write_splitting = true
-primary_reads_enabled = false
+query_parser_read_write_splitting = false
+primary_reads_enabled = true
 
 # Connection settings (in milliseconds)
 connect_timeout = {{ pgcat_connect_timeout | default(5000) }}
@@ -66,10 +66,10 @@ worker_threads = {{ pgcat_worker_threads | default(4) }}
 # Connection pool configuration for ProposalsApp
 [pools.{{ database_name | default('proposalsapp') }}]
 pool_mode = "transaction"
-primary_reads_enabled = false
+primary_reads_enabled = true
 query_parser_enabled = true
-query_parser_read_write_splitting = true
-default_pool_size = {{ pgcat_pool_size | default(25) }}
+query_parser_read_write_splitting = false
+default_pool_size = {{ pgcat_default_pool_size | default(25) }}
 min_pool_size = {{ pgcat_min_pool_size | default(10) }}
 
 # Database user configuration

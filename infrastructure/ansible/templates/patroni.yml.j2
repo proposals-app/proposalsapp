@@ -4,7 +4,7 @@ name: {{ inventory_hostname }}
 
 restapi:
   listen: 0.0.0.0:{{ patroni_rest_api_port }}
-  connect_address: {{ ansible_default_ipv4.address }}:{{ patroni_rest_api_port }}
+  connect_address: {{ tailscale_ip | default(ansible_default_ipv4.address) }}:{{ patroni_rest_api_port }}
   authentication:
     username: patroni
     password: {{ postgres_password }}
@@ -24,7 +24,7 @@ bootstrap:
     retry_timeout: 10
     maximum_lag_on_failover: 1048576
     master_start_timeout: 300
-    synchronous_mode: true
+    synchronous_mode: false
     synchronous_mode_strict: false
     synchronous_node_count: 1
     postgresql:
@@ -62,6 +62,8 @@ bootstrap:
   - data-checksums
 
   pg_hba:
+  - host replication replicator 100.64.0.0/10 md5
+  - host all all 100.64.0.0/10 md5
   - host replication replicator 0.0.0.0/0 md5
   - host all all 0.0.0.0/0 md5
   - local all all peer
@@ -76,12 +78,16 @@ bootstrap:
       password: {{ postgres_replication_password }}
       options:
         - replication
-
-  post_init: /var/lib/postgresql/post_init.sh
+        
+  # Create the proposalsapp database during initialization
+  databases:
+    proposalsapp:
+      owner: proposalsapp
+      encoding: UTF8
 
 postgresql:
   listen: 0.0.0.0:{{ postgres_port }}
-  connect_address: {{ ansible_default_ipv4.address }}:{{ postgres_port }}
+  connect_address: {{ tailscale_ip | default(ansible_default_ipv4.address) }}:{{ postgres_port }}
   data_dir: /var/lib/postgresql/{{ postgres_version }}/data
   bin_dir: /usr/lib/postgresql/{{ postgres_version }}/bin
   pgpass: /tmp/pgpass0

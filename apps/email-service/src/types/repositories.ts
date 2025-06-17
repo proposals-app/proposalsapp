@@ -54,7 +54,8 @@ export interface IDaoRepository {
 export interface IDiscourseRepository {
   getNewTopics(
     timeFrameInMinutes: number,
-    daoDiscourseId: string
+    daoDiscourseId: string,
+    allowedCategoryIds?: number[]
   ): Promise<
     Array<
       Selectable<DiscourseTopic> & { discourseUser: Selectable<DiscourseUser> }
