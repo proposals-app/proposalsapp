@@ -106,6 +106,8 @@
         export PATH="/usr/bin:$PATH"
         pipx install "patroni[etcd3]=={{ patroni_version }}" --include-deps
         pipx inject patroni psycopg2-binary etcd3 cdiff
+        # Remove consul support to ensure etcd is used as DCS
+        pipx runpip patroni uninstall -y py-consul || true
         '
       when: not patroni_installed.stat.exists
 
@@ -114,6 +116,8 @@
         su - postgres -c '
         export PATH="/usr/bin:$PATH"
         pipx inject patroni etcd3 cdiff --force
+        # Remove consul support to ensure etcd is used as DCS
+        pipx runpip patroni uninstall -y py-consul || true
         '
       when: patroni_installed.stat.exists
 
@@ -140,7 +144,7 @@
 
     - name: Generate Patroni configuration
       template:
-        src: ../templates/patroni-etcd.yml.j2
+        src: ../templates/patroni-etcd-only.yml.j2
         dest: /etc/patroni/patroni.yml
         owner: postgres
         group: postgres
@@ -195,6 +199,8 @@
         export ETCDCTL_API=3
         # Delete all keys under the Patroni namespace
         /usr/local/bin/etcdctl del /service/proposalsapp --prefix || true
+        # Also clean up any Consul keys if they exist
+        curl -X DELETE http://localhost:8500/v1/kv/service/proposalsapp?recurse || true
       run_once: true
 
     # Start nodes in order to ensure proper cluster formation
@@ -360,17 +366,6 @@
       register: node_join
       failed_when: node_join.rc != 0
 
-    - name: Generate Patroni registration verification script
-      template:
-        src: ../templates/patroni-verify-registration.sh.j2
-        dest: /tmp/patroni-verify-registration.sh
-        mode: "0755"
-
-    - name: Verify Patroni registration across datacenters
-      shell: /tmp/patroni-verify-registration.sh
-      register: registration_verify
-      changed_when: false
-
     - name: Check if PostgreSQL service is already registered
       uri:
         url: "http://localhost:{{ consul_client_port }}/v1/agent/service/postgres-{{ inventory_hostname }}"
@@ -404,7 +399,7 @@
         timeout: 60
 
 
-    - name: Store PostgreSQL connection details in Consul KV
+    - name: Store PostgreSQL connection details in Consul KV (primary DC)
       uri:
         url: "http://localhost:{{ consul_client_port }}/v1/kv/{{ item.key }}"
         method: PUT
@@ -425,6 +420,76 @@
         - { key: "database/user", value: "proposalsapp" }
         - { key: "database/password", value: "{{ postgres_password }}" }
       run_once: true
+      when: postgres_role == 'primary'
+
+    # Store PostgreSQL connection details in all Consul datacenters
+    - name: Store connection details in dc1 Consul
+      uri:
+        url: "http://{{ hostvars['consul-nomad-sib-01'].tailscale_ip }}:{{ consul_client_port }}/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
+        - { key: "postgresql/primary_tailscale_ip", value: "{{ tailscale_ip }}" }
+        - { key: "postgresql/port", value: "5432" }
+        - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
+        - { key: "postgresql/username", value: "proposalsapp" }
+        - { key: "postgresql/admin_username", value: "{{ postgres_user }}" }
+        - { key: "postgresql/password", value: "{{ postgres_password }}" }
+        - { key: "postgresql/service_discovery", value: "proposalsapp.service.consul" }
+        - { key: "postgresql/connection_string/consul", value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/connection_string/hostname", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/connection_string/tailscale_ip", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}" }
+        - { key: "database/name", value: "{{ postgres_db_name }}" }
+        - { key: "database/user", value: "proposalsapp" }
+        - { key: "database/password", value: "{{ postgres_password }}" }
+      delegate_to: "{{ inventory_hostname }}"
+      when: postgres_role == 'primary'
+
+    - name: Store connection details in dc2 Consul
+      uri:
+        url: "http://{{ hostvars['consul-nomad-sib-03'].tailscale_ip }}:{{ consul_client_port }}/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
+        - { key: "postgresql/primary_tailscale_ip", value: "{{ tailscale_ip }}" }
+        - { key: "postgresql/port", value: "5432" }
+        - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
+        - { key: "postgresql/username", value: "proposalsapp" }
+        - { key: "postgresql/admin_username", value: "{{ postgres_user }}" }
+        - { key: "postgresql/password", value: "{{ postgres_password }}" }
+        - { key: "postgresql/service_discovery", value: "proposalsapp.service.consul" }
+        - { key: "postgresql/connection_string/consul", value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/connection_string/hostname", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/connection_string/tailscale_ip", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}" }
+        - { key: "database/name", value: "{{ postgres_db_name }}" }
+        - { key: "database/user", value: "proposalsapp" }
+        - { key: "database/password", value: "{{ postgres_password }}" }
+      delegate_to: "{{ inventory_hostname }}"
+      when: postgres_role == 'primary'
+
+    - name: Store connection details in dc3 Consul
+      uri:
+        url: "http://{{ hostvars['consul-nomad-fsn-01'].tailscale_ip }}:{{ consul_client_port }}/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
+        - { key: "postgresql/primary_tailscale_ip", value: "{{ tailscale_ip }}" }
+        - { key: "postgresql/port", value: "5432" }
+        - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
+        - { key: "postgresql/username", value: "proposalsapp" }
+        - { key: "postgresql/admin_username", value: "{{ postgres_user }}" }
+        - { key: "postgresql/password", value: "{{ postgres_password }}" }
+        - { key: "postgresql/service_discovery", value: "proposalsapp.service.consul" }
+        - { key: "postgresql/connection_string/consul", value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/connection_string/hostname", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/connection_string/tailscale_ip", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}" }
+        - { key: "database/name", value: "{{ postgres_db_name }}" }
+        - { key: "database/user", value: "proposalsapp" }
+        - { key: "database/password", value: "{{ postgres_password }}" }
+      delegate_to: "{{ inventory_hostname }}"
       when: postgres_role == 'primary'
 
     - name: Wait for all PostgreSQL nodes to join cluster
@@ -459,6 +524,39 @@
       delay: 15
       when: postgres_role == 'primary'
       run_once: true
+
+    - name: Verify Patroni is using etcd for DCS
+      shell: |
+        export ETCDCTL_API=3
+        # Wait a bit for keys to be created
+        for i in {1..10}; do
+          if /usr/local/bin/etcdctl get /service/proposalsapp --prefix | grep -q -E "(initialize|members|leader|config)"; then
+            echo "SUCCESS: Patroni is using etcd for cluster coordination"
+            echo "Keys found in etcd:"
+            /usr/local/bin/etcdctl get /service/proposalsapp --prefix --keys-only | head -10
+            
+            # Also verify no DCS keys in Consul (service registration is OK)
+            consul_keys=$(curl -s http://localhost:8500/v1/kv/service/proposalsapp?recurse 2>/dev/null || echo "[]")
+            if [ "$consul_keys" != "[]" ] && [ -n "$consul_keys" ]; then
+              echo "WARNING: Found Patroni DCS keys in Consul - this should not happen!"
+              echo "$consul_keys"
+              exit 1
+            fi
+            exit 0
+          fi
+          echo "Waiting for Patroni to create keys in etcd... (attempt $i/10)"
+          sleep 3
+        done
+        echo "ERROR: Patroni is not using etcd - no keys found after 30 seconds"
+        exit 1
+      register: etcd_verify
+      run_once: true
+      failed_when: false  # We'll check the result manually
+
+    - name: Check etcd verification result
+      fail:
+        msg: "{{ etcd_verify.stdout }}"
+      when: etcd_verify.rc != 0
 
     - name: Configure synchronous replication with proper standby names
       shell: |
@@ -606,6 +704,26 @@
         state: started
         daemon_reload: yes
 
+    - name: Register PostgreSQL service in Consul
+      uri:
+        url: "http://localhost:{{ consul_client_port | default(8500) }}/v1/agent/service/register"
+        method: PUT
+        body_format: json
+        body:
+          ID: "proposalsapp-{{ inventory_hostname }}"
+          Name: "proposalsapp"
+          Tags:
+            - "{% if is_leader.rc == 0 %}primary{% else %}replica{% endif %}"
+            - "postgres"
+            - "{{ datacenter }}"
+          Address: "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"
+          Port: "{{ postgres_port }}"
+          Check:
+            HTTP: "http://{{ tailscale_ip | default(ansible_default_ipv4.address) }}:{{ patroni_rest_api_port }}/{% if is_leader.rc == 0 %}primary{% else %}replica{% endif %}"
+            Interval: "10s"
+            DeregisterCriticalServiceAfter: "90s"
+      ignore_errors: yes
+
   handlers:
     - name: reload systemd
       systemd:
@@ -708,6 +826,14 @@
       changed_when: false
       failed_when: consul_service.rc != 0
 
+    - name: Verify PostgreSQL connection details in Consul KV
+      uri:
+        url: "http://localhost:{{ consul_client_port }}/v1/kv/postgresql/connection_string/tailscale_ip?raw"
+        method: GET
+      register: consul_kv_check
+      changed_when: false
+      failed_when: false
+
     - name: Display PostgreSQL verification summary
       debug:
         msg: |
@@ -719,6 +845,7 @@
           Cluster Health: {{ 'HEALTHY' if patroni_cluster.rc == 0 else 'UNHEALTHY' }}
           PostgreSQL Access: {{ 'OK' if postgres_connectivity.rc == 0 else 'FAILED' }}
           Consul Registration: {{ 'REGISTERED' if consul_service.rc == 0 else 'NOT REGISTERED' }}
+          Consul KV Data: {{ 'REPLICATED' if consul_kv_check.status == 200 else 'NOT FOUND' }}
 
           Cluster Status:
           {{ patroni_cluster.stdout | indent(2) }}
@@ -742,6 +869,10 @@
         echo "=== REPLICATION STATUS ==="
         export PGPASSWORD="{{ postgres_password }}"
         psql -h localhost -U {{ postgres_user }} -d postgres -c "SELECT client_addr, state, sync_state FROM pg_stat_replication;" 2>/dev/null || echo "No replicas (this might be a replica node)"
+        echo ""
+        echo "=== ETCD KEYS (should show Patroni data) ==="
+        export ETCDCTL_API=3
+        /usr/local/bin/etcdctl get /service/proposalsapp --prefix --keys-only | head -10
       register: cluster_overview
       changed_when: false
 

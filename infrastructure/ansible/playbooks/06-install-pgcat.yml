@@ -165,9 +165,9 @@
         - reload systemd
         - restart consul-template
         
-    - name: Set Consul KV values for PgCat
+    - name: Set Consul KV values for PgCat in dc1
       uri:
-        url: "http://127.0.0.1:8500/v1/kv/{{ item.key }}"
+        url: "http://{{ hostvars['consul-nomad-sib-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
         method: PUT
         body: "{{ item.value }}"
       loop:
@@ -176,7 +176,35 @@
         - { key: "database/name", value: "{{ database_name }}" }
         - { key: "database/user", value: "{{ database_user }}" }
         - { key: "pgcat/enable_cross_dc_reads", value: "false" }
-      delegate_to: "{{ groups['consul_servers'][0] }}"
+      delegate_to: "{{ inventory_hostname }}"
+      run_once: true
+
+    - name: Set Consul KV values for PgCat in dc2
+      uri:
+        url: "http://{{ hostvars['consul-nomad-sib-03'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "pgcat/admin_password", value: "{{ pgcat_admin_password }}" }
+        - { key: "database/password", value: "{{ database_password }}" }
+        - { key: "database/name", value: "{{ database_name }}" }
+        - { key: "database/user", value: "{{ database_user }}" }
+        - { key: "pgcat/enable_cross_dc_reads", value: "false" }
+      delegate_to: "{{ inventory_hostname }}"
+      run_once: true
+
+    - name: Set Consul KV values for PgCat in dc3
+      uri:
+        url: "http://{{ hostvars['consul-nomad-fsn-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "pgcat/admin_password", value: "{{ pgcat_admin_password }}" }
+        - { key: "database/password", value: "{{ database_password }}" }
+        - { key: "database/name", value: "{{ database_name }}" }
+        - { key: "database/user", value: "{{ database_user }}" }
+        - { key: "pgcat/enable_cross_dc_reads", value: "false" }
+      delegate_to: "{{ inventory_hostname }}"
       run_once: true
       
     - name: Configure Consul Template for pgcat
@@ -195,7 +223,7 @@
               "tags": ["postgres", "proxy"],
               "port": 5432,
               "check": {
-                "http": "http://localhost:9930/metrics",
+                "tcp": "localhost:5432",
                 "interval": "10s",
                 "timeout": "5s"
               }
@@ -234,24 +262,49 @@
         delay: 5
         timeout: 30
 
-    - name: Store PgCat connection strings in Consul KV
-      uri:
-        url: "http://127.0.0.1:8500/v1/kv/{{ item.key }}"
-        method: PUT
-        body: "{{ item.value }}"
-      loop:
-        # Local PgCat connections (for apps running on same node)
-        - { key: "pgcat/connection_string/local", value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}" }
-        
-        # PgCat connections via Tailscale hostnames
-        - { key: "pgcat/connection_string/apps-sib-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}" }
-        - { key: "pgcat/connection_string/apps-sib-03", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}" }
-        - { key: "pgcat/connection_string/apps-fsn-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}" }
-        
-        # Direct PostgreSQL connections (bypassing PgCat)
-        - { key: "postgresql/direct/primary_hostname", value: "db-sib-01" }
-        - { key: "postgresql/direct/connection_string", value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}" }
-      delegate_to: "{{ groups['consul_servers'][0] }}"
+    - name: Store PgCat connection strings in all Consul datacenters
+      block:
+        - name: Store PgCat connection strings in dc1
+          uri:
+            url: "http://{{ hostvars['consul-nomad-sib-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
+            method: PUT
+            body: "{{ item.value }}"
+          loop:
+            - { key: "pgcat/connection_string/local", value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-sib-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-sib-03", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-fsn-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}" }
+            - { key: "postgresql/direct/primary_hostname", value: "db-sib-01" }
+            - { key: "postgresql/direct/connection_string", value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}" }
+          delegate_to: "{{ inventory_hostname }}"
+
+        - name: Store PgCat connection strings in dc2
+          uri:
+            url: "http://{{ hostvars['consul-nomad-sib-03'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
+            method: PUT
+            body: "{{ item.value }}"
+          loop:
+            - { key: "pgcat/connection_string/local", value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-sib-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-sib-03", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-fsn-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}" }
+            - { key: "postgresql/direct/primary_hostname", value: "db-sib-01" }
+            - { key: "postgresql/direct/connection_string", value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}" }
+          delegate_to: "{{ inventory_hostname }}"
+
+        - name: Store PgCat connection strings in dc3
+          uri:
+            url: "http://{{ hostvars['consul-nomad-fsn-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
+            method: PUT
+            body: "{{ item.value }}"
+          loop:
+            - { key: "pgcat/connection_string/local", value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-sib-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-sib-03", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}" }
+            - { key: "pgcat/connection_string/apps-fsn-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}" }
+            - { key: "postgresql/direct/primary_hostname", value: "db-sib-01" }
+            - { key: "postgresql/direct/connection_string", value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}" }
+          delegate_to: "{{ inventory_hostname }}"
       run_once: true
 
     - name: Display connection strings

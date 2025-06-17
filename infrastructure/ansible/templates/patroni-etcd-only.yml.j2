@@ -9,11 +9,10 @@ restapi:
     username: patroni
     password: {{ postgres_password }}
 
+# Use etcd3 as the Distributed Configuration Store (DCS)
 etcd3:
   hosts: {% for host in groups['postgres_nodes'] %}{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}
   
-  # Since etcd is federated across DCs, no need for complex replication logic
-  # etcd handles the distributed consensus natively
   protocol: http
   
   # Retry configuration for better resilience
@@ -125,11 +124,3 @@ tags:
   noloadbalance: false
   clonefrom: false
   nosync: false
-
-consul:
-  host: 127.0.0.1:{{ consul_client_port | default(8500) }}
-  scheme: http
-  register_service: true
-  service_name: proposalsapp
-  service_check_interval: 5s
-  consistency: stale  # Allow stale reads for better performance

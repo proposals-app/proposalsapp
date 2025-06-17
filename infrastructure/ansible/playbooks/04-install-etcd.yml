@@ -50,6 +50,8 @@
         extra_opts:
           - --no-same-owner
           - --no-same-permissions
+      retries: 3
+      delay: 5
 
     - name: Install etcd binaries
       copy:

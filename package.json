@@ -14,10 +14,8 @@
   "scripts": {
     "build-email-service": "yarn workspace @proposalsapp/email-service run build",
     "build-emails": "yarn workspace @proposalsapp/emails run build",
-    "build-push-service": "yarn workspace @proposalsapp/push-service run build",
     "build-web": "yarn workspace @proposalsapp/web run build",
     "start-email-service": "yarn workspace @proposalsapp/email-service run start",
-    "start-push-service": "yarn workspace @proposalsapp/push-service run start",
     "start-web": "yarn workspace @proposalsapp/web run start",
     "update-deps": "./update-deps.sh",
     "lint": "npx eslint . --config eslint.config.mjs",
