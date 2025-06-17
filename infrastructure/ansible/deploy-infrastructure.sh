@@ -145,6 +145,7 @@ PLAYBOOKS=(
     "playbooks/02-install-consul.yml:Installing and configuring Consul"
     "playbooks/03-install-nomad.yml:Installing and configuring Nomad"
     "playbooks/04-install-postgres.yml:Installing PostgreSQL with Patroni HA"
+    "playbooks/05-install-pgcat.yml:Installing PgCat intelligent PostgreSQL proxy"
 )
 
 failed=0
@@ -184,12 +185,14 @@ if [ $failed -eq 0 ]; then
     echo "  • 3 Consul/Nomad servers (one per datacenter)"
     echo "  • 3 Nomad client nodes for applications"
     echo "  • 3 PostgreSQL nodes with Patroni HA"
+    echo "  • PgCat intelligent proxy on application nodes"
     echo ""
     echo -e "${CYAN}Next steps:${NC}"
     echo "1. Verify Consul cluster: consul members"
     echo "2. Verify Nomad cluster: nomad server members"
     echo "3. Check PostgreSQL cluster: patronictl -c /etc/patroni/patroni.yml list"
-    echo "4. Deploy your applications with Nomad"
+    echo "4. Test PgCat connection: psql -h localhost -p 5432 -U proposalsapp -d proposalsapp"
+    echo "5. Deploy your applications with Nomad"
 else
     echo -e "${RED}✗ Some playbooks failed${NC}"
     echo ""

@@ -1,0 +1,157 @@
+---
+- name: Install and configure PgCat
+  hosts: app
+  become: true
+  vars:
+    pgcat_version: "1.1.1"
+    pgcat_user: pgcat
+    pgcat_group: pgcat
+    pgcat_config_dir: /etc/pgcat
+    pgcat_log_dir: /var/log/pgcat
+    pgcat_data_dir: /var/lib/pgcat
+    
+  tasks:
+    - name: Create pgcat user
+      user:
+        name: "{{ pgcat_user }}"
+        system: true
+        shell: /bin/false
+        home: "{{ pgcat_data_dir }}"
+        createhome: false
+        
+    - name: Create pgcat directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ pgcat_user }}"
+        group: "{{ pgcat_group }}"
+        mode: '0755'
+      loop:
+        - "{{ pgcat_config_dir }}"
+        - "{{ pgcat_log_dir }}"
+        - "{{ pgcat_data_dir }}"
+        
+    - name: Download and install pgcat binary
+      get_url:
+        url: "https://github.com/postgresml/pgcat/releases/download/v{{ pgcat_version }}/pgcat-v{{ pgcat_version }}-x86_64-unknown-linux-gnu.tar.gz"
+        dest: /tmp/pgcat.tar.gz
+        mode: '0644'
+        
+    - name: Extract pgcat binary
+      unarchive:
+        src: /tmp/pgcat.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+        creates: /usr/local/bin/pgcat
+        
+    - name: Create pgcat configuration
+      template:
+        src: pgcat.toml.j2
+        dest: "{{ pgcat_config_dir }}/pgcat.toml"
+        owner: "{{ pgcat_user }}"
+        group: "{{ pgcat_group }}"
+        mode: '0640'
+      notify: restart pgcat
+      
+    - name: Create pgcat systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=PgCat PostgreSQL Proxy
+          After=network-online.target consul.service
+          Wants=network-online.target
+          
+          [Service]
+          Type=simple
+          User={{ pgcat_user }}
+          Group={{ pgcat_group }}
+          ExecStart=/usr/local/bin/pgcat {{ pgcat_config_dir }}/pgcat.toml
+          ExecReload=/bin/kill -HUP $MAINPID
+          Restart=always
+          RestartSec=10
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier=pgcat
+          
+          # Security settings
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectHome=true
+          ProtectSystem=strict
+          ReadWritePaths={{ pgcat_log_dir }} {{ pgcat_data_dir }}
+          
+          # Resource limits
+          LimitNOFILE=65536
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/pgcat.service
+        mode: '0644'
+      notify:
+        - reload systemd
+        - restart pgcat
+        
+    - name: Configure Consul Template for pgcat
+      template:
+        src: pgcat.consul.j2
+        dest: /etc/consul-template.d/pgcat.hcl
+        mode: '0644'
+      notify: restart consul-template
+      
+    - name: Create pgcat Consul health check
+      copy:
+        content: |
+          {
+            "service": {
+              "name": "pgcat",
+              "tags": ["postgres", "proxy"],
+              "port": 5432,
+              "check": {
+                "http": "http://localhost:9930/metrics",
+                "interval": "10s",
+                "timeout": "5s"
+              }
+            }
+          }
+        dest: /etc/consul.d/pgcat.json
+        mode: '0644'
+      notify: reload consul
+      
+    - name: Configure firewall for pgcat metrics
+      ufw:
+        rule: allow
+        port: '9930'
+        proto: tcp
+        src: "{{ hostvars[item]['ansible_default_ipv4']['address'] }}/32"
+      loop: "{{ groups['monitoring'] }}"
+      when: groups['monitoring'] is defined
+      
+    - name: Start and enable pgcat
+      systemd:
+        name: pgcat
+        state: started
+        enabled: true
+        daemon_reload: true
+        
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: true
+        
+    - name: restart pgcat
+      systemd:
+        name: pgcat
+        state: restarted
+        
+    - name: restart consul-template
+      systemd:
+        name: consul-template
+        state: restarted
+        
+    - name: reload consul
+      systemd:
+        name: consul
+        state: reloaded

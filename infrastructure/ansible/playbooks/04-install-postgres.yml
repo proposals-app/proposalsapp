@@ -133,39 +133,11 @@
         - reload systemd
         - restart patroni
 
-    - name: Install PgBouncer
-      apt:
-        name: pgbouncer
-        state: present
-
-    - name: Configure PgBouncer
-      template:
-        src: ../templates/pgbouncer.ini.j2
-        dest: /etc/pgbouncer/pgbouncer.ini
-        owner: postgres
-        group: postgres
-        mode: "0640"
-      notify: restart pgbouncer
-
-    - name: Configure PgBouncer userlist
-      copy:
-        content: |
-          "proposalsapp" "{{ postgres_password }}"
-          "replicator" "{{ postgres_replication_password }}"
-        dest: /etc/pgbouncer/userlist.txt
-        owner: postgres
-        group: postgres
-        mode: "0600"
-      notify: restart pgbouncer
-
-    - name: Start services
+    - name: Start Patroni service
       systemd:
-        name: "{{ item }}"
+        name: patroni
         state: started
         enabled: yes
-      loop:
-        - patroni
-        - pgbouncer
 
     - name: Check if PostgreSQL service is already registered
       uri:
@@ -223,8 +195,7 @@
         - { key: "postgresql/username", value: "{{ postgres_user }}" }
         - { key: "postgresql/password", value: "{{ postgres_password }}" }
         - { key: "postgresql/connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/pgbouncer_port", value: "6432" }
-        - { key: "postgresql/pgbouncer_connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:6432/{{ postgres_db_name }}" }
+        - { key: "postgresql/direct_connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
       run_once: true
       when: postgres_role == 'primary'
 
@@ -238,10 +209,6 @@
         name: patroni
         state: restarted
 
-    - name: restart pgbouncer
-      systemd:
-        name: pgbouncer
-        state: restarted
 
 # Verification checks at the end
 - name: Verify PostgreSQL Cluster
@@ -312,25 +279,6 @@
       changed_when: false
       failed_when: postgres_connectivity.rc != 0
 
-    - name: Check PgBouncer service
-      shell: |
-        # Check if PgBouncer is running
-        if ! systemctl is-active pgbouncer >/dev/null 2>&1; then
-          echo "ERROR: PgBouncer service is not running"
-          exit 1
-        fi
-
-        # Check if PgBouncer port is listening
-        if ! netstat -tuln | grep -q ":6432"; then
-          echo "ERROR: PgBouncer not listening on port 6432"
-          exit 1
-        fi
-
-        echo "OK: PgBouncer is active and listening"
-      register: pgbouncer_health
-      changed_when: false
-      failed_when: pgbouncer_health.rc != 0
-
     - name: Verify Consul service registration
       shell: |
         # Check if PostgreSQL service is registered in Consul
@@ -356,7 +304,6 @@
           Patroni Status: {{ 'RUNNING' if patroni_health.rc == 0 else 'FAILED' }}
           Cluster Health: {{ 'HEALTHY' if patroni_cluster.rc == 0 else 'UNHEALTHY' }}
           PostgreSQL Access: {{ 'OK' if postgres_connectivity.rc == 0 else 'FAILED' }}
-          PgBouncer Status: {{ 'RUNNING' if pgbouncer_health.rc == 0 else 'FAILED' }}
           Consul Registration: {{ 'REGISTERED' if consul_service.rc == 0 else 'NOT REGISTERED' }}
 
           Cluster Status:
@@ -364,8 +311,8 @@
 
           Connection Details:
           - Direct PostgreSQL: {{ inventory_hostname }}:5432
-          - Via PgBouncer: {{ inventory_hostname }}:6432
           - Database: {{ postgres_db_name }}
+          - Note: Applications should connect via PgCat on localhost:5432
           - User: {{ postgres_user }}
           ========================================
 

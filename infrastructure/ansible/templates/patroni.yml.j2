@@ -13,6 +13,9 @@ consul:
   host: 127.0.0.1:{{ consul_client_port }}
   register_service: true
   service_check_interval: 5s
+  service_tags:
+    - postgres
+    - {{ datacenter }}
 
 bootstrap:
   dcs:
@@ -22,7 +25,8 @@ bootstrap:
     maximum_lag_on_failover: 1048576
     master_start_timeout: 300
     synchronous_mode: true
-    synchronous_mode_strict: false
+    synchronous_mode_strict: true
+    synchronous_node_count: 1
     postgresql:
       use_pg_rewind: true
       use_slots: true
@@ -50,6 +54,8 @@ bootstrap:
         hot_standby_feedback: "on"
         wal_log_hints: "on"
         shared_preload_libraries: 'pg_stat_statements'
+        synchronous_commit: "remote_apply"
+        synchronous_standby_names: "*"
 
   initdb:
   - encoding: UTF8
