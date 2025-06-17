@@ -9,6 +9,7 @@
     postgres_port: 5432
     patroni_rest_api_port: 8008
     consul_client_port: 8500
+    etcd_client_port: 2379
     postgres_password: "{{ vault_postgres_password }}"
     postgres_replication_password: "{{ vault_postgres_replication_password }}"
     postgres_user: "postgres"
@@ -24,25 +25,22 @@
         ansible_host: "{{ tailscale_ip }}"
       when: tailscale_ip is defined and tailscale_ip != ''
     
-    # Pre-flight check: Ensure Consul is properly federated
-    - name: Verify Consul WAN federation
+    # Pre-flight check: Ensure etcd is running on all nodes
+    - name: Verify etcd cluster health
       shell: |
-        # Check if Consul can see all datacenters
-        datacenters=$(consul catalog datacenters | wc -l)
-        expected_dcs={{ groups['lxc_containers'] | select('match', '^consul-nomad-') | map('extract', hostvars, 'datacenter') | unique | list | length }}
+        export ETCDCTL_API=3
+        # Check if etcd is healthy on all nodes
+        endpoints="{% for host in groups['postgres_nodes'] %}{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}"
         
-        if [ "$datacenters" -lt "$expected_dcs" ]; then
-          echo "ERROR: Consul federation incomplete. Found $datacenters datacenters, expected $expected_dcs"
-          echo "Available datacenters:"
-          consul catalog datacenters
+        if ! /usr/local/bin/etcdctl endpoint health --endpoints="$endpoints"; then
+          echo "ERROR: etcd cluster is not healthy"
           exit 1
         fi
         
-        echo "OK: Consul federation verified across $datacenters datacenters"
-      register: consul_federation
+        echo "OK: etcd cluster verified healthy across all nodes"
+      register: etcd_health
       changed_when: false
       run_once: true
-      delegate_to: "{{ groups['consul_servers'][0] }}"
     - name: Add PostgreSQL APT key
       apt_key:
         url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
@@ -61,7 +59,6 @@
           - "postgresql-{{ postgresql_version }}-repack"
           - python3-pip
           - python3-psycopg2
-          - python3-etcd
           - libpq-dev
         state: present
 
@@ -107,8 +104,8 @@
       shell: |
         su - postgres -c '
         export PATH="/usr/bin:$PATH"
-        pipx install "patroni[consul]=={{ patroni_version }}" --include-deps
-        pipx inject patroni psycopg2-binary python-consul cdiff
+        pipx install "patroni[etcd3]=={{ patroni_version }}" --include-deps
+        pipx inject patroni psycopg2-binary python-etcd3 cdiff
         '
       when: not patroni_installed.stat.exists
 
@@ -116,7 +113,7 @@
       shell: |
         su - postgres -c '
         export PATH="/usr/bin:$PATH"
-        pipx inject patroni cdiff --force
+        pipx inject patroni python-etcd3 cdiff --force
         '
       when: patroni_installed.stat.exists
 
@@ -143,7 +140,7 @@
 
     - name: Generate Patroni configuration
       template:
-        src: ../templates/patroni.yml.j2
+        src: ../templates/patroni-etcd.yml.j2
         dest: /etc/patroni/patroni.yml
         owner: postgres
         group: postgres
@@ -170,8 +167,8 @@
         content: |
           [Unit]
           Description=Patroni PostgreSQL HA
-          After=syslog.target network.target consul.service
-          Wants=consul.service
+          After=syslog.target network.target etcd.service
+          Wants=etcd.service
 
           [Service]
           Type=simple
@@ -193,18 +190,11 @@
         - restart patroni
 
     # Clean any existing Patroni state to ensure fresh start
-    - name: Clean existing Patroni state from all datacenters
-      uri:
-        url: "http://localhost:{{ consul_client_port }}/v1/kv/service/proposalsapp?recurse=true"
-        method: DELETE
-        status_code: [200, 404]
-      run_once: true
-      delegate_to: "{{ groups['consul_servers'][0] }}"
-
-    - name: Wait for consul-replicate to sync the cleanup
-      pause:
-        seconds: 30
-        prompt: "Waiting for consul-replicate to propagate cleanup across datacenters"
+    - name: Clean existing Patroni state from etcd
+      shell: |
+        export ETCDCTL_API=3
+        # Delete all keys under the Patroni namespace
+        /usr/local/bin/etcdctl del /service/proposalsapp --prefix || true
       run_once: true
 
     # Start nodes in order to ensure proper cluster formation
@@ -218,7 +208,7 @@
     - name: Wait for primary to initialize cluster
       pause:
         seconds: 45
-        prompt: "Waiting for primary to initialize and register in Consul"
+        prompt: "Waiting for primary to initialize and register in etcd"
       when: postgres_role == 'primary'
     
     - name: Create wait script for Patroni initialization
@@ -233,10 +223,10 @@
       when: postgres_role == 'primary'
       register: postgres_ready_check
 
-    - name: Wait for consul-replicate to sync initial cluster state
+    - name: Wait for cluster state to stabilize in etcd
       pause:
-        seconds: 60
-        prompt: "Waiting for consul-replicate to propagate cluster state to all datacenters"
+        seconds: 30
+        prompt: "Waiting for etcd to achieve consensus on cluster state"
       run_once: true
     
     - name: Ensure required PostgreSQL roles exist  
@@ -258,64 +248,47 @@
       run_once: true
       register: role_creation
 
-    - name: Verify initialize key is replicated to all datacenters
+    - name: Verify initialize key is in etcd
       shell: |
         #!/bin/bash
         set -e
         
-        # Check if the initialize key exists in dc1
-        CONSUL_PORT=8500
+        export ETCDCTL_API=3
         
-        echo "Checking for initialize key in primary datacenter..."
-        dc1_response=$(curl -s "http://localhost:${CONSUL_PORT}/v1/kv/service/proposalsapp/initialize?dc=dc1")
+        echo "Checking for initialize key in etcd..."
         
-        if [ -z "$dc1_response" ] || [ "$dc1_response" = "null" ]; then
-          echo "ERROR: No initialize key found in primary datacenter"
+        # Check if the initialize key exists
+        if /usr/local/bin/etcdctl get /service/proposalsapp/initialize > /dev/null 2>&1; then
+          init_value=$(/usr/local/bin/etcdctl get /service/proposalsapp/initialize --print-value-only)
+          echo "Found initialize value in etcd: $init_value"
+          exit 0
+        else
+          echo "ERROR: No initialize key found in etcd"
           exit 1
         fi
-        
-        # Get the key index from dc1
-        dc1_index=$(echo "$dc1_response" | jq -r '.[0].ModifyIndex')
-        echo "Primary datacenter has initialize key with index: $dc1_index"
-        
-        # Check all datacenters have the initialize key
-        for dc in dc2 dc3; do
-          echo "Checking datacenter $dc..."
-          dc_response=$(curl -s "http://localhost:${CONSUL_PORT}/v1/kv/service/proposalsapp/initialize?dc=$dc")
-          
-          if [ -z "$dc_response" ] || [ "$dc_response" = "null" ]; then
-            echo "ERROR: Datacenter $dc missing initialize key"
-            exit 1
-          fi
-          
-          dc_index=$(echo "$dc_response" | jq -r '.[0].ModifyIndex')
-          echo "Datacenter $dc has initialize key with index: $dc_index"
-        done
-        
-        echo "SUCCESS: All datacenters have the initialize key"
       args:
         executable: /bin/bash
-      register: dc_sync_check
-      until: dc_sync_check.rc == 0
+      register: etcd_init_check
+      until: etcd_init_check.rc == 0
       retries: 60
       delay: 5
       run_once: true
-      delegate_to: "{{ groups['consul_servers'][0] }}"
 
-    - name: Verify initialize key is available locally before starting standby
+    - name: Verify initialize key is available in etcd before starting standby
       shell: |
-        # Check if the initialize key exists in local Consul
-        init_value=$(curl -s http://localhost:{{ consul_client_port }}/v1/kv/service/proposalsapp/initialize?raw)
+        export ETCDCTL_API=3
         
-        if [ -z "$init_value" ]; then
-          echo "ERROR: Initialize key not found in local Consul ({{ datacenter }})"
-          echo "consul-replicate may not have synced yet"
+        # Check if the initialize key exists in etcd
+        if /usr/local/bin/etcdctl get /service/proposalsapp/initialize > /dev/null 2>&1; then
+          init_value=$(/usr/local/bin/etcdctl get /service/proposalsapp/initialize --print-value-only)
+          echo "Found initialize value in etcd: $init_value"
+          exit 0
+        else
+          echo "ERROR: Initialize key not found in etcd"
           exit 1
         fi
-        
-        echo "Found initialize value in {{ datacenter }}: $init_value"
-      register: local_init_check
-      until: local_init_check.rc == 0
+      register: etcd_init_check_standby
+      until: etcd_init_check_standby.rc == 0
       retries: 90
       delay: 5
       when: postgres_role != 'primary'
@@ -469,7 +442,6 @@
         
         echo "Expected nodes: $expected_nodes, Actual nodes: $actual_nodes"
         
-        # In multi-datacenter setup, sometimes not all nodes show up due to consul-replicate delays
         # Accept if we have at least 2 nodes (primary + 1 replica) for quorum
         if [ "$actual_nodes" -ge 2 ]; then
           echo "Minimum required nodes are in the cluster (have $actual_nodes, need at least 2)"
@@ -683,11 +655,10 @@
 
         # Check if this node is in the cluster
         if ! echo "$cluster_info" | grep -q "{{ inventory_hostname }}"; then
-          # In cross-datacenter setups, nodes might not always show in the list due to consul-replicate delays
           # Check if we can at least connect to PostgreSQL
           export PGPASSWORD="{{ postgres_password }}"
           if psql -h localhost -U postgres -c "SELECT 1;" >/dev/null 2>&1; then
-            echo "WARNING: Node not visible in Patroni list but PostgreSQL is accessible (likely consul-replicate delay)"
+            echo "WARNING: Node not visible in Patroni list but PostgreSQL is accessible"
             echo "$cluster_info"
           else
             echo "ERROR: This node is not in the Patroni cluster and PostgreSQL is not accessible"

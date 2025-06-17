@@ -1,5 +1,6 @@
 #!/bin/bash
-# Script to verify Patroni node is properly registered in Consul across all datacenters
+# Script to verify Patroni node is properly registered in Consul
+# Note: Cross-DC visibility is now handled by etcd, not consul-replicate
 
 set -e
 
@@ -46,12 +47,13 @@ fi
 echo "Triggering Patroni state update..."
 curl -s http://localhost:{{ patroni_rest_api_port }}/cluster >/dev/null 2>&1 || true
 
-# Give consul-replicate time to sync
-echo "Waiting for consul-replicate to sync across datacenters..."
-sleep 10
+# Give Consul time to propagate the registration
+echo "Waiting for Consul service registration to stabilize..."
+sleep 5
 
-# Verify registration in all datacenters
-echo "Verifying cross-datacenter registration..."
+# Note: With etcd as DCS, cross-DC registration checks are less critical
+# Patroni state is managed by etcd, Consul is only for service discovery
+echo "Checking Consul service registration (informational only)..."
 all_registered=true
 for dc in dc1 dc2 dc3; do
     if ! check_registration_in_dc "$dc"; then
@@ -63,7 +65,7 @@ if [ "$all_registered" = "true" ]; then
     echo "SUCCESS: Node $NODE_NAME is registered in all datacenters"
 else
     echo "WARNING: Node $NODE_NAME is not yet visible in all datacenters"
-    echo "This may be due to consul-replicate sync delays"
+    echo "This may be due to network delays or Consul WAN federation issues"
     
     # Try to force a re-registration
     echo "Attempting to force re-registration..."

@@ -25,7 +25,8 @@ Proxmox Server (Physical Host)
 │   └── Application workloads
 └── db-xxx (Database Layer)
     ├── PostgreSQL 17
-    └── Patroni (HA orchestrator)
+    ├── Patroni (HA orchestrator)
+    └── etcd (Distributed configuration store)
 ```
 
 ## Network Architecture
@@ -36,6 +37,31 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 - Stable IPs regardless of physical network changes
 
 ## Component Architecture
+
+### Division of Responsibilities: Consul vs etcd
+
+The infrastructure uses both Consul and etcd, each serving distinct purposes:
+
+**Consul Responsibilities**:
+- **Service Discovery**: All services register with Consul (databases, PgCat, applications)
+- **Health Checking**: Monitors service health and removes failed instances
+- **Dynamic Configuration**: Stores configuration in KV store for services like PgCat
+- **WAN Federation**: Connects services across datacenters
+- **DNS Interface**: Provides service discovery via DNS queries
+- **Template Rendering**: Updates configuration files when services change (via consul-template)
+
+**etcd Responsibilities**:
+- **Patroni DCS (Distributed Configuration Store)**: Stores PostgreSQL cluster state
+- **Leader Election**: Manages which PostgreSQL node is primary
+- **Configuration Consensus**: Ensures all Patroni nodes agree on cluster topology
+- **Failover Coordination**: Orchestrates automatic database failover
+- **Strong Consistency**: Provides ACID guarantees for critical cluster state
+
+**Why Both?**
+- **Separation of Concerns**: Database HA (etcd) is separate from service discovery (Consul)
+- **Best Tool for Each Job**: etcd excels at distributed consensus, Consul at service mesh
+- **Reliability**: Failure of one system doesn't affect the other
+- **Flexibility**: Can scale and tune each system independently
 
 ### Consul - Service Discovery & Configuration
 
@@ -61,21 +87,32 @@ retry_join_wan = [...]      # Connect to other DCs
 3. Service registrations are DC-local but queryable globally
 4. Failure of one DC doesn't affect others' Consul operation
 
-### consul-replicate - Cross-DC KV Synchronization
+### etcd - Distributed Configuration Store for Patroni
 
-**Purpose**: Synchronizes Patroni's distributed configuration across datacenters.
+**Purpose**: Provides distributed consensus for Patroni's high availability configuration.
 
 **Configuration**:
-- Each DC runs consul-replicate daemon
-- Pulls `/service/proposalsapp` prefix from other DCs
-- Provides eventual consistency (~1-2 second delay)
-- Best-effort replication with automatic retry
+- Three-node etcd cluster spanning all datacenters
+- Native WAN federation without additional replication tools
+- Strong consistency guarantees for critical configuration data
+- Optimized for cross-DC communication:
+  - Heartbeat interval: 100ms (handles up to 50ms RTT)
+  - Election timeout: 500ms (5x heartbeat as recommended)
+  - Snapshot count: 5000 (more frequent snapshots)
+  - WAL flush: 100ms (stability over WAN)
+  - gRPC keepalive: 10s (faster failure detection)
+
+**Expected Latencies**:
+- Romania DC1 ↔ DC2: ~10-20ms
+- Romania ↔ Germany: ~30-50ms
+- Configuration tuned for worst-case 50ms RTT with jitter
 
 **Benefits**:
-- No single point of failure for Patroni DCS
-- Each DC can operate independently
-- Automatic conflict resolution (last-write-wins)
-- Minimal performance impact
+- Native multi-DC support without external replication
+- Strong consistency for Patroni leader election
+- Simplified architecture (no consul-replicate needed)
+- Built-in support for network partitions
+- I/O and CPU scheduling optimized for consistent performance
 
 ### Nomad - Workload Orchestration
 
@@ -138,18 +175,26 @@ pg_hba:
 
 **How Patroni works**:
 1. Manages PostgreSQL lifecycle (start/stop/promote)
-2. Registers in Consul with role tags (primary/replica)
-3. Handles automatic failover using Consul for consensus
+2. Uses etcd for distributed configuration and leader election
+3. Handles automatic failover with etcd's consistent key-value store
 4. Configures replication topology dynamically
-5. **Multi-DC Coordination via consul-replicate**:
-   - Each Patroni node uses its local datacenter's Consul
-   - consul-replicate synchronizes `/service/proposalsapp` KV prefix across all DCs
-   - Provides eventual consistency with ~1-2 second replication delay
-   - Ensures single cluster while maintaining DC independence
+5. **Multi-DC Coordination via etcd**:
+   - All Patroni nodes connect to the federated etcd cluster
+   - etcd provides strong consistency across all datacenters
+   - No replication delay - immediate consistency
+   - Native support for WAN federation
 
 ### PgCat - Intelligent PostgreSQL Proxy
 
 **Design Decision**: Connection pooler with query parsing for automatic read/write split.
+
+**What is PgCat?**
+PgCat is a PostgreSQL connection pooler and proxy that provides:
+- **Connection pooling** to reduce overhead of creating new database connections
+- **Query parsing** to intelligently route queries based on their type
+- **Automatic failover** handling without application changes
+- **Load balancing** across multiple database replicas
+- **Transaction pooling** for better resource utilization
 
 **Placement**: Runs on each application node, not database nodes.
 
@@ -180,11 +225,24 @@ query_parser_read_write_splitting = true
 primary_reads_enabled = true  # Allows reading from primary when it's local
 ```
 
+**Connection Methods**:
+1. **Through PgCat (Recommended for applications)**:
+   - `postgresql://user:pass@localhost:5432/db` - Always connects to local PgCat
+   - PgCat automatically routes to the correct database based on query type
+   - When primary fails over, PgCat's configuration is automatically updated by Consul Template
+   - Applications don't need to know which node is primary
+
+2. **Direct Database Access (For admin/maintenance)**:
+   - Can use Tailscale hostnames: `db-sib-01`, `db-sib-03`, `db-fsn-01`
+   - These provide direct access bypassing PgCat
+   - Useful for maintenance tasks or when you need to connect to a specific node
+
 **Benefits**:
 - Single connection string for applications: `postgresql://user:pass@localhost:5432/db`
-- Zero application changes needed
-- Automatic failover handling
+- Zero application changes needed during failover
+- Automatic failover handling - PgCat configuration updates when primary changes
 - Optimized read latency (local reads)
+- Connection pooling reduces database load
 
 ## Data Flow Examples
 
@@ -220,8 +278,8 @@ primary_reads_enabled = true  # Allows reading from primary when it's local
 
 **Impact**:
 - **Consul**: Failed DC's services become unavailable locally
-- **consul-replicate**: Stops syncing from failed DC (other DCs continue)
-- **Patroni**: Can still perform all operations via remaining DCs
+- **etcd**: Maintains quorum with 2/3 nodes operational
+- **Patroni**: Can still perform all operations via etcd quorum
   - Leader elections work (if leader was in failed DC)
   - Configuration changes possible
   - Automatic failover functions normally
@@ -233,6 +291,7 @@ primary_reads_enabled = true  # Allows reading from primary when it's local
 - Consul service configured with `Restart=on-failure` and Tailscale dependency
 - WAN federation health check automatically repairs connectivity issues
 - If DC3 is down >72 hours, manual Consul restart required after power restoration
+- etcd cluster automatically rebalances when failed node returns
 
 ### Network Partition (DC3 isolated)
 
@@ -290,17 +349,18 @@ primary_reads_enabled = true  # Allows reading from primary when it's local
 
 ### Deployment Order
 1. **Tailscale** - Network connectivity first
-2. **Consul + consul-replicate** - Service discovery and KV replication
+2. **Consul** - Service discovery and KV store
 3. **Nomad** - Orchestration layer
-4. **PostgreSQL/Patroni** - Database layer with replicated DCS
-5. **PgCat** - Application connectivity
-6. **Applications** - Via Nomad jobs
+4. **etcd** - Distributed configuration store for Patroni
+5. **PostgreSQL/Patroni** - Database layer with etcd DCS
+6. **PgCat** - Application connectivity
+7. **Applications** - Via Nomad jobs
 
 ### Monitoring Checklist
 - [ ] Consul WAN federation: `consul members -wan`
-- [ ] consul-replicate status: `systemctl status consul-replicate`
+- [ ] etcd cluster health: `etcdctl endpoint health --endpoints=<all-nodes>`
 - [ ] Patroni cluster: `patronictl list`
-- [ ] DCS replication: Check KV consistency across DCs
+- [ ] etcd member list: `etcdctl member list`
 - [ ] Replication lag: Check pg_stat_replication
 - [ ] PgCat routing: Verify local reads
 - [ ] Nomad jobs: All healthy and placed
@@ -314,11 +374,12 @@ primary_reads_enabled = true  # Allows reading from primary when it's local
 ## Configuration Management
 
 ### Ansible Playbooks
-- `01-configure-tailscale.yml` - VPN setup
+- `01-provision-and-prepare-lxcs.yml` - Container provisioning and Tailscale setup
 - `02-install-consul.yml` - Service discovery
 - `03-install-nomad.yml` - Orchestration
-- `04-install-postgres.yml` - Database with Patroni
-- `05-install-pgcat.yml` - Proxy layer
+- `04-install-etcd.yml` - etcd cluster for Patroni DCS
+- `05-install-postgres.yml` - Database with Patroni
+- `06-install-pgcat.yml` - Proxy layer
 
 ### Key Variables
 ```yaml
@@ -463,11 +524,12 @@ This automated health check significantly improves infrastructure resilience by 
 ## Limitations & Trade-offs
 
 1. **Extended outage recovery** - Consul requires manual restart if DC is down >72 hours (WAN reaping timeout)
-2. **Eventual consistency** - consul-replicate provides ~1-2 second delay for DCS state propagation
+2. **etcd quorum** - Requires 2/3 nodes operational for writes (reads can continue with single node)
 3. **No shared storage** - Each DC has independent storage
 4. **Cross-DC latency** - Writes may cross DC boundaries depending on leader location
-5. **Quorum requirements** - Need 2/3 DCs operational for both Nomad and PostgreSQL
-6. **Replication conflicts** - Resolved via last-write-wins, potential for brief inconsistencies during network partitions
-7. **Patroni cross-DC visibility** - PostgreSQL nodes may not always appear in `patronictl list` output across datacenters due to consul-replicate eventual consistency. This is cosmetic - actual PostgreSQL replication continues to function. Use `/usr/local/bin/postgres-health-check` for accurate replication status.
+5. **Quorum requirements** - Need 2/3 DCs operational for etcd, Nomad, and PostgreSQL
+6. **Network partitions** - etcd will prioritize consistency over availability during splits
+7. **WAN performance** - etcd consensus operations add ~100-200ms latency for cross-DC writes
+8. **Database size** - etcd performs best with database size under 2GB (monitored via health checks)
 
 This architecture achieves high availability through geographic distribution and intelligent routing while maintaining operational simplicity. The design philosophy prioritizes clarity and debuggability over complex automation.

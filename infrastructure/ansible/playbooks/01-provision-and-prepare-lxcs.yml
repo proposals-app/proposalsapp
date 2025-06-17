@@ -637,7 +637,7 @@
           Container is ready for service installation:
           - Run 02-install-consul.yml to install Consul
           - Run 03-install-nomad.yml to install Nomad
-          - Run 04-install-postgres.yml for database nodes
+          - Run 05-install-postgres.yml for database nodes
           ========================================
 
 # Verification checks at the end

@@ -9,20 +9,16 @@ restapi:
     username: patroni
     password: {{ postgres_password }}
 
-consul:
-  host: 127.0.0.1:{{ consul_client_port }}
-  register_service: true
-  service_check_interval: 5s
-  service_tags:
-    - postgres
-    - {{ datacenter }}
-    - "{{ postgres_role }}"
-  # Each node uses its local datacenter - consul-replicate handles KV sync
-  # This provides resilience: if a DC fails, others can still operate
-  consistency: stale  # Allow stale reads for better cross-DC performance
-  token: {{ consul_token | default('') }}  # Add if using ACLs
-  # Add retry logic for consul operations to handle sync delays
+etcd3:
+  hosts: {% for host in groups['postgres_nodes'] %}{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}
+  
+  # Since etcd is federated across DCs, no need for complex replication logic
+  # etcd handles the distributed consensus natively
+  protocol: http
+  
+  # Retry configuration for better resilience
   retry_timeout: 60
+  ttl: 30
 
 bootstrap:
   dcs:

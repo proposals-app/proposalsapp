@@ -144,8 +144,9 @@ PLAYBOOKS=(
     "playbooks/01-provision-and-prepare-lxcs.yml:Provisioning LXC containers and base setup"
     "playbooks/02-install-consul.yml:Installing and configuring Consul"
     "playbooks/03-install-nomad.yml:Installing and configuring Nomad"
-    "playbooks/04-install-postgres.yml:Installing PostgreSQL with Patroni HA"
-    "playbooks/05-install-pgcat.yml:Installing PgCat intelligent PostgreSQL proxy"
+    "playbooks/04-install-etcd.yml:Installing etcd for Patroni DCS"
+    "playbooks/05-install-postgres.yml:Installing PostgreSQL with Patroni HA"
+    "playbooks/06-install-pgcat.yml:Installing PgCat intelligent PostgreSQL proxy"
 )
 
 failed=0
@@ -184,6 +185,7 @@ if [ $failed -eq 0 ]; then
     fi
     echo "  • 3 Consul/Nomad servers (one per datacenter)"
     echo "  • 3 Nomad client nodes for applications"
+    echo "  • 3 etcd nodes for Patroni distributed configuration"
     echo "  • 3 PostgreSQL nodes with Patroni HA"
     echo "  • PgCat intelligent proxy on application nodes"
     echo ""

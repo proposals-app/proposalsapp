@@ -1,0 +1,67 @@
+# etcd configuration for multi-DC WAN federation
+# This configuration enables etcd to work across datacenters over WAN
+
+# Member
+name: '{{ inventory_hostname }}'
+data-dir: '{{ etcd_data_dir }}'
+wal-dir: '{{ etcd_wal_dir }}'
+
+# Clustering
+initial-advertise-peer-urls: 'http://{{ tailscale_ip }}:{{ etcd_peer_port }}'
+listen-peer-urls: 'http://0.0.0.0:{{ etcd_peer_port }}'
+advertise-client-urls: 'http://{{ tailscale_ip }}:{{ etcd_client_port }}'
+listen-client-urls: 'http://0.0.0.0:{{ etcd_client_port }}'
+
+# Initial cluster configuration
+# All nodes listed for multi-DC federation
+initial-cluster: '{% for host in groups["postgres_nodes"] %}{{ host }}=http://{{ hostvars[host]["tailscale_ip"] }}:{{ etcd_peer_port }}{% if not loop.last %},{% endif %}{% endfor %}'
+initial-cluster-state: 'new'
+initial-cluster-token: 'proposalsapp-etcd-cluster'
+
+# Enable v3 API
+enable-v2: false
+
+# Performance tuning for WAN
+# Based on etcd best practices for multi-datacenter deployments
+# Assuming RTT between DCs:
+# - Romania to Germany: ~30-50ms
+# - Within Romania DCs: ~10-20ms
+# Setting heartbeat to match worst-case RTT and election timeout to 5x heartbeat
+heartbeat-interval: 100  # 100ms to handle up to 50ms RTT with jitter
+election-timeout: 500    # 5x heartbeat interval as recommended
+
+# Snapshot settings
+# Lower snapshot count for more frequent snapshots in WAN environment
+snapshot-count: 5000
+max-snapshots: 5
+max-wals: 5
+
+# Compaction
+auto-compaction-retention: '72h'
+auto-compaction-mode: 'periodic'
+
+# Request size limits
+max-request-bytes: 10485760
+
+# Pre-vote to prevent disruptions during network partitions
+pre-vote: true
+
+# Strict reconfiguration check
+strict-reconfig-check: true
+
+# Logging
+log-level: 'info'
+log-outputs: ['default']
+
+# Metrics
+metrics: 'basic'
+
+# Backend tuning
+backend-batch-limit: 1000
+backend-bbolt-freelist-type: 'map'
+
+# Quota backend bytes (2GB)
+quota-backend-bytes: 2147483648
+
+# Enable gRPC gateway for better HTTP/2 performance
+enable-grpc-gateway: true
