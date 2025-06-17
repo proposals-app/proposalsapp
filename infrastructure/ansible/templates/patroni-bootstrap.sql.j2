@@ -1,0 +1,40 @@
+-- Patroni Bootstrap SQL Script
+-- This script ensures required roles and permissions are set up
+
+-- Create proposalsapp role if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'proposalsapp') THEN
+        CREATE ROLE proposalsapp WITH 
+            LOGIN 
+            PASSWORD '{{ postgres_password }}' 
+            CREATEDB 
+            CREATEROLE;
+        RAISE NOTICE 'Created role: proposalsapp';
+    ELSE
+        RAISE NOTICE 'Role proposalsapp already exists';
+    END IF;
+END
+$$;
+
+-- Create replicator role if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'replicator') THEN
+        CREATE ROLE replicator WITH 
+            LOGIN 
+            REPLICATION 
+            PASSWORD '{{ postgres_replication_password }}';
+        RAISE NOTICE 'Created role: replicator';
+    ELSE
+        RAISE NOTICE 'Role replicator already exists';
+    END IF;
+END
+$$;
+
+-- Grant necessary permissions
+GRANT pg_read_all_settings TO proposalsapp;
+GRANT pg_monitor TO proposalsapp;
+
+-- Create database if needed (this will be done later in the playbook)
+-- We don't create it here because it needs to be done after cluster is fully initialized

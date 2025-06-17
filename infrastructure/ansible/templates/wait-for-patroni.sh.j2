@@ -1,0 +1,40 @@
+#!/bin/bash
+# Script to wait for Patroni to initialize PostgreSQL
+
+set -e
+
+export PGPASSWORD="{{ postgres_password }}"
+
+i=1
+while [ $i -le 45 ]; do
+    # Show current cluster state
+    echo "Checking cluster state (attempt $i/45)..."
+    cluster_state=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list 2>&1)
+    echo "$cluster_state"
+    
+    # Check if we have a leader and it's running
+    if echo "$cluster_state" | grep -q "Leader.*running"; then
+        # Check if we can connect to PostgreSQL
+        if psql -h localhost -U postgres -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+            echo "SUCCESS: PostgreSQL is ready and accepting connections"
+            exit 0
+        else
+            echo "Leader exists but cannot connect yet..."
+        fi
+    elif echo "$cluster_state" | grep -q "initializing"; then
+        echo "Cluster is still initializing..."
+    elif echo "$cluster_state" | grep -q "uninitialized"; then
+        echo "Cluster is uninitialized, waiting for bootstrap..."
+    fi
+    
+    sleep 3
+    i=$((i + 1))
+done
+
+echo "ERROR: PostgreSQL not ready after 135 seconds"
+echo "Final cluster state:"
+/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list
+echo ""
+echo "Patroni logs:"
+journalctl -u patroni -n 50 --no-pager
+exit 1

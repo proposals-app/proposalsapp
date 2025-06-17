@@ -1,0 +1,11 @@
+#!/bin/bash
+# Patroni post-init script to create users and set permissions
+
+set -e
+
+echo "Running Patroni post-init script..."
+
+# Run the SQL script
+psql -U postgres -d postgres -f /tmp/patroni-bootstrap.sql
+
+echo "Post-init script completed successfully"

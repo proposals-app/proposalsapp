@@ -224,6 +224,89 @@
         enabled: yes
         daemon_reload: yes
 
+    - name: Download consul-replicate binary
+      get_url:
+        url: "https://releases.hashicorp.com/consul-replicate/0.4.0/consul-replicate_0.4.0_linux_amd64.zip"
+        dest: /tmp/consul-replicate.zip
+        mode: '0644'
+
+    - name: Unarchive consul-replicate
+      unarchive:
+        src: /tmp/consul-replicate.zip
+        dest: /usr/local/bin
+        remote_src: yes
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create consul-replicate configuration
+      template:
+        src: ../templates/consul-replicate.hcl.j2
+        dest: /etc/consul-replicate.hcl
+        owner: consul
+        group: consul
+        mode: '0640'
+
+    - name: Create consul-replicate systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Consul Replicate
+          Documentation=https://github.com/hashicorp/consul-replicate
+          After=consul.service
+          Requires=consul.service
+          ConditionPathExists=/etc/consul-replicate.hcl
+
+          [Service]
+          Type=simple
+          User=consul
+          Group=consul
+          ExecStart=/usr/local/bin/consul-replicate -config=/etc/consul-replicate.hcl
+          ExecReload=/bin/kill -HUP $MAINPID
+          KillMode=process
+          Restart=on-failure
+          RestartSec=10s
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/consul-replicate.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify:
+        - reload systemd
+        - restart consul-replicate
+
+    - name: Enable and start consul-replicate with delay for initial sync
+      block:
+        - name: Enable consul-replicate service
+          systemd:
+            name: consul-replicate
+            enabled: yes
+            daemon_reload: yes
+        
+        - name: Add initial delay to consul-replicate service
+          lineinfile:
+            path: /etc/systemd/system/consul-replicate.service
+            insertafter: '^\[Service\]'
+            line: 'ExecStartPre=/bin/sleep 10'
+            state: present
+          notify:
+            - reload systemd
+            - restart consul-replicate
+        
+        - name: Start consul-replicate
+          systemd:
+            name: consul-replicate
+            state: started
+            daemon_reload: yes
+        
+        - name: Wait for consul-replicate to establish connections
+          pause:
+            seconds: 20
+            prompt: "Waiting for consul-replicate to establish cross-datacenter connections"
+
   handlers:
     - name: reload systemd
       systemd:
@@ -237,6 +320,11 @@
     - name: restart consul-wan-health
       systemd:
         name: consul-wan-health
+        state: restarted
+
+    - name: restart consul-replicate
+      systemd:
+        name: consul-replicate
         state: restarted
 
 - name: Configure Consul Clients on Nomad nodes

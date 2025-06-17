@@ -17,14 +17,18 @@ consul:
     - postgres
     - {{ datacenter }}
     - "{{ postgres_role }}"
-  consistency: stale  # Allow reads from any datacenter
+  # Each node uses its local datacenter - consul-replicate handles KV sync
+  # This provides resilience: if a DC fails, others can still operate
+  consistency: stale  # Allow stale reads for better cross-DC performance
   token: {{ consul_token | default('') }}  # Add if using ACLs
+  # Add retry logic for consul operations to handle sync delays
+  retry_timeout: 60
 
 bootstrap:
   dcs:
     ttl: 30
     loop_wait: 10
-    retry_timeout: 10
+    retry_timeout: 30
     maximum_lag_on_failover: 1048576
     master_start_timeout: 300
     synchronous_mode: false
@@ -79,22 +83,26 @@ bootstrap:
   # Deny all other connections
   - host all all 0.0.0.0/0 reject
 
+  # Users to create during cluster initialization
+  # Note: These are only created during initial bootstrap
   users:
     proposalsapp:
-      password: {{ postgres_password }}
+      password: "{{ postgres_password }}"
       options:
         - createrole
         - createdb
+        - login
     replicator:
-      password: {{ postgres_replication_password }}
+      password: "{{ postgres_replication_password }}"
       options:
         - replication
-        
-  # Create the proposalsapp database during initialization
-  databases:
-    proposalsapp:
-      owner: proposalsapp
-      encoding: UTF8
+        - login
+
+  # Method to use for initial cluster creation
+  method: initdb
+  
+  # Post-init script to run after cluster initialization
+  post_init: /tmp/patroni-post-init.sh
 
 postgresql:
   listen: 0.0.0.0:{{ postgres_port }}

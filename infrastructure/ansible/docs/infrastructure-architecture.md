@@ -61,6 +61,22 @@ retry_join_wan = [...]      # Connect to other DCs
 3. Service registrations are DC-local but queryable globally
 4. Failure of one DC doesn't affect others' Consul operation
 
+### consul-replicate - Cross-DC KV Synchronization
+
+**Purpose**: Synchronizes Patroni's distributed configuration across datacenters.
+
+**Configuration**:
+- Each DC runs consul-replicate daemon
+- Pulls `/service/proposalsapp` prefix from other DCs
+- Provides eventual consistency (~1-2 second delay)
+- Best-effort replication with automatic retry
+
+**Benefits**:
+- No single point of failure for Patroni DCS
+- Each DC can operate independently
+- Automatic conflict resolution (last-write-wins)
+- Minimal performance impact
+
 ### Nomad - Workload Orchestration
 
 **Design Decision**: Single 3-node cluster spanning all datacenters.
@@ -80,24 +96,33 @@ datacenter = "dc1"       # Scheduling constraint
 
 ### PostgreSQL + Patroni - Database Layer
 
-**Design Decision**: One primary with two synchronous replicas using quorum commit.
+**Design Decision**: Single Patroni cluster across all datacenters with dynamic leader election.
 
 **Architecture**:
 ```
-db-sib-01 (Primary) 
-    ├── Synchronous replication → db-sib-03 (Standby)
-    └── Synchronous replication → db-fsn-01 (Standby)
+Single Patroni Cluster (coordinated via dc1's Consul KV)
+├── Leader (dynamically elected - any DC)
+├── Synchronous Replica 1 (different DC)
+└── Synchronous Replica 2 (different DC)
 
-Quorum: ANY 1 (db-sib-03, db-fsn-01)
+Quorum: ANY 1 (two replicas)
+Initial roles are suggestions only - Patroni handles actual role assignment
 ```
 
 **Key Configuration**:
 ```yaml
 # Patroni settings
+scope: proposalsapp              # Cluster name
+namespace: /service/             # Consul KV namespace
 synchronous_mode: true
-synchronous_mode_strict: false  # Don't halt on replica loss
-synchronous_node_count: 1       # Need 1 of 2 replicas
-synchronous_standby_names: 'ANY 1 (db-sib-03,db-fsn-01)'
+synchronous_mode_strict: false   # Don't halt on replica loss
+synchronous_node_count: 1        # Need 1 of 2 replicas
+
+# Consul integration
+consul:
+  # Each node uses local DC - consul-replicate handles sync
+  consistency: stale             # Allow stale reads for performance
+  register_service: true         # Local service registration
 
 # PostgreSQL settings  
 synchronous_commit: remote_apply  # Full durability
@@ -116,6 +141,11 @@ pg_hba:
 2. Registers in Consul with role tags (primary/replica)
 3. Handles automatic failover using Consul for consensus
 4. Configures replication topology dynamically
+5. **Multi-DC Coordination via consul-replicate**:
+   - Each Patroni node uses its local datacenter's Consul
+   - consul-replicate synchronizes `/service/proposalsapp` KV prefix across all DCs
+   - Provides eventual consistency with ~1-2 second replication delay
+   - Ensures single cluster while maintaining DC independence
 
 ### PgCat - Intelligent PostgreSQL Proxy
 
@@ -186,13 +216,18 @@ primary_reads_enabled = true  # Allows reading from primary when it's local
 
 ## Failure Scenarios
 
-### Complete Datacenter Failure (e.g., DC3 power loss)
+### Complete Datacenter Failure (Any DC)
 
 **Impact**:
-- **Consul**: DC3 loses service discovery (DC1 & DC2 unaffected)
-- **Nomad**: Continues with 2/3 quorum, reschedules DC3 workloads
-- **PostgreSQL**: Continues with one replica (still has quorum)
-- **Applications**: DC3 apps down until rescheduled
+- **Consul**: Failed DC's services become unavailable locally
+- **consul-replicate**: Stops syncing from failed DC (other DCs continue)
+- **Patroni**: Can still perform all operations via remaining DCs
+  - Leader elections work (if leader was in failed DC)
+  - Configuration changes possible
+  - Automatic failover functions normally
+- **PostgreSQL**: Loses one replica but maintains quorum
+- **Nomad**: Maintains quorum with 2/3 servers (DC1/DC2 failures) or full operation (DC3 failure)
+- **Applications**: Failed DC's apps down until rescheduled
 
 **Recovery**: Fully automatic
 - Consul service configured with `Restart=on-failure` and Tailscale dependency
@@ -213,12 +248,12 @@ primary_reads_enabled = true  # Allows reading from primary when it's local
 
 **Process**:
 1. Patroni detects failure (~10 seconds)
-2. Initiates election between db-sib-03 and db-fsn-01
-3. Promotes winner to primary
-4. Updates Consul service registration
+2. Initiates election between remaining nodes via dc1's Consul
+3. Promotes winner to leader (could be in any DC)
+4. Updates Consul service registration locally
 5. Consul Template sees change
 6. Updates PgCat configuration
-7. Writes now route to new primary
+7. Writes now route to new leader
 
 **Time to recovery**: ~30-45 seconds total
 
@@ -255,15 +290,17 @@ primary_reads_enabled = true  # Allows reading from primary when it's local
 
 ### Deployment Order
 1. **Tailscale** - Network connectivity first
-2. **Consul** - Service discovery infrastructure
-3. **PostgreSQL/Patroni** - Database layer
-4. **Nomad** - Orchestration layer
+2. **Consul + consul-replicate** - Service discovery and KV replication
+3. **Nomad** - Orchestration layer
+4. **PostgreSQL/Patroni** - Database layer with replicated DCS
 5. **PgCat** - Application connectivity
 6. **Applications** - Via Nomad jobs
 
 ### Monitoring Checklist
 - [ ] Consul WAN federation: `consul members -wan`
+- [ ] consul-replicate status: `systemctl status consul-replicate`
 - [ ] Patroni cluster: `patronictl list`
+- [ ] DCS replication: Check KV consistency across DCs
 - [ ] Replication lag: Check pg_stat_replication
 - [ ] PgCat routing: Verify local reads
 - [ ] Nomad jobs: All healthy and placed
@@ -305,26 +342,131 @@ consul_wan_port: 8302
 
 ## Consul WAN Federation Health Check
 
-A dedicated health check service monitors and automatically repairs WAN federation issues:
+A critical component of the infrastructure is the automated WAN federation health check service that ensures Consul's cross-datacenter connectivity remains stable. This service is essential because WAN federation can occasionally fail due to network issues, extended outages, or Consul's automatic reaping of inactive members.
 
-**Features**:
-- Runs on each Consul server node
-- Checks WAN federation health every 5 minutes
-- Automatically restarts Consul if federation is broken
-- Implements restart limits and cooldown periods to prevent flapping
-- Logs all actions to systemd journal
+### Architecture
 
-**Configuration**:
-- Expected WAN members: 3 (one per datacenter)
-- Max restart attempts: 3 within 10-minute window
-- Cooldown period: 10 minutes between restart attempts
+The health check is implemented as a systemd service (`consul-wan-health.service`) that runs on each Consul server node:
+
+```
+consul-wan-health.service
+├── Monitors WAN federation status every 5 minutes
+├── Detects missing datacenter members
+├── Implements intelligent restart logic with cooldown
+└── Logs all actions for troubleshooting
+```
+
+### Key Features
+
+1. **Continuous Monitoring**
+   - Checks `consul members -wan` output every 5 minutes
+   - Verifies all 3 datacenters are present in WAN federation
+   - Validates Consul service is running before checking federation
+
+2. **Automatic Repair**
+   - Attempts to restart Consul service when federation is broken
+   - Waits for Tailscale interface to be ready before starting
+   - Verifies repair success after each restart attempt
+
+3. **Restart Protection**
+   - Maximum 3 restart attempts within any 10-minute window
+   - 10-minute cooldown period between restart attempts
+   - Restart counter resets after 20 minutes of stability
+   - Prevents service flapping during persistent issues
+
+4. **State Tracking**
+   - Maintains state in `/var/lib/consul/health-check/wan-health.state`
+   - Tracks restart count and last restart timestamp
+   - Persists across service restarts
+
+### Configuration
+
+```bash
+# Key parameters (set in consul-wan-health.sh)
+EXPECTED_WAN_MEMBERS=3      # One server per datacenter
+CHECK_INTERVAL=300          # 5 minutes between checks
+MAX_RESTART_ATTEMPTS=3      # Maximum restarts in window
+RESTART_COOLDOWN=600        # 10 minutes between attempts
+```
+
+### Operation Flow
+
+1. **Startup Phase**
+   ```
+   Start → Wait for Tailscale → Verify Consul server → Begin monitoring
+   ```
+
+2. **Health Check Loop**
+   ```
+   Every 5 minutes:
+   ├── Count WAN members
+   ├── If count < 3:
+   │   ├── Check cooldown period
+   │   ├── Check restart limit
+   │   ├── Restart Consul if allowed
+   │   └── Verify repair success
+   └── If healthy: Reset counters
+   ```
+
+3. **Failure Scenarios**
+   - **Transient network issue**: Service waits and rechecks
+   - **Persistent WAN failure**: Attempts restart with cooldown
+   - **Extended outage (>72h)**: Requires manual intervention after Consul reaps the member
+
+### Monitoring and Troubleshooting
+
+1. **View Service Status**
+   ```bash
+   systemctl status consul-wan-health
+   ```
+
+2. **Check Logs**
+   ```bash
+   # All health check logs
+   journalctl -u consul-wan-health -f
+   
+   # Filter for issues
+   journalctl -u consul-wan-health -p warning
+   ```
+
+3. **Manual WAN Status Check**
+   ```bash
+   # On any Consul server
+   consul members -wan
+   ```
+
+4. **State File Inspection**
+   ```bash
+   cat /var/lib/consul/health-check/wan-health.state
+   ```
+
+### Security Hardening
+
+The service runs with restricted privileges:
+- User/Group: `consul`
+- No new privileges
+- Private tmp directory
+- Read-only system access (except state directory)
+- Isolated from user home directories
+
+### Integration with Infrastructure
+
+The health check service is automatically deployed as part of the Consul installation:
+
+1. Script deployed to `/usr/local/bin/consul-wan-health.sh`
+2. Systemd service configured with proper dependencies
+3. Starts automatically after Consul service
+4. Restarts if it fails (with 30-second delay)
+
+This automated health check significantly improves infrastructure resilience by detecting and resolving WAN federation issues without manual intervention, ensuring cross-datacenter services remain available even during network disruptions.
 
 ## Limitations & Trade-offs
 
 1. **Extended outage recovery** - Consul requires manual restart if DC is down >72 hours (WAN reaping timeout)
-2. **Static primary assignment** - Initial primary is predetermined
+2. **Eventual consistency** - consul-replicate provides ~1-2 second delay for DCS state propagation
 3. **No shared storage** - Each DC has independent storage
-4. **Cross-DC latency** - Writes always cross DC boundaries
-5. **Quorum requirements** - Need 2/3 DCs operational
+4. **Cross-DC latency** - Writes may cross DC boundaries depending on leader location
+5. **Quorum requirements** - Need 2/3 DCs operational for both Nomad and PostgreSQL
+6. **Replication conflicts** - Resolved via last-write-wins, potential for brief inconsistencies during network partitions
 
 This architecture achieves high availability through geographic distribution and intelligent routing while maintaining operational simplicity. The design philosophy prioritizes clarity and debuggability over complex automation.
