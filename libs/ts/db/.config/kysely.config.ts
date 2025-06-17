@@ -1,5 +1,10 @@
 import { defineConfig } from 'kysely-ctl';
-import { PostgresDialect } from 'kysely';
+import {
+  CamelCasePlugin,
+  DeduplicateJoinsPlugin,
+  ParseJSONResultsPlugin,
+  PostgresDialect,
+} from 'kysely';
 import { Pool } from 'pg';
 
 export default defineConfig({
@@ -10,6 +15,12 @@ export default defineConfig({
       max: 10,
     }),
   }),
+  plugins: [
+    new CamelCasePlugin(),
+    new DeduplicateJoinsPlugin(),
+    new ParseJSONResultsPlugin(),
+  ],
+
   migrations: {
     migrationFolder: '/migrations',
   },

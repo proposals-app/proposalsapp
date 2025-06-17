@@ -22,12 +22,6 @@ min_pool_size = {{ pgcat_min_pool_size | default(10) }}
 reserve_pool_size = {{ pgcat_reserve_pool_size | default(5) }}
 reserve_pool_timeout = {{ pgcat_reserve_pool_timeout | default(3000) }}
 
-# Query parsing for intelligent routing
-query_parser_enabled = true
-# Enable read/write splitting to utilize local database first
-query_parser_read_write_splitting = true
-# Allow reads from primary when it's the local database
-primary_reads_enabled = true
 
 # Configuration auto-reload interval (milliseconds)
 # PgCat will check for config changes every 5 seconds
@@ -74,6 +68,11 @@ worker_threads = {{ pgcat_worker_threads | default(4) }}
 pool_mode = "transaction"
 default_pool_size = {{ pgcat_default_pool_size | default(25) }}
 min_pool_size = {{ pgcat_min_pool_size | default(10) }}
+
+# Query parsing for intelligent routing (pool-specific)
+query_parser_enabled = true
+query_parser_read_write_splitting = true
+primary_reads_enabled = true
 
 # Database user configuration
 [pools.{{ database_name | default('proposalsapp') }}.users.0]
