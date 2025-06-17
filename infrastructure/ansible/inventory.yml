@@ -12,58 +12,58 @@ all:
           container_id: 581
           datacenter: dc3
           proxmox_node: fsn-01
-          tailscale_ip: 100.108.188.121
+          tailscale_ip: 100.124.171.83
         apps-sib-01:
           ansible_host: apps-sib-01
           container_id: 521
           datacenter: dc1
           proxmox_node: sib-01
-          tailscale_ip: 100.73.89.19
+          tailscale_ip: 100.116.153.125
         apps-sib-03:
           ansible_host: apps-sib-03
           container_id: 551
           datacenter: dc2
           proxmox_node: sib-03
-          tailscale_ip: 100.73.194.60
+          tailscale_ip: 100.117.100.99
         consul-nomad-fsn-01:
           ansible_host: consul-nomad-fsn-01
           container_id: 561
           datacenter: dc3
           proxmox_node: fsn-01
-          tailscale_ip: 100.66.210.84
+          tailscale_ip: 100.111.231.39
         consul-nomad-sib-01:
           ansible_host: consul-nomad-sib-01
           container_id: 501
           datacenter: dc1
           proxmox_node: sib-01
-          tailscale_ip: 100.66.62.103
+          tailscale_ip: 100.78.23.52
         consul-nomad-sib-03:
           ansible_host: consul-nomad-sib-03
           container_id: 531
           datacenter: dc2
           proxmox_node: sib-03
-          tailscale_ip: 100.123.227.49
+          tailscale_ip: 100.101.64.53
         db-fsn-01:
           ansible_host: db-fsn-01
           container_id: 571
           datacenter: dc3
           postgres_role: standby
           proxmox_node: fsn-01
-          tailscale_ip: 100.70.140.7
+          tailscale_ip: 100.102.69.122
         db-sib-01:
           ansible_host: db-sib-01
           container_id: 511
           datacenter: dc1
           postgres_role: primary
           proxmox_node: sib-01
-          tailscale_ip: 100.124.125.89
+          tailscale_ip: 100.104.99.128
         db-sib-03:
           ansible_host: db-sib-03
           container_id: 541
           datacenter: dc2
           postgres_role: standby
           proxmox_node: sib-03
-          tailscale_ip: 100.97.219.14
+          tailscale_ip: 100.126.244.27
     nomad_clients:
       hosts:
         apps-fsn-01: null

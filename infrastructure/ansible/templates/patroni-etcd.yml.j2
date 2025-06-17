@@ -125,3 +125,11 @@ tags:
   noloadbalance: false
   clonefrom: false
   nosync: false
+
+consul:
+  host: 127.0.0.1:{{ consul_client_port | default(8500) }}
+  scheme: http
+  register_service: true
+  service_name: proposalsapp
+  service_check_interval: 5s
+  consistency: stale  # Allow stale reads for better performance

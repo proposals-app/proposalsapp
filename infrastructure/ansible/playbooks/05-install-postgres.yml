@@ -105,7 +105,7 @@
         su - postgres -c '
         export PATH="/usr/bin:$PATH"
         pipx install "patroni[etcd3]=={{ patroni_version }}" --include-deps
-        pipx inject patroni psycopg2-binary python-etcd3 cdiff
+        pipx inject patroni psycopg2-binary etcd3 cdiff
         '
       when: not patroni_installed.stat.exists
 
@@ -113,7 +113,7 @@
       shell: |
         su - postgres -c '
         export PATH="/usr/bin:$PATH"
-        pipx inject patroni python-etcd3 cdiff --force
+        pipx inject patroni etcd3 cdiff --force
         '
       when: patroni_installed.stat.exists
 

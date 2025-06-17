@@ -15,15 +15,18 @@ echo "Verifying Patroni registration for $NODE_NAME..."
 # Function to check if node is registered in a specific datacenter
 check_registration_in_dc() {
     local dc=$1
-    local response=$(curl -s "http://localhost:${CONSUL_PORT}/v1/kv/service/proposalsapp/members/${NODE_NAME}?dc=${dc}" 2>/dev/null)
+    # Check for the proposalsapp service in the specified datacenter
+    local services=$(curl -s "http://localhost:${CONSUL_PORT}/v1/catalog/service/proposalsapp?dc=${dc}" 2>/dev/null)
     
-    if [ -n "$response" ] && [ "$response" != "null" ]; then
-        echo "✓ Node registered in datacenter $dc"
-        return 0
-    else
-        echo "✗ Node not yet registered in datacenter $dc"
-        return 1
+    if [ -n "$services" ] && [ "$services" != "null" ] && [ "$services" != "[]" ]; then
+        # Check if this specific node is in the service list
+        if echo "$services" | grep -q "\"Node\":\"${NODE_NAME}\""; then
+            echo "✓ Node registered as proposalsapp service in datacenter $dc"
+            return 0
+        fi
     fi
+    echo "✗ Node not yet registered in datacenter $dc"
+    return 1
 }
 
 # Wait for local registration first
@@ -51,21 +54,25 @@ curl -s http://localhost:{{ patroni_rest_api_port }}/cluster >/dev/null 2>&1 || 
 echo "Waiting for Consul service registration to stabilize..."
 sleep 5
 
-# Note: With etcd as DCS, cross-DC registration checks are less critical
-# Patroni state is managed by etcd, Consul is only for service discovery
-echo "Checking Consul service registration (informational only)..."
-all_registered=true
-for dc in dc1 dc2 dc3; do
-    if ! check_registration_in_dc "$dc"; then
-        all_registered=false
-    fi
-done
+# Note: With etcd as DCS, cross-DC checks are less critical
+# Each DC has its own Consul catalog, services are DC-local
+# PgCat will discover local services via Consul Template
+echo "Note: Services are registered locally in each DC's Consul catalog"
+echo "Cross-DC visibility is handled by WAN federation, not replication"
+
+# Only check local datacenter registration
+echo "Verifying local datacenter registration..."
+if check_registration_in_dc "{{ datacenter }}"; then
+    echo "SUCCESS: Node $NODE_NAME is registered in local datacenter {{ datacenter }}"
+    all_registered=true
+else
+    all_registered=false
+fi
 
 if [ "$all_registered" = "true" ]; then
-    echo "SUCCESS: Node $NODE_NAME is registered in all datacenters"
+    echo "SUCCESS: Node $NODE_NAME is properly registered for service discovery"
 else
-    echo "WARNING: Node $NODE_NAME is not yet visible in all datacenters"
-    echo "This may be due to network delays or Consul WAN federation issues"
+    echo "WARNING: Node $NODE_NAME is not yet registered in local datacenter"
     
     # Try to force a re-registration
     echo "Attempting to force re-registration..."

@@ -123,11 +123,20 @@
         dest: /etc/profile.d/etcd.sh
         mode: '0644'
 
+    - name: Check if etcd cluster already exists
+      shell: |
+        export ETCDCTL_API=3
+        /usr/local/bin/etcdctl member list 2>/dev/null || echo "no_cluster"
+      register: existing_cluster
+      failed_when: false
+      changed_when: false
+
     - name: Stop etcd if running (for clean restart)
       systemd:
         name: etcd
         state: stopped
       failed_when: false
+      when: existing_cluster.stdout == "no_cluster"
 
     - name: Clean existing etcd data for fresh cluster
       file:
@@ -136,7 +145,7 @@
       loop:
         - "{{ etcd_data_dir }}/member"
         - "{{ etcd_wal_dir }}"
-      when: postgres_role == 'primary' or postgres_role == 'standby'
+      when: existing_cluster.stdout == "no_cluster"
 
     - name: Recreate WAL directory after cleanup
       file:
@@ -145,41 +154,35 @@
         owner: "{{ etcd_user }}"
         group: "{{ etcd_group }}"
         mode: '0700'
+      when: existing_cluster.stdout == "no_cluster"
 
     # Start etcd cluster formation
-    - name: Start etcd on primary node first
+    - name: Start etcd on all nodes simultaneously
       systemd:
         name: etcd
         state: started
         enabled: yes
         daemon_reload: yes
-      when: postgres_role == 'primary'
+      async: 300  # Allow up to 5 minutes for cluster formation
+      poll: 0
+      register: etcd_start
+      when: existing_cluster.stdout == "no_cluster"
 
-    - name: Wait for primary etcd to be ready
-      wait_for:
-        port: "{{ etcd_client_port }}"
-        host: localhost
-        delay: 5
-        timeout: 60
-      when: postgres_role == 'primary'
-
-    - name: Verify primary etcd is healthy
-      shell: |
-        export ETCDCTL_API=3
-        /usr/local/bin/etcdctl endpoint health
-      register: etcd_health
-      until: etcd_health.rc == 0
-      retries: 10
+    - name: Wait for etcd cluster formation to complete
+      async_status:
+        jid: "{{ etcd_start.ansible_job_id }}"
+      register: etcd_start_result
+      until: etcd_start_result.finished
+      retries: 60
       delay: 5
-      when: postgres_role == 'primary'
-
-    - name: Start etcd on standby nodes
+      when: existing_cluster.stdout == "no_cluster"
+    
+    - name: Ensure etcd is running on all nodes
       systemd:
         name: etcd
         state: started
         enabled: yes
-        daemon_reload: yes
-      when: postgres_role != 'primary'
+      when: existing_cluster.stdout != "no_cluster"
 
     - name: Wait for all etcd nodes to be ready
       wait_for:
