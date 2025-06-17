@@ -101,6 +101,10 @@
     - name: Create Consul systemd service override
       copy:
         content: |
+          [Unit]
+          Wants=tailscaled.service
+          After=network-online.target tailscaled.service
+          
           [Service]
           Type=simple
           Environment="CONSUL_CACERT=/opt/consul/consul-agent-ca.pem"
@@ -109,6 +113,8 @@
           TimeoutStartSec=0
           Restart=on-failure
           RestartSec=5
+          # Wait for Tailscale interface to be ready
+          ExecStartPre=/bin/bash -c 'until ip addr show tailscale0 2>/dev/null | grep -q "inet "; do echo "Waiting for tailscale0 interface..."; sleep 1; done'
         dest: /etc/systemd/system/consul.service.d/override.conf
       notify:
         - reload systemd
@@ -192,6 +198,32 @@
       register: wan_join_result
       until: wan_join_result.rc == 0
 
+    - name: Deploy Consul WAN health check script
+      template:
+        src: ../templates/consul-wan-health.sh.j2
+        dest: /usr/local/bin/consul-wan-health.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy Consul WAN health check service
+      template:
+        src: ../templates/consul-wan-health.service.j2
+        dest: /etc/systemd/system/consul-wan-health.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - reload systemd
+        - restart consul-wan-health
+
+    - name: Enable and start Consul WAN health check
+      systemd:
+        name: consul-wan-health
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
   handlers:
     - name: reload systemd
       systemd:
@@ -200,6 +232,11 @@
     - name: restart consul
       systemd:
         name: consul
+        state: restarted
+
+    - name: restart consul-wan-health
+      systemd:
+        name: consul-wan-health
         state: restarted
 
 - name: Configure Consul Clients on Nomad nodes
@@ -267,11 +304,17 @@
     - name: Create Consul systemd service override for clients
       copy:
         content: |
+          [Unit]
+          Wants=tailscaled.service
+          After=network-online.target tailscaled.service
+          
           [Service]
           Type=simple
           TimeoutStartSec=0
           Restart=on-failure
           RestartSec=5
+          # Wait for Tailscale interface to be ready
+          ExecStartPre=/bin/bash -c 'until ip addr show tailscale0 2>/dev/null | grep -q "inet "; do echo "Waiting for tailscale0 interface..."; sleep 1; done'
         dest: /etc/systemd/system/consul.service.d/override.conf
       notify:
         - reload systemd
@@ -364,11 +407,17 @@
     - name: Create Consul systemd service override for clients
       copy:
         content: |
+          [Unit]
+          Wants=tailscaled.service
+          After=network-online.target tailscaled.service
+          
           [Service]
           Type=simple
           TimeoutStartSec=0
           Restart=on-failure
           RestartSec=5
+          # Wait for Tailscale interface to be ready
+          ExecStartPre=/bin/bash -c 'until ip addr show tailscale0 2>/dev/null | grep -q "inet "; do echo "Waiting for tailscale0 interface..."; sleep 1; done'
         dest: /etc/systemd/system/consul.service.d/override.conf
       notify:
         - reload systemd postgres

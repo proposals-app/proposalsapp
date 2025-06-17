@@ -1,0 +1,187 @@
+#!/bin/bash
+# Consul WAN Federation Health Check Script
+# This script monitors WAN federation health and attempts to repair it if needed
+
+set -euo pipefail
+
+# Configuration
+EXPECTED_WAN_MEMBERS={{ groups['consul_servers'] | length }}
+LOG_TAG="consul-wan-health"
+CONSUL_SERVICE="consul"
+CHECK_INTERVAL=300  # 5 minutes
+MAX_RESTART_ATTEMPTS=3
+RESTART_COOLDOWN=600  # 10 minutes
+
+# State file to track restart attempts
+STATE_DIR="/var/lib/consul/health-check"
+STATE_FILE="${STATE_DIR}/wan-health.state"
+mkdir -p "${STATE_DIR}"
+
+# Function to log messages
+log() {
+    local level=$1
+    shift
+    logger -t "${LOG_TAG}" -p "daemon.${level}" "$@"
+}
+
+# Function to get last restart timestamp
+get_last_restart() {
+    if [[ -f "${STATE_FILE}" ]]; then
+        grep "last_restart" "${STATE_FILE}" | cut -d'=' -f2 || echo "0"
+    else
+        echo "0"
+    fi
+}
+
+# Function to get restart count
+get_restart_count() {
+    if [[ -f "${STATE_FILE}" ]]; then
+        grep "restart_count" "${STATE_FILE}" | cut -d'=' -f2 || echo "0"
+    else
+        echo "0"
+    fi
+}
+
+# Function to update state
+update_state() {
+    local restart_count=$1
+    local last_restart=$2
+    cat > "${STATE_FILE}" <<EOF
+restart_count=${restart_count}
+last_restart=${last_restart}
+EOF
+}
+
+# Function to check if consul is running
+is_consul_running() {
+    systemctl is-active --quiet "${CONSUL_SERVICE}"
+}
+
+# Function to check WAN federation health
+check_wan_health() {
+    local wan_members
+    
+    # Check if Consul is running first
+    if ! is_consul_running; then
+        log "error" "Consul service is not running"
+        return 1
+    fi
+    
+    # Get WAN members count
+    wan_members=$(consul members -wan 2>/dev/null | grep -c "alive.*server" || echo "0")
+    
+    if [[ ${wan_members} -lt ${EXPECTED_WAN_MEMBERS} ]]; then
+        log "warning" "WAN federation incomplete: found ${wan_members} members, expected ${EXPECTED_WAN_MEMBERS}"
+        return 1
+    fi
+    
+    log "info" "WAN federation healthy: ${wan_members}/${EXPECTED_WAN_MEMBERS} members alive"
+    return 0
+}
+
+# Function to attempt repair
+attempt_repair() {
+    local current_time=$(date +%s)
+    local last_restart=$(get_last_restart)
+    local restart_count=$(get_restart_count)
+    local time_since_restart=$((current_time - last_restart))
+    
+    # Check if we're in cooldown period
+    if [[ ${time_since_restart} -lt ${RESTART_COOLDOWN} ]]; then
+        log "info" "In cooldown period, skipping restart (${time_since_restart}s since last restart)"
+        return 1
+    fi
+    
+    # Reset counter if cooldown period has passed
+    if [[ ${time_since_restart} -gt $((RESTART_COOLDOWN * 2)) ]]; then
+        restart_count=0
+    fi
+    
+    # Check if we've exceeded max restart attempts
+    if [[ ${restart_count} -ge ${MAX_RESTART_ATTEMPTS} ]]; then
+        log "error" "Exceeded maximum restart attempts (${MAX_RESTART_ATTEMPTS}), manual intervention required"
+        return 1
+    fi
+    
+    # Attempt to restart Consul
+    log "warning" "Attempting to repair WAN federation by restarting Consul (attempt $((restart_count + 1))/${MAX_RESTART_ATTEMPTS})"
+    
+    if systemctl restart "${CONSUL_SERVICE}"; then
+        restart_count=$((restart_count + 1))
+        update_state "${restart_count}" "${current_time}"
+        log "info" "Consul service restarted successfully"
+        
+        # Wait for service to stabilize
+        sleep 30
+        
+        # Check if repair was successful
+        if check_wan_health; then
+            log "info" "WAN federation repair successful"
+            # Reset counter on successful repair
+            update_state "0" "${current_time}"
+            return 0
+        else
+            log "error" "WAN federation still unhealthy after restart"
+            return 1
+        fi
+    else
+        log "error" "Failed to restart Consul service"
+        return 1
+    fi
+}
+
+# Function to wait for Tailscale
+wait_for_tailscale() {
+    local max_wait=60
+    local waited=0
+    
+    while ! ip addr show tailscale0 2>/dev/null | grep -q "inet "; do
+        if [[ ${waited} -ge ${max_wait} ]]; then
+            log "error" "Tailscale interface not ready after ${max_wait} seconds"
+            return 1
+        fi
+        log "info" "Waiting for Tailscale interface to be ready..."
+        sleep 5
+        waited=$((waited + 5))
+    done
+    
+    log "info" "Tailscale interface is ready"
+    return 0
+}
+
+# Main monitoring loop
+main() {
+    # Ensure Tailscale is ready before starting
+    if ! wait_for_tailscale; then
+        log "error" "Cannot start health check without Tailscale"
+        exit 1
+    fi
+    
+    log "info" "Starting Consul WAN federation health check (interval: ${CHECK_INTERVAL}s)"
+    
+    while true; do
+        if ! check_wan_health; then
+            # Try to repair if health check fails
+            attempt_repair
+        else
+            # Reset restart count on healthy check
+            local last_restart=$(get_last_restart)
+            if [[ $(get_restart_count) -gt 0 ]]; then
+                update_state "0" "${last_restart}"
+            fi
+        fi
+        
+        sleep "${CHECK_INTERVAL}"
+    done
+}
+
+# Handle signals gracefully
+trap 'log "info" "Consul WAN health check stopping"; exit 0' SIGTERM SIGINT
+
+# Only run if we're a Consul server
+if consul info 2>/dev/null | grep -q "server = true"; then
+    main
+else
+    log "info" "Not a Consul server, exiting"
+    exit 0
+fi

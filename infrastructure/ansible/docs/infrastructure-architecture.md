@@ -194,7 +194,10 @@ primary_reads_enabled = true  # Allows reading from primary when it's local
 - **PostgreSQL**: Continues with one replica (still has quorum)
 - **Applications**: DC3 apps down until rescheduled
 
-**Recovery**: Automatic except for Consul (manual restart needed)
+**Recovery**: Fully automatic
+- Consul service configured with `Restart=on-failure` and Tailscale dependency
+- WAN federation health check automatically repairs connectivity issues
+- If DC3 is down >72 hours, manual Consul restart required after power restoration
 
 ### Network Partition (DC3 isolated)
 
@@ -300,9 +303,25 @@ consul_wan_port: 8302
 4. **Secrets**: Stored in Ansible Vault
 5. **Encryption**: TLS for all service communication
 
+## Consul WAN Federation Health Check
+
+A dedicated health check service monitors and automatically repairs WAN federation issues:
+
+**Features**:
+- Runs on each Consul server node
+- Checks WAN federation health every 5 minutes
+- Automatically restarts Consul if federation is broken
+- Implements restart limits and cooldown periods to prevent flapping
+- Logs all actions to systemd journal
+
+**Configuration**:
+- Expected WAN members: 3 (one per datacenter)
+- Max restart attempts: 3 within 10-minute window
+- Cooldown period: 10 minutes between restart attempts
+
 ## Limitations & Trade-offs
 
-1. **Manual Consul recovery** - No automatic Consul server restart
+1. **Extended outage recovery** - Consul requires manual restart if DC is down >72 hours (WAN reaping timeout)
 2. **Static primary assignment** - Initial primary is predetermined
 3. **No shared storage** - Each DC has independent storage
 4. **Cross-DC latency** - Writes always cross DC boundaries
