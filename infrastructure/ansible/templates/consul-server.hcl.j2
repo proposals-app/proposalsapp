@@ -16,14 +16,8 @@ bind_addr = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default
 advertise_addr = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
 advertise_addr_wan = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
 
-# Join servers in the same datacenter only
-retry_join = [
-  {% for host in groups['consul_servers'] %}
-  {% if host != inventory_hostname and hostvars[host]['datacenter'] == datacenter %}
-  "{{ hostvars[host].tailscale_ip | default(hostvars[host].ansible_tailscale0.ipv4.address | default(hostvars[host].ansible_default_ipv4.address)) }}",
-  {% endif %}
-  {% endfor %}
-]
+# Single server per datacenter - no LAN join needed
+# Each datacenter has exactly one Consul server
 
 # WAN join to servers in all other datacenters for proper federation
 retry_join_wan = [

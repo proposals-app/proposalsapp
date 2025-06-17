@@ -1,6 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Mock @proposalsapp/db before importing DiscourseRepository
+vi.mock('@proposalsapp/db', () => ({
+  sql: Object.assign(
+    (strings: TemplateStringsArray, ..._values: any[]) => {
+      // Simple mock implementation of sql template literal
+      return strings[0];
+    },
+    {
+      literal: (value: any) => value,
+    }
+  ),
+}));
+
 import { DiscourseRepository } from '../repositories/DiscourseRepository';
-import { sql } from '@proposalsapp/db';
 
 describe('DiscourseRepository', () => {
   let mockDb: any;
@@ -8,7 +21,7 @@ describe('DiscourseRepository', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     const mockExecute = vi.fn();
     const mockWhere = vi.fn().mockReturnThis();
     const mockSelectAll = vi.fn().mockReturnThis();
@@ -106,7 +119,7 @@ describe('DiscourseRepository', () => {
 
     it('should fetch new topics without category filtering', async () => {
       const mockExecute = vi.fn().mockResolvedValue(mockTopicData);
-      const mock$if = vi.fn().mockImplementation((condition, callback) => {
+      const mock$if = vi.fn().mockImplementation((_condition, _callback) => {
         return {
           execute: mockExecute,
         };
@@ -130,7 +143,7 @@ describe('DiscourseRepository', () => {
       expect(result[0].id).toBe('topic-1');
       expect(result[0].categoryId).toBe(7);
       expect(result[0].discourseUser.username).toBe('testuser');
-      
+
       // Verify $if was called with false condition for category filtering
       expect(mock$if).toHaveBeenCalledWith(
         false, // undefined && undefined.length > 0 = false
@@ -169,13 +182,13 @@ describe('DiscourseRepository', () => {
       );
 
       expect(result).toHaveLength(1);
-      
+
       // Verify $if was called with true condition for category filtering
       expect(mock$if).toHaveBeenCalledWith(
         true, // allowedCategories !== undefined && allowedCategories.length > 0
         expect.any(Function)
       );
-      
+
       // Verify the where clause for categories was called
       expect(mockWhereIn).toHaveBeenCalledWith(
         'discourseTopic.categoryId',
@@ -186,7 +199,7 @@ describe('DiscourseRepository', () => {
 
     it('should return empty array when no topics found', async () => {
       const mockExecute = vi.fn().mockResolvedValue([]);
-      
+
       mockDb.selectFrom = vi.fn().mockReturnValue({
         innerJoin: vi.fn().mockReturnThis(),
         selectAll: vi.fn().mockReturnThis(),
@@ -206,7 +219,7 @@ describe('DiscourseRepository', () => {
 
     it('should handle empty category array as no filtering', async () => {
       const mockExecute = vi.fn().mockResolvedValue(mockTopicData);
-      const mock$if = vi.fn().mockImplementation((condition, callback) => {
+      const mock$if = vi.fn().mockImplementation((_condition, _callback) => {
         return {
           execute: mockExecute,
         };
@@ -228,7 +241,7 @@ describe('DiscourseRepository', () => {
       );
 
       expect(result).toHaveLength(1);
-      
+
       // Verify $if was called with false condition (empty array)
       expect(mock$if).toHaveBeenCalledWith(
         false, // [] !== undefined && [].length > 0 = false
@@ -239,7 +252,7 @@ describe('DiscourseRepository', () => {
     it('should handle database errors gracefully', async () => {
       const mockError = new Error('Database connection failed');
       const mockExecute = vi.fn().mockRejectedValue(mockError);
-      
+
       mockDb.selectFrom = vi.fn().mockReturnValue({
         innerJoin: vi.fn().mockReturnThis(),
         selectAll: vi.fn().mockReturnThis(),

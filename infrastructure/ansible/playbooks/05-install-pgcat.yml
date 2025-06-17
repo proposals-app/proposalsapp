@@ -226,6 +226,68 @@
         name: consul-template
         state: started
         enabled: true
+
+    - name: Wait for PgCat to be ready
+      wait_for:
+        port: 5432
+        host: localhost
+        delay: 5
+        timeout: 30
+
+    - name: Store PgCat connection strings in Consul KV
+      uri:
+        url: "http://127.0.0.1:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        # Local PgCat connections (for apps running on same node)
+        - { key: "pgcat/connection_string/local", value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}" }
+        
+        # PgCat connections via Tailscale hostnames
+        - { key: "pgcat/connection_string/apps-sib-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}" }
+        - { key: "pgcat/connection_string/apps-sib-03", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}" }
+        - { key: "pgcat/connection_string/apps-fsn-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}" }
+        
+        # Direct PostgreSQL connections (bypassing PgCat)
+        - { key: "postgresql/direct/primary_hostname", value: "db-sib-01" }
+        - { key: "postgresql/direct/connection_string", value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}" }
+        
+        # Connection string with primary Tailscale IP
+        {% for host in groups['postgres_nodes'] %}
+        {% if hostvars[host]['postgres_role'] == 'primary' %}
+        - { key: "postgresql/direct/primary_ip", value: "{{ hostvars[host]['tailscale_ip'] }}" }
+        - { key: "postgresql/direct/connection_string_ip", value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars[host]['tailscale_ip'] }}:5432/{{ database_name }}" }
+        {% endif %}
+        {% endfor %}
+      delegate_to: "{{ groups['consul_servers'][0] }}"
+      run_once: true
+
+    - name: Display connection strings
+      debug:
+        msg: |
+          ========================================
+          Database Connection Strings
+          ========================================
+          
+          Through PgCat (Recommended):
+          - Local: postgresql://{{ database_user }}:***@localhost:5432/{{ database_name }}
+          - Via apps-sib-01: postgresql://{{ database_user }}:***@apps-sib-01:5432/{{ database_name }}
+          - Via apps-sib-03: postgresql://{{ database_user }}:***@apps-sib-03:5432/{{ database_name }}
+          - Via apps-fsn-01: postgresql://{{ database_user }}:***@apps-fsn-01:5432/{{ database_name }}
+          
+          Direct to PostgreSQL:
+          - Via hostname: postgresql://{{ database_user }}:***@db-sib-01:5432/{{ database_name }}
+          {% for host in groups['postgres_nodes'] %}
+          {% if hostvars[host]['postgres_role'] == 'primary' %}
+          - Via IP: postgresql://{{ database_user }}:***@{{ hostvars[host]['tailscale_ip'] }}:5432/{{ database_name }}
+          {% endif %}
+          {% endfor %}
+          
+          Connection strings have been stored in Consul KV under:
+          - pgcat/connection_string/*
+          - postgresql/direct/*
+          ========================================
+      run_once: true
         
   handlers:
     - name: reload systemd

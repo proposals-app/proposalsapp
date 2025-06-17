@@ -16,6 +16,9 @@ consul:
   service_tags:
     - postgres
     - {{ datacenter }}
+    - "{{ postgres_role }}"
+  consistency: stale  # Allow reads from any datacenter
+  token: {{ consul_token | default('') }}  # Add if using ACLs
 
 bootstrap:
   dcs:
@@ -32,15 +35,19 @@ bootstrap:
       use_slots: true
       parameters:
         max_connections: 200
-        shared_buffers: 256MB
-        effective_cache_size: 1GB
+        # Adjust these based on your server's RAM
+        # For 8GB RAM server: shared_buffers=2GB, effective_cache_size=6GB
+        # For 16GB RAM server: shared_buffers=4GB, effective_cache_size=12GB
+        # For 32GB RAM server: shared_buffers=8GB, effective_cache_size=24GB
+        shared_buffers: {{ postgres_shared_buffers | default('2GB') }}
+        effective_cache_size: {{ postgres_effective_cache_size | default('6GB') }}
         maintenance_work_mem: 64MB
         checkpoint_completion_target: 0.9
         wal_buffers: 16MB
         default_statistics_target: 100
         random_page_cost: 1.1
         effective_io_concurrency: 200
-        work_mem: 4MB
+        work_mem: {{ postgres_work_mem | default('16MB') }}
         min_wal_size: 1GB
         max_wal_size: 4GB
         max_worker_processes: 8
@@ -54,19 +61,23 @@ bootstrap:
         hot_standby_feedback: "on"
         wal_log_hints: "on"
         shared_preload_libraries: 'pg_stat_statements'
-        synchronous_commit: "remote_apply"
-        synchronous_standby_names: "*"
+        synchronous_commit: "on"
+        synchronous_standby_names: ""
+        # Enable password encryption with SCRAM
+        password_encryption: scram-sha-256
 
   initdb:
   - encoding: UTF8
   - data-checksums
 
   pg_hba:
-  - host replication replicator 100.64.0.0/10 md5
-  - host all all 100.64.0.0/10 md5
-  - host replication replicator 0.0.0.0/0 md5
-  - host all all 0.0.0.0/0 md5
+  # Tailscale network only - using scram-sha-256 for better security
+  - host replication replicator 100.64.0.0/10 scram-sha-256
+  - host all all 100.64.0.0/10 scram-sha-256
+  # Local connections
   - local all all peer
+  # Deny all other connections
+  - host all all 0.0.0.0/0 reject
 
   users:
     proposalsapp:

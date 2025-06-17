@@ -5,7 +5,7 @@ template {
   group = "root"
   
   # Reload pgcat when configuration changes
-  command = "systemctl reload pgcat || true"
+  command = "systemctl reload pgcat || systemctl restart pgcat"
   command_timeout = "60s"
   
   # Backup before update
@@ -31,9 +31,13 @@ default_pool_size = {{ keyOrDefault "pgcat/pool_size" "25" }}
 min_pool_size = {{ keyOrDefault "pgcat/min_pool_size" "10" }}
 reserve_pool_size = {{ keyOrDefault "pgcat/reserve_pool_size" "5" }}
 
+# Enable intelligent query routing for local-first reads
 query_parser_enabled = true
-query_parser_read_write_splitting = false
+query_parser_read_write_splitting = true
 primary_reads_enabled = true
+
+# Configuration auto-reload interval (check every 5 seconds)
+config_check_interval = 5000
 
 connect_timeout = 5000
 idle_timeout = 1800000
@@ -46,35 +50,41 @@ worker_threads = {{ keyOrDefault "pgcat/worker_threads" "4" }}
 
 [pools.{{ keyOrDefault "database/name" "proposalsapp" }}]
 pool_mode = "transaction"
-primary_reads_enabled = true
-query_parser_enabled = true
-query_parser_read_write_splitting = false
 
 [pools.{{ keyOrDefault "database/name" "proposalsapp" }}.users.0]
 username = "{{ keyOrDefault "database/user" "proposalsapp" }}"
 password = "{{ key "database/password" }}"
 pool_size = {{ keyOrDefault "pgcat/user_pool_size" "10" }}
 
-# Shard 0 - dynamically discovered from Consul
+# Local-first server ordering for optimal read performance
 [pools.{{ keyOrDefault "database/name" "proposalsapp" }}.shards.0]
 servers = [
-{{- range service "proposalsapp" }}
-  {{- if or (in .Tags "master") (in .Tags "primary") }}
-    ["{{ .Address }}", {{ .Port }}, "primary"],
-  {{- end }}
-{{- end }}
 {{- $dc := env "DATACENTER" -}}
+{{- $localServerFound := false -}}
+{{- /* First, add the local datacenter database (whether primary or replica) */ -}}
 {{- range service "proposalsapp" }}
-  {{- if and (in .Tags "replica") (eq .Datacenter $dc) }}
-    ["{{ .Address }}", {{ .Port }}, "replica"],
+  {{- if eq .Datacenter $dc }}
+    {{- $localServerFound = true }}
+    {{- if or (in .Tags "master") (in .Tags "primary") }}
+      ["{{ .Address }}", {{ .Port }}, "primary"],
+    {{- else }}
+      ["{{ .Address }}", {{ .Port }}, "replica"],
+    {{- end }}
   {{- end }}
 {{- end }}
-{{- if keyOrDefault "pgcat/enable_cross_dc_reads" "false" | parseBool }}
-{{- range service "proposalsapp" }}
-  {{- if and (in .Tags "replica") (ne .Datacenter $dc) }}
-    ["{{ .Address }}", {{ .Port }}, "replica"],
-  {{- end }}
+{{- /* If no local server found, log warning */ -}}
+{{- if not $localServerFound }}
+  # WARNING: No local database server found in datacenter {{ $dc }}
 {{- end }}
+{{- /* Then add remote databases as fallbacks */ -}}
+{{- range service "proposalsapp" }}
+  {{- if ne .Datacenter $dc }}
+    {{- if or (in .Tags "master") (in .Tags "primary") }}
+      ["{{ .Address }}", {{ .Port }}, "primary"],
+    {{- else }}
+      ["{{ .Address }}", {{ .Port }}, "replica"],
+    {{- end }}
+  {{- end }}
 {{- end }}
 ]
 database = "{{ keyOrDefault "database/name" "proposalsapp" }}"

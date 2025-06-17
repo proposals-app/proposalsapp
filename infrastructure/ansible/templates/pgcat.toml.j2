@@ -24,8 +24,14 @@ reserve_pool_timeout = {{ pgcat_reserve_pool_timeout | default(3000) }}
 
 # Query parsing for intelligent routing
 query_parser_enabled = true
-query_parser_read_write_splitting = false
+# Enable read/write splitting to utilize local database first
+query_parser_read_write_splitting = true
+# Allow reads from primary when it's the local database
 primary_reads_enabled = true
+
+# Configuration auto-reload interval (milliseconds)
+# PgCat will check for config changes every 5 seconds
+config_check_interval = 5000
 
 # Connection settings (in milliseconds)
 connect_timeout = {{ pgcat_connect_timeout | default(5000) }}
@@ -66,9 +72,6 @@ worker_threads = {{ pgcat_worker_threads | default(4) }}
 # Connection pool configuration for ProposalsApp
 [pools.{{ database_name | default('proposalsapp') }}]
 pool_mode = "transaction"
-primary_reads_enabled = true
-query_parser_enabled = true
-query_parser_read_write_splitting = false
 default_pool_size = {{ pgcat_default_pool_size | default(25) }}
 min_pool_size = {{ pgcat_min_pool_size | default(10) }}
 
@@ -79,30 +82,22 @@ password = "{{ database_password }}"
 pool_size = {{ pgcat_user_pool_size | default(10) }}
 statement_timeout = {{ pgcat_statement_timeout | default(0) }}
 
-# Shards configuration (will be managed by Consul Template)
-# We use shard 0 for our single database configuration
+# Local-first server ordering (dynamically updated by Consul Template)
+# Lists local database first (whether primary or replica), then remote databases
 [pools.{{ database_name | default('proposalsapp') }}.shards.0]
 servers = [
-# Primary server
+# Local datacenter database (primary or replica) - ALWAYS FIRST
 {% for host in groups['postgres_nodes'] %}
-{% if hostvars[host]['postgres_role'] | default('standby') == 'primary' %}
-    ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "primary"],
+{% if hostvars[host]['datacenter'] | default('dc1') == datacenter | default('dc1') %}
+    ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "{{ 'primary' if hostvars[host]['postgres_role'] | default('standby') == 'primary' else 'replica' }}"],
 {% endif %}
 {% endfor %}
-# Local datacenter replicas
+# Remote datacenter databases as fallbacks
 {% for host in groups['postgres_nodes'] %}
-{% if hostvars[host]['postgres_role'] | default('standby') == 'standby' and hostvars[host]['datacenter'] | default('dc1') == datacenter | default('dc1') %}
-    ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "replica"],
+{% if hostvars[host]['datacenter'] | default('dc1') != datacenter | default('dc1') %}
+    ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "{{ 'primary' if hostvars[host]['postgres_role'] | default('standby') == 'primary' else 'replica' }}"],
 {% endif %}
 {% endfor %}
-# Remote datacenter replicas
-{% if enable_cross_dc_reads | default(false) %}
-{% for host in groups['postgres_nodes'] %}
-{% if hostvars[host]['postgres_role'] | default('standby') == 'standby' and hostvars[host]['datacenter'] | default('dc1') != datacenter | default('dc1') %}
-    ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "replica"],
-{% endif %}
-{% endfor %}
-{% endif %}
 ]
 database = "{{ database_name | default('proposalsapp') }}"
 

@@ -13,12 +13,36 @@
     postgres_replication_password: "{{ vault_postgres_replication_password }}"
     postgres_user: "postgres"
     postgres_db_name: "proposalsapp"
+    # Resource settings - adjust based on server RAM
+    postgres_shared_buffers: "2GB"
+    postgres_effective_cache_size: "6GB"
+    postgres_work_mem: "16MB"
 
   tasks:
     - name: Set connection to use tailscale IP if available
       set_fact:
         ansible_host: "{{ tailscale_ip }}"
       when: tailscale_ip is defined and tailscale_ip != ''
+    
+    # Pre-flight check: Ensure Consul is properly federated
+    - name: Verify Consul WAN federation
+      shell: |
+        # Check if Consul can see all datacenters
+        datacenters=$(consul catalog datacenters | wc -l)
+        expected_dcs={{ groups['lxc_containers'] | select('match', '^consul-nomad-') | map('extract', hostvars, 'datacenter') | unique | list | length }}
+        
+        if [ "$datacenters" -lt "$expected_dcs" ]; then
+          echo "ERROR: Consul federation incomplete. Found $datacenters datacenters, expected $expected_dcs"
+          echo "Available datacenters:"
+          consul catalog datacenters
+          exit 1
+        fi
+        
+        echo "OK: Consul federation verified across $datacenters datacenters"
+      register: consul_federation
+      changed_when: false
+      run_once: true
+      delegate_to: "{{ groups['consul_servers'][0] }}"
     - name: Add PostgreSQL APT key
       apt_key:
         url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
@@ -134,6 +158,16 @@
         - reload systemd
         - restart patroni
 
+    # Clean any existing Patroni state to ensure fresh start
+    - name: Clean existing Patroni state from Consul
+      uri:
+        url: "http://localhost:{{ consul_client_port }}/v1/kv/service/proposalsapp?recurse=true"
+        method: DELETE
+        status_code: [200, 404]
+      run_once: true
+      delegate_to: "{{ groups['consul_servers'][0] }}"
+      when: postgres_role == 'primary'
+
     - name: Start Patroni service on primary node first
       systemd:
         name: patroni
@@ -149,10 +183,25 @@
         timeout: 120
       when: postgres_role == 'primary'
 
-    - name: Pause before starting standby nodes
+    - name: Verify cluster initialization on primary
+      shell: |
+        # Wait for Patroni to initialize and register in Consul
+        for i in {1..30}; do
+          if /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep -q "Leader"; then
+            echo "Primary node initialized successfully"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "ERROR: Primary failed to initialize"
+        exit 1
+      when: postgres_role == 'primary'
+      register: primary_init
+      failed_when: primary_init.rc != 0
+
+    - name: Pause to ensure primary is fully registered in Consul
       pause:
         seconds: 15
-      when: postgres_role == 'primary'
       run_once: true
 
     - name: Start Patroni service on standby nodes
@@ -161,6 +210,22 @@
         state: started
         enabled: yes
       when: postgres_role != 'primary'
+
+    - name: Wait for standby nodes to join cluster
+      shell: |
+        # Wait for this node to appear in the cluster
+        for i in {1..60}; do
+          if /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep -q "{{ inventory_hostname }}"; then
+            echo "Node joined cluster successfully"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "ERROR: Failed to join cluster"
+        exit 1
+      when: postgres_role != 'primary'
+      register: standby_join
+      failed_when: standby_join.rc != 0
 
     - name: Check if PostgreSQL service is already registered
       uri:
@@ -201,13 +266,20 @@
         method: PUT
         body: "{{ item.value }}"
       loop:
-        - { key: "postgresql/primary_host", value: "proposalsapp.service.consul" }
+        - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
+        - { key: "postgresql/primary_tailscale_ip", value: "{{ tailscale_ip }}" }
         - { key: "postgresql/port", value: "5432" }
         - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
-        - { key: "postgresql/username", value: "{{ postgres_user }}" }
+        - { key: "postgresql/username", value: "proposalsapp" }
+        - { key: "postgresql/admin_username", value: "{{ postgres_user }}" }
         - { key: "postgresql/password", value: "{{ postgres_password }}" }
-        - { key: "postgresql/connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/direct_connection_string", value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/service_discovery", value: "proposalsapp.service.consul" }
+        - { key: "postgresql/connection_string/consul", value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/connection_string/hostname", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}" }
+        - { key: "postgresql/connection_string/tailscale_ip", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}" }
+        - { key: "database/name", value: "{{ postgres_db_name }}" }
+        - { key: "database/user", value: "proposalsapp" }
+        - { key: "database/password", value: "{{ postgres_password }}" }
       run_once: true
       when: postgres_role == 'primary'
 
@@ -216,19 +288,112 @@
         seconds: 30
       run_once: true
 
-    - name: Check if replicas exist and enable synchronous replication
+    - name: Verify all nodes are in cluster before configuring replication
       shell: |
-        replica_count=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep -c "running" | awk '{print $1-1}' || echo "0")
-        if [ "$replica_count" -gt 0 ]; then
-          echo "Found $replica_count replicas, enabling synchronous replication..."
-          /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml edit-config -s "synchronous_mode=true" --force
+        # Get the expected number of nodes
+        expected_nodes={{ groups['postgres_nodes'] | length }}
+        
+        # Count actual nodes in cluster
+        actual_nodes=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep -E "Leader|Replica" | wc -l)
+        
+        echo "Expected nodes: $expected_nodes, Actual nodes: $actual_nodes"
+        
+        if [ "$actual_nodes" -eq "$expected_nodes" ]; then
+          echo "All nodes are in the cluster"
+          exit 0
+        else
+          echo "WARNING: Not all nodes have joined the cluster yet"
+          exit 1
+        fi
+      register: cluster_check
+      until: cluster_check.rc == 0
+      retries: 10
+      delay: 10
+      when: postgres_role == 'primary'
+      run_once: true
+
+    - name: Configure synchronous replication with proper standby names
+      shell: |
+        # Get list of standby nodes from the cluster
+        standby_nodes=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep "Replica" | awk '{print $2}' | tr '\n' ',' | sed 's/,$//')
+        
+        if [ -n "$standby_nodes" ]; then
+          echo "Found standby nodes: $standby_nodes"
+          
+          # Count replicas
+          replica_count=$(echo "$standby_nodes" | tr ',' '\n' | wc -l)
+          
+          # Build synchronous_standby_names based on datacenter distribution
+          # Use ANY 1 syntax for quorum-based replication
+          sync_standby_names="ANY 1 ($standby_nodes)"
+          
+          echo "Enabling synchronous replication with: $sync_standby_names"
+          
+          # Enable synchronous mode in Patroni
+          /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml edit-config \
+            -s "synchronous_mode=true" \
+            -s "synchronous_mode_strict=false" \
+            -s "postgresql.parameters.synchronous_commit=remote_apply" \
+            -s "postgresql.parameters.synchronous_standby_names='$sync_standby_names'" \
+            --force
+          
+          echo "Synchronous replication enabled with $replica_count replicas"
         else
           echo "No replicas found, keeping synchronous mode disabled"
+          
+          # Ensure async parameters are set
+          /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml edit-config \
+            -s "synchronous_mode=false" \
+            -s "postgresql.parameters.synchronous_commit=on" \
+            -s "postgresql.parameters.synchronous_standby_names=" \
+            --force
         fi
       register: sync_result
-      changed_when: "'enabling synchronous replication' in sync_result.stdout"
+      changed_when: "'Synchronous replication enabled' in sync_result.stdout"
       run_once: true
       when: postgres_role == 'primary'
+
+    - name: Wait for database initialization to complete
+      pause:
+        seconds: 10
+      when: postgres_role == 'primary'
+
+    - name: Verify database and user creation on primary
+      shell: |
+        export PGPASSWORD="{{ postgres_password }}"
+        
+        # First check if we can connect as postgres user
+        if ! psql -h localhost -U postgres -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+          echo "ERROR: Cannot connect to PostgreSQL as postgres user"
+          exit 1
+        fi
+        
+        # Check if user exists (user should be created by Patroni bootstrap config)
+        if ! psql -h localhost -U postgres -d postgres -tAc "SELECT 1 FROM pg_user WHERE usename='proposalsapp';" | grep -q 1; then
+          echo "ERROR: proposalsapp user not created by Patroni bootstrap"
+          exit 1
+        fi
+        
+        # Check if database exists (database should be created by Patroni bootstrap config)
+        if ! psql -h localhost -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='proposalsapp';" | grep -q 1; then
+          echo "ERROR: proposalsapp database not created by Patroni bootstrap"
+          exit 1
+        fi
+        
+        # Test connection as proposalsapp user
+        export PGPASSWORD="{{ postgres_password }}"
+        if ! psql -h localhost -U proposalsapp -d proposalsapp -c "SELECT version();" >/dev/null 2>&1; then
+          echo "ERROR: Cannot connect as proposalsapp user"
+          exit 1
+        fi
+        
+        echo "SUCCESS: Database and user are properly configured"
+      when: postgres_role == 'primary'
+      changed_when: false
+      retries: 3
+      delay: 5
+      register: db_verify
+      until: db_verify.rc == 0
 
   handlers:
     - name: reload systemd
