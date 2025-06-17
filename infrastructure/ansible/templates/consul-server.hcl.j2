@@ -4,7 +4,7 @@ data_dir = "/var/lib/consul"
 log_level = "INFO"
 node_name = "{{ inventory_hostname }}"
 server = true
-bootstrap_expect = 3
+bootstrap_expect = 1
 encrypt = "{{ consul_encrypt_key }}"
 
 ui_config {

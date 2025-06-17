@@ -1,87 +1,98 @@
 ---
 - name: Install and configure PgCat
-  hosts: app
+  hosts: nomad_clients
   become: true
   vars:
-    pgcat_version: "1.1.1"
-    pgcat_user: pgcat
-    pgcat_group: pgcat
     pgcat_config_dir: /etc/pgcat
     pgcat_log_dir: /var/log/pgcat
     pgcat_data_dir: /var/lib/pgcat
+    database_name: proposalsapp
+    database_user: proposalsapp
+    database_password: "{{ vault_postgres_password }}"
+    pgcat_admin_password: "{{ vault_pgcat_admin_password | default(vault_postgres_password) }}"
     
   tasks:
-    - name: Create pgcat user
-      user:
-        name: "{{ pgcat_user }}"
-        system: true
-        shell: /bin/false
-        home: "{{ pgcat_data_dir }}"
-        createhome: false
-        
     - name: Create pgcat directories
       file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ pgcat_user }}"
-        group: "{{ pgcat_group }}"
+        owner: root
+        group: root
         mode: '0755'
       loop:
         - "{{ pgcat_config_dir }}"
         - "{{ pgcat_log_dir }}"
         - "{{ pgcat_data_dir }}"
         
-    - name: Download and install pgcat binary
-      get_url:
-        url: "https://github.com/postgresml/pgcat/releases/download/v{{ pgcat_version }}/pgcat-v{{ pgcat_version }}-x86_64-unknown-linux-gnu.tar.gz"
-        dest: /tmp/pgcat.tar.gz
-        mode: '0644'
+    - name: Install Docker if not present
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
         
-    - name: Extract pgcat binary
-      unarchive:
-        src: /tmp/pgcat.tar.gz
-        dest: /usr/local/bin
-        remote_src: true
-        owner: root
-        group: root
+    - name: Ensure Docker is running
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+        
+    - name: Pull PgCat Docker image
+      docker_image:
+        name: ghcr.io/postgresml/pgcat
+        tag: latest
+        source: pull
+        
+    - name: Create pgcat wrapper script
+      copy:
+        content: |
+          #!/bin/bash
+          # Wrapper script to run pgcat via Docker
+          exec docker run --rm \
+            --name pgcat \
+            --network host \
+            -v {{ pgcat_config_dir }}:{{ pgcat_config_dir }}:ro \
+            -v {{ pgcat_log_dir }}:{{ pgcat_log_dir }} \
+            -v {{ pgcat_data_dir }}:{{ pgcat_data_dir }} \
+            ghcr.io/postgresml/pgcat:latest \
+            /usr/bin/pgcat {{ pgcat_config_dir }}/pgcat.toml
+        dest: /usr/bin/pgcat
         mode: '0755'
-        creates: /usr/local/bin/pgcat
         
     - name: Create pgcat configuration
       template:
-        src: pgcat.toml.j2
+        src: ../templates/pgcat.toml.j2
         dest: "{{ pgcat_config_dir }}/pgcat.toml"
-        owner: "{{ pgcat_user }}"
-        group: "{{ pgcat_group }}"
-        mode: '0640'
+        owner: root
+        group: root
+        mode: '0644'
       notify: restart pgcat
       
     - name: Create pgcat systemd service
       copy:
         content: |
           [Unit]
-          Description=PgCat PostgreSQL Proxy
-          After=network-online.target consul.service
+          Description=PgCat PostgreSQL Proxy (Docker)
+          After=network-online.target consul.service docker.service
           Wants=network-online.target
+          Requires=docker.service
           
           [Service]
           Type=simple
-          User={{ pgcat_user }}
-          Group={{ pgcat_group }}
-          ExecStart=/usr/local/bin/pgcat {{ pgcat_config_dir }}/pgcat.toml
-          ExecReload=/bin/kill -HUP $MAINPID
+          ExecStartPre=-/usr/bin/docker stop pgcat
+          ExecStartPre=-/usr/bin/docker rm pgcat
+          ExecStart=/usr/bin/docker run --rm \
+            --name pgcat \
+            --network host \
+            -v {{ pgcat_config_dir }}:{{ pgcat_config_dir }}:ro \
+            -v {{ pgcat_log_dir }}:{{ pgcat_log_dir }} \
+            -v {{ pgcat_data_dir }}:{{ pgcat_data_dir }} \
+            -e RUST_LOG=info \
+            ghcr.io/postgresml/pgcat:latest \
+            /usr/bin/pgcat {{ pgcat_config_dir }}/pgcat.toml
+          ExecStop=/usr/bin/docker stop pgcat
+          ExecReload=/usr/bin/docker kill -s HUP pgcat
           Restart=always
           RestartSec=10
-          StandardOutput=journal
-          StandardError=journal
-          SyslogIdentifier=pgcat
-          
-          # Security settings
-          NoNewPrivileges=true
-          PrivateTmp=true
-          ProtectHome=true
-          ProtectSystem=strict
-          ReadWritePaths={{ pgcat_log_dir }} {{ pgcat_data_dir }}
           
           # Resource limits
           LimitNOFILE=65536
@@ -94,9 +105,71 @@
         - reload systemd
         - restart pgcat
         
+    - name: Install consul-template
+      get_url:
+        url: "https://releases.hashicorp.com/consul-template/0.33.0/consul-template_0.33.0_linux_amd64.zip"
+        dest: /tmp/consul-template.zip
+        mode: '0644'
+        
+    - name: Unarchive consul-template
+      unarchive:
+        src: /tmp/consul-template.zip
+        dest: /usr/local/bin
+        remote_src: true
+        creates: /usr/local/bin/consul-template
+        
+    - name: Create consul-template directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/consul-template.d
+        - /var/lib/consul-template
+        
+    - name: Create consul-template systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=consul-template
+          Requires=network-online.target consul.service
+          After=network-online.target consul.service
+          
+          [Service]
+          Type=simple
+          Environment="DATACENTER={{ datacenter }}"
+          Environment="CONSUL_HTTP_ADDR=127.0.0.1:8500"
+          ExecStart=/usr/local/bin/consul-template -config=/etc/consul-template.d
+          ExecReload=/bin/kill -HUP $MAINPID
+          KillMode=process
+          Restart=on-failure
+          LimitNOFILE=65536
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/consul-template.service
+        mode: '0644'
+      notify:
+        - reload systemd
+        - restart consul-template
+        
+    - name: Set Consul KV values for PgCat
+      uri:
+        url: "http://127.0.0.1:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "pgcat/admin_password", value: "{{ pgcat_admin_password }}" }
+        - { key: "database/password", value: "{{ database_password }}" }
+        - { key: "database/name", value: "{{ database_name }}" }
+        - { key: "database/user", value: "{{ database_user }}" }
+        - { key: "pgcat/enable_cross_dc_reads", value: "false" }
+      delegate_to: "{{ groups['consul_servers'][0] }}"
+      run_once: true
+      
     - name: Configure Consul Template for pgcat
       template:
-        src: pgcat.consul.j2
+        src: ../templates/pgcat.consul.j2
         dest: /etc/consul-template.d/pgcat.hcl
         mode: '0644'
       notify: restart consul-template
@@ -135,6 +208,12 @@
         state: started
         enabled: true
         daemon_reload: true
+        
+    - name: Start and enable consul-template
+      systemd:
+        name: consul-template
+        state: started
+        enabled: true
         
   handlers:
     - name: reload systemd

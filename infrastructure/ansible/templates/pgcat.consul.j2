@@ -1,9 +1,8 @@
 template {
-  source = "/etc/consul-template.d/pgcat.toml.ctmpl"
   destination = "/etc/pgcat/pgcat.toml"
-  perms = 0640
-  user = "pgcat"
-  group = "pgcat"
+  perms = 0644
+  user = "root"
+  group = "root"
   
   # Reload pgcat when configuration changes
   command = "systemctl reload pgcat || true"
@@ -14,6 +13,7 @@ template {
   
   # Template contents
   contents = <<EOT
+{% raw %}
 # PgCat configuration - managed by Consul Template
 # Auto-generated from Consul service discovery
 
@@ -27,67 +27,57 @@ prometheus_exporter_enabled = true
 prometheus_exporter_port = 9930
 
 pool_mode = "transaction"
-default_pool_size = {{ key_or_default "pgcat/pool_size" "25" }}
-min_pool_size = {{ key_or_default "pgcat/min_pool_size" "10" }}
-reserve_pool_size = {{ key_or_default "pgcat/reserve_pool_size" "5" }}
+default_pool_size = {{ keyOrDefault "pgcat/pool_size" "25" }}
+min_pool_size = {{ keyOrDefault "pgcat/min_pool_size" "10" }}
+reserve_pool_size = {{ keyOrDefault "pgcat/reserve_pool_size" "5" }}
 
 query_parser_enabled = true
 query_parser_read_write_splitting = true
 primary_reads_enabled = false
 
-connect_timeout = "5s"
-idle_timeout = "30m"
-healthcheck_timeout = "1s"
-healthcheck_delay = "30s"
-ban_time = "60s"
+connect_timeout = 5000
+idle_timeout = 1800000
+healthcheck_timeout = 1000
+healthcheck_delay = 30000
+ban_time = 60000
 
-log_level = "{{ key_or_default "pgcat/log_level" "info" }}"
-worker_threads = {{ key_or_default "pgcat/worker_threads" "4" }}
+log_level = "{{ keyOrDefault "pgcat/log_level" "info" }}"
+worker_threads = {{ keyOrDefault "pgcat/worker_threads" "4" }}
 
-[pools.{{ key_or_default "database/name" "proposalsapp" }}]
+[pools.{{ keyOrDefault "database/name" "proposalsapp" }}]
 pool_mode = "transaction"
 primary_reads_enabled = false
 query_parser_enabled = true
 query_parser_read_write_splitting = true
 
-[pools.{{ key_or_default "database/name" "proposalsapp" }}.users.{{ key_or_default "database/user" "proposalsapp" }}]
+[pools.{{ keyOrDefault "database/name" "proposalsapp" }}.users.0]
+username = "{{ keyOrDefault "database/user" "proposalsapp" }}"
 password = "{{ key "database/password" }}"
-pool_size = {{ key_or_default "pgcat/user_pool_size" "10" }}
+pool_size = {{ keyOrDefault "pgcat/user_pool_size" "10" }}
 
-# Primary shard - dynamically discovered
-[[pools.{{ key_or_default "database/name" "proposalsapp" }}.shards]]
+# Shard 0 - dynamically discovered from Consul
+[pools.{{ keyOrDefault "database/name" "proposalsapp" }}.shards.0]
 servers = [
 {{- range service "proposalsapp" }}
   {{- if or (in .Tags "master") (in .Tags "primary") }}
     ["{{ .Address }}", {{ .Port }}, "primary"],
   {{- end }}
 {{- end }}
-]
-role = "primary"
-
-# Local datacenter replicas - preferred for reads
-[[pools.{{ key_or_default "database/name" "proposalsapp" }}.shards]]
-servers = [
 {{- $dc := env "DATACENTER" -}}
 {{- range service "proposalsapp" }}
   {{- if and (in .Tags "replica") (eq .Datacenter $dc) }}
     ["{{ .Address }}", {{ .Port }}, "replica"],
   {{- end }}
 {{- end }}
-]
-role = "replica"
-
-# Remote datacenter replicas - fallback
-{{- if key_or_default "pgcat/enable_cross_dc_reads" "false" | parseBool }}
-[[pools.{{ key_or_default "database/name" "proposalsapp" }}.shards]]
-servers = [
+{{- if keyOrDefault "pgcat/enable_cross_dc_reads" "false" | parseBool }}
 {{- range service "proposalsapp" }}
   {{- if and (in .Tags "replica") (ne .Datacenter $dc) }}
     ["{{ .Address }}", {{ .Port }}, "replica"],
   {{- end }}
 {{- end }}
-]
-role = "replica"
 {{- end }}
+]
+database = "{{ keyOrDefault "database/name" "proposalsapp" }}"
+{% endraw %}
 EOT
 }

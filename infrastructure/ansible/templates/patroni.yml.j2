@@ -25,7 +25,7 @@ bootstrap:
     maximum_lag_on_failover: 1048576
     master_start_timeout: 300
     synchronous_mode: true
-    synchronous_mode_strict: true
+    synchronous_mode_strict: false
     synchronous_node_count: 1
     postgresql:
       use_pg_rewind: true
@@ -76,6 +76,8 @@ bootstrap:
       password: {{ postgres_replication_password }}
       options:
         - replication
+
+  post_init: /var/lib/postgresql/post_init.sh
 
 postgresql:
   listen: 0.0.0.0:{{ postgres_port }}

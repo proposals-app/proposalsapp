@@ -98,6 +98,14 @@
         group: postgres
         mode: "0700"
 
+    - name: Copy post-initialization script
+      copy:
+        src: ../files/post_init.sh
+        dest: /var/lib/postgresql/post_init.sh
+        owner: postgres
+        group: postgres
+        mode: "0755"
+
     - name: Generate Patroni configuration
       template:
         src: ../templates/patroni.yml.j2

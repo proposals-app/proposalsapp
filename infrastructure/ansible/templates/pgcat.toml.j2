@@ -20,23 +20,23 @@ pool_mode = "transaction"
 default_pool_size = {{ pgcat_pool_size | default(25) }}
 min_pool_size = {{ pgcat_min_pool_size | default(10) }}
 reserve_pool_size = {{ pgcat_reserve_pool_size | default(5) }}
-reserve_pool_timeout = "{{ pgcat_reserve_pool_timeout | default('3s') }}"
+reserve_pool_timeout = {{ pgcat_reserve_pool_timeout | default(3000) }}
 
 # Query parsing for intelligent routing
 query_parser_enabled = true
 query_parser_read_write_splitting = true
 primary_reads_enabled = false
 
-# Connection settings
-connect_timeout = "{{ pgcat_connect_timeout | default('5s') }}"
-idle_timeout = "{{ pgcat_idle_timeout | default('30m') }}"
-acquire_timeout = "{{ pgcat_acquire_timeout | default('3s') }}"
-cancel_wait_timeout = "{{ pgcat_cancel_wait_timeout | default('5s') }}"
+# Connection settings (in milliseconds)
+connect_timeout = {{ pgcat_connect_timeout | default(5000) }}
+idle_timeout = {{ pgcat_idle_timeout | default(1800000) }}
+acquire_timeout = {{ pgcat_acquire_timeout | default(3000) }}
+cancel_wait_timeout = {{ pgcat_cancel_wait_timeout | default(5000) }}
 
-# Health checks
-healthcheck_timeout = "{{ pgcat_healthcheck_timeout | default('1s') }}"
-healthcheck_delay = "{{ pgcat_healthcheck_delay | default('30s') }}"
-ban_time = "{{ pgcat_ban_time | default('60s') }}"
+# Health checks (in milliseconds)
+healthcheck_timeout = {{ pgcat_healthcheck_timeout | default(1000) }}
+healthcheck_delay = {{ pgcat_healthcheck_delay | default(30000) }}
+ban_time = {{ pgcat_ban_time | default(60000) }}
 
 # Logging
 log_level = "{{ pgcat_log_level | default('info') }}"
@@ -55,7 +55,7 @@ auth_query_enabled = false
 validate_server_cert = {{ pgcat_validate_server_cert | default('false') | lower }}
 
 # Buffer sizes
-tcp_user_timeout = "{{ pgcat_tcp_user_timeout | default('0') }}"
+tcp_user_timeout = {{ pgcat_tcp_user_timeout | default(0) }}
 server_tcp_keepalive_time = {{ pgcat_tcp_keepalive_time | default(7200) }}
 server_tcp_keepalive_interval = {{ pgcat_tcp_keepalive_interval | default(75) }}
 server_tcp_keepalive_count = {{ pgcat_tcp_keepalive_count | default(9) }}
@@ -73,51 +73,43 @@ default_pool_size = {{ pgcat_pool_size | default(25) }}
 min_pool_size = {{ pgcat_min_pool_size | default(10) }}
 
 # Database user configuration
-[pools.{{ database_name | default('proposalsapp') }}.users.{{ database_user | default('proposalsapp') }}]
+[pools.{{ database_name | default('proposalsapp') }}.users.0]
+username = "{{ database_user | default('proposalsapp') }}"
 password = "{{ database_password }}"
 pool_size = {{ pgcat_user_pool_size | default(10) }}
-statement_timeout = "{{ pgcat_statement_timeout | default('0') }}"
+statement_timeout = {{ pgcat_statement_timeout | default(0) }}
 
 # Shards configuration (will be managed by Consul Template)
-# Primary shard - for all write queries
-[[pools.{{ database_name | default('proposalsapp') }}.shards]]
+# We use shard 0 for our single database configuration
+[pools.{{ database_name | default('proposalsapp') }}.shards.0]
 servers = [
-{% for host in groups['postgres'] %}
-{% if hostvars[host]['postgres_role'] | default('replica') == 'primary' %}
-    ["{{ hostvars[host]['ansible_default_ipv4']['address'] }}", 5432, "primary"],
+# Primary server
+{% for host in groups['postgres_nodes'] %}
+{% if hostvars[host]['postgres_role'] | default('standby') == 'primary' %}
+    ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "primary"],
 {% endif %}
 {% endfor %}
-]
-role = "primary"
-
-# Replica shards - for read queries
-# Prefer local datacenter replicas
-[[pools.{{ database_name | default('proposalsapp') }}.shards]]
-servers = [
-{% for host in groups['postgres'] %}
-{% if hostvars[host]['postgres_role'] | default('replica') == 'replica' and hostvars[host]['datacenter'] | default('dc1') == datacenter | default('dc1') %}
-    ["{{ hostvars[host]['ansible_default_ipv4']['address'] }}", 5432, "replica"],
+# Local datacenter replicas
+{% for host in groups['postgres_nodes'] %}
+{% if hostvars[host]['postgres_role'] | default('standby') == 'standby' and hostvars[host]['datacenter'] | default('dc1') == datacenter | default('dc1') %}
+    ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "replica"],
 {% endif %}
 {% endfor %}
-]
-role = "replica"
-
-# Remote datacenter replicas (lower priority)
+# Remote datacenter replicas
 {% if enable_cross_dc_reads | default(false) %}
-[[pools.{{ database_name | default('proposalsapp') }}.shards]]
-servers = [
-{% for host in groups['postgres'] %}
-{% if hostvars[host]['postgres_role'] | default('replica') == 'replica' and hostvars[host]['datacenter'] | default('dc1') != datacenter | default('dc1') %}
-    ["{{ hostvars[host]['ansible_default_ipv4']['address'] }}", 5432, "replica"],
+{% for host in groups['postgres_nodes'] %}
+{% if hostvars[host]['postgres_role'] | default('standby') == 'standby' and hostvars[host]['datacenter'] | default('dc1') != datacenter | default('dc1') %}
+    ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "replica"],
 {% endif %}
 {% endfor %}
-]
-role = "replica"
 {% endif %}
+]
+database = "{{ database_name | default('proposalsapp') }}"
 
 # Additional users (if needed)
 {% for user in additional_database_users | default([]) %}
-[pools.{{ database_name | default('proposalsapp') }}.users.{{ user.name }}]
+[pools.{{ database_name | default('proposalsapp') }}.users.{{ loop.index }}]
+username = "{{ user.name }}"
 password = "{{ user.password }}"
 pool_size = {{ user.pool_size | default(5) }}
 {% endfor %}

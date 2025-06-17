@@ -431,23 +431,21 @@
 
     - name: Check Consul leader election
       shell: |
-        # For secondary datacenters, check if we can see the cluster status
-        if [ "{{ datacenter }}" != "dc1" ]; then
-          # Secondary DCs should be able to query their local leader
-          if ! consul info 2>&1 | grep -q "leader = true\|leader = false"; then
-            echo "ERROR: Cannot query Consul status in {{ datacenter }}"
-            exit 1
-          fi
-          echo "OK: Secondary DC {{ datacenter }} connected to cluster"
-          consul members
-        else
-          # Primary DC must have a leader
-          if ! consul operator raft list-peers 2>&1 | awk '{print $4}' | grep -q "leader"; then
-            echo "ERROR: No Consul leader elected in primary DC"
-            exit 1
-          fi
-          consul operator raft list-peers
+        # With single server per DC, each DC has its own leader
+        # Check if this server is the leader (it should be, as the only server)
+        if ! consul info 2>&1 | grep -q "leader = true"; then
+          echo "ERROR: Server is not a leader in {{ datacenter }}"
+          exit 1
         fi
+        echo "OK: Server is leader in {{ datacenter }}"
+        
+        # Verify WAN federation
+        wan_members=$(consul members -wan | grep -c server)
+        if [ "$wan_members" -lt 3 ]; then
+          echo "WARNING: Only $wan_members servers in WAN federation (expected 3)"
+        fi
+        
+        consul members -wan
       register: consul_leader
       changed_when: false
       retries: 5
