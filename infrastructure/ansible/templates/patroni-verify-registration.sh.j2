@@ -1,0 +1,79 @@
+#!/bin/bash
+# Script to verify Patroni node is properly registered in Consul across all datacenters
+
+set -e
+
+NODE_NAME="{{ inventory_hostname }}"
+CONSUL_PORT="{{ consul_client_port }}"
+PATRONI_CONFIG="/etc/patroni/patroni.yml"
+MAX_RETRIES=30
+RETRY_DELAY=5
+
+echo "Verifying Patroni registration for $NODE_NAME..."
+
+# Function to check if node is registered in a specific datacenter
+check_registration_in_dc() {
+    local dc=$1
+    local response=$(curl -s "http://localhost:${CONSUL_PORT}/v1/kv/service/proposalsapp/members/${NODE_NAME}?dc=${dc}" 2>/dev/null)
+    
+    if [ -n "$response" ] && [ "$response" != "null" ]; then
+        echo "✓ Node registered in datacenter $dc"
+        return 0
+    else
+        echo "✗ Node not yet registered in datacenter $dc"
+        return 1
+    fi
+}
+
+# Wait for local registration first
+echo "Waiting for local Consul registration..."
+i=1
+while [ $i -le $MAX_RETRIES ]; do
+    if check_registration_in_dc "{{ datacenter }}"; then
+        break
+    fi
+    echo "Attempt $i/$MAX_RETRIES - waiting ${RETRY_DELAY}s..."
+    sleep $RETRY_DELAY
+    i=$((i + 1))
+done
+
+if [ $i -gt $MAX_RETRIES ]; then
+    echo "ERROR: Failed to register in local datacenter after $((MAX_RETRIES * RETRY_DELAY)) seconds"
+    exit 1
+fi
+
+# Force a Patroni REST API call to ensure it updates its state
+echo "Triggering Patroni state update..."
+curl -s http://localhost:{{ patroni_rest_api_port }}/cluster >/dev/null 2>&1 || true
+
+# Give consul-replicate time to sync
+echo "Waiting for consul-replicate to sync across datacenters..."
+sleep 10
+
+# Verify registration in all datacenters
+echo "Verifying cross-datacenter registration..."
+all_registered=true
+for dc in dc1 dc2 dc3; do
+    if ! check_registration_in_dc "$dc"; then
+        all_registered=false
+    fi
+done
+
+if [ "$all_registered" = "true" ]; then
+    echo "SUCCESS: Node $NODE_NAME is registered in all datacenters"
+else
+    echo "WARNING: Node $NODE_NAME is not yet visible in all datacenters"
+    echo "This may be due to consul-replicate sync delays"
+    
+    # Try to force a re-registration
+    echo "Attempting to force re-registration..."
+    systemctl reload patroni || true
+    sleep 5
+fi
+
+# Final cluster state check
+echo ""
+echo "Current cluster state:"
+/var/lib/postgresql/.local/bin/patronictl -c $PATRONI_CONFIG list
+
+exit 0

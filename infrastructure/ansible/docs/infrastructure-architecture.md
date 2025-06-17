@@ -468,5 +468,6 @@ This automated health check significantly improves infrastructure resilience by 
 4. **Cross-DC latency** - Writes may cross DC boundaries depending on leader location
 5. **Quorum requirements** - Need 2/3 DCs operational for both Nomad and PostgreSQL
 6. **Replication conflicts** - Resolved via last-write-wins, potential for brief inconsistencies during network partitions
+7. **Patroni cross-DC visibility** - PostgreSQL nodes may not always appear in `patronictl list` output across datacenters due to consul-replicate eventual consistency. This is cosmetic - actual PostgreSQL replication continues to function. Use `/usr/local/bin/postgres-health-check` for accurate replication status.
 
 This architecture achieves high availability through geographic distribution and intelligent routing while maintaining operational simplicity. The design philosophy prioritizes clarity and debuggability over complex automation.

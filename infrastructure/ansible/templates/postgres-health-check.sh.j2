@@ -1,0 +1,82 @@
+#!/bin/bash
+# PostgreSQL health check that verifies actual replication status
+# This is more reliable than Patroni's cluster view in multi-DC setups
+
+set -e
+
+PGPASSWORD="{{ postgres_password }}"
+export PGPASSWORD
+
+echo "=== PostgreSQL Node Health Check ==="
+echo "Node: {{ inventory_hostname }}"
+echo "Datacenter: {{ datacenter }}"
+echo ""
+
+# Check if PostgreSQL is running
+if ! systemctl is-active --quiet postgresql@17-main.service && ! systemctl is-active --quiet patroni.service; then
+    echo "ERROR: PostgreSQL/Patroni service is not running"
+    exit 1
+fi
+
+# Check if we can connect to PostgreSQL
+if ! psql -h localhost -U postgres -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "ERROR: Cannot connect to PostgreSQL"
+    exit 1
+fi
+
+# Check if this is primary or replica
+is_primary=$(psql -h localhost -U postgres -d postgres -t -c "SELECT NOT pg_is_in_recovery();" | tr -d ' ')
+
+if [ "$is_primary" = "t" ]; then
+    echo "Role: PRIMARY"
+    
+    # Check replication slots
+    echo ""
+    echo "Replication Status:"
+    psql -h localhost -U postgres -d postgres -c "
+    SELECT client_addr, state, sync_state, replay_lsn 
+    FROM pg_stat_replication 
+    ORDER BY client_addr;"
+    
+    # Check for lagging replicas
+    lag_check=$(psql -h localhost -U postgres -d postgres -t -c "
+    SELECT COUNT(*) 
+    FROM pg_stat_replication 
+    WHERE replay_lsn < pg_current_wal_lsn() - '1GB'::pg_lsn;" | tr -d ' ')
+    
+    if [ "$lag_check" -gt 0 ]; then
+        echo "WARNING: $lag_check replica(s) are lagging more than 1GB"
+    fi
+else
+    echo "Role: REPLICA"
+    
+    # Check replication status
+    echo ""
+    echo "Replication Status:"
+    psql -h localhost -U postgres -d postgres -c "
+    SELECT pg_is_in_recovery() as in_recovery,
+           pg_last_wal_receive_lsn() as receive_lsn,
+           pg_last_wal_replay_lsn() as replay_lsn,
+           CASE 
+             WHEN pg_last_wal_receive_lsn() = pg_last_wal_replay_lsn() 
+             THEN 'Synchronized' 
+             ELSE 'Replaying' 
+           END as status;"
+    
+    # Check connection to primary
+    primary_conninfo=$(psql -h localhost -U postgres -d postgres -t -c "SHOW primary_conninfo;" | tr -d ' ')
+    if [ -n "$primary_conninfo" ]; then
+        echo ""
+        echo "Connected to primary via: $primary_conninfo"
+    fi
+fi
+
+# Check Patroni's view (may be incomplete in multi-DC)
+echo ""
+echo "Patroni Cluster View (may be incomplete due to cross-DC sync):"
+if command -v patronictl >/dev/null 2>&1; then
+    /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list 2>/dev/null || echo "Patroni view unavailable"
+fi
+
+echo ""
+echo "=== Health Check Complete ==="

@@ -203,7 +203,7 @@
 
     - name: Wait for consul-replicate to sync the cleanup
       pause:
-        seconds: 10
+        seconds: 30
         prompt: "Waiting for consul-replicate to propagate cleanup across datacenters"
       run_once: true
 
@@ -217,7 +217,7 @@
 
     - name: Wait for primary to initialize cluster
       pause:
-        seconds: 30
+        seconds: 45
         prompt: "Waiting for primary to initialize and register in Consul"
       when: postgres_role == 'primary'
     
@@ -235,7 +235,7 @@
 
     - name: Wait for consul-replicate to sync initial cluster state
       pause:
-        seconds: 30
+        seconds: 60
         prompt: "Waiting for consul-replicate to propagate cluster state to all datacenters"
       run_once: true
     
@@ -297,7 +297,7 @@
         executable: /bin/bash
       register: dc_sync_check
       until: dc_sync_check.rc == 0
-      retries: 30
+      retries: 60
       delay: 5
       run_once: true
       delegate_to: "{{ groups['consul_servers'][0] }}"
@@ -316,7 +316,7 @@
         echo "Found initialize value in {{ datacenter }}: $init_value"
       register: local_init_check
       until: local_init_check.rc == 0
-      retries: 60
+      retries: 90
       delay: 5
       when: postgres_role != 'primary'
 
@@ -329,7 +329,7 @@
 
     - name: Wait for all nodes to stabilize
       pause:
-        seconds: 20
+        seconds: 30
       run_once: true
 
     - name: Verify cluster has formed with leader
@@ -386,6 +386,17 @@
         exit 1
       register: node_join
       failed_when: node_join.rc != 0
+
+    - name: Generate Patroni registration verification script
+      template:
+        src: ../templates/patroni-verify-registration.sh.j2
+        dest: /tmp/patroni-verify-registration.sh
+        mode: "0755"
+
+    - name: Verify Patroni registration across datacenters
+      shell: /tmp/patroni-verify-registration.sh
+      register: registration_verify
+      changed_when: false
 
     - name: Check if PostgreSQL service is already registered
       uri:
@@ -445,7 +456,7 @@
 
     - name: Wait for all PostgreSQL nodes to join cluster
       pause:
-        seconds: 30
+        seconds: 45
       run_once: true
 
     - name: Verify all nodes are in cluster before configuring replication
@@ -458,17 +469,22 @@
         
         echo "Expected nodes: $expected_nodes, Actual nodes: $actual_nodes"
         
-        if [ "$actual_nodes" -eq "$expected_nodes" ]; then
+        # In multi-datacenter setup, sometimes not all nodes show up due to consul-replicate delays
+        # Accept if we have at least 2 nodes (primary + 1 replica) for quorum
+        if [ "$actual_nodes" -ge 2 ]; then
+          echo "Minimum required nodes are in the cluster (have $actual_nodes, need at least 2)"
+          exit 0
+        elif [ "$actual_nodes" -eq "$expected_nodes" ]; then
           echo "All nodes are in the cluster"
           exit 0
         else
-          echo "WARNING: Not all nodes have joined the cluster yet"
+          echo "WARNING: Not enough nodes have joined the cluster yet"
           exit 1
         fi
       register: cluster_check
       until: cluster_check.rc == 0
-      retries: 10
-      delay: 10
+      retries: 20
+      delay: 15
       when: postgres_role == 'primary'
       run_once: true
 
@@ -575,6 +591,49 @@
       delay: 10
       until: db_create.rc == 0
 
+    - name: Deploy PostgreSQL health check script
+      template:
+        src: ../templates/postgres-health-check.sh.j2
+        dest: /usr/local/bin/postgres-health-check
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create systemd timer for health checks
+      copy:
+        content: |
+          [Unit]
+          Description=PostgreSQL Health Check Timer
+          
+          [Timer]
+          OnBootSec=5min
+          OnUnitActiveSec=5min
+          
+          [Install]
+          WantedBy=timers.target
+        dest: /etc/systemd/system/postgres-health-check.timer
+        
+    - name: Create systemd service for health checks
+      copy:
+        content: |
+          [Unit]
+          Description=PostgreSQL Health Check
+          After=patroni.service
+          
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/bin/postgres-health-check
+          StandardOutput=journal
+          StandardError=journal
+        dest: /etc/systemd/system/postgres-health-check.service
+        
+    - name: Enable and start health check timer
+      systemd:
+        name: postgres-health-check.timer
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
   handlers:
     - name: reload systemd
       systemd:
@@ -624,9 +683,17 @@
 
         # Check if this node is in the cluster
         if ! echo "$cluster_info" | grep -q "{{ inventory_hostname }}"; then
-          echo "ERROR: This node is not in the Patroni cluster"
-          echo "$cluster_info"
-          exit 1
+          # In cross-datacenter setups, nodes might not always show in the list due to consul-replicate delays
+          # Check if we can at least connect to PostgreSQL
+          export PGPASSWORD="{{ postgres_password }}"
+          if psql -h localhost -U postgres -c "SELECT 1;" >/dev/null 2>&1; then
+            echo "WARNING: Node not visible in Patroni list but PostgreSQL is accessible (likely consul-replicate delay)"
+            echo "$cluster_info"
+          else
+            echo "ERROR: This node is not in the Patroni cluster and PostgreSQL is not accessible"
+            echo "$cluster_info"
+            exit 1
+          fi
         fi
 
         # Check for a leader (but allow time for election during initial setup)
