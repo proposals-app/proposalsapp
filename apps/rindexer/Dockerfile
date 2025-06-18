@@ -10,6 +10,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo install cargo-chef --locked
@@ -30,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
     lld \
+    git \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -58,6 +60,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang \
     lld \
     python3 \
+    git \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
