@@ -133,14 +133,16 @@ jobs:
     if: success()
     permissions:
       packages: write
+    continue-on-error: true  # Don't fail the workflow if cleanup fails
     
     steps:
       - name: Delete old container images
         uses: actions/delete-package-versions@v4
         with:
-          package-name: 'rindexer'
+          package-name: 'proposalsapp/rindexer'
           package-type: 'container'
           min-versions-to-keep: 10
           delete-only-untagged-versions: 'false'
           # Keep last 5 versions per branch
           ignore-versions: '^(main|master|develop)-(.*)'
+        continue-on-error: true  # Continue even if package doesn't exist yet
