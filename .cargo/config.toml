@@ -13,3 +13,22 @@ rustflags = ["-C", "link-arg=-fuse-ld=lld"]
 [target.aarch64-unknown-linux-gnu]
 linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[profile.release]
+# Optimize for build speed while maintaining performance
+incremental = true
+codegen-units = 16
+opt-level = 3
+lto = "thin"
+
+[profile.dev]
+# Speed up debug builds
+incremental = true
+codegen-units = 256
+
+[net]
+# Faster dependency downloads
+git-fetch-with-cli = true
+
+[registries.crates-io]
+protocol = "sparse"

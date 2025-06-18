@@ -33,6 +33,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Set environment variables for faster builds
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+ENV CARGO_PROFILE_RELEASE_INCREMENTAL=true
+ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+
 RUN cargo install cargo-chef --locked
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
@@ -54,6 +60,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables for faster builds
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+ENV CARGO_PROFILE_RELEASE_INCREMENTAL=true
+ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
 
 COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo

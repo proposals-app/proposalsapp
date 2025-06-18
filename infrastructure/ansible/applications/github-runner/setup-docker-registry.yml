@@ -28,11 +28,20 @@
         env:
           REGISTRY_STORAGE_DELETE_ENABLED: "true"
           REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: "/var/lib/registry"
-          # Enable garbage collection
+          # Enable garbage collection and maintenance
           REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR: "inmemory"
+          REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_ENABLED: "true"
+          REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_AGE: "168h"
+          REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_INTERVAL: "24h"
+          # Increase HTTP timeouts for large layers
+          REGISTRY_HTTP_TIMEOUT_READ: "900s"
+          REGISTRY_HTTP_TIMEOUT_WRITE: "900s"
+          REGISTRY_HTTP_TIMEOUT_IDLE: "900s"
           # Performance tuning
           REGISTRY_HTTP_SECRET: "{{ vault_docker_registry_secret | default('myregistrysecret') }}"
           REGISTRY_HTTP_ADDR: "0.0.0.0:5000"
+          # Increase max body size for large layers
+          REGISTRY_HTTP_HEADERS_X_CONTENT_TYPE_OPTIONS: "[nosniff]"
 
     - name: Configure Docker daemon to use insecure registry
       copy:
