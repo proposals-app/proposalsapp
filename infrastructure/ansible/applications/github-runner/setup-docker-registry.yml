@@ -7,6 +7,31 @@
     registry_data_dir: /var/lib/docker-registry
     
   tasks:
+    - name: Configure Docker daemon to use insecure registry
+      copy:
+        content: |
+          {
+            "insecure-registries": ["localhost:{{ registry_port }}"]
+          }
+        dest: /etc/docker/daemon.json
+        backup: yes
+      register: docker_config_changed
+
+    - name: Restart Docker if configuration changed
+      systemd:
+        name: docker
+        state: restarted
+        daemon_reload: yes
+      when: docker_config_changed.changed
+
+    - name: Wait for Docker to be ready
+      command: docker info
+      register: docker_info
+      until: docker_info.rc == 0
+      retries: 5
+      delay: 5
+      when: docker_config_changed.changed
+    
     - name: Create registry data directory
       file:
         path: "{{ registry_data_dir }}"
@@ -15,44 +40,41 @@
         group: root
         mode: '0755'
 
-    - name: Run local Docker registry
-      docker_container:
-        name: registry
-        image: registry:2
-        state: started
-        restart_policy: always
-        ports:
-          - "{{ registry_port }}:5000"
-        volumes:
-          - "{{ registry_data_dir }}:/var/lib/registry"
-        env:
-          REGISTRY_STORAGE_DELETE_ENABLED: "true"
-          REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: "/var/lib/registry"
-          # Enable garbage collection and maintenance
-          REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR: "inmemory"
-          REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_ENABLED: "true"
-          REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_AGE: "168h"
-          REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_INTERVAL: "24h"
-          # Increase HTTP timeouts for large layers
-          REGISTRY_HTTP_TIMEOUT_READ: "900s"
-          REGISTRY_HTTP_TIMEOUT_WRITE: "900s"
-          REGISTRY_HTTP_TIMEOUT_IDLE: "900s"
-          # Performance tuning
-          REGISTRY_HTTP_SECRET: "{{ vault_docker_registry_secret | default('myregistrysecret') }}"
-          REGISTRY_HTTP_ADDR: "0.0.0.0:5000"
-          # Increase max body size for large layers
-          REGISTRY_HTTP_HEADERS_X_CONTENT_TYPE_OPTIONS: "[nosniff]"
+    - name: Check if registry container exists
+      command: docker ps -a --filter name=registry --format '{{ '{{' }}.Names{{ '}}' }}'
+      register: existing_registry
+      changed_when: false
 
-    - name: Configure Docker daemon to use insecure registry
-      copy:
-        content: |
-          {
-            "insecure-registries": ["localhost:{{ registry_port }}"],
-            "registry-mirrors": ["http://localhost:{{ registry_port }}"]
-          }
-        dest: /etc/docker/daemon.json
-        backup: yes
-      notify: restart docker
+    - name: Remove existing registry container if present
+      command: docker rm -f registry
+      when: existing_registry.stdout == 'registry'
+      
+    - name: Run local Docker registry
+      command: |
+        docker run -d \
+          --name registry \
+          --restart always \
+          -p {{ registry_port }}:5000 \
+          -v {{ registry_data_dir }}:/var/lib/registry \
+          -e REGISTRY_STORAGE_DELETE_ENABLED=true \
+          -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/var/lib/registry \
+          -e REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR=inmemory \
+          -e REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_ENABLED=true \
+          -e REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_AGE=168h \
+          -e REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_INTERVAL=24h \
+          -e REGISTRY_HTTP_TIMEOUT_READ=900s \
+          -e REGISTRY_HTTP_TIMEOUT_WRITE=900s \
+          -e REGISTRY_HTTP_TIMEOUT_IDLE=900s \
+          -e REGISTRY_HTTP_SECRET={{ vault_docker_registry_secret | default('myregistrysecret') }} \
+          -e REGISTRY_HTTP_ADDR=0.0.0.0:5000 \
+          registry:2
+      
+    - name: Wait for registry container to be running
+      command: docker ps --filter name=registry --filter status=running --format '{{ '{{' }}.Names{{ '}}' }}'
+      register: registry_running
+      until: registry_running.stdout == 'registry'
+      retries: 10
+      delay: 3
 
     - name: Create registry garbage collection script
       copy:
@@ -77,10 +99,3 @@
         status_code: 200
       retries: 3
       delay: 5
-
-  handlers:
-    - name: restart docker
-      systemd:
-        name: docker
-        state: restarted
-        daemon_reload: yes
