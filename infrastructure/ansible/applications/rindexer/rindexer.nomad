@@ -63,6 +63,7 @@ job "rindexer" {
       config {
         image = "${RINDEXER_IMAGE}"
         ports = ["metrics"]
+        network_mode = "host"
         
         # Add logging configuration
         logging {
@@ -96,6 +97,9 @@ job "rindexer" {
         ETHERSCAN_API_KEY = "${ETHERSCAN_API_KEY}"
         OPTIMISTIC_SCAN_API_KEY = "${OPTIMISTIC_SCAN_API_KEY}"
         
+        # OpenTelemetry configuration
+        OTEL_EXPORTER_OTLP_ENDPOINT = "${OTEL_EXPORTER_OTLP_ENDPOINT}"
+        OTEL_SERVICE_NAME = "rindexer"
         
         # Indexer settings
         INDEXER_BATCH_SIZE = "100"
@@ -128,6 +132,9 @@ OPTIMISM_NODE_URL={{ key "rindexer/optimism_node_url" }}
 ARBISCAN_API_KEY={{ key "rindexer/arbiscan_api_key" }}
 ETHERSCAN_API_KEY={{ key "rindexer/etherscan_api_key" }}
 OPTIMISTIC_SCAN_API_KEY={{ key "rindexer/optimistic_scan_api_key" }}
+
+# OpenTelemetry configuration from Consul KV
+OTEL_EXPORTER_OTLP_ENDPOINT={{ key "rindexer/otel_exporter_otlp_endpoint" }}
 
 EOF
         destination = "secrets/env"

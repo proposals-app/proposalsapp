@@ -120,6 +120,23 @@
         dest: /etc/docker/daemon.json
       notify: restart docker
 
+    - name: Create Docker authentication for GitHub Container Registry
+      copy:
+        content: |
+          {
+            "auths": {
+              "ghcr.io": {
+                "auth": "{{ (vault_github_org + ':' + vault_github_pat) | b64encode }}"
+              }
+            }
+          }
+        dest: /etc/docker/config.json
+        mode: '0600'
+        owner: root
+        group: root
+      when: vault_github_pat is defined and vault_github_pat != ""
+      notify: restart nomad
+
     - name: Start and enable services
       systemd:
         name: "{{ item }}"
