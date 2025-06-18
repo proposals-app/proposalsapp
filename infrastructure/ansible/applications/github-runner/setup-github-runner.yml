@@ -44,6 +44,11 @@
           - ca-certificates
           - gnupg
           - lsb-release
+          - pkg-config
+          - clang
+          - lld
+          - libunwind-dev
+          - libdw-dev
         state: present
         update_cache: yes
 
