@@ -53,7 +53,7 @@ job "discourse" {
 
     network {
       port "health" {
-        to = 3000
+        to = 3001
       }
     }
 
