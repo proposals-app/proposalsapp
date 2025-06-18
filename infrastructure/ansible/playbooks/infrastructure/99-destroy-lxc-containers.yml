@@ -176,6 +176,167 @@
           {% endfor %}
           ========================================
 
+- name: Remove GitHub runners from API
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Get list of self-hosted runners from GitHub API
+      uri:
+        url: "https://api.github.com/repos/{{ vault_github_org }}/{{ vault_github_repo }}/actions/runners"
+        method: GET
+        headers:
+          Authorization: "token {{ vault_github_pat }}"
+          Accept: "application/vnd.github.v3+json"
+        status_code: [200]
+      when: 
+        - vault_github_pat is defined
+        - vault_github_pat != ""
+        - vault_github_org is defined
+        - vault_github_repo is defined
+      register: github_runners_api
+      ignore_errors: true
+
+    - name: Build GitHub runner removal list
+      set_fact:
+        github_runners_to_remove: |
+          {%- set runners = [] -%}
+          {%- if github_runners_api.json is defined and github_runners_api.json.runners is defined -%}
+            {%- for runner in github_runners_api.json.runners -%}
+              {%- if runner.name in ['github-runner-sib-01', 'github-runner-sib-03', 'github-runner-fsn-01'] -%}
+                {%- set _ = runners.append({'id': runner.id, 'name': runner.name, 'status': runner.status}) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {{ runners }}
+      when: github_runners_api.json is defined
+
+    - name: Debug GitHub runners to remove
+      debug:
+        msg: |
+          GitHub API Response: {{ github_runners_api.status | default('No response') }}
+          Runners found to remove: {{ github_runners_to_remove | default([]) | length }}
+          {% if github_runners_to_remove is defined and github_runners_to_remove | length > 0 %}
+          Runners:
+          {% for runner in github_runners_to_remove %}
+          - {{ runner.name }} (ID: {{ runner.id }}, Status: {{ runner.status }})
+          {% endfor %}
+          {% endif %}
+      when: 
+        - vault_github_pat is defined
+        - vault_github_pat != ""
+
+    - name: Get all running workflow runs
+      uri:
+        url: "https://api.github.com/repos/{{ vault_github_org }}/{{ vault_github_repo }}/actions/runs?status=in_progress"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ vault_github_pat }}"
+          Accept: "application/vnd.github+json"
+          X-GitHub-Api-Version: "2022-11-28"
+        status_code: [200]
+      when:
+        - github_runners_to_remove is defined
+        - github_runners_to_remove | length > 0
+        - vault_github_pat is defined
+        - vault_github_pat != ""
+      register: running_workflows
+      ignore_errors: true
+
+    - name: Force-cancel all running workflows (bypasses conditions like always())
+      uri:
+        url: "https://api.github.com/repos/{{ vault_github_org }}/{{ vault_github_repo }}/actions/runs/{{ item.id }}/force-cancel"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ vault_github_pat }}"
+          Accept: "application/vnd.github+json"
+          X-GitHub-Api-Version: "2022-11-28"
+        status_code: [202, 409]  # 202 = accepted, 409 = already cancelled/completed
+      loop: "{{ running_workflows.json.workflow_runs | default([]) }}"
+      when:
+        - running_workflows.json is defined
+        - running_workflows.json.workflow_runs is defined
+        - vault_github_pat is defined
+        - vault_github_pat != ""
+      register: force_workflow_cancellation
+      ignore_errors: true
+
+    - name: Wait for force-cancelled jobs to stop
+      pause:
+        seconds: 15
+      when: 
+        - force_workflow_cancellation is defined
+        - force_workflow_cancellation.changed
+
+    - name: Remove self-hosted runners from GitHub using API
+      uri:
+        url: "https://api.github.com/repos/{{ vault_github_org }}/{{ vault_github_repo }}/actions/runners/{{ item.id }}"
+        method: DELETE
+        headers:
+          Authorization: "Bearer {{ vault_github_pat }}"
+          Accept: "application/vnd.github+json"
+          X-GitHub-Api-Version: "2022-11-28"
+        status_code: [204, 404, 422]
+      loop: "{{ github_runners_to_remove | default([]) }}"
+      when:
+        - github_runners_to_remove is defined
+        - github_runners_to_remove | length > 0
+        - vault_github_pat is defined
+        - vault_github_pat != ""
+      register: github_runner_removal_first
+      ignore_errors: true
+
+    - name: Retry removal for runners that were still busy
+      uri:
+        url: "https://api.github.com/repos/{{ vault_github_org }}/{{ vault_github_repo }}/actions/runners/{{ item.item.id }}"
+        method: DELETE
+        headers:
+          Authorization: "Bearer {{ vault_github_pat }}"
+          Accept: "application/vnd.github+json"
+          X-GitHub-Api-Version: "2022-11-28"
+        status_code: [204, 404, 422]
+      loop: "{{ github_runner_removal_first.results | default([]) }}"
+      when:
+        - github_runner_removal_first is defined
+        - item.status == 422
+        - vault_github_pat is defined
+        - vault_github_pat != ""
+      register: github_runner_removal_retry
+      ignore_errors: true
+      delay: 10
+
+
+    - name: Display GitHub runner removal results
+      debug:
+        msg: |
+          ========================================
+          GitHub Runner Removal Results
+          ========================================
+          {% if force_workflow_cancellation is defined and force_workflow_cancellation.results is defined %}
+          Force-cancelled {{ force_workflow_cancellation.results | length }} running workflow(s)
+          {% endif %}
+          
+          {% if github_runner_removal_first is defined and github_runner_removal_first.results is defined %}
+          {% for result in github_runner_removal_first.results %}
+          {% set runner = github_runners_to_remove[loop.index0] %}
+          {% set retry_result = github_runner_removal_retry.results | default([]) | selectattr('item.item.id', 'equalto', runner.id) | first | default(none) %}
+          {% if result.status == 204 %}
+          {{ runner.name }}: REMOVED
+          {% elif result.status == 404 %}
+          {{ runner.name }}: NOT FOUND
+          {% elif result.status == 422 %}
+          {{ runner.name }}: {{ 'REMOVED (on retry)' if retry_result and retry_result.status == 204 else 'STILL BUSY (job running)' }}
+          {% else %}
+          {{ runner.name }}: FAILED
+          {% endif %}
+          {% endfor %}
+          {% else %}
+          No runners to remove (API not configured or no runners found)
+          {% endif %}
+          ========================================
+      when: 
+        - vault_github_pat is defined
+        - vault_github_pat != ""
+
 - name: Summary across all nodes
   hosts: localhost
   gather_facts: false
@@ -196,7 +357,7 @@
           mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
           
           # Remove known container hostnames
-          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01; do
+          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01 github-runner-sib-01 github-runner-sib-03 github-runner-fsn-01; do
             ssh-keygen -f ~/.ssh/known_hosts -R "$host" 2>/dev/null || true
           done
         fi
@@ -216,12 +377,16 @@
           1. Run the container creation playbook
           2. Provide a new Tailscale auth key
 
-          Note: Tailscale cleanup attempted:
-          - Logged out from each container
-          - API removal attempted for matching devices
+          Note: Cleanup attempted for:
+          - Tailscale: Logged out from containers and API removal
+          - GitHub: Self-hosted runners removed from repository
 
-          If devices remain, check:
+          If Tailscale devices remain, check:
           - API key permissions (needs device:delete scope)
           - Correct tailnet name in config
           - Manual removal at https://login.tailscale.com/admin/machines
+
+          If GitHub runners remain, check:
+          - GitHub PAT permissions (needs admin:org or repo scope)
+          - Manual removal at https://github.com/{{ vault_github_org | default('ORG') }}/{{ vault_github_repo | default('REPO') }}/settings/actions/runners
           ========================================
