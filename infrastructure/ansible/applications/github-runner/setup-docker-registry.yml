@@ -48,26 +48,11 @@
     - name: Remove existing registry container if present
       command: docker rm -f registry
       when: existing_registry.stdout == 'registry'
+      ignore_errors: true
       
     - name: Run local Docker registry
-      command: |
-        docker run -d \
-          --name registry \
-          --restart always \
-          -p {{ registry_port }}:5000 \
-          -v {{ registry_data_dir }}:/var/lib/registry \
-          -e REGISTRY_STORAGE_DELETE_ENABLED=true \
-          -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/var/lib/registry \
-          -e REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR=inmemory \
-          -e REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_ENABLED=true \
-          -e REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_AGE=168h \
-          -e REGISTRY_STORAGE_MAINTENANCE_UPLOADPURGING_INTERVAL=24h \
-          -e REGISTRY_HTTP_TIMEOUT_READ=900s \
-          -e REGISTRY_HTTP_TIMEOUT_WRITE=900s \
-          -e REGISTRY_HTTP_TIMEOUT_IDLE=900s \
-          -e REGISTRY_HTTP_SECRET={{ vault_docker_registry_secret | default('myregistrysecret') }} \
-          -e REGISTRY_HTTP_ADDR=0.0.0.0:5000 \
-          registry:2
+      command: docker run -d --name registry --restart always -p {{ registry_port }}:5000 -v {{ registry_data_dir }}:/var/lib/registry registry:2
+      register: docker_run_result
       
     - name: Wait for registry container to be running
       command: docker ps --filter name=registry --filter status=running --format '{{ '{{' }}.Names{{ '}}' }}'
@@ -75,6 +60,13 @@
       until: registry_running.stdout == 'registry'
       retries: 10
       delay: 3
+
+    - name: Wait for registry port to be ready
+      wait_for:
+        port: "{{ registry_port }}"
+        host: localhost
+        delay: 2
+        timeout: 30
 
     - name: Create registry garbage collection script
       copy:
