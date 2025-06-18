@@ -5,18 +5,16 @@ set -e
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 <application-name> [action] [options]"
+    echo "Usage: $0 <application-name> [action]"
     echo "Actions: setup, deploy, both (default)"
-    echo "Options:"
-    echo "  --branch=<branch>    Specify branch to deploy (for rindexer)"
     echo ""
     echo "Available applications:"
     echo "  rindexer         - Blockchain indexer service"
     echo ""
     echo "Examples:"
     echo "  $0 rindexer"
-    echo "  $0 rindexer both --branch=feature-123"
-    echo "  $0 rindexer setup --branch=main"
+    echo "  $0 rindexer setup"
+    echo "  $0 rindexer deploy"
 }
 
 if [ $# -lt 1 ]; then
@@ -25,29 +23,8 @@ if [ $# -lt 1 ]; then
 fi
 
 APP_NAME=$1
-ACTION="both"
-BRANCH=""
+ACTION=${2:-both}
 APP_DIR="applications/$APP_NAME"
-
-# Parse arguments
-shift # Remove app name
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        setup|deploy|both)
-            ACTION=$1
-            shift
-            ;;
-        --branch=*)
-            BRANCH="${1#*=}"
-            shift
-            ;;
-        *)
-            echo "Error: Unknown parameter '$1'"
-            show_usage
-            exit 1
-            ;;
-    esac
-done
 
 # List of valid applications
 VALID_APPS="rindexer"
@@ -70,17 +47,10 @@ cd "$(dirname "$0")"
 run_setup() {
     echo "Running setup playbooks for $APP_NAME..."
     
-    # Build extra vars for branch
-    EXTRA_VARS=""
-    if [ -n "$BRANCH" ]; then
-        EXTRA_VARS="-e rindexer_branch=$BRANCH"
-        echo "Setting branch: $BRANCH"
-    fi
-    
     for playbook in "$APP_DIR"/*.yml; do
         if [ -f "$playbook" ]; then
-            echo "Executing: ansible-playbook -i inventory.yml $EXTRA_VARS $playbook"
-            ansible-playbook -i inventory.yml $EXTRA_VARS "$playbook"
+            echo "Executing: ansible-playbook -i inventory.yml $playbook"
+            ansible-playbook -i inventory.yml "$playbook"
         fi
     done
 }

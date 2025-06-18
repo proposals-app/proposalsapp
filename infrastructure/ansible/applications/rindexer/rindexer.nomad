@@ -110,9 +110,8 @@ job "rindexer" {
       
       template {
         data = <<EOF
-# Get the branch and construct image name
-{{ $branch := keyOrDefault "rindexer/branch" "main" }}
-{{ $imageTag := keyOrDefault (printf "rindexer/image/%s" $branch) "latest" }}
+# Always use main branch for production deployments
+{{ $imageTag := keyOrDefault "rindexer/image/main" "latest" }}
 RINDEXER_IMAGE=ghcr.io/proposals-app/proposalsapp/rindexer:{{ $imageTag }}
 
 # Database connection - use local PgCat connection string from Consul KV

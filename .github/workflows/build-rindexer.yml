@@ -94,39 +94,37 @@ jobs:
           echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Trigger Nomad deployment
-        if: success() && github.event_name == 'push'
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          echo "New image available: ${{ steps.webhook.outputs.image }}"
-          echo "Branch: ${{ steps.webhook.outputs.branch }}"
+          echo "New image available for main branch: ${{ steps.webhook.outputs.image }}"
           echo "Tag: ${{ steps.webhook.outputs.tag }}"
           
           # Update image tag in Consul KV to trigger redeployment
           # Using internal Tailscale address since runners are in the network
           CONSUL_ADDR="http://consul-nomad-sib-01:8500"
           
-          echo "Updating Consul KV with new image tag..."
+          echo "Updating Consul KV with new image tag for main branch..."
           
-          # Update the image tag for this branch
+          # Update the image tag for main branch
           curl -s -X PUT \
-            "$CONSUL_ADDR/v1/kv/rindexer/image/${{ steps.webhook.outputs.branch }}" \
+            "$CONSUL_ADDR/v1/kv/rindexer/image/main" \
             -d "${{ steps.webhook.outputs.tag }}" || {
               echo "Warning: Failed to update Consul KV"
               echo "Trying alternative Consul server..."
               # Try another datacenter if first one fails
               curl -s -X PUT \
-                "http://consul-nomad-sib-03:8500/v1/kv/rindexer/image/${{ steps.webhook.outputs.branch }}" \
+                "http://consul-nomad-sib-03:8500/v1/kv/rindexer/image/main" \
                 -d "${{ steps.webhook.outputs.tag }}"
             }
           
-          # Check if this is the currently deployed branch
-          CURRENT_BRANCH=$(curl -s "$CONSUL_ADDR/v1/kv/rindexer/branch?raw" 2>/dev/null || echo "main")
+          echo "Main branch image updated. Rindexer will be automatically redeployed by Nomad."
           
-          if [ "${{ steps.webhook.outputs.branch }}" = "$CURRENT_BRANCH" ]; then
-            echo "This is the active branch. Rindexer will be automatically redeployed by Nomad."
-          else
-            echo "Branch ${{ steps.webhook.outputs.branch }} updated. To deploy this branch:"
-            echo "  ./deploy-application.sh rindexer setup --branch=${{ steps.webhook.outputs.branch }}"
-          fi
+      - name: Log build information
+        if: success() && github.event_name == 'push' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Built image for branch ${{ steps.webhook.outputs.branch }}: ${{ steps.webhook.outputs.image }}"
+          echo "This image is available in ghcr.io but will not be automatically deployed."
+          echo "Only pushes to the main branch trigger automatic deployments to Nomad."
 
   cleanup:
     name: Cleanup old images

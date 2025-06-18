@@ -19,7 +19,7 @@ on:
 jobs:
   email-service-tests:
     name: Email Service Full Test Suite
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     timeout-minutes: 30
 
     steps:
