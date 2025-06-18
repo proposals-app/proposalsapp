@@ -39,18 +39,8 @@ const BATCH_SIZE: usize = 100;
 
 #[instrument(name = "db_initialize_db", skip_all)]
 pub async fn initialize_db() -> Result<()> {
-    let mut database_url =
+    let database_url =
         std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
-    
-    // Append statement cache capacity parameter to disable prepared statements
-    // This is necessary when using PgCat with transaction pooling mode
-    if !database_url.contains("statement-cache-capacity") {
-        if database_url.contains('?') {
-            database_url.push_str("&statement-cache-capacity=0");
-        } else {
-            database_url.push_str("?statement-cache-capacity=0");
-        }
-    }
 
     let mut opt = sea_orm::ConnectOptions::new(database_url);
     opt.max_connections(25)

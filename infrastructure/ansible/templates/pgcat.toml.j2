@@ -63,11 +63,18 @@ server_tcp_keepalive_count = {{ pgcat_tcp_keepalive_count | default(9) }}
 # Worker threads
 worker_threads = {{ pgcat_worker_threads | default(4) }}
 
+# Prepared statements support for transaction pooling
+prepared_statements = true
+prepared_statements_cache_size = {{ pgcat_prepared_statements_cache_size | default(50000) }}
+
 # Connection pool configuration for ProposalsApp
 [pools.{{ database_name | default('proposalsapp') }}]
 pool_mode = "transaction"
 default_pool_size = {{ pgcat_default_pool_size | default(25) }}
 min_pool_size = {{ pgcat_min_pool_size | default(10) }}
+
+# Prepared statements cache for this pool
+prepared_statements_cache_size = {{ pgcat_prepared_statements_cache_size | default(50000) }}
 
 # Query parsing for intelligent routing (pool-specific)
 query_parser_enabled = true
