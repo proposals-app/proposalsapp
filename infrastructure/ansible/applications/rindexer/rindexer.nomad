@@ -52,8 +52,8 @@ job "rindexer" {
     }
 
     network {
-      port "metrics" {
-        to = 9090
+      port "health" {
+        to = 3000
       }
     }
 
@@ -62,7 +62,7 @@ job "rindexer" {
 
       config {
         image = "${RINDEXER_IMAGE}"
-        ports = ["metrics"]
+        ports = ["health"]
         network_mode = "host"
 
         # Add logging configuration
@@ -80,7 +80,7 @@ job "rindexer" {
         RUST_BACKTRACE = "1"
 
         # Service configuration
-        METRICS_PORT = "9090"
+        # Health check is on port 3000
 
         # Database
         DATABASE_URL = "${DATABASE_URL}"
@@ -152,14 +152,14 @@ EOF
       }
 
       service {
-        name = "rindexer-metrics"
-        tags = ["prometheus", "metrics"]
-        port = "metrics"
+        name = "rindexer"
+        tags = ["indexer", "blockchain"]
+        port = "health"
 
         check {
           type     = "http"
-          path     = "/metrics"
-          interval = "60s"
+          path     = "/health"
+          interval = "30s"
           timeout  = "5s"
         }
       }
