@@ -97,7 +97,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           builder: ${{ steps.buildx.outputs.name }}
-          # Use only local cache for self-hosted runners (faster than registry)
+          # Use only local cache for self-hosted runners (no registry cache)
           cache-from: type=local,src=/var/cache/buildx/rindexer
           cache-to: type=local,dest=/var/cache/buildx/rindexer,mode=max
           build-args: |
