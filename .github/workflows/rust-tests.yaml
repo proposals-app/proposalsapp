@@ -35,7 +35,7 @@ jobs:
     permissions:
       checks: write
       contents: read
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, sibiu]  # Use Sibiu runners with 16 cores/32GB RAM
     steps:
       - uses: actions/checkout@v4
 

@@ -150,9 +150,10 @@ PLAYBOOKS=(
 )
 
 # Setup GitHub runners if PAT is configured
-if grep -q "vault_github_pat:" group_vars/all/vault.yml 2>/dev/null && \
-   ansible-vault view group_vars/all/vault.yml --vault-password-file .vault_pass 2>/dev/null | grep -q "vault_github_pat: \"[^\"]\+\""; then
+if ansible-vault view group_vars/all/vault.yml --vault-password-file .vault_pass 2>/dev/null | grep -q "vault_github_pat: \"[^\"]\+\""; then
     PLAYBOOKS+=("applications/github-runner/setup-github-runner.yml:Setting up GitHub Actions runners")
+    PLAYBOOKS+=("applications/github-runner/setup-docker-registry.yml:Setting up local Docker registry for runners")
+    echo -e "${GREEN}GitHub runners will be set up (PAT found in vault)${NC}"
 else
     echo -e "${YELLOW}Note: GitHub runners will not be set up (PAT not configured in vault)${NC}"
 fi

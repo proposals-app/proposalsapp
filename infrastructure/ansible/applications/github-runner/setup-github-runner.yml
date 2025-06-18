@@ -163,7 +163,7 @@
           --token {{ runner_token.json.token }} \
           --name {{ inventory_hostname }} \
           --work _work \
-          --labels linux,self-hosted,{{ datacenter }},tailscale \
+          --labels linux,self-hosted,{{ datacenter }},tailscale{{ ',sibiu' if inventory_hostname in ['github-runner-sib-01', 'github-runner-sib-03'] else '' }} \
           --unattended \
           --replace
       when: 

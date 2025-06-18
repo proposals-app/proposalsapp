@@ -25,7 +25,9 @@ env:
 jobs:
   build:
     name: Build and Push Docker Image
-    runs-on: [self-hosted, linux]
+    # Use only Sibiu runners (dc1 or dc2) with 16 cores/32GB RAM
+    # GitHub will pick any available runner matching these labels
+    runs-on: [self-hosted, linux, sibiu]
     permissions:
       contents: read
       packages: write
@@ -136,7 +138,7 @@ jobs:
 
   cleanup:
     name: Cleanup old images
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, sibiu]
     needs: build
     if: success()
     permissions:
