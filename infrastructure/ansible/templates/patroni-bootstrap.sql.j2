@@ -1,15 +1,25 @@
 -- Patroni Bootstrap SQL Script
--- This script ensures required roles and permissions are set up
+-- Purpose: Initial database setup executed during PostgreSQL cluster initialization.
+--          Creates required roles, sets permissions, and prepares the database
+--          for the ProposalsApp application.
+--
+-- Execution context:
+-- - Runs as postgres superuser
+-- - Executed via patroni-post-init.sh during cluster bootstrap
+-- - Only runs once when creating a new cluster from scratch
+--
+-- Note: Uses DO blocks to make operations idempotent - safe to run multiple times
 
--- Create proposalsapp role if it doesn't exist
+-- Create Application Role
+-- proposalsapp: Main application user with database creation privileges
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'proposalsapp') THEN
         CREATE ROLE proposalsapp WITH 
-            LOGIN 
-            PASSWORD '{{ postgres_password }}' 
-            CREATEDB 
-            CREATEROLE;
+            LOGIN                                   -- Can log in
+            PASSWORD '{{ postgres_password }}'      -- Secure password from Ansible vault
+            CREATEDB                                -- Can create databases
+            CREATEROLE;                            -- Can create other roles
         RAISE NOTICE 'Created role: proposalsapp';
     ELSE
         RAISE NOTICE 'Role proposalsapp already exists';
@@ -17,14 +27,15 @@ BEGIN
 END
 $$;
 
--- Create replicator role if it doesn't exist
+-- Create Replication Role
+-- replicator: Used for streaming replication between primary and replicas
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'replicator') THEN
         CREATE ROLE replicator WITH 
-            LOGIN 
-            REPLICATION 
-            PASSWORD '{{ postgres_replication_password }}';
+            LOGIN                                           -- Can log in
+            REPLICATION                                     -- Can initiate streaming replication
+            PASSWORD '{{ postgres_replication_password }}'; -- Separate password for security
         RAISE NOTICE 'Created role: replicator';
     ELSE
         RAISE NOTICE 'Role replicator already exists';
@@ -32,9 +43,12 @@ BEGIN
 END
 $$;
 
--- Grant necessary permissions
-GRANT pg_read_all_settings TO proposalsapp;
-GRANT pg_monitor TO proposalsapp;
+-- Grant Monitoring Permissions
+-- Allow proposalsapp to monitor database performance
+GRANT pg_read_all_settings TO proposalsapp;  -- Read configuration parameters
+GRANT pg_monitor TO proposalsapp;             -- Access monitoring views
 
--- Create database if needed (this will be done later in the playbook)
--- We don't create it here because it needs to be done after cluster is fully initialized
+-- Database Creation Note:
+-- The actual proposalsapp database is created later in the Ansible playbook
+-- after the cluster is fully initialized and stable. This ensures proper
+-- ownership and allows for database-specific configuration.

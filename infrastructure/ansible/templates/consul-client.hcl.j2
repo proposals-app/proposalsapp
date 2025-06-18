@@ -1,15 +1,49 @@
+# Consul Client (Agent) Configuration Template
+# Purpose: Configures Consul agents that run on application and database nodes.
+#          These agents provide local service registration, health checking,
+#          and caching of service discovery data.
+#
+# Architecture Context:
+# - Consul clients connect only to their local datacenter's server
+# - They don't participate in Raft consensus (lightweight)
+# - They cache service catalog data for fast local lookups
+# - They run health checks and report results to the server
+#
+# Where this runs:
+# - apps-xxx nodes (application containers)
+# - db-xxx nodes (database containers)
+
+# Datacenter assignment - must match the local Consul server
 datacenter = "{{ datacenter }}"
+
+# Local data storage for agent state and cache
 data_dir = "/var/lib/consul"
+
+# Logging level - INFO for normal operations
 log_level = "INFO"
+
+# Unique node identifier within the Consul cluster
 node_name = "{{ inventory_hostname }}"
+
+# Client mode - this is not a server
+# Clients forward requests to servers and cache responses
 server = false
+
+# Gossip encryption key - must match all other nodes
+# Protects agent-to-agent communication from tampering
 encrypt = "{{ consul_encrypt_key }}"
 
+# Network Configuration
+# client_addr: 0.0.0.0 allows local services to query Consul
+# bind_addr: Uses Tailscale IP for secure agent-to-server communication
+# advertise_addr: What address other nodes should use to reach this agent
 client_addr = "0.0.0.0"
 bind_addr = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
 advertise_addr = "{{ tailscale_ip | default(ansible_tailscale0.ipv4.address | default(ansible_default_ipv4.address)) }}"
 
-# Join only the consul server in the same datacenter
+# Cluster Join Configuration
+# Each client only joins its local datacenter's Consul server
+# This keeps WAN traffic minimal and improves query performance
 retry_join = [
 {% for host in groups['consul_servers'] %}
 {% if hostvars[host]['datacenter'] == datacenter %}
@@ -18,17 +52,23 @@ retry_join = [
 {% endfor %}
 ]
 
+# Port Configuration
 ports {
-  grpc = 8502
-  dns = 8600
-  http = 8500
+  grpc = 8502    # gRPC for Consul Connect (service mesh features)
+  dns = 8600     # DNS interface for service discovery queries
+  http = 8500    # HTTP API for service registration and KV operations
 }
 
+# Metrics Configuration
+# Enables Prometheus metrics endpoint for monitoring
 telemetry {
-  prometheus_retention_time = "60s"
-  disable_hostname = true
+  prometheus_retention_time = "60s"  # How long to keep metrics in memory
+  disable_hostname = true           # Cleaner metric names
 }
 
+# Access Control
+# Disabled for simplicity - all services can register and query
+# Enable in production with proper token management
 acl {
   enabled = false
   default_policy = "allow"

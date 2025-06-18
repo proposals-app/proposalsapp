@@ -1,113 +1,152 @@
-# PgCat configuration - managed by Ansible
-# This configuration is dynamically updated by Consul Template
+# PgCat Static Configuration Template
+# Purpose: Provides base PgCat configuration for PostgreSQL connection pooling.
+#          This template creates the initial static configuration that is later
+#          dynamically updated by Confd based on Patroni state in etcd.
+#
+# Architecture Context:
+# - PgCat runs on each application node (apps-xxx)
+# - Acts as a smart connection pooler with read/write splitting
+# - Routes writes to primary, reads to local replica (when available)
+# - Configuration is dynamically updated by Confd watching etcd
+#
+# Key features:
+# - Transaction pooling for efficient connection usage
+# - Query parsing for automatic read/write splitting
+# - Local-first routing to minimize cross-datacenter traffic
+# - Prometheus metrics for monitoring
 
 [general]
-# Listen on all interfaces
-host = "0.0.0.0"
-port = 5432
+# Network Configuration
+host = "0.0.0.0"    # Listen on all interfaces
+port = 5432         # Standard PostgreSQL port (applications connect here)
 
-# Admin API
+# Admin API Configuration
+# Used for runtime management and monitoring
 admin_username = "pgcat"
 admin_password = "{{ pgcat_admin_password | default('pgcat') }}"
-admin_api_enabled = true
+admin_api_enabled = true    # Enable admin commands via psql
 
-# Metrics endpoint
+# Metrics and Monitoring
+# Prometheus endpoint for connection pool statistics
 prometheus_exporter_enabled = true
-prometheus_exporter_port = 9930
+prometheus_exporter_port = 9930    # Separate port for metrics
 
-# Connection pooling settings
-pool_mode = "transaction"
-default_pool_size = {{ pgcat_pool_size | default(25) }}
-min_pool_size = {{ pgcat_min_pool_size | default(10) }}
-reserve_pool_size = {{ pgcat_reserve_pool_size | default(5) }}
-reserve_pool_timeout = {{ pgcat_reserve_pool_timeout | default(3000) }}
+# Global Connection Pool Settings
+# Transaction pooling: client connection ≠ server connection
+# Connections are assigned per transaction, not per session
+pool_mode = "transaction"                                    # Most efficient for web apps
+default_pool_size = {{ pgcat_pool_size | default(25) }}      # Connections per server
+min_pool_size = {{ pgcat_min_pool_size | default(10) }}      # Minimum idle connections
+reserve_pool_size = {{ pgcat_reserve_pool_size | default(5) }} # Emergency reserve pool
+reserve_pool_timeout = {{ pgcat_reserve_pool_timeout | default(3000) }} # 3s timeout for reserve
 
 
-# Configuration auto-reload interval (milliseconds)
-# PgCat will check for config changes every 5 seconds
-config_check_interval = 5000
+# Configuration Auto-Reload
+# PgCat monitors its config file for changes
+config_check_interval = 5000    # Check every 5 seconds
 
-# Connection settings (in milliseconds)
-connect_timeout = {{ pgcat_connect_timeout | default(5000) }}
-idle_timeout = {{ pgcat_idle_timeout | default(1800000) }}
-acquire_timeout = {{ pgcat_acquire_timeout | default(3000) }}
-cancel_wait_timeout = {{ pgcat_cancel_wait_timeout | default(5000) }}
+# Connection Timeouts (milliseconds)
+# Fine-tuned for cross-datacenter deployments
+connect_timeout = {{ pgcat_connect_timeout | default(5000) }}        # 5s to establish connection
+idle_timeout = {{ pgcat_idle_timeout | default(1800000) }}          # 30 min idle before close
+acquire_timeout = {{ pgcat_acquire_timeout | default(3000) }}        # 3s to acquire from pool
+cancel_wait_timeout = {{ pgcat_cancel_wait_timeout | default(5000) }} # 5s for cancel operations
 
-# Health checks (in milliseconds)
-healthcheck_timeout = {{ pgcat_healthcheck_timeout | default(1000) }}
-healthcheck_delay = {{ pgcat_healthcheck_delay | default(30000) }}
-ban_time = {{ pgcat_ban_time | default(60000) }}
+# Health Check Configuration
+# Monitors backend PostgreSQL server health
+healthcheck_timeout = {{ pgcat_healthcheck_timeout | default(1000) }}  # 1s per health check
+healthcheck_delay = {{ pgcat_healthcheck_delay | default(30000) }}     # Check every 30s
+ban_time = {{ pgcat_ban_time | default(60000) }}                      # Ban unhealthy server for 60s
 
-# Logging
-log_level = "{{ pgcat_log_level | default('info') }}"
-log_connections = {{ pgcat_log_connections | default('false') | lower }}
-log_disconnections = {{ pgcat_log_disconnections | default('false') | lower }}
-log_client_parameter_status_changes = false
+# Logging Configuration
+log_level = "{{ pgcat_log_level | default('info') }}"                    # Verbosity level
+log_connections = {{ pgcat_log_connections | default('false') | lower }}   # Log new connections
+log_disconnections = {{ pgcat_log_disconnections | default('false') | lower }} # Log disconnections
+log_client_parameter_status_changes = false                               # Reduce log noise
 
-# TLS settings
+# TLS Configuration (optional)
+# Enable if not using Tailscale VPN encryption
 {% if pgcat_tls_enabled | default(false) %}
 tls_certificate = "{{ pgcat_tls_certificate }}"
 tls_private_key = "{{ pgcat_tls_private_key }}"
 {% endif %}
 
-# Authentication
-auth_query_enabled = false
-validate_server_cert = {{ pgcat_validate_server_cert | default('false') | lower }}
+# Authentication Settings
+auth_query_enabled = false     # Use password auth, not query-based
+validate_server_cert = {{ pgcat_validate_server_cert | default('false') | lower }}  # Trust Tailscale
 
-# Buffer sizes
-tcp_user_timeout = {{ pgcat_tcp_user_timeout | default(0) }}
-server_tcp_keepalive_time = {{ pgcat_tcp_keepalive_time | default(7200) }}
-server_tcp_keepalive_interval = {{ pgcat_tcp_keepalive_interval | default(75) }}
-server_tcp_keepalive_count = {{ pgcat_tcp_keepalive_count | default(9) }}
+# TCP Keep-Alive Settings
+# Detect broken connections across WAN
+tcp_user_timeout = {{ pgcat_tcp_user_timeout | default(0) }}           # OS default
+server_tcp_keepalive_time = {{ pgcat_tcp_keepalive_time | default(7200) }}     # 2 hours
+server_tcp_keepalive_interval = {{ pgcat_tcp_keepalive_interval | default(75) }} # 75s between probes
+server_tcp_keepalive_count = {{ pgcat_tcp_keepalive_count | default(9) }}       # 9 failed probes = dead
 
-# Worker threads
-worker_threads = {{ pgcat_worker_threads | default(4) }}
+# Performance Settings
+worker_threads = {{ pgcat_worker_threads | default(4) }}              # CPU threads for I/O
 
-# Prepared statements support for transaction pooling
-prepared_statements = true
-prepared_statements_cache_size = {{ pgcat_prepared_statements_cache_size | default(50000) }}
+# Prepared Statements Support
+# Critical for ORMs like SeaORM that use prepared statements
+prepared_statements = true                                            # Enable prepared statement support
+prepared_statements_cache_size = {{ pgcat_prepared_statements_cache_size | default(50000) }}  # Cache size
 
-# Connection pool configuration for ProposalsApp
+# Database Pool Configuration
+# Pool-specific settings for the ProposalsApp database
 [pools.{{ database_name | default('proposalsapp') }}]
-pool_mode = "transaction"
-default_pool_size = {{ pgcat_default_pool_size | default(25) }}
-min_pool_size = {{ pgcat_min_pool_size | default(10) }}
+pool_mode = "transaction"                                              # Transaction pooling mode
+default_pool_size = {{ pgcat_default_pool_size | default(25) }}       # Connections per server
+min_pool_size = {{ pgcat_min_pool_size | default(10) }}               # Minimum idle connections
 
-# Prepared statements cache for this pool
+# Prepared Statements Cache
+# Pool-specific cache for prepared statements
 prepared_statements_cache_size = {{ pgcat_prepared_statements_cache_size | default(50000) }}
 
-# Query parsing for intelligent routing (pool-specific)
-query_parser_enabled = true
-query_parser_read_write_splitting = true
-primary_reads_enabled = true
+# Load Balancing Configuration
+# Use "loc" (least outstanding connections) to favor local servers
+# Local servers will have fewer outstanding connections due to lower latency
+load_balancing_mode = "{{ pgcat_load_balancing_mode | default('loc') }}"
 
-# Database user configuration
+# Query Parser Configuration
+# CRITICAL: These settings enable intelligent read/write splitting
+query_parser_enabled = true              # Parse queries to determine read vs write
+query_parser_read_write_splitting = true # Route reads to replicas, writes to primary
+primary_reads_enabled = true             # Allow reads on primary (will be overridden by Confd)
+
+# Database User Configuration
+# Primary application user
 [pools.{{ database_name | default('proposalsapp') }}.users.0]
 username = "{{ database_user | default('proposalsapp') }}"
 password = "{{ database_password }}"
-pool_size = {{ pgcat_user_pool_size | default(10) }}
-statement_timeout = {{ pgcat_statement_timeout | default(0) }}
+pool_size = {{ pgcat_user_pool_size | default(10) }}      # User-specific pool size
+statement_timeout = {{ pgcat_statement_timeout | default(0) }}  # 0 = no timeout
 
-# Local-first server ordering (dynamically updated by Consul Template)
-# Lists local database first (whether primary or replica), then remote databases
+# Server Configuration (Static Template)
+# NOTE: This section is replaced by Confd with dynamic configuration
+# The static template provides initial values for first startup
+#
+# Server ordering strategy:
+# 1. Local datacenter database is ALWAYS listed first (whether primary or replica)
+# 2. Remote datacenter databases are listed as fallbacks
+# 3. This ensures reads prefer local replicas for low latency
 [pools.{{ database_name | default('proposalsapp') }}.shards.0]
 servers = [
-# Local datacenter database (primary or replica) - ALWAYS FIRST
+# Local datacenter servers (ordered: local first, then remote)
 {% for host in groups['postgres_nodes'] %}
 {% if hostvars[host]['datacenter'] | default('dc1') == datacenter | default('dc1') %}
     ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "{{ 'primary' if hostvars[host]['postgres_role'] | default('standby') == 'primary' else 'replica' }}"],
 {% endif %}
 {% endfor %}
-# Remote datacenter databases as fallbacks
+# Remote datacenter servers (fallback options)
 {% for host in groups['postgres_nodes'] %}
 {% if hostvars[host]['datacenter'] | default('dc1') != datacenter | default('dc1') %}
     ["{{ hostvars[host]['tailscale_ip'] | default(hostvars[host]['ansible_default_ipv4']['address']) }}", 5432, "{{ 'primary' if hostvars[host]['postgres_role'] | default('standby') == 'primary' else 'replica' }}"],
 {% endif %}
 {% endfor %}
 ]
-database = "{{ database_name | default('proposalsapp') }}"
+database = "{{ database_name | default('proposalsapp') }}"  # Target database name
 
-# Additional users (if needed)
+# Additional Database Users
+# Configure extra users if needed (e.g., read-only users, migration users)
 {% for user in additional_database_users | default([]) %}
 [pools.{{ database_name | default('proposalsapp') }}.users.{{ loop.index }}]
 username = "{{ user.name }}"

@@ -131,7 +131,7 @@
             }
           }
         dest: /etc/docker/config.json
-        mode: '0600'
+        mode: "0600"
         owner: root
         group: root
       when: vault_github_pat is defined and vault_github_pat != ""
@@ -173,21 +173,21 @@
           echo "ERROR: Nomad service is not running"
           exit 1
         fi
-        
+
         # Check server members
         members=$(nomad server members 2>&1)
         if [ $? -ne 0 ]; then
           echo "ERROR: Cannot query Nomad members: $members"
           exit 1
         fi
-        
+
         # Count alive servers
         alive_servers=$(echo "$members" | grep -c "alive.*true")
         if [ $alive_servers -lt 1 ]; then
           echo "ERROR: No alive Nomad servers found"
           exit 1
         fi
-        
+
         echo "OK: Found $alive_servers alive Nomad servers"
         echo "$members"
       register: nomad_health
@@ -226,13 +226,13 @@
           ========================================
           Service Status: {{ 'RUNNING' if 'OK' in nomad_health.stdout else 'FAILED' }}
           Leader Election: {{ 'YES' if nomad_leader.rc == 0 else 'NO' }}
-          
+
           Server Members:
           {{ nomad_health.stdout | indent(2) }}
-          
+
           Regions:
           {{ nomad_regions.stdout | indent(2) }}
-          
+
           Access Nomad UI at: http://{{ tailscale_ip | default(ansible_default_ipv4.address) }}:4646
           ========================================
       run_once: true
@@ -248,21 +248,21 @@
           echo "ERROR: Nomad service is not running"
           exit 1
         fi
-        
+
         # Check node status
         node_status=$(nomad node status -self -short 2>&1)
         if [ $? -ne 0 ]; then
           echo "ERROR: Cannot query node status: $node_status"
           exit 1
         fi
-        
+
         # Check if node is ready
         if ! echo "$node_status" | grep -q "ready"; then
           echo "ERROR: Node is not ready"
           echo "$node_status"
           exit 1
         fi
-        
+
         echo "OK: Nomad client ready"
         echo "$node_status"
       register: client_health
@@ -275,12 +275,12 @@
           echo "ERROR: Docker service is not running"
           exit 1
         fi
-        
+
         if ! docker info >/dev/null 2>&1; then
           echo "ERROR: Cannot connect to Docker daemon"
           exit 1
         fi
-        
+
         echo "OK: Docker is available"
       register: docker_health
       changed_when: false
@@ -293,7 +293,7 @@
           echo "ERROR: Consul integration not working"
           exit 1
         fi
-        
+
         echo "OK: Consul integration working"
       register: consul_integration
       changed_when: false
@@ -308,7 +308,7 @@
           Client Status: {{ 'READY' if client_health.rc == 0 else 'FAILED' }}
           Docker Status: {{ 'RUNNING' if docker_health.rc == 0 else 'FAILED' }}
           Consul Integration: {{ 'WORKING' if consul_integration.rc == 0 else 'FAILED' }}
-          
+
           Node Info:
           {{ client_health.stdout | indent(2) }}
           ========================================

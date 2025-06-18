@@ -104,7 +104,7 @@
           [Unit]
           Wants=tailscaled.service
           After=network-online.target tailscaled.service
-          
+
           [Service]
           Type=simple
           Environment="CONSUL_CACERT=/opt/consul/consul-agent-ca.pem"
@@ -241,7 +241,6 @@
         name: consul-wan-health
         state: restarted
 
-
 - name: Configure Consul Clients on Nomad nodes
   hosts: nomad_clients
   become: true
@@ -310,7 +309,7 @@
           [Unit]
           Wants=tailscaled.service
           After=network-online.target tailscaled.service
-          
+
           [Service]
           Type=simple
           TimeoutStartSec=0
@@ -413,7 +412,7 @@
           [Unit]
           Wants=tailscaled.service
           After=network-online.target tailscaled.service
-          
+
           [Service]
           Type=simple
           TimeoutStartSec=0
@@ -490,13 +489,13 @@
           exit 1
         fi
         echo "OK: Server is leader in {{ datacenter }}"
-        
+
         # Verify WAN federation
         wan_members=$(consul members -wan | grep -c server)
         if [ "$wan_members" -lt 3 ]; then
           echo "WARNING: Only $wan_members servers in WAN federation (expected 3)"
         fi
-        
+
         consul members -wan
       register: consul_leader
       changed_when: false

@@ -196,9 +196,10 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 
 #### PgCat (Database Proxy)
 - Connection pooling on each app node
-- Currently uses experimental query parsing (to be replaced)
+- Intelligent query parsing for read/write splitting
 - Single connection URL: `postgresql://user:pass@localhost:5432/db`
-- Automatic routing updates via Consul Template
+- Automatic routing updates via Confd watching etcd
+- Uses "least outstanding connections" load balancing for local-first reads
 
 ### Deployment Process
 
@@ -303,7 +304,7 @@ etcdctl endpoint health --endpoints=<all-nodes>
 
 ### Physical Architecture
 
-- **Three datacenters**: Timisoara (Romania), Bucharest (Romania), Nuremberg (Germany)
+- **Three datacenters**: Sibiu DC1 (Romania), Sibiu DC2 (Romania), Falkenstein (Germany)
 - **Virtualization**: Proxmox with LXC containers
 - **Networking**: Tailscale VPN for secure inter-datacenter communication
 - **Service mesh**: Consul for service discovery and health checking
@@ -314,21 +315,34 @@ etcdctl endpoint health --endpoints=<all-nodes>
    - Runs on all nodes with automatic WAN federation
    - Provides DNS interface for service resolution
 
-2. **etcd**: Distributed consensus for Patroni
+2. **etcd**: Distributed consensus for Patroni and configuration management
    - 3-node cluster for PostgreSQL HA coordination
    - Manages leader election and failover
+   - Stores Patroni cluster state for dynamic configuration
 
 3. **PostgreSQL with Patroni**: High-availability database
    - Automatic failover with synchronous replication
    - Multiple standbys across datacenters
    - Managed via Patroni REST API
+   - State stored in etcd under `/service/proposalsapp/`
 
-4. **PgCat**: Connection pooling and query routing
-   - Supports primary/replica query routing
-   - Automatic failover handling
+4. **PgCat**: Connection pooling and intelligent query routing
+   - Dynamic configuration via Confd watching etcd
+   - Automatic primary/replica discovery
+   - Query parser for read/write splitting
+   - **Least outstanding connections (LOC) load balancing**
+   - Automatically favors local databases due to lower latency
+   - Automatic configuration reload on topology changes
    - Listens on port 5432 (appears as regular PostgreSQL)
 
-5. **Nomad**: Container orchestration
+5. **Confd**: Dynamic configuration management
+   - Watches etcd for Patroni state changes
+   - Automatically regenerates PgCat configuration
+   - Ensures write queries always route to current primary
+   - Maintains local-first server ordering in configuration
+   - Zero-downtime configuration updates via SIGHUP
+
+6. **Nomad**: Container orchestration
    - Manages application deployments
    - Integrated with Consul for service registration
 
@@ -369,9 +383,15 @@ All services use multi-stage Docker builds:
 
 ### Database Access
 
-- **Via PgCat** (recommended): `postgresql://user:pass@pgcat.service.consul:5432/dbname`
-- **Direct primary**: `postgresql://user:pass@postgres-primary.service.consul:5433/dbname`
-- **Read replicas**: `postgresql://user:pass@postgres-replica.service.consul:5433/dbname`
+- **Via PgCat** (recommended): `postgresql://user:pass@localhost:5432/dbname`
+  - Always connects to local PgCat instance
+  - Automatically routes to correct primary/replica based on query type
+  - **Reads favor local database** (primary or replica) via LOC algorithm
+  - **Writes always go to primary** (wherever it is located)
+  - Handles failovers transparently
+- **Direct access** (not recommended): 
+  - Primary/replica endpoints change during failovers
+  - Use only for debugging or special cases
 
 ### Monitoring & Operations
 

@@ -144,9 +144,9 @@ PLAYBOOKS=(
     "playbooks/infrastructure/01-provision-and-prepare-lxcs.yml:Provisioning LXC containers and base setup"
     "playbooks/infrastructure/02-install-consul.yml:Installing and configuring Consul"
     "playbooks/infrastructure/03-install-nomad.yml:Installing and configuring Nomad"
-    "playbooks/infrastructure/04-install-etcd.yml:Installing etcd for Patroni DCS"
+    "playbooks/infrastructure/04-install-etcd.yml:Installing etcd for Patroni DCS and Confd"
     "playbooks/infrastructure/05-install-postgres.yml:Installing PostgreSQL with Patroni HA"
-    "playbooks/infrastructure/06-install-pgcat.yml:Installing PgCat intelligent PostgreSQL proxy"
+    "playbooks/infrastructure/06-install-pgcat.yml:Installing PgCat with dynamic configuration via Confd"
 )
 
 # Setup GitHub runners if PAT is configured
@@ -197,6 +197,7 @@ if [ $failed -eq 0 ]; then
     echo "  • 3 etcd nodes for Patroni distributed configuration"
     echo "  • 3 PostgreSQL nodes with Patroni HA"
     echo "  • PgCat intelligent proxy on application nodes"
+    echo "  • Confd for dynamic PgCat configuration from etcd"
     echo "  • 3 GitHub Actions self-hosted runners"
     echo ""
     echo -e "${CYAN}Next steps:${NC}"

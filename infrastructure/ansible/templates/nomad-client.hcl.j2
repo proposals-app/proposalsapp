@@ -1,25 +1,60 @@
+# Nomad Client Configuration Template
+# Purpose: Configures Nomad client nodes that execute workloads (containers, jobs)
+#          scheduled by the Nomad servers.
+#
+# Architecture Context:
+# - Clients run on application nodes (apps-xxx containers)
+# - They receive job allocations from servers and execute them
+# - Each client reports resource availability to servers
+# - Clients can be in any datacenter but connect to the global cluster
+#
+# Where this runs:
+# - apps-xxx nodes (application containers)
+# - These nodes also run PgCat, Confd, and application workloads
+
+# Datacenter and Region Configuration
+# Local datacenter for workload placement preferences
 datacenter = "{{ datacenter }}"
 region = "{{ nomad_region }}"
+
+# Data persistence directory
+# Stores allocation data, logs, and secrets for running tasks
 data_dir = "/var/lib/nomad"
+
+# Logging configuration
 log_level = "INFO"
+
+# Node identification
+# Must be unique across the entire Nomad cluster
 name = "{{ inventory_hostname }}"
 
+# Network binding
+# Listen on all interfaces for maximum compatibility
 bind_addr = "0.0.0.0"
 
-# Use Tailscale IP for cluster communication
+# Advertisement configuration
+# IPs that servers use to communicate with this client
+# Using Tailscale ensures encrypted cross-datacenter communication
 advertise {
-  http = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"
-  rpc = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"
-  serf = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"
+  http = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"  # HTTP API (port 4646)
+  rpc = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"   # Internal RPC (port 4647)
+  serf = "{{ tailscale_ip | default(ansible_default_ipv4.address) }}"  # Gossip protocol (port 4648)
 }
 
+# Server Configuration
+# Disabled - this node is a client, not a server
 server {
   enabled = false
 }
 
+# Client Configuration
+# Enables workload execution on this node
 client {
   enabled = true
   
+  # Server discovery
+  # Automatically find and connect to Nomad servers
+  # Connects to all servers for redundancy
   server_join {
     retry_join = [
       {% for host in groups['nomad_servers'] %}
@@ -28,60 +63,91 @@ client {
     ]
   }
 
+  # Node Metadata
+  # Custom key-value pairs used for job placement constraints
+  # Jobs can require specific datacenters or locations
   meta {
-    "datacenter" = "{{ datacenter }}"
-    "location" = "{{ hostvars[proxmox_node].location | default(datacenter) }}"
+    "datacenter" = "{{ datacenter }}"     # Physical datacenter (dc1, dc2, dc3)
+    "location" = "{{ hostvars[proxmox_node].location | default(datacenter) }}"  # Geographic location
   }
 
+  # Host Volumes
+  # Makes host paths available to jobs that request them
+  # docker-sock: Allows jobs to interact with Docker daemon (e.g., for deployments)
   host_volume "docker-sock" {
     path = "/var/run/docker.sock"
-    read_only = true
+    read_only = true    # Read-only for security
   }
 }
 
+# Consul Integration
+# Enables service registration and health checking for all jobs
 consul {
+  # Connect to local Consul agent
   address = "127.0.0.1:{{ consul_client_port }}"
-  server_service_name = "nomad"
-  client_service_name = "nomad-client"
-  auto_advertise = true
-  server_auto_join = true
-  client_auto_join = true
+  
+  # Service names for Consul registration
+  server_service_name = "nomad"         # How servers appear
+  client_service_name = "nomad-client"  # How this client appears
+  
+  # Automatic features
+  auto_advertise = true      # Register client in Consul
+  server_auto_join = true    # Discover servers via Consul
+  client_auto_join = true    # Enable for consistency
 }
 
+# Access Control Lists
+# Currently disabled for simplicity
+# Enable in production environments
 acl {
   enabled = false
 }
 
+# Telemetry Configuration
+# Metrics collection for monitoring
 telemetry {
-  collection_interval = "1s"
-  disable_hostname = true
-  prometheus_metrics = true
-  publish_allocation_metrics = true
-  publish_node_metrics = true
+  collection_interval = "1s"         # Frequency of metric updates
+  disable_hostname = true            # Cleaner Prometheus labels
+  prometheus_metrics = true          # Prometheus-compatible format
+  publish_allocation_metrics = true  # Per-job resource usage
+  publish_node_metrics = true        # Node health and capacity
 }
 
+# Task Driver: Docker
+# Primary method for running containerized workloads
 plugin "docker" {
   config {
+    # Docker daemon endpoint
     endpoint = "unix:///var/run/docker.sock"
     
+    # Garbage Collection
+    # Cleans up resources after jobs complete
     gc {
-      image = true
-      image_delay = "3m"
-      container = true
+      image = true          # Remove unused images
+      image_delay = "3m"    # Keep images 3 min after last use
+      container = true      # Remove stopped containers
     }
     
+    # Volume Support
+    # Allows jobs to mount host volumes
     volumes {
       enabled = true
     }
     
-    allow_privileged = false
+    # Security Settings
+    allow_privileged = false    # No privileged containers
     
+    # Registry Authentication
+    # Uses Docker config for private registries
     auth {
       config = "/etc/docker/config.json"
     }
   }
 }
 
+# Task Driver: Raw Exec
+# Disabled for security reasons
+# Would allow direct command execution on host
 plugin "raw_exec" {
   config {
     enabled = false

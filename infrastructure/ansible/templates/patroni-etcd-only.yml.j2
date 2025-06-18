@@ -1,110 +1,185 @@
+# Patroni Configuration Template
+# Purpose: Configures Patroni to manage PostgreSQL high availability
+#          with automatic failover using etcd for distributed consensus.
+#
+# Architecture Context:
+# - Manages 3-node PostgreSQL cluster (1 primary, 2 replicas)
+# - Uses etcd for leader election and configuration storage
+# - Handles automatic failover in ~30-45 seconds
+# - Synchronous replication to at least one replica
+#
+# Where this runs:
+# - db-xxx nodes (database containers)
+# - Co-located with PostgreSQL and etcd
+
+# Cluster Identification
+# scope: Cluster name - all nodes with same scope form one HA cluster
+# namespace: etcd key prefix for storing cluster state
+# name: Unique node identifier within the cluster
 scope: proposalsapp
 namespace: /service/
 name: {{ inventory_hostname }}
 
+# REST API Configuration
+# Patroni exposes HTTP API for health checks and management
 restapi:
-  listen: 0.0.0.0:{{ patroni_rest_api_port }}
-  connect_address: {{ tailscale_ip | default(ansible_default_ipv4.address) }}:{{ patroni_rest_api_port }}
+  listen: 0.0.0.0:{{ patroni_rest_api_port }}                                         # Listen on all interfaces (default 8008)
+  connect_address: {{ tailscale_ip | default(ansible_default_ipv4.address) }}:{{ patroni_rest_api_port }}  # How other nodes reach us
   authentication:
     username: patroni
-    password: {{ postgres_password }}
+    password: {{ postgres_password }}  # Secure the management API
 
-# Use etcd3 as the Distributed Configuration Store (DCS)
+# Distributed Configuration Store (DCS)
+# etcd3 provides consensus for leader election and configuration
 etcd3:
+  # List all etcd endpoints for redundancy
+  # Patroni will try them in order if one fails
   hosts: {% for host in groups['postgres_nodes'] %}{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}
   
-  protocol: http
+  protocol: http  # Using HTTP (Tailscale provides encryption)
   
-  # Retry configuration for better resilience
-  retry_timeout: 60
-  ttl: 30
+  # Resilience Configuration
+  # retry_timeout: How long to retry etcd operations before giving up
+  # ttl: Leader lease duration - if primary doesn't renew within TTL, failover begins
+  retry_timeout: 60  # Keep trying for 60 seconds
+  ttl: 30           # 30 second leader lease
 
+# Bootstrap Configuration
+# Settings for initial cluster creation and ongoing operation
 bootstrap:
+  # Dynamic Configuration Settings (stored in DCS)
+  # These can be changed at runtime via patronictl edit-config
   dcs:
-    ttl: 30
-    loop_wait: 10
-    retry_timeout: 30
-    maximum_lag_on_failover: 1048576
-    master_start_timeout: 300
-    synchronous_mode: false
-    synchronous_mode_strict: false
-    synchronous_node_count: 1
+    # Leader Election Timing
+    ttl: 30                  # Leader lease time in seconds
+    loop_wait: 10            # How often Patroni checks cluster state
+    retry_timeout: 30        # How long to retry DCS operations
+    
+    # Failover Settings
+    maximum_lag_on_failover: 1048576    # Max replication lag (1MB) for automatic failover
+    master_start_timeout: 300           # 5 minutes to start PostgreSQL
+    
+    # Synchronous Replication Configuration
+    # Ensures at least one replica has received all transactions
+    synchronous_mode: false             # Will be enabled after initial setup
+    synchronous_mode_strict: false      # Don't block writes if no sync replicas available
+    synchronous_node_count: 1           # Require 1 synchronous replica
+    
+    # PostgreSQL Configuration
     postgresql:
-      use_pg_rewind: true
-      use_slots: true
-      parameters:
-        max_connections: 200
-        # Adjust these based on your server's RAM
-        # For 8GB RAM server: shared_buffers=2GB, effective_cache_size=6GB
-        # For 16GB RAM server: shared_buffers=4GB, effective_cache_size=12GB
-        # For 32GB RAM server: shared_buffers=8GB, effective_cache_size=24GB
-        shared_buffers: {{ postgres_shared_buffers | default('2GB') }}
-        effective_cache_size: {{ postgres_effective_cache_size | default('6GB') }}
-        maintenance_work_mem: 64MB
-        checkpoint_completion_target: 0.9
-        wal_buffers: 16MB
-        default_statistics_target: 100
-        random_page_cost: 1.1
-        effective_io_concurrency: 200
-        work_mem: {{ postgres_work_mem | default('16MB') }}
-        min_wal_size: 1GB
-        max_wal_size: 4GB
-        max_worker_processes: 8
-        max_parallel_workers_per_gather: 4
-        max_parallel_workers: 8
-        max_parallel_maintenance_workers: 4
-        wal_level: replica
-        hot_standby: "on"
-        max_wal_senders: 10
-        max_replication_slots: 10
-        hot_standby_feedback: "on"
-        wal_log_hints: "on"
-        shared_preload_libraries: 'pg_stat_statements'
-        synchronous_commit: "on"
-        synchronous_standby_names: ""
-        # Enable password encryption with SCRAM
-        password_encryption: scram-sha-256
+      use_pg_rewind: true    # Use pg_rewind for faster replica rebuild
+      use_slots: true        # Use replication slots to prevent WAL removal
+      parameters:            # PostgreSQL settings applied to all nodes
+        # Connection Settings
+        max_connections: 200      # PgCat handles pooling, so this can be moderate
+        
+        # Memory Settings
+        # Adjust based on server RAM:
+        # - 8GB RAM: shared_buffers=2GB, effective_cache_size=6GB
+        # - 16GB RAM: shared_buffers=4GB, effective_cache_size=12GB
+        # - 32GB RAM: shared_buffers=8GB, effective_cache_size=24GB
+        shared_buffers: {{ postgres_shared_buffers | default('2GB') }}           # ~25% of RAM
+        effective_cache_size: {{ postgres_effective_cache_size | default('6GB') }} # ~75% of RAM
+        work_mem: {{ postgres_work_mem | default('16MB') }}                      # Per query operation
+        maintenance_work_mem: 64MB                                                # For VACUUM, CREATE INDEX
+        
+        # Write-Ahead Log (WAL) Settings
+        wal_level: replica              # Required for replication
+        wal_buffers: 16MB              # WAL buffer size
+        min_wal_size: 1GB              # Minimum WAL disk space
+        max_wal_size: 4GB              # Maximum before checkpoint forced
+        wal_log_hints: "on"            # Required for pg_rewind
+        
+        # Checkpoint Settings
+        checkpoint_completion_target: 0.9  # Spread checkpoint I/O
+        
+        # Query Planner Settings
+        default_statistics_target: 100     # More accurate statistics
+        random_page_cost: 1.1             # SSD-optimized (lower = favor index scans)
+        effective_io_concurrency: 200     # SSD can handle many concurrent I/O
+        
+        # Parallel Query Settings
+        max_worker_processes: 8                # Total background workers
+        max_parallel_workers: 8                # Workers for parallel queries
+        max_parallel_workers_per_gather: 4     # Per-query parallel workers
+        max_parallel_maintenance_workers: 4    # For CREATE INDEX, VACUUM
+        
+        # Replication Settings
+        hot_standby: "on"                     # Allow queries on replicas
+        max_wal_senders: 10                   # Concurrent replication connections
+        max_replication_slots: 10             # Replication slot count
+        hot_standby_feedback: "on"            # Prevent query conflicts on replicas
+        
+        # Synchronous Replication
+        synchronous_commit: "on"              # Wait for replica confirmation
+        synchronous_standby_names: ""         # Patroni manages this dynamically
+        
+        # Extensions and Security
+        shared_preload_libraries: 'pg_stat_statements'  # Query performance monitoring
+        password_encryption: scram-sha-256              # Modern password encryption
 
+  # Database Initialization Options
+  # Applied when creating a new PostgreSQL cluster
   initdb:
-  - encoding: UTF8
-  - data-checksums
+  - encoding: UTF8       # Unicode encoding for international support
+  - data-checksums      # Enable data page checksums for corruption detection
 
+  # Host-Based Authentication (pg_hba.conf)
+  # Controls which clients can connect and how they authenticate
+  # Rules are processed top-to-bottom, first match wins
   pg_hba:
-  # Tailscale network only - using scram-sha-256 for better security
+  # Replication connections - restricted to Tailscale network
   - host replication replicator 100.64.0.0/10 scram-sha-256
+  
+  # Application connections - Tailscale network only
   - host all all 100.64.0.0/10 scram-sha-256
-  # Local connections
+  
+  # Local connections - for maintenance via patronictl
   - local all all peer
-  # Deny all other connections
+  
+  # Explicit deny rule - reject all other connections
   - host all all 0.0.0.0/0 reject
 
-  # Users to create during cluster initialization
-  # Note: These are only created during initial bootstrap
+  # Initial Database Users
+  # Created only during cluster bootstrap (not on replicas)
   users:
+    # Application user
     proposalsapp:
       password: "{{ postgres_password }}"
       options:
-        - createrole
-        - createdb
-        - login
+        - createrole    # Can create other roles
+        - createdb      # Can create databases
+        - login         # Can log in
+    
+    # Replication user
     replicator:
       password: "{{ postgres_replication_password }}"
       options:
-        - replication
-        - login
+        - replication   # Can connect for streaming replication
+        - login         # Can log in
 
-  # Method to use for initial cluster creation
-  method: initdb
+  # Cluster Creation Method
+  method: initdb        # Create new cluster from scratch
   
-  # Post-init script to run after cluster initialization
+  # Post-Initialization Script
+  # Runs after cluster is created but before it's opened for connections
+  # Used to create databases, schemas, and initial data
   post_init: /tmp/patroni-post-init.sh
 
+# PostgreSQL Instance Configuration
+# Settings specific to this PostgreSQL instance
 postgresql:
-  listen: 0.0.0.0:{{ postgres_port }}
-  connect_address: {{ tailscale_ip | default(ansible_default_ipv4.address) }}:{{ postgres_port }}
-  data_dir: /var/lib/postgresql/{{ postgres_version }}/data
-  bin_dir: /usr/lib/postgresql/{{ postgres_version }}/bin
-  pgpass: /tmp/pgpass0
+  # Network Configuration
+  listen: 0.0.0.0:{{ postgres_port }}                                           # Listen on all interfaces
+  connect_address: {{ tailscale_ip | default(ansible_default_ipv4.address) }}:{{ postgres_port }}  # How replicas connect to us
+  
+  # File System Paths
+  data_dir: /var/lib/postgresql/{{ postgres_version }}/data   # PGDATA directory
+  bin_dir: /usr/lib/postgresql/{{ postgres_version }}/bin     # PostgreSQL binaries
+  pgpass: /tmp/pgpass0                                         # Password file for replication
+  
+  # Authentication Credentials
+  # Used by Patroni to manage PostgreSQL
   authentication:
     replication:
       username: replicator
@@ -113,14 +188,21 @@ postgresql:
       username: postgres
       password: {{ postgres_password }}
   
+  # Replica Creation Methods
+  # How Patroni creates new replica instances
   create_replica_methods:
-    - basebackup
+    - basebackup    # Use pg_basebackup (streaming backup)
   
+  # Base Backup Configuration
+  # Options for pg_basebackup when creating replicas
   basebackup:
-    checkpoint: 'fast'
+    checkpoint: 'fast'    # Force checkpoint before backup for consistency
 
+# Node Tags
+# Control cluster behavior for this specific node
+# These can be changed at runtime via patronictl
 tags:
-  nofailover: false
-  noloadbalance: false
-  clonefrom: false
-  nosync: false
+  nofailover: false      # Can be promoted to primary (normal behavior)
+  noloadbalance: false   # Can receive read queries (normal behavior)
+  clonefrom: false       # Not a dedicated clone source
+  nosync: false          # Can be a synchronous replica

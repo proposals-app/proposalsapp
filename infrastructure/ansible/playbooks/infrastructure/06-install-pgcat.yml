@@ -10,7 +10,8 @@
     database_user: proposalsapp
     database_password: "{{ vault_postgres_password }}"
     pgcat_admin_password: "{{ vault_pgcat_admin_password | default(vault_postgres_password) }}"
-    
+    etcd_client_port: 2379
+
   tasks:
     - name: Ensure PostgreSQL cluster is ready
       pause:
@@ -30,30 +31,30 @@
         state: directory
         owner: root
         group: root
-        mode: '0755'
+        mode: "0755"
       loop:
         - "{{ pgcat_config_dir }}"
         - "{{ pgcat_log_dir }}"
         - "{{ pgcat_data_dir }}"
-        
+
     - name: Install Docker if not present
       apt:
         name: docker.io
         state: present
         update_cache: yes
-        
+
     - name: Ensure Docker is running
       systemd:
         name: docker
         state: started
         enabled: yes
-        
+
     - name: Pull PgCat Docker image
       docker_image:
         name: ghcr.io/postgresml/pgcat
         tag: latest
         source: pull
-        
+
     - name: Create pgcat wrapper script
       copy:
         content: |
@@ -68,17 +69,17 @@
             ghcr.io/postgresml/pgcat:latest \
             /usr/bin/pgcat {{ pgcat_config_dir }}/pgcat.toml
         dest: /usr/bin/pgcat
-        mode: '0755'
-        
+        mode: "0755"
+
     - name: Create pgcat configuration
       template:
         src: ../../templates/pgcat.toml.j2
         dest: "{{ pgcat_config_dir }}/pgcat.toml"
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
       notify: restart pgcat
-      
+
     - name: Create pgcat systemd service
       copy:
         content: |
@@ -87,7 +88,7 @@
           After=network-online.target consul.service docker.service
           Wants=network-online.target
           Requires=docker.service
-          
+
           [Service]
           Type=simple
           ExecStartPre=-/usr/bin/docker stop pgcat
@@ -105,115 +106,97 @@
           ExecReload=/usr/bin/docker kill -s HUP pgcat
           Restart=always
           RestartSec=10
-          
+
           # Resource limits
           LimitNOFILE=65536
-          
+
           [Install]
           WantedBy=multi-user.target
         dest: /etc/systemd/system/pgcat.service
-        mode: '0644'
+        mode: "0644"
       notify:
         - reload systemd
         - restart pgcat
-        
-    - name: Install consul-template
-      get_url:
-        url: "https://releases.hashicorp.com/consul-template/0.33.0/consul-template_0.33.0_linux_amd64.zip"
-        dest: /tmp/consul-template.zip
-        mode: '0644'
-        
-    - name: Unarchive consul-template
-      unarchive:
-        src: /tmp/consul-template.zip
-        dest: /usr/local/bin
-        remote_src: true
-        creates: /usr/local/bin/consul-template
-        
-    - name: Create consul-template directories
-      file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-      loop:
-        - /etc/consul-template.d
-        - /var/lib/consul-template
-        
-    - name: Create consul-template systemd service
+
+    - name: Set local datacenter and IPs in etcd
+      shell: |
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/datacenter" "{{ datacenter }}"
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/ips/{{ datacenter }}" "{{ tailscale_ip }}"
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/pgcat/password" "{{ database_password }}"
+        {% for host in groups['postgres_nodes'] %}
+        etcdctl --endpoints="{% for h in groups['postgres_nodes'] %}http://{{ hostvars[h]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/ips/{{ hostvars[host]['datacenter'] }}" "{{ hostvars[host]['tailscale_ip'] }}"
+        {% endfor %}
+      changed_when: false
+
+    - name: Deploy PgCat Confd template
       copy:
-        content: |
-          [Unit]
-          Description=consul-template
-          Requires=network-online.target consul.service
-          After=network-online.target consul.service
-          
-          [Service]
-          Type=simple
-          Environment="DATACENTER={{ datacenter }}"
-          Environment="CONSUL_HTTP_ADDR=127.0.0.1:8500"
-          ExecStart=/usr/local/bin/consul-template -config=/etc/consul-template.d
-          ExecReload=/bin/kill -HUP $MAINPID
-          KillMode=process
-          Restart=on-failure
-          LimitNOFILE=65536
-          
-          [Install]
-          WantedBy=multi-user.target
-        dest: /etc/systemd/system/consul-template.service
-        mode: '0644'
-      notify:
-        - reload systemd
-        - restart consul-template
-        
-    - name: Set Consul KV values for PgCat in dc1
-      uri:
-        url: "http://{{ hostvars['consul-nomad-sib-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
-        method: PUT
-        body: "{{ item.value }}"
-      loop:
-        - { key: "pgcat/admin_password", value: "{{ pgcat_admin_password }}" }
-        - { key: "database/password", value: "{{ database_password }}" }
-        - { key: "database/name", value: "{{ database_name }}" }
-        - { key: "database/user", value: "{{ database_user }}" }
-        - { key: "pgcat/enable_cross_dc_reads", value: "false" }
-      delegate_to: "{{ inventory_hostname }}"
+        src: ../../files/pgcat-confd.toml.tmpl
+        dest: /etc/confd/templates/pgcat.toml.tmpl
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Wait for Patroni to populate etcd with cluster data
+      shell: |
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                get --prefix "/service/proposalsapp"
+      register: patroni_check
+      until: patroni_check.stdout | length > 0
+      retries: 30
+      delay: 10
       run_once: true
 
-    - name: Set Consul KV values for PgCat in dc2
-      uri:
-        url: "http://{{ hostvars['consul-nomad-sib-03'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
-        method: PUT
-        body: "{{ item.value }}"
-      loop:
-        - { key: "pgcat/admin_password", value: "{{ pgcat_admin_password }}" }
-        - { key: "database/password", value: "{{ database_password }}" }
-        - { key: "database/name", value: "{{ database_name }}" }
-        - { key: "database/user", value: "{{ database_user }}" }
-        - { key: "pgcat/enable_cross_dc_reads", value: "false" }
-      delegate_to: "{{ inventory_hostname }}"
-      run_once: true
+    - name: Start and enable pgcat service first
+      systemd:
+        name: pgcat
+        state: started
+        enabled: true
+        daemon_reload: true
 
-    - name: Set Consul KV values for PgCat in dc3
-      uri:
-        url: "http://{{ hostvars['consul-nomad-fsn-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
-        method: PUT
-        body: "{{ item.value }}"
-      loop:
-        - { key: "pgcat/admin_password", value: "{{ pgcat_admin_password }}" }
-        - { key: "database/password", value: "{{ database_password }}" }
-        - { key: "database/name", value: "{{ database_name }}" }
-        - { key: "database/user", value: "{{ database_user }}" }
-        - { key: "pgcat/enable_cross_dc_reads", value: "false" }
-      delegate_to: "{{ inventory_hostname }}"
-      run_once: true
-      
-    - name: Configure Consul Template for pgcat
-      template:
-        src: ../../templates/pgcat.consul.j2
-        dest: /etc/consul-template.d/pgcat.hcl
-        mode: '0644'
-      notify: restart consul-template
-      
+    - name: Wait for PgCat to start initially
+      wait_for:
+        port: 5432
+        host: localhost
+        delay: 5
+        timeout: 30
+
+    - name: Test Confd configuration with pgcat running
+      command: /usr/local/bin/confd -onetime -config-file /etc/confd/confd.toml
+      register: confd_test
+      changed_when: false
+      failed_when: confd_test.rc != 0
+
+    - name: Start and enable Confd service
+      systemd:
+        name: confd
+        state: started
+        enabled: yes
+
+    - name: Wait for Confd to process templates
+      pause:
+        seconds: 15
+        prompt: "Waiting for Confd to generate PgCat configuration..."
+
+    - name: Debug Confd service status
+      shell: |
+        echo "=== Confd Service Status ==="
+        systemctl status confd --no-pager -l
+        echo "=== Confd Logs ==="
+        journalctl -u confd --no-pager -l --since="5 minutes ago"
+        echo "=== PgCat Config File ==="
+        ls -la /etc/pgcat/pgcat.toml || echo "File does not exist"
+        head -10 /etc/pgcat/pgcat.toml 2>/dev/null || echo "Cannot read file"
+      register: confd_debug
+      changed_when: false
+
+    - name: Display Confd debug information
+      debug:
+        var: confd_debug.stdout_lines
+
     - name: Create pgcat Consul health check
       copy:
         content: |
@@ -230,37 +213,28 @@
             }
           }
         dest: /etc/consul.d/pgcat.json
-        mode: '0644'
+        mode: "0644"
       notify: reload consul
-      
+
     - name: Configure firewall for pgcat metrics
       ufw:
         rule: allow
-        port: '9930'
+        port: "9930"
         proto: tcp
         src: "{{ hostvars[item]['ansible_default_ipv4']['address'] }}/32"
       loop: "{{ groups['monitoring'] }}"
       when: groups['monitoring'] is defined
-      
-    - name: Start and enable pgcat
+
+    - name: Wait for PgCat configuration to be updated by Confd
+      wait_for:
+        path: /etc/pgcat/pgcat.toml
+        timeout: 60
+        search_regex: "Managed by Confd from etcd"
+
+    - name: Ensure pgcat is running with updated config
       systemd:
         name: pgcat
-        state: started
-        enabled: true
-        daemon_reload: true
-        
-    - name: Start and enable consul-template
-      systemd:
-        name: consul-template
-        state: started
-        enabled: true
-
-    - name: Wait for PgCat to be ready
-      wait_for:
-        port: 5432
-        host: localhost
-        delay: 5
-        timeout: 30
+        state: restarted
 
     - name: Store PgCat connection strings in all Consul datacenters
       block:
@@ -270,12 +244,27 @@
             method: PUT
             body: "{{ item.value }}"
           loop:
-            - { key: "pgcat/connection_string/local", value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-sib-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-sib-03", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-fsn-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}" }
+            - {
+                key: "pgcat/connection_string/local",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+              }
             - { key: "postgresql/direct/primary_hostname", value: "db-sib-01" }
-            - { key: "postgresql/direct/connection_string", value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}" }
+            - {
+                key: "postgresql/direct/connection_string",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}",
+              }
           delegate_to: "{{ inventory_hostname }}"
 
         - name: Store PgCat connection strings in dc2
@@ -284,12 +273,27 @@
             method: PUT
             body: "{{ item.value }}"
           loop:
-            - { key: "pgcat/connection_string/local", value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-sib-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-sib-03", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-fsn-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}" }
+            - {
+                key: "pgcat/connection_string/local",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+              }
             - { key: "postgresql/direct/primary_hostname", value: "db-sib-01" }
-            - { key: "postgresql/direct/connection_string", value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}" }
+            - {
+                key: "postgresql/direct/connection_string",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}",
+              }
           delegate_to: "{{ inventory_hostname }}"
 
         - name: Store PgCat connection strings in dc3
@@ -298,12 +302,27 @@
             method: PUT
             body: "{{ item.value }}"
           loop:
-            - { key: "pgcat/connection_string/local", value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-sib-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-sib-03", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}" }
-            - { key: "pgcat/connection_string/apps-fsn-01", value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}" }
+            - {
+                key: "pgcat/connection_string/local",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgcat/connection_string/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+              }
             - { key: "postgresql/direct/primary_hostname", value: "db-sib-01" }
-            - { key: "postgresql/direct/connection_string", value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}" }
+            - {
+                key: "postgresql/direct/connection_string",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@db-sib-01:5432/{{ database_name }}",
+              }
           delegate_to: "{{ inventory_hostname }}"
       run_once: true
 
@@ -313,13 +332,13 @@
           ========================================
           Database Connection Strings
           ========================================
-          
+
           Through PgCat (Recommended):
           - Local: postgresql://{{ database_user }}:***@localhost:5432/{{ database_name }}
           - Via apps-sib-01: postgresql://{{ database_user }}:***@apps-sib-01:5432/{{ database_name }}
           - Via apps-sib-03: postgresql://{{ database_user }}:***@apps-sib-03:5432/{{ database_name }}
           - Via apps-fsn-01: postgresql://{{ database_user }}:***@apps-fsn-01:5432/{{ database_name }}
-          
+
           Direct to PostgreSQL:
           - Via hostname: postgresql://{{ database_user }}:***@db-sib-01:5432/{{ database_name }}
           {% for host in groups['postgres_nodes'] %}
@@ -327,28 +346,23 @@
           - Via IP: postgresql://{{ database_user }}:***@{{ hostvars[host]['tailscale_ip'] }}:5432/{{ database_name }}
           {% endif %}
           {% endfor %}
-          
+
           Connection strings have been stored in Consul KV under:
           - pgcat/connection_string/*
           - postgresql/direct/*
           ========================================
       run_once: true
-        
+
   handlers:
     - name: reload systemd
       systemd:
         daemon_reload: true
-        
+
     - name: restart pgcat
       systemd:
         name: pgcat
         state: restarted
-        
-    - name: restart consul-template
-      systemd:
-        name: consul-template
-        state: restarted
-        
+
     - name: reload consul
       systemd:
         name: consul

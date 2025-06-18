@@ -47,7 +47,7 @@ cd "$(dirname "$0")"
 # Function to run setup playbooks
 run_setup() {
     echo "Running setup playbooks for $APP_NAME..."
-    
+
     for playbook in "$APP_DIR"/*.yml; do
         if [ -f "$playbook" ]; then
             echo "Executing: ansible-playbook -i inventory.yml $playbook"

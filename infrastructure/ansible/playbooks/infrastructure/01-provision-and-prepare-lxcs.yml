@@ -67,7 +67,7 @@
         memory: 16384
         swap: 0
         disk: 100
-      github_runner_sib:  # Double resources for Sibiu runners
+      github_runner_sib: # Double resources for Sibiu runners
         cores: 16
         memory: 32768
         swap: 0

@@ -24,19 +24,19 @@
       set_fact:
         ansible_host: "{{ tailscale_ip }}"
       when: tailscale_ip is defined and tailscale_ip != ''
-    
+
     # Pre-flight check: Ensure etcd is running on all nodes
     - name: Verify etcd cluster health
       shell: |
         export ETCDCTL_API=3
         # Check if etcd is healthy on all nodes
         endpoints="{% for host in groups['postgres_nodes'] %}{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}"
-        
+
         if ! /usr/local/bin/etcdctl endpoint health --endpoints="$endpoints"; then
           echo "ERROR: etcd cluster is not healthy"
           exit 1
         fi
-        
+
         echo "OK: etcd cluster verified healthy across all nodes"
       register: etcd_health
       changed_when: false
@@ -140,8 +140,6 @@
         group: postgres
         mode: "0700"
 
-
-
     - name: Generate Patroni configuration
       template:
         src: ../../templates/patroni-etcd-only.yml.j2
@@ -149,7 +147,7 @@
         owner: postgres
         group: postgres
         mode: "0640"
-    
+
     - name: Generate Patroni bootstrap SQL script
       template:
         src: ../../templates/patroni-bootstrap.sql.j2
@@ -157,7 +155,7 @@
         owner: postgres
         group: postgres
         mode: "0644"
-    
+
     - name: Generate Patroni post-init wrapper script
       template:
         src: ../../templates/patroni-post-init.sh.j2
@@ -216,14 +214,14 @@
         seconds: 45
         prompt: "Waiting for primary to initialize and register in etcd"
       when: postgres_role == 'primary'
-    
+
     - name: Create wait script for Patroni initialization
       template:
         src: ../../templates/wait-for-patroni.sh.j2
         dest: /tmp/wait-for-patroni.sh
         mode: "0755"
       when: postgres_role == 'primary'
-    
+
     - name: Wait for Patroni to fully initialize the database
       shell: /tmp/wait-for-patroni.sh
       when: postgres_role == 'primary'
@@ -234,8 +232,8 @@
         seconds: 30
         prompt: "Waiting for etcd to achieve consensus on cluster state"
       run_once: true
-    
-    - name: Ensure required PostgreSQL roles exist  
+
+    - name: Ensure required PostgreSQL roles exist
       environment:
         PGPASSWORD: "{{ postgres_password }}"
       shell: |
@@ -246,7 +244,7 @@
         else
           echo "Role proposalsapp already exists"
         fi
-        
+
         # Verify roles were created
         echo "Current roles:"
         psql -h localhost -U postgres -d postgres -c "SELECT rolname FROM pg_roles WHERE rolname IN ('proposalsapp', 'replicator');"
@@ -258,11 +256,11 @@
       shell: |
         #!/bin/bash
         set -e
-        
+
         export ETCDCTL_API=3
-        
+
         echo "Checking for initialize key in etcd..."
-        
+
         # Check if the initialize key exists
         if /usr/local/bin/etcdctl get /service/proposalsapp/initialize > /dev/null 2>&1; then
           init_value=$(/usr/local/bin/etcdctl get /service/proposalsapp/initialize --print-value-only)
@@ -283,7 +281,7 @@
     - name: Verify initialize key is available in etcd before starting standby
       shell: |
         export ETCDCTL_API=3
-        
+
         # Check if the initialize key exists in etcd
         if /usr/local/bin/etcdctl get /service/proposalsapp/initialize > /dev/null 2>&1; then
           init_value=$(/usr/local/bin/etcdctl get /service/proposalsapp/initialize --print-value-only)
@@ -327,7 +325,7 @@
         echo "ERROR: No leader elected"
         exit 1
       run_once: true
-      delegate_to: db-sib-01  # Check from primary DC
+      delegate_to: db-sib-01 # Check from primary DC
       register: leader_check
 
     - name: Wait for all nodes to join cluster
@@ -336,7 +334,7 @@
         i=1
         while [ $i -le 90 ]; do
           cluster_output=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list 2>&1)
-          
+
           # Check if this node appears in the cluster output
           if echo "$cluster_output" | grep -q "{{ inventory_hostname }}"; then
             # Also check if the node is in a good state (running or streaming)
@@ -398,7 +396,6 @@
         delay: 5
         timeout: 60
 
-
     - name: Store PostgreSQL connection details in Consul KV (primary DC)
       uri:
         url: "http://localhost:{{ consul_client_port }}/v1/kv/{{ item.key }}"
@@ -406,16 +403,31 @@
         body: "{{ item.value }}"
       loop:
         - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
-        - { key: "postgresql/primary_tailscale_ip", value: "{{ tailscale_ip }}" }
+        - {
+            key: "postgresql/primary_tailscale_ip",
+            value: "{{ tailscale_ip }}",
+          }
         - { key: "postgresql/port", value: "5432" }
         - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
         - { key: "postgresql/username", value: "proposalsapp" }
         - { key: "postgresql/admin_username", value: "{{ postgres_user }}" }
         - { key: "postgresql/password", value: "{{ postgres_password }}" }
-        - { key: "postgresql/service_discovery", value: "proposalsapp.service.consul" }
-        - { key: "postgresql/connection_string/consul", value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/connection_string/hostname", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/connection_string/tailscale_ip", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}" }
+        - {
+            key: "postgresql/service_discovery",
+            value: "proposalsapp.service.consul",
+          }
+        - {
+            key: "postgresql/connection_string/consul",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}",
+          }
+        - {
+            key: "postgresql/connection_string/hostname",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}",
+          }
+        - {
+            key: "postgresql/connection_string/tailscale_ip",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}",
+          }
         - { key: "database/name", value: "{{ postgres_db_name }}" }
         - { key: "database/user", value: "proposalsapp" }
         - { key: "database/password", value: "{{ postgres_password }}" }
@@ -430,16 +442,31 @@
         body: "{{ item.value }}"
       loop:
         - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
-        - { key: "postgresql/primary_tailscale_ip", value: "{{ tailscale_ip }}" }
+        - {
+            key: "postgresql/primary_tailscale_ip",
+            value: "{{ tailscale_ip }}",
+          }
         - { key: "postgresql/port", value: "5432" }
         - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
         - { key: "postgresql/username", value: "proposalsapp" }
         - { key: "postgresql/admin_username", value: "{{ postgres_user }}" }
         - { key: "postgresql/password", value: "{{ postgres_password }}" }
-        - { key: "postgresql/service_discovery", value: "proposalsapp.service.consul" }
-        - { key: "postgresql/connection_string/consul", value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/connection_string/hostname", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/connection_string/tailscale_ip", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}" }
+        - {
+            key: "postgresql/service_discovery",
+            value: "proposalsapp.service.consul",
+          }
+        - {
+            key: "postgresql/connection_string/consul",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}",
+          }
+        - {
+            key: "postgresql/connection_string/hostname",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}",
+          }
+        - {
+            key: "postgresql/connection_string/tailscale_ip",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}",
+          }
         - { key: "database/name", value: "{{ postgres_db_name }}" }
         - { key: "database/user", value: "proposalsapp" }
         - { key: "database/password", value: "{{ postgres_password }}" }
@@ -453,16 +480,31 @@
         body: "{{ item.value }}"
       loop:
         - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
-        - { key: "postgresql/primary_tailscale_ip", value: "{{ tailscale_ip }}" }
+        - {
+            key: "postgresql/primary_tailscale_ip",
+            value: "{{ tailscale_ip }}",
+          }
         - { key: "postgresql/port", value: "5432" }
         - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
         - { key: "postgresql/username", value: "proposalsapp" }
         - { key: "postgresql/admin_username", value: "{{ postgres_user }}" }
         - { key: "postgresql/password", value: "{{ postgres_password }}" }
-        - { key: "postgresql/service_discovery", value: "proposalsapp.service.consul" }
-        - { key: "postgresql/connection_string/consul", value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/connection_string/hostname", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/connection_string/tailscale_ip", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}" }
+        - {
+            key: "postgresql/service_discovery",
+            value: "proposalsapp.service.consul",
+          }
+        - {
+            key: "postgresql/connection_string/consul",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}",
+          }
+        - {
+            key: "postgresql/connection_string/hostname",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}",
+          }
+        - {
+            key: "postgresql/connection_string/tailscale_ip",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}",
+          }
         - { key: "database/name", value: "{{ postgres_db_name }}" }
         - { key: "database/user", value: "proposalsapp" }
         - { key: "database/password", value: "{{ postgres_password }}" }
@@ -476,16 +518,31 @@
         body: "{{ item.value }}"
       loop:
         - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
-        - { key: "postgresql/primary_tailscale_ip", value: "{{ tailscale_ip }}" }
+        - {
+            key: "postgresql/primary_tailscale_ip",
+            value: "{{ tailscale_ip }}",
+          }
         - { key: "postgresql/port", value: "5432" }
         - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
         - { key: "postgresql/username", value: "proposalsapp" }
         - { key: "postgresql/admin_username", value: "{{ postgres_user }}" }
         - { key: "postgresql/password", value: "{{ postgres_password }}" }
-        - { key: "postgresql/service_discovery", value: "proposalsapp.service.consul" }
-        - { key: "postgresql/connection_string/consul", value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/connection_string/hostname", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}" }
-        - { key: "postgresql/connection_string/tailscale_ip", value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}" }
+        - {
+            key: "postgresql/service_discovery",
+            value: "proposalsapp.service.consul",
+          }
+        - {
+            key: "postgresql/connection_string/consul",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@proposalsapp.service.consul:5432/{{ postgres_db_name }}",
+          }
+        - {
+            key: "postgresql/connection_string/hostname",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@{{ inventory_hostname }}:5432/{{ postgres_db_name }}",
+          }
+        - {
+            key: "postgresql/connection_string/tailscale_ip",
+            value: "postgresql://proposalsapp:{{ postgres_password }}@{{ tailscale_ip }}:5432/{{ postgres_db_name }}",
+          }
         - { key: "database/name", value: "{{ postgres_db_name }}" }
         - { key: "database/user", value: "proposalsapp" }
         - { key: "database/password", value: "{{ postgres_password }}" }
@@ -501,12 +558,12 @@
       shell: |
         # Get the expected number of nodes
         expected_nodes="{{ groups['postgres_nodes'] | length }}"
-        
+
         # Count actual nodes in cluster
         actual_nodes=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep -E "Leader|Replica" | wc -l)
-        
+
         echo "Expected nodes: $expected_nodes, Actual nodes: $actual_nodes"
-        
+
         # Accept if we have at least 2 nodes (primary + 1 replica) for quorum
         if [ "$actual_nodes" -ge 2 ]; then
           echo "Minimum required nodes are in the cluster (have $actual_nodes, need at least 2)"
@@ -534,7 +591,7 @@
             echo "SUCCESS: Patroni is using etcd for cluster coordination"
             echo "Keys found in etcd:"
             /usr/local/bin/etcdctl get /service/proposalsapp --prefix --keys-only | head -10
-            
+
             # Also verify no DCS keys in Consul (service registration is OK)
             consul_keys=$(curl -s http://localhost:8500/v1/kv/service/proposalsapp?recurse 2>/dev/null || echo "[]")
             if [ "$consul_keys" != "[]" ] && [ -n "$consul_keys" ]; then
@@ -551,7 +608,7 @@
         exit 1
       register: etcd_verify
       run_once: true
-      failed_when: false  # We'll check the result manually
+      failed_when: false # We'll check the result manually
 
     - name: Check etcd verification result
       fail:
@@ -562,19 +619,19 @@
       shell: |
         # Get list of standby nodes from the cluster
         standby_nodes=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep "Replica" | awk '{print $2}' | tr '\n' ',' | sed 's/,$//')
-        
+
         if [ -n "$standby_nodes" ]; then
           echo "Found standby nodes: $standby_nodes"
-          
+
           # Count replicas
           replica_count=$(echo "$standby_nodes" | tr ',' '\n' | wc -l)
-          
+
           # Build synchronous_standby_names based on datacenter distribution
           # Use ANY 1 syntax for quorum-based replication
           sync_standby_names="ANY 1 ($standby_nodes)"
-          
+
           echo "Enabling synchronous replication with: $sync_standby_names"
-          
+
           # Enable synchronous mode in Patroni
           /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml edit-config \
             -s "synchronous_mode=true" \
@@ -582,11 +639,11 @@
             -s "postgresql.parameters.synchronous_commit=remote_apply" \
             -s "postgresql.parameters.synchronous_standby_names='$sync_standby_names'" \
             --force
-          
+
           echo "Synchronous replication enabled with $replica_count replicas"
         else
           echo "No replicas found, keeping synchronous mode disabled"
-          
+
           # Ensure async parameters are set
           /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml edit-config \
             -s "synchronous_mode=false" \
@@ -614,19 +671,19 @@
     - name: Create application database on leader node
       shell: |
         export PGPASSWORD="{{ postgres_password }}"
-        
+
         # First check if we can connect as postgres user
         if ! psql -h localhost -U postgres -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
           echo "ERROR: Cannot connect to PostgreSQL as postgres user"
           exit 1
         fi
-        
+
         # Ensure proposalsapp role exists before creating database
         if ! psql -h localhost -U postgres -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='proposalsapp';" | grep -q 1; then
           echo "Creating proposalsapp role first..."
           psql -h localhost -U postgres -d postgres -c "CREATE ROLE proposalsapp WITH LOGIN PASSWORD '{{ postgres_password }}' CREATEDB CREATEROLE;"
         fi
-        
+
         # Check if database already exists
         if psql -h localhost -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='proposalsapp';" | grep -q 1; then
           echo "Database proposalsapp already exists"
@@ -646,16 +703,16 @@
           echo "Creating database proposalsapp..."
           psql -h localhost -U postgres -c "CREATE DATABASE proposalsapp OWNER proposalsapp ENCODING 'UTF8';"
         fi
-        
+
         # Verify connection as proposalsapp user
         export PGPASSWORD="{{ postgres_password }}"
         if ! psql -h localhost -U proposalsapp -d proposalsapp -c "SELECT version();" >/dev/null 2>&1; then
           echo "ERROR: Cannot connect as proposalsapp user to new database"
           exit 1
         fi
-        
+
         echo "SUCCESS: Database created and verified"
-      when: is_leader.rc == 0  # Only run on the actual leader
+      when: is_leader.rc == 0 # Only run on the actual leader
       register: db_create
       retries: 5
       delay: 10
@@ -674,29 +731,29 @@
         content: |
           [Unit]
           Description=PostgreSQL Health Check Timer
-          
+
           [Timer]
           OnBootSec=5min
           OnUnitActiveSec=5min
-          
+
           [Install]
           WantedBy=timers.target
         dest: /etc/systemd/system/postgres-health-check.timer
-        
+
     - name: Create systemd service for health checks
       copy:
         content: |
           [Unit]
           Description=PostgreSQL Health Check
           After=patroni.service
-          
+
           [Service]
           Type=oneshot
           ExecStart=/usr/local/bin/postgres-health-check
           StandardOutput=journal
           StandardError=journal
         dest: /etc/systemd/system/postgres-health-check.service
-        
+
     - name: Enable and start health check timer
       systemd:
         name: postgres-health-check.timer
@@ -733,7 +790,6 @@
       systemd:
         name: patroni
         state: restarted
-
 
 # Verification checks at the end
 - name: Verify PostgreSQL Cluster
