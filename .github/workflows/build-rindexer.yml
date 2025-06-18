@@ -109,13 +109,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           builder: ${{ steps.buildx.outputs.name }}
-          # Use multiple cache sources with self-hosted runner persistence
-          cache-from: |
-            type=registry,ref=localhost:5000/rindexer:buildcache
-            type=local,src=/var/cache/buildx/rindexer
-          cache-to: |
-            type=registry,ref=localhost:5000/rindexer:buildcache,mode=max
-            type=local,dest=/var/cache/buildx/rindexer,mode=max
+          # Use only local cache for self-hosted runners (faster than registry)
+          cache-from: type=local,src=/var/cache/buildx/rindexer
+          cache-to: type=local,dest=/var/cache/buildx/rindexer,mode=max
           build-args: |
             RUST_VERSION=1.87
             BUILD_DATE=${{ github.event.repository.updated_at }}
