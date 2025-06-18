@@ -40,10 +40,11 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 ENV CARGO_PROFILE_RELEASE_INCREMENTAL=true
 ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 RUN cargo install cargo-chef --locked
 COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
+RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME} --jobs $(nproc)
 
 # Stage 3: Builder
 FROM rust:${RUST_VERSION}-slim-bookworm AS builder
@@ -69,13 +70,14 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 ENV CARGO_PROFILE_RELEASE_INCREMENTAL=true
 ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 COPY . .
 
-# Build the project
-RUN cargo build --release --bin ${APP_NAME}
+# Build the project with parallel jobs
+RUN cargo build --release --bin ${APP_NAME} --jobs $(nproc)
 
 # Stage 4: Final
 FROM debian:bookworm-slim

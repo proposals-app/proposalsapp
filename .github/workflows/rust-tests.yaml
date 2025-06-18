@@ -39,10 +39,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Cargo registry and dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache Rust toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.rustup
+          key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', '**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-rustup-
+
       - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang lld
+          sudo apt-get install -y clang lld git
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -52,17 +72,21 @@ jobs:
           override: true
           components: llvm-tools-preview
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-
       - name: Install latest cargo-llvm-cov
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-llvm-cov,cargo-nextest
 
-      - name: Build
+      - name: Build with optimizations
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
+          CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+          CARGO_PROFILE_DEV_INCREMENTAL: true
+          CARGO_PROFILE_DEV_CODEGEN_UNITS: 256
         run: |
-          cargo build --verbose
+          # Use faster linker and parallel jobs
+          export RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+          cargo build --verbose --jobs $(nproc)
           # Clean up unnecessary build artifacts to save space
           rm -rf target/debug/deps/*.d
           rm -rf target/debug/incremental
@@ -78,8 +102,15 @@ jobs:
           OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
           OPTIMISTIC_SCAN_API_KEY: ${{ secrets.OPTIMISTIC_SCAN_API_KEY }}
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+          # Build optimization environment variables
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
+          CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+          CARGO_PROFILE_DEV_INCREMENTAL: true
+          CARGO_PROFILE_DEV_CODEGEN_UNITS: 256
+          RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
         run: |
-          cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info
+          # Run tests with parallel execution using all available cores
+          cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info --jobs $(nproc)
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

@@ -58,6 +58,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-rustup-
 
+      - name: Ensure buildx cache directory exists
+        run: |
+          sudo mkdir -p /var/cache/buildx/rindexer
+          sudo chown -R runner:runner /var/cache/buildx || true
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3
@@ -104,12 +109,13 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           builder: ${{ steps.buildx.outputs.name }}
-          # Use multiple cache sources for better hit rates
+          # Use multiple cache sources with self-hosted runner persistence
           cache-from: |
             type=registry,ref=localhost:5000/rindexer:buildcache
+            type=local,src=/var/cache/buildx/rindexer
             type=local,src=/tmp/.buildx-cache
           cache-to: |
-            type=registry,ref=localhost:5000/rindexer:buildcache,mode=max
+            type=local,dest=/var/cache/buildx/rindexer,mode=max
             type=local,dest=/tmp/.buildx-cache,mode=max
           build-args: |
             RUST_VERSION=1.87
