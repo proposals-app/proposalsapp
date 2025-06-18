@@ -1,7 +1,8 @@
 ARG APP_NAME=proposalsapp-rindexer
+ARG RUST_VERSION=1.87
 
 # Stage 1: Planner
-FROM rust:slim-bookworm AS planner
+FROM rust:${RUST_VERSION}-slim-bookworm AS planner
 ARG APP_NAME
 WORKDIR /app
 
@@ -11,14 +12,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cargo install cargo-chef
+RUN cargo install cargo-chef --locked
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 2: Cacher
-FROM rust:slim-bookworm AS cacher
+FROM rust:${RUST_VERSION}-slim-bookworm AS cacher
 WORKDIR /app
 ARG APP_NAME
+ARG RUST_VERSION
 
 # Install only essential build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,12 +33,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cargo install cargo-chef
+RUN cargo install cargo-chef --locked
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 3: Builder
-FROM rust:slim-bookworm AS builder
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder
 WORKDIR /app
 ARG APP_NAME
 
