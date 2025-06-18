@@ -56,14 +56,25 @@ async fn main() -> Result<()> {
     });
 
     let uptime_handle = tokio::spawn(async move {
-        let client = Client::new();
-        let betterstack_key = std::env::var("BETTERSTACK_KEY").expect("BETTERSTACK_KEY missing");
-        loop {
-            match client.get(&betterstack_key).send().await {
-                Ok(_) => info!("Uptime ping sent successfully"),
-                Err(e) => warn!(error = %e, "Failed to send uptime ping"),
+        match std::env::var("BETTERSTACK_KEY") {
+            Ok(betterstack_key) => {
+                let client = Client::new();
+                info!("BetterStack uptime monitoring enabled");
+                loop {
+                    match client.get(&betterstack_key).send().await {
+                        Ok(_) => info!("Uptime ping sent successfully"),
+                        Err(e) => warn!(error = %e, "Failed to send uptime ping"),
+                    }
+                    tokio::time::sleep(Duration::from_secs(10)).await;
+                }
             }
-            tokio::time::sleep(Duration::from_secs(10)).await;
+            Err(_) => {
+                info!("BETTERSTACK_KEY not set, uptime monitoring disabled");
+                // Keep the task alive but do nothing
+                loop {
+                    tokio::time::sleep(Duration::from_secs(3600)).await;
+                }
+            }
         }
     });
 
