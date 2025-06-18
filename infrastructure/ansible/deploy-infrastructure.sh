@@ -149,6 +149,14 @@ PLAYBOOKS=(
     "playbooks/infrastructure/06-install-pgcat.yml:Installing PgCat intelligent PostgreSQL proxy"
 )
 
+# Setup GitHub runners if PAT is configured
+if grep -q "vault_github_pat:" group_vars/all/vault.yml 2>/dev/null && \
+   ansible-vault view group_vars/all/vault.yml --vault-password-file .vault_pass 2>/dev/null | grep -q "vault_github_pat: \"[^\"]\+\""; then
+    PLAYBOOKS+=("applications/github-runner/setup-github-runner.yml:Setting up GitHub Actions runners")
+else
+    echo -e "${YELLOW}Note: GitHub runners will not be set up (PAT not configured in vault)${NC}"
+fi
+
 failed=0
 for playbook_info in "${PLAYBOOKS[@]}"; do
     IFS=':' read -r playbook description <<< "$playbook_info"
@@ -188,6 +196,7 @@ if [ $failed -eq 0 ]; then
     echo "  • 3 etcd nodes for Patroni distributed configuration"
     echo "  • 3 PostgreSQL nodes with Patroni HA"
     echo "  • PgCat intelligent proxy on application nodes"
+    echo "  • 3 GitHub Actions self-hosted runners"
     echo ""
     echo -e "${CYAN}Next steps:${NC}"
     echo "1. Verify Consul cluster: consul members"

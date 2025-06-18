@@ -22,7 +22,7 @@
           mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
 
           # Remove known container hostnames
-          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01; do
+          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01 github-runner-sib-01 github-runner-sib-03 github-runner-fsn-01; do
             ssh-keygen -f ~/.ssh/known_hosts -R "$host" 2>/dev/null || true
           done
         fi
@@ -34,11 +34,13 @@
       sib-01: "{{ vault_proxmox_password_sib01 }}"
       sib-03: "{{ vault_proxmox_password_sib03 }}"
       fsn-01: "{{ vault_proxmox_password_fsn01 }}"
-    # Use higher ID ranges to avoid conflicts - starting from 500
+    # Container IDs use schema: 5[dc_id][01-99]
+    # dc_id: 1=sib-01(dc1), 2=sib-03(dc2), 3=fsn-01(dc3)
+    # Sequential numbering: 01, 02, 03, 04 for each container type
     container_id_base:
-      sib-01: 500 # Will use 501, 511, 521
-      sib-03: 530 # Will use 531, 541, 551
-      fsn-01: 560 # Will use 561, 571, 581
+      sib-01: 5100 # Will use 5101, 5102, 5103, 5104
+      sib-03: 5200 # Will use 5201, 5202, 5203, 5204
+      fsn-01: 5300 # Will use 5301, 5302, 5303, 5304
     # Determine bridge based on location
     network_bridge:
       sib-01: sibnet
@@ -60,6 +62,11 @@
         memory: 16384
         swap: 0
         disk: 50
+      github_runner:
+        cores: 8
+        memory: 16384
+        swap: 0
+        disk: 100
   tasks:
     - name: Install Python3 and pip
       apt:
@@ -81,11 +88,14 @@
             id: "{{ container_id_base[inventory_hostname] + 1 }}"
             type: consul_nomad
           - name: "db-{{ inventory_hostname }}"
-            id: "{{ container_id_base[inventory_hostname] + 11 }}"
+            id: "{{ container_id_base[inventory_hostname] + 2 }}"
             type: database
           - name: "apps-{{ inventory_hostname }}"
-            id: "{{ container_id_base[inventory_hostname] + 21 }}"
+            id: "{{ container_id_base[inventory_hostname] + 3 }}"
             type: apps
+          - name: "github-runner-{{ inventory_hostname }}"
+            id: "{{ container_id_base[inventory_hostname] + 4 }}"
+            type: github_runner
 
     - name: Check if our containers exist
       shell: "pct list | grep -E '^{{ item.id }}\\s' || echo 'not_found'"
@@ -442,7 +452,7 @@
   tasks:
     - name: Read current inventory
       slurp:
-        src: "{{ playbook_dir }}/../inventory.yml"
+        src: "{{ playbook_dir }}/../../inventory.yml"
       register: inventory_content
       delegate_to: localhost
       run_once: true
@@ -475,7 +485,7 @@
     - name: Write updated inventory
       copy:
         content: "{{ updated_inventory }}"
-        dest: "{{ playbook_dir }}/../inventory.yml"
+        dest: "{{ playbook_dir }}/../../inventory.yml"
         backup: false
         mode: "0644"
       delegate_to: localhost

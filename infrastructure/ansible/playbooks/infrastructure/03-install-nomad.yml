@@ -14,7 +14,7 @@
 
     - name: Create Nomad server configuration
       template:
-        src: ../templates/nomad-server.hcl.j2
+        src: ../../templates/nomad-server.hcl.j2
         dest: /etc/nomad.d/nomad.hcl
         owner: nomad
         group: nomad
@@ -97,7 +97,7 @@
 
     - name: Create Nomad client configuration
       template:
-        src: ../templates/nomad-client.hcl.j2
+        src: ../../templates/nomad-client.hcl.j2
         dest: /etc/nomad.d/nomad.hcl
         owner: nomad
         group: nomad

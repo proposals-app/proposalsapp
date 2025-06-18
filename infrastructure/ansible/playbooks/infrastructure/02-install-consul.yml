@@ -85,7 +85,7 @@
 
     - name: Create Consul server configuration
       template:
-        src: ../templates/consul-server.hcl.j2
+        src: ../../templates/consul-server.hcl.j2
         dest: /etc/consul.d/consul.hcl
         owner: consul
         group: consul
@@ -200,7 +200,7 @@
 
     - name: Deploy Consul WAN health check script
       template:
-        src: ../templates/consul-wan-health.sh.j2
+        src: ../../templates/consul-wan-health.sh.j2
         dest: /usr/local/bin/consul-wan-health.sh
         owner: root
         group: root
@@ -208,7 +208,7 @@
 
     - name: Deploy Consul WAN health check service
       template:
-        src: ../templates/consul-wan-health.service.j2
+        src: ../../templates/consul-wan-health.service.j2
         dest: /etc/systemd/system/consul-wan-health.service
         owner: root
         group: root
@@ -291,7 +291,7 @@
 
     - name: Create Consul client configuration
       template:
-        src: ../templates/consul-client.hcl.j2
+        src: ../../templates/consul-client.hcl.j2
         dest: /etc/consul.d/consul.hcl
         owner: consul
         group: consul
@@ -394,7 +394,7 @@
 
     - name: Create Consul client configuration
       template:
-        src: ../templates/consul-client.hcl.j2
+        src: ../../templates/consul-client.hcl.j2
         dest: /etc/consul.d/consul.hcl
         owner: consul
         group: consul

@@ -144,7 +144,7 @@
 
     - name: Generate Patroni configuration
       template:
-        src: ../templates/patroni-etcd-only.yml.j2
+        src: ../../templates/patroni-etcd-only.yml.j2
         dest: /etc/patroni/patroni.yml
         owner: postgres
         group: postgres
@@ -152,7 +152,7 @@
     
     - name: Generate Patroni bootstrap SQL script
       template:
-        src: ../templates/patroni-bootstrap.sql.j2
+        src: ../../templates/patroni-bootstrap.sql.j2
         dest: /tmp/patroni-bootstrap.sql
         owner: postgres
         group: postgres
@@ -160,7 +160,7 @@
     
     - name: Generate Patroni post-init wrapper script
       template:
-        src: ../templates/patroni-post-init.sh.j2
+        src: ../../templates/patroni-post-init.sh.j2
         dest: /tmp/patroni-post-init.sh
         owner: postgres
         group: postgres
@@ -219,7 +219,7 @@
     
     - name: Create wait script for Patroni initialization
       template:
-        src: ../templates/wait-for-patroni.sh.j2
+        src: ../../templates/wait-for-patroni.sh.j2
         dest: /tmp/wait-for-patroni.sh
         mode: "0755"
       when: postgres_role == 'primary'
@@ -663,7 +663,7 @@
 
     - name: Deploy PostgreSQL health check script
       template:
-        src: ../templates/postgres-health-check.sh.j2
+        src: ../../templates/postgres-health-check.sh.j2
         dest: /usr/local/bin/postgres-health-check
         owner: root
         group: root

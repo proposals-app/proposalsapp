@@ -72,7 +72,7 @@
         
     - name: Create pgcat configuration
       template:
-        src: ../templates/pgcat.toml.j2
+        src: ../../templates/pgcat.toml.j2
         dest: "{{ pgcat_config_dir }}/pgcat.toml"
         owner: root
         group: root
@@ -209,7 +209,7 @@
       
     - name: Configure Consul Template for pgcat
       template:
-        src: ../templates/pgcat.consul.j2
+        src: ../../templates/pgcat.consul.j2
         dest: /etc/consul-template.d/pgcat.hcl
         mode: '0644'
       notify: restart consul-template

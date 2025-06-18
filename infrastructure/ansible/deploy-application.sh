@@ -48,33 +48,33 @@ run_setup() {
 run_deploy() {
     echo "Deploying Nomad job for $APP_NAME..."
     NOMAD_FILE="$APP_DIR/$APP_NAME.nomad"
-    
+
     if [ ! -f "$NOMAD_FILE" ]; then
         echo "Warning: No Nomad job file found at $NOMAD_FILE"
         return
     fi
-    
+
     # Check if NOMAD_ADDR is set
     if [ -z "$NOMAD_ADDR" ]; then
         echo "NOMAD_ADDR not set. Deploying via Ansible on first Nomad server..."
-        
+
         # Get the first Nomad server from inventory
         NOMAD_SERVER=$(ansible-inventory -i inventory.yml --list | jq -r '.nomad_servers.hosts[0]' 2>/dev/null || echo "")
-        
+
         if [ -z "$NOMAD_SERVER" ]; then
             echo "Error: Could not find a Nomad server in inventory"
             echo "Set NOMAD_ADDR environment variable or ensure nomad_servers group exists in inventory"
             exit 1
         fi
-        
+
         echo "Using Nomad server: $NOMAD_SERVER"
-        
+
         # Copy the job file to remote
         ansible $NOMAD_SERVER -i inventory.yml -m copy -a "src=$NOMAD_FILE dest=/tmp/$APP_NAME.nomad" || exit 1
-        
+
         # Run the job on remote
         ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job run /tmp/$APP_NAME.nomad" || exit 1
-        
+
         # Clean up
         ansible $NOMAD_SERVER -i inventory.yml -m file -a "path=/tmp/$APP_NAME.nomad state=absent"
     else

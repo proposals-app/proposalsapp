@@ -68,7 +68,7 @@
 
     - name: Generate etcd configuration
       template:
-        src: ../templates/etcd.conf.j2
+        src: ../../templates/etcd.conf.j2
         dest: /etc/etcd/etcd.conf
         owner: "{{ etcd_user }}"
         group: "{{ etcd_group }}"
