@@ -113,10 +113,9 @@ jobs:
           cache-from: |
             type=registry,ref=localhost:5000/rindexer:buildcache
             type=local,src=/var/cache/buildx/rindexer
-            type=local,src=/tmp/.buildx-cache
           cache-to: |
+            type=registry,ref=localhost:5000/rindexer:buildcache,mode=max
             type=local,dest=/var/cache/buildx/rindexer,mode=max
-            type=local,dest=/tmp/.buildx-cache,mode=max
           build-args: |
             RUST_VERSION=1.87
             BUILD_DATE=${{ github.event.repository.updated_at }}
