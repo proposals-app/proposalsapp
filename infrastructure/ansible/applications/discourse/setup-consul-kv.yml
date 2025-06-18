@@ -75,15 +75,15 @@
           To verify the values in each datacenter:
           - consul kv get discourse/otel_exporter_otlp_endpoint
           - consul kv get discourse/betterstack_key
-          - consul kv get pgcat/connection_string/local
+          - consul kv get pgpool/connection_string/local
           - consul kv get discourse/image/main
 
           The discourse service will automatically:
-          - Connect to the local PgCat instance using the connection string from Consul KV
+          - Connect to the local pgpool instance using the connection string from Consul KV
           - Index Discourse forums based on the daoDiscourse table configuration
           - Send metrics to the observability stack
           - Send uptime pings to BetterStack (if configured)
           - Pull the latest Docker image from the main branch
 
-          Note: Database credentials are securely stored in Consul KV by the PgCat playbook
+          Note: Database credentials are securely stored in Consul KV by the pgpool playbook
           ========================================

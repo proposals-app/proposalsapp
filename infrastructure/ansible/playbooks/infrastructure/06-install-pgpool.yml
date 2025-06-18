@@ -1,0 +1,581 @@
+---
+- name: Install and configure pgpool-II
+  hosts: nomad_clients
+  become: true
+  vars:
+    pgpool_version: "4.5.0"
+    pgpool_config_dir: /etc/pgpool2
+    pgpool_log_dir: /var/log/pgpool2
+    pgpool_run_dir: /var/run/pgpool
+    pgpool_data_dir: /var/lib/pgpool2
+    database_name: proposalsapp
+    database_user: proposalsapp
+    database_password: "{{ vault_postgres_password }}"
+    pgpool_admin_password: "{{ vault_pgpool_admin_password | default(vault_postgres_password) }}"
+    pgpool_pcp_password: "{{ vault_pgpool_pcp_password | default(pgpool_admin_password) }}"
+    etcd_client_port: 2379
+
+  tasks:
+    - name: Ensure PostgreSQL cluster is ready
+      pause:
+        seconds: 20
+        prompt: "Waiting for PostgreSQL cluster to be fully ready..."
+      run_once: true
+
+    - name: Gather facts from postgres nodes
+      setup:
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      loop: "{{ groups['postgres_nodes'] }}"
+
+    - name: Add PostgreSQL APT key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL APT repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main"
+        state: present
+        update_cache: yes
+
+    - name: Install pgpool-II and dependencies
+      apt:
+        name:
+          - pgpool2
+          - postgresql-client-17
+          - libpq5
+          - python3-psycopg2
+        state: present
+        update_cache: yes
+
+    - name: Stop default pgpool service if running
+      systemd:
+        name: pgpool2
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Create pgpool directories
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner | default('postgres') }}"
+        group: "{{ item.group | default('postgres') }}"
+        mode: "{{ item.mode | default('0755') }}"
+      loop:
+        - { path: "{{ pgpool_config_dir }}" }
+        - { path: "{{ pgpool_log_dir }}" }
+        - { path: "{{ pgpool_run_dir }}" }
+        - { path: "{{ pgpool_data_dir }}" }
+        - { path: "/var/run/postgresql", mode: "0755" }
+        - { path: "/run/postgresql", mode: "0755" }
+        - { path: "/run/pgpool", mode: "0755" }
+
+    - name: Create memq_lock_file to prevent pgpool startup errors
+      file:
+        path: "{{ pgpool_log_dir }}/memq_lock_file"
+        state: touch
+        owner: postgres
+        group: postgres
+        mode: "0644"
+      changed_when: false
+
+    - name: Create main pgpool configuration
+      template:
+        src: ../../templates/pgpool.conf.j2
+        dest: "{{ pgpool_config_dir }}/pgpool.conf"
+        owner: postgres
+        group: postgres
+        mode: "0644"
+        backup: yes
+      notify: restart pgpool
+
+    - name: Create pool_hba configuration
+      template:
+        src: ../../templates/pool_hba.conf.j2
+        dest: "{{ pgpool_config_dir }}/pool_hba.conf"
+        owner: postgres
+        group: postgres
+        mode: "0644"
+      notify: restart pgpool
+
+    - name: Generate PCP password hash
+      shell: |
+        echo -n "{{ pgpool_pcp_password }}pgpool" | md5sum | awk '{print $1}'
+      register: pcp_password_hash
+      changed_when: false
+
+    - name: Create pcp.conf
+      copy:
+        content: |
+          # PCP user configuration
+          # format: username:password_hash
+          pgpool:{{ pcp_password_hash.stdout }}
+        dest: "{{ pgpool_config_dir }}/pcp.conf"
+        owner: postgres
+        group: postgres
+        mode: "0600"
+
+    - name: Create pool_passwd file for SCRAM authentication
+      copy:
+        content: |
+          {{ database_user }}:{{ vault_postgres_password }}
+        dest: "{{ pgpool_config_dir }}/pool_passwd"
+        owner: postgres
+        group: postgres
+        mode: "0600"
+      notify: restart pgpool
+
+    - name: Set local datacenter and IPs in etcd
+      shell: |
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/datacenter" "{{ datacenter }}"
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/ips/{{ datacenter }}" "{{ tailscale_ip }}"
+        {% for host in groups['postgres_nodes'] %}
+        etcdctl --endpoints="{% for h in groups['postgres_nodes'] %}http://{{ hostvars[h]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/ips/{{ hostvars[host]['datacenter'] }}" "{{ hostvars[host]['tailscale_ip'] }}"
+        {% endfor %}
+      changed_when: false
+      
+    - name: Create Confd systemd override directory
+      file:
+        path: /etc/systemd/system/confd.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+        
+    - name: Create Confd systemd override for environment
+      copy:
+        content: |
+          [Service]
+          Environment="LOCAL_DATACENTER={{ datacenter }}"
+        dest: /etc/systemd/system/confd.service.d/environment.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: restart confd
+
+    - name: Set pgcat password in etcd from vault
+      shell: |
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/pgcat/password" "{{ vault_postgres_password }}"
+      changed_when: false
+      run_once: true
+
+    - name: Deploy pgpool Confd template
+      copy:
+        src: ../../files/pgpool-simple.conf.tmpl
+        dest: /etc/confd/templates/pgpool.conf.tmpl
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Configure Confd resource for pgpool
+      copy:
+        content: |
+          [template]
+          src = "pgpool.conf.tmpl"
+          dest = "/etc/pgpool2/pgpool.conf"
+          keys = [
+            "/service/proposalsapp",
+            "/local",
+            "/pgcat",
+          ]
+          reload_cmd = "systemctl is-active --quiet pgpool && pgpool reload || true"
+        dest: /etc/confd/conf.d/pgpool.toml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Wait for Patroni to populate etcd with cluster data
+      shell: |
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                get --prefix "/service/proposalsapp"
+      register: patroni_check
+      until: patroni_check.stdout | length > 0
+      retries: 30
+      delay: 10
+      run_once: true
+
+    - name: Create tmpfiles.d configuration for pgpool runtime directory
+      copy:
+        content: |
+          # pgpool-II runtime directory
+          d /run/pgpool 0755 postgres postgres -
+        dest: /etc/tmpfiles.d/pgpool.conf
+        mode: "0644"
+
+    - name: Create pgpool runtime directory immediately
+      file:
+        path: /run/pgpool
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0755"
+
+    - name: Create custom pgpool systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=pgpool-II PostgreSQL connection pooler
+          After=network-online.target confd.service
+          Wants=network-online.target
+
+          [Service]
+          Type=forking
+          PIDFile=/run/pgpool/pgpool.pid
+          User=postgres
+          Group=postgres
+
+          # Environment
+          Environment="PGDATA=/var/lib/postgresql/17/main"
+          
+          # Process management
+          ExecStart=/usr/sbin/pgpool -D -f {{ pgpool_config_dir }}/pgpool.conf -F {{ pgpool_config_dir }}/pcp.conf -a {{ pgpool_config_dir }}/pool_hba.conf
+          ExecReload=/usr/sbin/pgpool reload
+          ExecStop=/usr/sbin/pgpool -m fast stop
+
+          # Restart configuration
+          Restart=always
+          RestartSec=10
+
+          # Resource limits
+          LimitNOFILE=65536
+
+          # Logging
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier=pgpool
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/pgpool.service
+        mode: "0644"
+      notify:
+        - reload systemd
+        - restart pgpool
+
+    - name: Start and enable pgpool service
+      systemd:
+        name: pgpool
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Wait for pgpool to start
+      wait_for:
+        port: 5432
+        host: localhost
+        delay: 5
+        timeout: 30
+
+    - name: Test Confd configuration with pgpool running
+      command: /usr/local/bin/confd -onetime -config-file /etc/confd/confd.toml
+      register: confd_test
+      changed_when: false
+      failed_when: confd_test.rc != 0
+
+    - name: Restart Confd to pick up new template
+      systemd:
+        name: confd
+        state: restarted
+
+    - name: Wait for Confd to process templates
+      pause:
+        seconds: 15
+        prompt: "Waiting for Confd to generate pgpool backend configuration..."
+
+    - name: Reload pgpool with updated backends
+      shell: /usr/sbin/pgpool reload
+      ignore_errors: true  # Ignore if pgpool is not running yet
+
+    - name: Create pgpool Consul health check
+      copy:
+        content: |
+          {
+            "service": {
+              "name": "pgpool",
+              "tags": ["postgres", "proxy", "pooler"],
+              "port": 5432,
+              "check": {
+                "tcp": "localhost:5432",
+                "interval": "10s",
+                "timeout": "5s"
+              }
+            }
+          }
+        dest: /etc/consul.d/pgpool.json
+        mode: "0644"
+      notify: reload consul
+
+    - name: Install pgpool_exporter for Prometheus monitoring
+      ignore_errors: yes
+      block:
+        - name: Download pgpool_exporter
+          get_url:
+            url: "https://github.com/pgpool/pgpool2_exporter/releases/download/v1.2.2/pgpool2_exporter-1.2.2.linux-amd64.tar.gz"
+            dest: /tmp/pgpool2_exporter.tar.gz
+            mode: "0644"
+
+        - name: Extract pgpool_exporter
+          unarchive:
+            src: /tmp/pgpool2_exporter.tar.gz
+            dest: /usr/local/bin
+            remote_src: yes
+            owner: root
+            group: root
+            mode: "0755"
+            extra_opts:
+              - --strip-components=1
+
+        - name: Create pgpool_exporter systemd service
+          copy:
+            content: |
+              [Unit]
+              Description=pgpool2 exporter for Prometheus
+              After=pgpool.service
+              Wants=pgpool.service
+
+              [Service]
+              Type=simple
+              User=postgres
+              Group=postgres
+              Environment="PGPOOL_SERVICE=localhost:9898"
+              Environment="PGPOOL_USERNAME=pgpool"
+              Environment="PGPOOL_PASSWORD={{ pgpool_pcp_password }}"
+              ExecStart=/usr/local/bin/pgpool2_exporter
+              Restart=always
+              RestartSec=10
+
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/pgpool_exporter.service
+            mode: "0644"
+
+        - name: Start and enable pgpool_exporter
+          systemd:
+            name: pgpool_exporter
+            state: started
+            enabled: true
+            daemon_reload: true
+
+    - name: Configure firewall for pgpool access from Tailscale network
+      ufw:
+        rule: allow
+        port: "5432"
+        proto: tcp
+        src: "100.64.0.0/10"
+        comment: "Allow pgpool access from Tailscale network"
+      when: ansible_facts['virtualization_type'] != 'lxc'
+      ignore_errors: yes
+
+    - name: Configure firewall for pgpool metrics
+      ufw:
+        rule: allow
+        port: "9719"
+        proto: tcp
+        src: "{{ hostvars[item]['ansible_default_ipv4']['address'] }}/32"
+      loop: "{{ groups['monitoring'] }}"
+      when: 
+        - groups['monitoring'] is defined
+        - ansible_facts['virtualization_type'] != 'lxc'
+      ignore_errors: yes
+
+    - name: Test pgpool connection
+      shell: |
+        PGPASSWORD='{{ database_password }}' psql -h 127.0.0.1 -p 5432 -U {{ database_user }} -d {{ database_name }} -c "SELECT 1 as test" -t
+      register: pgpool_test
+      retries: 3
+      delay: 5
+      until: pgpool_test.rc == 0
+
+    - name: Store pgpool connection strings in all Consul datacenters
+      block:
+        - name: Store pgpool connection strings in dc1
+          uri:
+            url: "http://{{ hostvars['consul-nomad-sib-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
+            method: PUT
+            body: "{{ item.value }}"
+          loop:
+            # Local connection (always uses localhost)
+            - {
+                key: "pgpool/connection_string/local",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+              }
+            # Hostname-based connections
+            - {
+                key: "pgpool/connection_string/hostname/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/hostname/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/hostname/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+              }
+            # Tailscale IP connections
+            - {
+                key: "pgpool/connection_string/tailscale/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/tailscale/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/tailscale/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            # pgpool metadata
+            - { key: "pgpool/port", value: "5432" }
+            - { key: "pgpool/enabled", value: "true" }
+            - { key: "pgpool/pool_mode", value: "transaction" }
+          delegate_to: "{{ inventory_hostname }}"
+
+        - name: Store pgpool connection strings in dc2
+          uri:
+            url: "http://{{ hostvars['consul-nomad-sib-03'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
+            method: PUT
+            body: "{{ item.value }}"
+          loop:
+            # Local connection (always uses localhost)
+            - {
+                key: "pgpool/connection_string/local",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+              }
+            # Hostname-based connections
+            - {
+                key: "pgpool/connection_string/hostname/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/hostname/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/hostname/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+              }
+            # Tailscale IP connections
+            - {
+                key: "pgpool/connection_string/tailscale/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/tailscale/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/tailscale/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            # pgpool metadata
+            - { key: "pgpool/port", value: "5432" }
+            - { key: "pgpool/enabled", value: "true" }
+            - { key: "pgpool/pool_mode", value: "transaction" }
+          delegate_to: "{{ inventory_hostname }}"
+
+        - name: Store pgpool connection strings in dc3
+          uri:
+            url: "http://{{ hostvars['consul-nomad-fsn-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
+            method: PUT
+            body: "{{ item.value }}"
+          loop:
+            # Local connection (always uses localhost)
+            - {
+                key: "pgpool/connection_string/local",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+              }
+            # Hostname-based connections
+            - {
+                key: "pgpool/connection_string/hostname/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/hostname/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/hostname/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+              }
+            # Tailscale IP connections
+            - {
+                key: "pgpool/connection_string/tailscale/apps-sib-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/tailscale/apps-sib-03",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            - {
+                key: "pgpool/connection_string/tailscale/apps-fsn-01",
+                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
+              }
+            # pgpool metadata
+            - { key: "pgpool/port", value: "5432" }
+            - { key: "pgpool/enabled", value: "true" }
+            - { key: "pgpool/pool_mode", value: "transaction" }
+          delegate_to: "{{ inventory_hostname }}"
+      run_once: true
+
+    - name: Display connection strings
+      debug:
+        msg: |
+          ========================================
+          Database Connection Strings (via pgpool-II)
+          ========================================
+
+          Through pgpool-II (Recommended):
+          - Local: postgresql://{{ database_user }}:***@localhost:5432/{{ database_name }}
+          - Via apps-sib-01: postgresql://{{ database_user }}:***@apps-sib-01:5432/{{ database_name }}
+          - Via apps-sib-03: postgresql://{{ database_user }}:***@apps-sib-03:5432/{{ database_name }}
+          - Via apps-fsn-01: postgresql://{{ database_user }}:***@apps-fsn-01:5432/{{ database_name }}
+
+          Direct to PostgreSQL:
+          - Via hostname: postgresql://{{ database_user }}:***@db-sib-01:5432/{{ database_name }}
+          {% for host in groups['postgres_nodes'] %}
+          {% if hostvars[host]['postgres_role'] == 'primary' %}
+          - Via IP: postgresql://{{ database_user }}:***@{{ hostvars[host]['tailscale_ip'] }}:5432/{{ database_name }}
+          {% endif %}
+          {% endfor %}
+
+          Connection strings have been stored in Consul KV under:
+          - pgpool/connection_string/*
+          - postgresql/direct/*
+
+          pgpool-II Features:
+          - Transaction pooling for efficient connections
+          - Automatic read/write splitting based on query parsing
+          - Weight-based load balancing (local servers have 10x weight)
+          - Dynamic backend configuration via Confd watching etcd
+          - Health checks and automatic failover
+          - Prometheus metrics on port 9719
+          ========================================
+      run_once: true
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: true
+
+    - name: restart pgpool
+      systemd:
+        name: pgpool
+        state: restarted
+
+    - name: reload consul
+      systemd:
+        name: consul
+        state: reloaded
+        
+    - name: restart confd
+      systemd:
+        name: confd
+        state: restarted
+        daemon_reload: true

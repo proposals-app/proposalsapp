@@ -90,14 +90,14 @@
 
           To verify the values in each datacenter:
           - consul kv get rindexer/ethereum_node_url
-          - consul kv get pgcat/connection_string/local
+          - consul kv get pgpool/connection_string/local
           - consul kv get rindexer/image/main
 
           The rindexer service will automatically:
-          - Connect to the local PgCat instance using the connection string from Consul KV
+          - Connect to the local pgpool instance using the connection string from Consul KV
           - Use the configured RPC endpoints for blockchain indexing
           - Send metrics to the observability stack
           - Pull the latest Docker image from the main branch
 
-          Note: Database credentials are securely stored in Consul KV by the PgCat playbook
+          Note: Database credentials are securely stored in Consul KV by the pgpool playbook
           ========================================

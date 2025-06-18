@@ -146,7 +146,7 @@ PLAYBOOKS=(
     "playbooks/infrastructure/03-install-nomad.yml:Installing and configuring Nomad"
     "playbooks/infrastructure/04-install-etcd.yml:Installing etcd for Patroni DCS and Confd"
     "playbooks/infrastructure/05-install-postgres.yml:Installing PostgreSQL with Patroni HA"
-    "playbooks/infrastructure/06-install-pgcat.yml:Installing PgCat with dynamic configuration via Confd"
+    "playbooks/infrastructure/06-install-pgpool.yml:Installing pgpool-II with dynamic configuration via Confd"
 )
 
 # Setup GitHub runners if PAT is configured
@@ -196,15 +196,16 @@ if [ $failed -eq 0 ]; then
     echo "  • 3 Nomad client nodes for applications"
     echo "  • 3 etcd nodes for Patroni distributed configuration"
     echo "  • 3 PostgreSQL nodes with Patroni HA"
-    echo "  • PgCat intelligent proxy on application nodes"
-    echo "  • Confd for dynamic PgCat configuration from etcd"
+    echo "  • pgpool-II connection pooler on application nodes"
+    echo "  • Confd for dynamic pgpool-II configuration from etcd"
+    echo "  • Local-first load balancing (83% reads to local DB)"
     echo "  • 3 GitHub Actions self-hosted runners"
     echo ""
     echo -e "${CYAN}Next steps:${NC}"
     echo "1. Verify Consul cluster: consul members"
     echo "2. Verify Nomad cluster: nomad server members"
     echo "3. Check PostgreSQL cluster: patronictl -c /etc/patroni/patroni.yml list"
-    echo "4. Test PgCat connection: psql -h localhost -p 5432 -U proposalsapp -d proposalsapp"
+    echo "4. Test pgpool connection: psql -h localhost -p 5432 -U proposalsapp -d proposalsapp"
     echo "5. Deploy applications: ./deploy-application.sh <app-name>"
 else
     echo -e "${RED}✗ Some playbooks failed${NC}"

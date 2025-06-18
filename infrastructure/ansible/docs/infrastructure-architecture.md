@@ -21,8 +21,8 @@ Proxmox Server (Physical Host)
 │   └── Nomad Server (part of 3-node cluster)
 ├── apps-xxx (Application Layer)
 │   ├── Nomad Client
-│   ├── PgCat (PostgreSQL proxy with dynamic configuration)
-│   ├── Confd (Configuration management from etcd)
+│   ├── pgpool-II (PostgreSQL pooler with local-first load balancing)
+│   ├── Confd (Dynamic configuration from etcd)
 │   └── Application workloads
 └── db-xxx (Database Layer)
     ├── PostgreSQL 17
@@ -44,9 +44,9 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 The infrastructure uses both Consul and etcd, each serving distinct purposes:
 
 **Consul Responsibilities**:
-- **Service Discovery**: All services register with Consul (databases, PgCat, applications)
+- **Service Discovery**: All services register with Consul (databases, pgpool, applications)
 - **Health Checking**: Monitors service health and removes failed instances
-- **Dynamic Configuration**: Stores configuration in KV store for services like PgCat
+- **Dynamic Configuration**: Stores configuration in KV store for services like pgpool
 - **WAN Federation**: Connects services across datacenters
 - **DNS Interface**: Provides service discovery via DNS queries
 - **Template Rendering**: Updates configuration files when services change (via consul-template)
@@ -92,7 +92,7 @@ retry_join_wan = [...]      # Connect to other DCs
 
 **Purpose**: 
 - Provides distributed consensus for Patroni's high availability configuration
-- Stores PostgreSQL cluster topology for dynamic PgCat configuration via Confd
+- Stores PostgreSQL cluster topology for dynamic pgpool configuration via Confd
 
 **Configuration**:
 - Three-node etcd cluster spanning all datacenters
@@ -189,7 +189,7 @@ pg_hba:
 
 ### Confd - Dynamic Configuration Management
 
-**Purpose**: Bridges the gap between etcd (where Patroni stores cluster state) and PgCat (which needs to know the current topology).
+**Purpose**: Bridges the gap between etcd (where Patroni stores cluster state) and pgpool-II (which needs to know the current topology).
 
 **Design Decision**: Use Confd instead of Consul Template for direct etcd integration.
 
@@ -203,9 +203,9 @@ pg_hba:
 1. **Watches etcd keys**: 
    - `/service/proposalsapp/leader` - Current primary information
    - `/service/proposalsapp/members/*` - All cluster members and their states
-2. **Generates PgCat config**: Uses Go templates to create properly ordered server lists
-3. **Triggers reload**: Sends SIGHUP to PgCat for zero-downtime configuration updates
-4. **Maintains local-first ordering**: Always lists local datacenter servers first
+2. **Generates pgpool config**: Uses Go templates to create properly ordered server lists with appropriate weights
+3. **Triggers reload**: Sends reload command to pgpool for zero-downtime configuration updates
+4. **Maintains local-first ordering**: Configures local datacenter servers with higher weights (10x)
 
 **Configuration**:
 ```toml
@@ -216,108 +216,113 @@ prefix = "/service/proposalsapp"
 interval = 10  # Check every 10 seconds
 ```
 
-### PgCat - Intelligent PostgreSQL Proxy
+### pgpool-II - PostgreSQL Connection Pooler with Load Balancing
 
-**Design Decision**: Connection pooler with query parsing for automatic read/write split.
+**Design Decision**: Connection pooler with query parsing for automatic read/write split and weight-based load balancing.
 
-**What is PgCat?**
-PgCat is a PostgreSQL connection pooler and proxy that provides:
+**What is pgpool-II?**
+pgpool-II is a PostgreSQL middleware that provides:
 - **Connection pooling** to reduce overhead of creating new database connections
 - **Query parsing** to intelligently route queries based on their type
 - **Automatic failover** handling without application changes
-- **Load balancing** across multiple database replicas
+- **Load balancing** across multiple database replicas with configurable weights
 - **Transaction pooling** for better resource utilization
+- **Native PostgreSQL protocol** support - appears as a regular PostgreSQL server
 
 **Placement**: Runs on each application node, not database nodes.
 
-**How it routes (Intelligent Local-First Strategy)**:
+**How it routes (Weight-Based Local-First Strategy)**:
 - **Writes** (INSERT/UPDATE/DELETE) → Primary (wherever it is)
-- **Reads** (SELECT) → Server with least outstanding connections (favors local due to lower latency)
+- **Reads** (SELECT) → Distributed based on backend weights (local servers have 10x weight)
 - **Transactions with writes** → Entire transaction to primary
 - **Fallback behavior** → If local DB is down, uses remote databases
 
-**Key Innovation**: PgCat uses "least outstanding connections" (LOC) load balancing, which naturally favors local databases because they respond faster and maintain fewer outstanding connections due to lower network latency. This provides automatic local-first routing without static configuration.
+**Key Features**: pgpool-II uses weight-based load balancing where local servers are configured with much higher weights (10) compared to remote servers (1). This ensures that approximately 83% of read queries go to the local database, minimizing cross-datacenter latency while maintaining failover capability.
 
 **Dynamic Configuration via Confd**:
 
 **How it works**:
 1. **Patroni stores state in etcd**: Leader election, member status, and connection information
 2. **Confd watches etcd**: Monitors `/service/proposalsapp/leader` and `/service/proposalsapp/members/*`
-3. **Automatic configuration generation**: When topology changes, Confd regenerates PgCat config
-4. **Zero-downtime reload**: PgCat receives SIGHUP signal and reloads without dropping connections
+3. **Automatic configuration generation**: When topology changes, Confd regenerates pgpool backend config
+4. **Zero-downtime reload**: pgpool receives reload command and updates without dropping connections
 
 **Critical Settings for Optimal Routing**:
-- `query_parser_enabled = true` - Enables intelligent query analysis
-- `query_parser_read_write_splitting = true` - Routes reads and writes differently
-- `primary_reads_enabled = true` - Allows reads to primary when beneficial
-- `load_balancing_mode = "loc"` - Uses least outstanding connections algorithm
+- `load_balance_mode = on` - Enables read query distribution
+- `master_slave_mode = on` - Enables streaming replication mode
+- `statement_level_load_balance = on` - Better distribution of queries
+- `pool_mode = 'transaction'` - Transaction-level pooling for better concurrency
+- `backend_weight0 = 10` - Much higher weight for local server
+- `backend_weight1 = 1` - Lower weight for remote servers
 
-```toml
-# Auto-generated by Confd with local-first server ordering
-[pools.proposalsapp.shards.0]
-servers = [
-  # Local database ALWAYS listed first (dc2 example)
-  ["100.84.130.3", 5432, "replica"],  # Local DB in dc2
-  
-  # Remote databases as fallbacks
-  ["100.66.57.51", 5432, "primary"],  # Primary in dc1
-  ["100.125.126.113", 5432, "replica"],  # Replica in dc3
-]
+```conf
+# Auto-generated by Confd with environment-based local detection
+# Example for apps-sib-01 (dc1): local database gets weight 10
+backend_hostname0 = '100.77.231.17'    # db-sib-01 (local)
+backend_port0 = 5432
+backend_weight0 = 10  # 10x weight for local server
+backend_flag0 = 'ALLOW_TO_FAILOVER'
 
-# Critical settings for local-first reads with intelligent load balancing
-query_parser_enabled = true
-query_parser_read_write_splitting = true
-primary_reads_enabled = true             # Allow reads to primary
-load_balancing_mode = "loc"              # Least outstanding connections
+# Remote datacenter servers (weight 1 each)
+backend_hostname1 = '100.95.245.81'    # db-sib-03 
+backend_port1 = 5432
+backend_weight1 = 1
+backend_flag1 = 'ALLOW_TO_FAILOVER'
+
+backend_hostname2 = '100.104.174.33'   # db-fsn-01
+backend_port2 = 5432
+backend_weight2 = 1
+backend_flag2 = 'ALLOW_TO_FAILOVER'
 ```
 
 **Connection Methods**:
-1. **Through PgCat (Recommended for applications)**:
-   - `postgresql://user:pass@localhost:5432/db` - Always connects to local PgCat
-   - PgCat automatically routes to the correct database based on query type
-   - When primary fails over, PgCat's configuration is automatically updated by Confd watching etcd
+1. **Through pgpool-II (Recommended for applications)**:
+   - `postgresql://user:pass@localhost:5432/db` - Always connects to local pgpool
+   - pgpool automatically routes to the correct database based on query type
+   - When primary fails over, pgpool's configuration is automatically updated by Confd watching etcd
    - Applications don't need to know which node is primary
 
 2. **Direct Database Access (For admin/maintenance)**:
    - Can use Tailscale hostnames: `db-sib-01`, `db-sib-03`, `db-fsn-01`
-   - These provide direct access bypassing PgCat
+   - These provide direct access bypassing pgpool
    - Useful for maintenance tasks or when you need to connect to a specific node
 
 **Benefits**:
 - Single connection string for applications: `postgresql://user:pass@localhost:5432/db`
 - Zero application changes needed during failover
-- Automatic failover handling - PgCat configuration updates when primary changes
-- **Intelligent local-first routing** via least outstanding connections algorithm
-- **Automatic load balancing** based on actual server performance, not static rules
-- **Latency-aware routing** - local servers naturally have fewer outstanding connections
+- Automatic failover handling - pgpool configuration updates when primary changes
+- **Strong local preference** - ~83% of reads stay within datacenter
+- **Mature and stable** - pgpool-II has been production-tested for over a decade
+- **Rich monitoring** - built-in statistics and prometheus exporter
 - Connection pooling reduces database load
-- **Self-optimizing** - adjusts to changing network conditions automatically
+- **Native PostgreSQL protocol** - full compatibility with PostgreSQL clients
+- **Dynamic weight configuration** - Uses LOCAL_DATACENTER environment variable for proper routing
 
 ## Data Flow Examples
 
 ### Read Query from App in DC2 (Local is Replica)
 ```
-1. App connects to localhost:5432 (PgCat)
-2. PgCat parses: "SELECT * FROM users"
-3. LOC algorithm checks outstanding connections on all servers
-4. Local replica (db-sib-03) has fewer outstanding connections due to ~1ms latency
-5. Routes to local replica with minimal latency
+1. App connects to localhost:5432 (pgpool-II)
+2. pgpool parses: "SELECT * FROM users"
+3. Weight-based algorithm: local replica has weight=10, remote servers weight=1 each
+4. ~83% chance routes to local replica (db-sib-03)
+5. Minimal latency for vast majority of reads
 ```
 
 ### Read Query from App in DC1 (Local is Primary)
 ```
-1. App connects to localhost:5432 (PgCat)
-2. PgCat parses: "SELECT * FROM users"
-3. LOC algorithm checks outstanding connections on all servers
-4. Local primary (db-sib-01) has fewer outstanding connections due to ~1ms latency
-5. Routes to local primary (optimal - no cross-DC latency!)
+1. App connects to localhost:5432 (pgpool-II)
+2. pgpool parses: "SELECT * FROM users"
+3. Weight-based algorithm: local primary has weight=10, remote servers weight=1 each
+4. ~83% chance routes to local primary (db-sib-01)
+5. Optimal performance - no cross-DC latency for most reads
 ```
 
 ### Write Query from App in Any DC
 ```
-1. App connects to localhost:5432 (PgCat)
-2. PgCat parses: "INSERT INTO users..."
-3. Identifies write query, finds primary in server list
+1. App connects to localhost:5432 (pgpool-II)
+2. pgpool parses: "INSERT INTO users..."
+3. Identifies write query via pattern matching
 4. Routes to primary (wherever it is)
 5. Primary replicates to at least one standby
 6. Confirms write to application
@@ -362,8 +367,8 @@ load_balancing_mode = "loc"              # Least outstanding connections
 3. Promotes winner to leader (could be in any DC)
 4. Updates leader information in etcd
 5. Confd detects change in etcd keys
-6. Regenerates PgCat configuration with new topology
-7. PgCat reloads configuration via SIGHUP
+6. Regenerates pgpool backend configuration with new topology
+7. pgpool reloads configuration
 8. Writes now route to new leader
 
 **Time to recovery**: ~30-45 seconds total
@@ -405,7 +410,7 @@ load_balancing_mode = "loc"              # Least outstanding connections
 3. **Nomad** - Orchestration layer
 4. **etcd + Confd** - Distributed configuration store and dynamic config management
 5. **PostgreSQL/Patroni** - Database layer with etcd DCS
-6. **PgCat** - Application connectivity with dynamic configuration
+6. **pgpool-II** - Application connectivity with dynamic configuration
 7. **Applications** - Via Nomad jobs
 
 ### Monitoring Checklist
@@ -414,7 +419,7 @@ load_balancing_mode = "loc"              # Least outstanding connections
 - [ ] Patroni cluster: `patronictl list`
 - [ ] etcd member list: `etcdctl member list`
 - [ ] Replication lag: Check pg_stat_replication
-- [ ] PgCat routing: Verify local reads
+- [ ] pgpool routing: Verify weight-based distribution
 - [ ] Nomad jobs: All healthy and placed
 
 ### Backup Strategy (To Be Implemented)
@@ -431,7 +436,7 @@ load_balancing_mode = "loc"              # Least outstanding connections
 - `03-install-nomad.yml` - Orchestration
 - `04-install-etcd.yml` - etcd cluster for Patroni DCS + Confd installation
 - `05-install-postgres.yml` - Database with Patroni
-- `06-install-pgcat.yml` - Proxy layer with dynamic configuration
+- `06-install-pgpool.yml` - Connection pooler with dynamic configuration
 
 ### Key Variables
 ```yaml

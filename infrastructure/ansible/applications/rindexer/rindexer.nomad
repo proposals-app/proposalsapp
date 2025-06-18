@@ -118,8 +118,8 @@ job "rindexer" {
 {{ $imageTag := keyOrDefault "rindexer/image/main" "latest" }}
 RINDEXER_IMAGE=ghcr.io/proposals-app/proposalsapp/rindexer:{{ $imageTag }}
 
-# Database connection - use local PgCat connection string from Consul KV
-DATABASE_URL={{ keyOrDefault "pgcat/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+# Database connection - use local pgpool connection string from Consul KV
+DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
 
 # Chain RPC endpoints from Consul KV
 ETHEREUM_NODE_URL={{ keyOrDefault "rindexer/ethereum_node_url" "" }}

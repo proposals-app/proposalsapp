@@ -162,7 +162,7 @@ ProposalsApp runs on a highly available, geographically distributed infrastructu
 
 Each datacenter runs on Proxmox with 3 LXC containers:
 - `consul-nomad-xxx`: Control plane (Consul server, Nomad server)
-- `apps-xxx`: Application layer (Nomad client, PgCat proxy, app workloads)
+- `apps-xxx`: Application layer (Nomad client, pgpool-II, app workloads)
 - `db-xxx`: Database layer (PostgreSQL 17, Patroni, etcd)
 
 All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network).
@@ -194,12 +194,12 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 - Automatic failover in ~30-45 seconds
 - etcd-based distributed configuration
 
-#### PgCat (Database Proxy)
+#### pgpool-II (Database Proxy)
 - Connection pooling on each app node
-- Intelligent query parsing for read/write splitting
+- Query parsing for automatic read/write splitting
 - Single connection URL: `postgresql://user:pass@localhost:5432/db`
-- Automatic routing updates via Confd watching etcd
-- Uses "least outstanding connections" load balancing for local-first reads
+- Automatic backend updates via Confd watching etcd
+- Weight-based load balancing (local servers have 2x weight for reads)
 
 ### Deployment Process
 
@@ -229,8 +229,8 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
    # 5. Install PostgreSQL with Patroni
    ansible-playbook -i inventory.yml playbooks/05-install-postgres.yml --vault-password-file .vault_pass
    
-   # 6. Setup PgCat proxy
-   ansible-playbook -i inventory.yml playbooks/06-install-pgcat.yml --vault-password-file .vault_pass
+   # 6. Setup pgpool-II proxy
+   ansible-playbook -i inventory.yml playbooks/06-install-pgpool.yml --vault-password-file .vault_pass
    ```
 
 #### Application Deployment (Nomad)
@@ -264,7 +264,7 @@ All applications use multi-stage Docker builds:
 - Run via Kysely migration CLI
 
 #### Connection Strings
-- Applications: `postgresql://user:pass@localhost:5432/db` (via PgCat)
+- Applications: `postgresql://user:pass@localhost:5432/db` (via pgpool-II)
 - Direct access: `postgresql://user:pass@db-sib-01:5432/db` (via Tailscale hostname)
 
 ### Monitoring & Operations
@@ -326,21 +326,21 @@ etcdctl endpoint health --endpoints=<all-nodes>
    - Managed via Patroni REST API
    - State stored in etcd under `/service/proposalsapp/`
 
-4. **PgCat**: Connection pooling and intelligent query routing
-   - Dynamic configuration via Confd watching etcd
+4. **pgpool-II**: Connection pooling and query-based load balancing
+   - Dynamic backend configuration via Confd watching etcd
    - Automatic primary/replica discovery
    - Query parser for read/write splitting
-   - **Least outstanding connections (LOC) load balancing**
-   - Automatically favors local databases due to lower latency
+   - **Weight-based load balancing** (local servers have 2x weight)
+   - Ensures local databases handle majority of read traffic
    - Automatic configuration reload on topology changes
-   - Listens on port 5432 (appears as regular PostgreSQL)
+   - Native PostgreSQL protocol on port 5432
 
 5. **Confd**: Dynamic configuration management
    - Watches etcd for Patroni state changes
-   - Automatically regenerates PgCat configuration
+   - Automatically regenerates pgpool backend configuration
    - Ensures write queries always route to current primary
-   - Maintains local-first server ordering in configuration
-   - Zero-downtime configuration updates via SIGHUP
+   - Maintains local-first server ordering with appropriate weights
+   - Zero-downtime configuration updates via pgpool reload
 
 6. **Nomad**: Container orchestration
    - Manages application deployments
@@ -359,7 +359,7 @@ ansible-playbook -i inventory.yml playbooks/infrastructure/02-install-consul.yml
 ansible-playbook -i inventory.yml playbooks/infrastructure/03-install-nomad.yml
 ansible-playbook -i inventory.yml playbooks/infrastructure/04-install-etcd.yml
 ansible-playbook -i inventory.yml playbooks/infrastructure/05-install-postgres.yml
-ansible-playbook -i inventory.yml playbooks/infrastructure/06-install-pgcat.yml
+ansible-playbook -i inventory.yml playbooks/infrastructure/06-install-pgpool.yml
 
 # Deploy applications (setup + deploy)
 ./deploy-application.sh rindexer
@@ -383,10 +383,10 @@ All services use multi-stage Docker builds:
 
 ### Database Access
 
-- **Via PgCat** (recommended): `postgresql://user:pass@localhost:5432/dbname`
-  - Always connects to local PgCat instance
+- **Via pgpool-II** (recommended): `postgresql://user:pass@localhost:5432/dbname`
+  - Always connects to local pgpool instance
   - Automatically routes to correct primary/replica based on query type
-  - **Reads favor local database** (primary or replica) via LOC algorithm
+  - **Reads favor local database** (primary or replica) via weight-based algorithm
   - **Writes always go to primary** (wherever it is located)
   - Handles failovers transparently
 - **Direct access** (not recommended): 

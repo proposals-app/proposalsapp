@@ -101,8 +101,8 @@ job "discourse" {
 {{ $imageTag := keyOrDefault "discourse/image/main" "latest" }}
 DISCOURSE_IMAGE=ghcr.io/proposals-app/proposalsapp/discourse:{{ $imageTag }}
 
-# Database connection - use local PgCat connection string from Consul KV
-DATABASE_URL={{ keyOrDefault "pgcat/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+# Database connection - use local pgpool connection string from Consul KV
+DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
 
 # OpenTelemetry configuration from Consul KV
 OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "discourse/otel_exporter_otlp_endpoint" "" }}
