@@ -1,0 +1,148 @@
+name: Build and Push Rindexer
+
+on:
+  push:
+    branches:
+      - '**'  # Trigger on all branches
+    paths:
+      - 'apps/rindexer/**'
+      - 'libs/rust/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/build-rindexer.yml'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build even without changes'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/rindexer
+
+jobs:
+  build:
+    name: Build and Push Docker Image
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Branch name
+            type=ref,event=branch
+            # Tag name
+            type=ref,event=tag
+            # PR number
+            type=ref,event=pr
+            # SHA short
+            type=sha,prefix={{branch}}-
+            # Latest only on main branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            # Branch with timestamp
+            type=raw,value={{branch}}-{{date 'YYYYMMDD-HHmmss'}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/rindexer/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            RUST_VERSION=1.87
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ github.ref_name }}-${{ github.sha }}
+
+      - name: Generate deployment webhook payload
+        id: webhook
+        if: success()
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          IMAGE_TAG="${BRANCH_NAME}-$(echo ${GITHUB_SHA} | cut -c1-7)"
+          echo "branch=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+          echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Trigger Nomad deployment
+        if: success() && github.event_name == 'push'
+        run: |
+          echo "New image available: ${{ steps.webhook.outputs.image }}"
+          echo "Branch: ${{ steps.webhook.outputs.branch }}"
+          echo "Tag: ${{ steps.webhook.outputs.tag }}"
+          
+          # Update image tag in Consul KV to trigger redeployment
+          # Using internal Tailscale address since runners are in the network
+          CONSUL_ADDR="http://consul-nomad-sib-01:8500"
+          
+          echo "Updating Consul KV with new image tag..."
+          
+          # Update the image tag for this branch
+          curl -s -X PUT \
+            "$CONSUL_ADDR/v1/kv/rindexer/image/${{ steps.webhook.outputs.branch }}" \
+            -d "${{ steps.webhook.outputs.tag }}" || {
+              echo "Warning: Failed to update Consul KV"
+              echo "Trying alternative Consul server..."
+              # Try another datacenter if first one fails
+              curl -s -X PUT \
+                "http://consul-nomad-sib-03:8500/v1/kv/rindexer/image/${{ steps.webhook.outputs.branch }}" \
+                -d "${{ steps.webhook.outputs.tag }}"
+            }
+          
+          # Check if this is the currently deployed branch
+          CURRENT_BRANCH=$(curl -s "$CONSUL_ADDR/v1/kv/rindexer/branch?raw" 2>/dev/null || echo "main")
+          
+          if [ "${{ steps.webhook.outputs.branch }}" = "$CURRENT_BRANCH" ]; then
+            echo "This is the active branch. Rindexer will be automatically redeployed by Nomad."
+          else
+            echo "Branch ${{ steps.webhook.outputs.branch }} updated. To deploy this branch:"
+            echo "  ./deploy-application.sh rindexer setup --branch=${{ steps.webhook.outputs.branch }}"
+          fi
+
+  cleanup:
+    name: Cleanup old images
+    runs-on: [self-hosted, linux]
+    needs: build
+    if: success()
+    permissions:
+      packages: write
+    
+    steps:
+      - name: Delete old container images
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: 'rindexer'
+          package-type: 'container'
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: 'false'
+          # Keep last 5 versions per branch
+          ignore-versions: '^(main|master|develop)-(.*)'

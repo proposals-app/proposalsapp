@@ -23,6 +23,10 @@
         value: "{{ vault_rindexer_arbiscan_api_key }}"
       - key: "rindexer/optimistic_scan_api_key"
         value: "{{ vault_rindexer_optimistic_scan_api_key }}"
+        
+      # Branch configuration
+      - key: "rindexer/branch"
+        value: "{{ rindexer_branch | default('main') }}"
 
   tasks:
     - name: Ensure Consul is available
@@ -81,7 +85,17 @@
           1. Ensure this playbook has been run on all consul servers
           2. Run: nomad job run infrastructure/ansible/applications/rindexer/rindexer.nomad
 
+          Current branch: {{ rindexer_branch | default('main') }}
+          
+          To deploy a different branch:
+          ./deploy-application.sh rindexer --branch=feature-branch
+          
+          Or update Consul KV directly:
+          consul kv put rindexer/branch "feature-branch"
+          consul kv put rindexer/image/feature-branch "feature-branch-sha123456"
+
           To verify the values in each datacenter:
+          - consul kv get rindexer/branch
           - consul kv get rindexer/ethereum_node_url
           - consul kv get pgcat/connection_string/local
 
@@ -89,6 +103,7 @@
           - Connect to the local PgCat instance using the connection string from Consul KV
           - Use the configured RPC endpoints for blockchain indexing
           - Send metrics to the observability stack
+          - Pull the Docker image for the configured branch
 
           Note: Database credentials are securely stored in Consul KV by the PgCat playbook
           ========================================

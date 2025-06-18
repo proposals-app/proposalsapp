@@ -61,7 +61,7 @@ job "rindexer" {
       driver = "docker"
       
       config {
-        image = "ghcr.io/proposals-app/rindexer:latest"
+        image = "${RINDEXER_IMAGE}"
         ports = ["metrics"]
         
         # Add logging configuration
@@ -110,6 +110,11 @@ job "rindexer" {
       
       template {
         data = <<EOF
+# Get the branch and construct image name
+{{ $branch := keyOrDefault "rindexer/branch" "main" }}
+{{ $imageTag := keyOrDefault (printf "rindexer/image/%s" $branch) "latest" }}
+RINDEXER_IMAGE=ghcr.io/proposals-app/proposalsapp/rindexer:{{ $imageTag }}
+
 # Database connection - use local PgCat connection string from Consul KV
 DATABASE_URL={{ key "pgcat/connection_string/local" }}
 
