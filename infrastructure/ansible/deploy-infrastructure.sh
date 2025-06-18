@@ -115,7 +115,7 @@ run_playbook() {
 # Step 1: Destroy existing infrastructure (only if requested)
 if [ "$SKIP_DESTROY" = "false" ]; then
     echo -e "\n${RED}Phase 1: Destroying existing infrastructure${NC}"
-    ansible-playbook -i inventory.yml playbooks/99-destroy-lxc-containers.yml -e "confirm_destroy=yes-destroy-all" || {
+    ansible-playbook -i inventory.yml playbooks/infrastructure/99-destroy-lxc-containers.yml -e "confirm_destroy=yes-destroy-all" || {
         echo -e "${YELLOW}Warning: Some containers may not have existed${NC}"
     }
 
@@ -141,12 +141,12 @@ fi
 
 # Run playbooks in order
 PLAYBOOKS=(
-    "playbooks/01-provision-and-prepare-lxcs.yml:Provisioning LXC containers and base setup"
-    "playbooks/02-install-consul.yml:Installing and configuring Consul"
-    "playbooks/03-install-nomad.yml:Installing and configuring Nomad"
-    "playbooks/04-install-etcd.yml:Installing etcd for Patroni DCS"
-    "playbooks/05-install-postgres.yml:Installing PostgreSQL with Patroni HA"
-    "playbooks/06-install-pgcat.yml:Installing PgCat intelligent PostgreSQL proxy"
+    "playbooks/infrastructure/01-provision-and-prepare-lxcs.yml:Provisioning LXC containers and base setup"
+    "playbooks/infrastructure/02-install-consul.yml:Installing and configuring Consul"
+    "playbooks/infrastructure/03-install-nomad.yml:Installing and configuring Nomad"
+    "playbooks/infrastructure/04-install-etcd.yml:Installing etcd for Patroni DCS"
+    "playbooks/infrastructure/05-install-postgres.yml:Installing PostgreSQL with Patroni HA"
+    "playbooks/infrastructure/06-install-pgcat.yml:Installing PgCat intelligent PostgreSQL proxy"
 )
 
 failed=0
@@ -194,7 +194,7 @@ if [ $failed -eq 0 ]; then
     echo "2. Verify Nomad cluster: nomad server members"
     echo "3. Check PostgreSQL cluster: patronictl -c /etc/patroni/patroni.yml list"
     echo "4. Test PgCat connection: psql -h localhost -p 5432 -U proposalsapp -d proposalsapp"
-    echo "5. Deploy your applications with Nomad"
+    echo "5. Deploy applications: ./deploy-application.sh <app-name>"
 else
     echo -e "${RED}✗ Some playbooks failed${NC}"
     echo ""

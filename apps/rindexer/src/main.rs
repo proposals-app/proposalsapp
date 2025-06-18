@@ -1,20 +1,18 @@
 use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
 use anyhow::{Context, Result};
-use axum::Router;
 use dotenv::dotenv;
 use extensions::{db_extension::initialize_db, snapshot_api::initialize_snapshot_api};
-use reqwest::Client;
 use rindexer::{
     GraphqlOverrideSettings, IndexingDetails, StartDetails,
     event::callback_registry::TraceCallbackRegistry, start_rindexer,
 };
-use std::{env, time::Duration};
+use std::env;
 use tasks::{
     onchain_proposals_updates::run_periodic_proposal_state_update,
     snapshot_proposals::run_periodic_snapshot_proposals_update,
     snapshot_votes::run_periodic_snapshot_votes_update,
 };
-use tracing::{error, info, instrument, warn};
+use tracing::{error, info, instrument};
 use utils::tracing::setup_otel;
 
 mod extensions;
@@ -55,28 +53,6 @@ async fn main() -> Result<()> {
         }
     });
 
-    let uptime_handle = tokio::spawn(async move {
-        let client = Client::new();
-        let betterstack_key = std::env::var("BETTERSTACK_KEY").expect("BETTERSTACK_KEY missing");
-        loop {
-            match client.get(&betterstack_key).send().await {
-                Ok(_) => info!("Uptime ping sent successfully"),
-                Err(e) => warn!(error = %e, "Failed to send uptime ping"),
-            }
-            tokio::time::sleep(Duration::from_secs(10)).await;
-        }
-    });
-
-    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    let health_server_handle = tokio::spawn(async move {
-        info!(address = %addr, "Starting health check server");
-        if let Err(e) = axum::serve(listener, app).await {
-            error!(error = %e, "Health check server error");
-        }
-    });
-
     // Start rindexer in a separate task
     info!("Starting rindexer");
     let rindexer_handle = tokio::spawn(async move {
@@ -106,12 +82,6 @@ async fn main() -> Result<()> {
 
     // Wait for any task to complete or for shutdown signal
     tokio::select! {
-        result = health_server_handle => {
-            error!("Health server task completed unexpectedly: {:?}", result);
-        }
-        result = uptime_handle => {
-            error!("Uptime task completed unexpectedly: {:?}", result);
-        }
         result = snapshot_proposals_handle => {
             error!("Snapshot proposals task completed unexpectedly: {:?}", result);
         }

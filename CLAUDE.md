@@ -337,20 +337,25 @@ etcdctl endpoint health --endpoints=<all-nodes>
 ```bash
 # Infrastructure setup (run in order)
 cd infrastructure/ansible
-ansible-playbook -i inventory.yml playbooks/01-bootstrap.yml
-ansible-playbook -i inventory.yml playbooks/02-install-consul.yml
-ansible-playbook -i inventory.yml playbooks/03-setup-tailscale.yml
-ansible-playbook -i inventory.yml playbooks/04-install-etcd.yml
-ansible-playbook -i inventory.yml playbooks/05-install-postgres.yml
-ansible-playbook -i inventory.yml playbooks/06-install-pgcat.yml
-ansible-playbook -i inventory.yml playbooks/07-install-nomad.yml
+./deploy-infrastructure.sh
 
-# Deploy applications via Nomad
-nomad job run infrastructure/nomad/jobs/rindexer.nomad
-nomad job run infrastructure/nomad/jobs/discourse.nomad
-nomad job run infrastructure/nomad/jobs/mapper.nomad
-nomad job run infrastructure/nomad/jobs/web.nomad
-nomad job run infrastructure/nomad/jobs/email-service.nomad
+# Or run individual infrastructure playbooks:
+ansible-playbook -i inventory.yml playbooks/infrastructure/01-provision-and-prepare-lxcs.yml
+ansible-playbook -i inventory.yml playbooks/infrastructure/02-install-consul.yml
+ansible-playbook -i inventory.yml playbooks/infrastructure/03-install-nomad.yml
+ansible-playbook -i inventory.yml playbooks/infrastructure/04-install-etcd.yml
+ansible-playbook -i inventory.yml playbooks/infrastructure/05-install-postgres.yml
+ansible-playbook -i inventory.yml playbooks/infrastructure/06-install-pgcat.yml
+
+# Deploy applications (setup + deploy)
+./deploy-application.sh rindexer
+./deploy-application.sh web
+./deploy-application.sh redis
+./deploy-application.sh traefik
+
+# Or deploy manually:
+ansible-playbook -i inventory.yml applications/rindexer/setup-consul-kv.yml
+nomad job run applications/rindexer/rindexer.nomad
 ```
 
 ### Container Images
