@@ -10,6 +10,7 @@ show_usage() {
     echo ""
     echo "Available applications:"
     echo "  rindexer         - Blockchain indexer service"
+    echo "  discourse        - Discourse forum indexer service"
     echo ""
     echo "Examples:"
     echo "  $0 rindexer"
@@ -27,7 +28,7 @@ ACTION=${2:-both}
 APP_DIR="applications/$APP_NAME"
 
 # List of valid applications
-VALID_APPS="rindexer"
+VALID_APPS="rindexer discourse"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then

@@ -1,0 +1,171 @@
+name: Build and Push Discourse
+
+on:
+  push:
+    branches:
+      - '**'  # Trigger on all branches
+    paths:
+      - 'apps/discourse/**'
+      - 'libs/rust/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/build-discourse.yml'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build even without changes'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/discourse
+
+jobs:
+  build:
+    name: Build and Push Docker Image
+    # Use only Sibiu runners (dc1 or dc2) with 16 cores/32GB RAM
+    # GitHub will pick any available runner matching these labels
+    runs-on: [self-hosted, linux, sibiu]
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Skip GitHub cache since we have persistent storage on self-hosted runners
+      - name: Ensure cargo directories exist
+        run: |
+          mkdir -p ~/.cargo/registry/index
+          mkdir -p ~/.cargo/registry/cache
+          mkdir -p ~/.cargo/git/db
+          mkdir -p ~/.rustup
+
+      - name: Ensure buildx cache directory exists
+        run: |
+          sudo mkdir -p /var/cache/buildx/discourse
+          sudo chown -R runner:runner /var/cache/buildx || true
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          driver-opts: |
+            network=host
+            image=moby/buildkit:latest
+          buildkitd-flags: --debug
+          install: true
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Branch name
+            type=ref,event=branch
+            # Tag name
+            type=ref,event=tag
+            # PR number
+            type=ref,event=pr
+            # SHA short
+            type=sha,prefix={{branch}}-
+            # Latest only on main branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            # Branch with timestamp
+            type=raw,value={{branch}}-{{date 'YYYYMMDD-HHmmss'}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/discourse/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          builder: ${{ steps.buildx.outputs.name }}
+          # Use only local cache for self-hosted runners (no registry cache)
+          cache-from: type=local,src=/var/cache/buildx/discourse
+          cache-to: type=local,dest=/var/cache/buildx/discourse,mode=max
+          build-args: |
+            RUST_VERSION=1.87
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ github.ref_name }}-${{ github.sha }}
+
+      - name: Generate deployment webhook payload
+        id: webhook
+        if: success()
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          IMAGE_TAG="${BRANCH_NAME}-$(echo ${GITHUB_SHA} | cut -c1-7)"
+          echo "branch=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+          echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Trigger Nomad deployment
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "New image available for main branch: ${{ steps.webhook.outputs.image }}"
+          echo "Tag: ${{ steps.webhook.outputs.tag }}"
+          
+          # Update image tag in Consul KV to trigger redeployment
+          # Using internal Tailscale address since runners are in the network
+          CONSUL_ADDR="http://consul-nomad-sib-01:8500"
+          
+          echo "Updating Consul KV with new image tag for main branch..."
+          
+          # Update the image tag for main branch
+          curl -s -X PUT \
+            "$CONSUL_ADDR/v1/kv/discourse/image/main" \
+            -d "${{ steps.webhook.outputs.tag }}" || {
+              echo "Warning: Failed to update Consul KV"
+              echo "Trying alternative Consul server..."
+              # Try another datacenter if first one fails
+              curl -s -X PUT \
+                "http://consul-nomad-sib-03:8500/v1/kv/discourse/image/main" \
+                -d "${{ steps.webhook.outputs.tag }}"
+            }
+          
+          echo "Main branch image updated. Discourse will be automatically redeployed by Nomad."
+          
+      - name: Log build information
+        if: success() && github.event_name == 'push' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Built image for branch ${{ steps.webhook.outputs.branch }}: ${{ steps.webhook.outputs.image }}"
+          echo "This image is available in ghcr.io but will not be automatically deployed."
+          echo "Only pushes to the main branch trigger automatic deployments to Nomad."
+
+  cleanup:
+    name: Cleanup old images
+    runs-on: [self-hosted, linux, sibiu]
+    needs: build
+    if: success()
+    permissions:
+      packages: write
+    continue-on-error: true  # Don't fail the workflow if cleanup fails
+    
+    steps:
+      - name: Delete old container images
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: 'proposalsapp/discourse'
+          package-type: 'container'
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: 'false'
+          # Keep last 5 versions per branch
+          ignore-versions: '^(main|master|develop)-(.*)'
+        continue-on-error: true  # Continue even if package doesn't exist yet

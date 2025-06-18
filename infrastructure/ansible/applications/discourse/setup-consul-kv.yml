@@ -1,0 +1,89 @@
+---
+- name: Setup Consul KV values for discourse in all datacenters
+  hosts: consul_servers
+  become: true
+  vars:
+    consul_kv_values:
+      # OpenTelemetry configuration (same as rindexer)
+      - key: "discourse/otel_exporter_otlp_endpoint"
+        value: "{{ vault_otel_exporter_otlp_endpoint }}"
+
+      # BetterStack monitoring key
+      - key: "discourse/betterstack_key"
+        value: "{{ vault_discourse_betterstack_key }}"
+
+  tasks:
+    - name: Ensure Consul is available
+      wait_for:
+        port: 8500
+        host: localhost
+        timeout: 60
+
+    - name: Get local Consul datacenter info
+      uri:
+        url: "http://localhost:8500/v1/agent/self"
+        method: GET
+      register: consul_info
+
+    - name: Set datacenter variable
+      set_fact:
+        current_datacenter: "{{ consul_info.json.Config.Datacenter }}"
+
+    - name: Store values in local datacenter's Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop: "{{ consul_kv_values }}"
+      loop_control:
+        label: "{{ item.key }} in {{ current_datacenter }}"
+      no_log: true # Don't log sensitive values
+
+    - name: Display setup information for this datacenter
+      debug:
+        msg: |
+          ========================================
+          Consul KV Setup Complete for {{ current_datacenter }}
+          ========================================
+
+          Environment variables have been stored in Consul KV
+          for datacenter: {{ current_datacenter }}
+
+          Run this playbook on all consul servers to replicate
+          the configuration across all datacenters.
+          ========================================
+      run_once: true
+
+- name: Display final deployment instructions
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Show deployment instructions
+      debug:
+        msg: |
+          ========================================
+          Discourse Setup Complete
+          ========================================
+
+          To deploy discourse:
+          1. Ensure this playbook has been run on all consul servers
+          2. Run: nomad job run infrastructure/ansible/applications/discourse/discourse.nomad
+
+          Discourse always deploys from the main branch.
+          Feature branches are built and stored in ghcr.io but not automatically deployed.
+
+          To verify the values in each datacenter:
+          - consul kv get discourse/otel_exporter_otlp_endpoint
+          - consul kv get discourse/betterstack_key
+          - consul kv get pgcat/connection_string/local
+          - consul kv get discourse/image/main
+
+          The discourse service will automatically:
+          - Connect to the local PgCat instance using the connection string from Consul KV
+          - Index Discourse forums based on the daoDiscourse table configuration
+          - Send metrics to the observability stack
+          - Send uptime pings to BetterStack (if configured)
+          - Pull the latest Docker image from the main branch
+
+          Note: Database credentials are securely stored in Consul KV by the PgCat playbook
+          ========================================
