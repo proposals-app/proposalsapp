@@ -4,6 +4,13 @@ ARG APP_NAME=proposalsapp-rindexer
 FROM rust:slim-bookworm AS planner
 ARG APP_NAME
 WORKDIR /app
+
+# Install build dependencies for the planner stage
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN cargo install cargo-chef
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
@@ -12,8 +19,6 @@ RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
 FROM rust:slim-bookworm AS cacher
 WORKDIR /app
 ARG APP_NAME
-
-RUN cargo install cargo-chef
 
 # Install only essential build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+RUN cargo install cargo-chef
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
 
@@ -34,11 +40,7 @@ FROM rust:slim-bookworm AS builder
 WORKDIR /app
 ARG APP_NAME
 
-COPY --from=cacher /app/target target
-COPY --from=cacher /usr/local/cargo /usr/local/cargo
-COPY . .
-
-# Install build dependencies
+# Install build dependencies BEFORE copying cached dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
@@ -50,6 +52,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=cacher /app/target target
+COPY --from=cacher /usr/local/cargo /usr/local/cargo
+COPY . .
 
 # Build the project
 RUN cargo build --release --bin ${APP_NAME}
