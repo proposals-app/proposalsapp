@@ -44,7 +44,7 @@ ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 RUN cargo install cargo-chef --locked
 COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME} --jobs $(nproc)
+RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 3: Builder
 FROM rust:${RUST_VERSION}-slim-bookworm AS builder
