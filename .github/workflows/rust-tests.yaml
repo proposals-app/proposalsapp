@@ -39,25 +39,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Cargo registry and dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Cache Rust toolchain
-        uses: actions/cache@v4
-        with:
-          path: ~/.rustup
-          key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml', '**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-rustup-
+      # Skip GitHub cache since we have persistent storage on self-hosted runners
+      - name: Ensure cargo directories exist
+        run: |
+          mkdir -p ~/.cargo/registry/index
+          mkdir -p ~/.cargo/registry/cache
+          mkdir -p ~/.cargo/git/db
+          mkdir -p ~/.rustup
 
       - name: Install build tools
         run: |
