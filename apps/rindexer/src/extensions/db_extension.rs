@@ -59,8 +59,7 @@ pub async fn initialize_db() -> Result<()> {
         .acquire_timeout(Duration::from_secs(30))
         .idle_timeout(Duration::from_secs(10 * 60))
         .max_lifetime(Duration::from_secs(30 * 60))
-        .sqlx_logging(false)
-        .sqlx_disable_statement_logging();
+        .sqlx_logging(false);
 
     let db = sea_orm::Database::connect(opt)
         .await
