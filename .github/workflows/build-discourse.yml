@@ -116,22 +116,11 @@ jobs:
           echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-      - name: Trigger Nomad deployment
+      - name: Update deployment metadata in Consul
         if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          echo "New image available for main branch: ${{ steps.webhook.outputs.image }}"
-          echo "Tag: ${{ steps.webhook.outputs.tag }}"
-          
-          # Wait for image to be available in registry
-          echo "Waiting for image to be available in registry..."
-          for i in {1..30}; do
-            if docker manifest inspect "${{ steps.webhook.outputs.image }}" > /dev/null 2>&1; then
-              echo "✓ Image is available in registry"
-              break
-            fi
-            echo "Waiting for image replication... ($i/30)"
-            sleep 2
-          done
+          echo "📦 New image available: ${{ steps.webhook.outputs.image }}"
+          echo "🏷️  Tag: ${{ steps.webhook.outputs.tag }}"
           
           # Create deployment metadata
           DEPLOYMENT_JSON=$(cat <<EOF
@@ -141,62 +130,48 @@ jobs:
             "branch": "main",
             "sha": "${{ github.sha }}",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "commit_message": $(echo '${{ github.event.head_commit.message }}' | jq -Rs .)
+            "commit_message": $(echo '${{ github.event.head_commit.message }}' | jq -Rs .),
+            "author": "${{ github.actor }}",
+            "workflow_run_id": "${{ github.run_id }}",
+            "workflow_run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }
           EOF
           )
           
-          # Update image tag in Consul KV to trigger redeployment
-          # Using internal Tailscale address since runners are in the network
-          CONSUL_ADDR="http://consul-nomad-sib-01:8500"
+          echo "📤 Updating Consul KV with deployment metadata..."
           
-          echo "Updating Consul KV with deployment information..."
+          # Update Consul KV with retry logic
+          CONSUL_SERVERS=("consul-nomad-sib-01:8500" "consul-nomad-sib-03:8500" "consul-nomad-fsn-01:8500")
+          UPDATED=false
           
-          # Update deployment info atomically
-          curl -s -X PUT \
-            "$CONSUL_ADDR/v1/kv/discourse/deployment/main" \
-            -d "$DEPLOYMENT_JSON" || {
-              echo "Warning: Failed to update Consul KV"
-              echo "Trying alternative Consul server..."
-              # Try another datacenter if first one fails
-              curl -s -X PUT \
-                "http://consul-nomad-sib-03:8500/v1/kv/discourse/deployment/main" \
-                -d "$DEPLOYMENT_JSON"
-            }
-          
-          echo "Deployment information updated."
-          
-          # Now update the Nomad job with the new image
-          echo "Updating Nomad job with new image..."
-          
-          # Get the job spec from Nomad
-          NOMAD_ADDR="http://consul-nomad-sib-01:4646"
-          JOB_JSON=$(curl -s "${NOMAD_ADDR}/v1/job/discourse" | jq '.Job')
-          
-          if [[ -z "$JOB_JSON" || "$JOB_JSON" == "null" ]]; then
-            echo "Warning: Could not fetch current job spec, trying alternative server..."
-            NOMAD_ADDR="http://consul-nomad-sib-03:4646"
-            JOB_JSON=$(curl -s "${NOMAD_ADDR}/v1/job/discourse" | jq '.Job')
-          fi
-          
-          if [[ -n "$JOB_JSON" && "$JOB_JSON" != "null" ]]; then
-            # Update the image in the job spec
-            UPDATED_JOB=$(echo "$JOB_JSON" | jq \
-              --arg image "${{ steps.webhook.outputs.image }}" \
-              '.TaskGroups[0].Tasks[0].Config.image = $image')
+          for server in "${CONSUL_SERVERS[@]}"; do
+            echo "Trying Consul server: ${server}"
             
-            # Submit the updated job
-            echo "$UPDATED_JOB" | jq '{"Job": .}' | \
-              curl -s -X POST "${NOMAD_ADDR}/v1/jobs" \
+            # Try up to 3 times per server with exponential backoff
+            for attempt in 1 2 3; do
+              if curl -f -X PUT "http://${server}/v1/kv/discourse/deployment/main" \
                 -H "Content-Type: application/json" \
-                -d @- > /dev/null
-            
-            echo "✓ Nomad job updated with new image"
-          else
-            echo "✗ Warning: Could not update Nomad job directly. Relying on template restart."
+                --data "$DEPLOYMENT_JSON" \
+                --connect-timeout 5 \
+                --max-time 10; then
+                echo "✓ Successfully updated Consul KV via ${server}"
+                UPDATED=true
+                break 2
+              else
+                echo "Attempt ${attempt}/3 failed for ${server}"
+                [ $attempt -lt 3 ] && sleep $((attempt * 2))
+              fi
+            done
+          done
+          
+          if [ "$UPDATED" = false ]; then
+            echo "❌ ERROR: Failed to update Consul KV on all servers!"
+            echo "Deployment metadata was not saved. Nomad will not receive the update."
+            exit 1
           fi
           
-          echo "Discourse will be automatically redeployed by Nomad."
+          echo "✅ Deployment metadata updated successfully"
+          echo "ℹ️  Nomad will detect the change via Consul template and restart with the new image"
           
       - name: Log build information
         if: success() && github.event_name == 'push' && github.ref != 'refs/heads/main'

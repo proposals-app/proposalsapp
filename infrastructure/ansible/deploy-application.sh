@@ -69,6 +69,115 @@ run_deploy() {
         return
     fi
 
+    # Initialize FULL_IMAGE variable
+    FULL_IMAGE=""
+
+    # Update Consul KV with latest image for supported apps
+    if [[ "$APP_NAME" =~ ^(web|rindexer|discourse)$ ]]; then
+        echo "Checking for latest image for $APP_NAME..."
+        
+        # Define Consul servers
+        CONSUL_SERVERS=(
+            "consul-nomad-sib-01"
+            "consul-nomad-sib-03"
+            "consul-nomad-fsn-01"
+        )
+        
+        # Get latest image tag from GitHub Container Registry
+        REGISTRY="ghcr.io/proposals-app/proposalsapp"
+        IMAGE_NAME="$REGISTRY/$APP_NAME"
+        
+        # Get GitHub token from Ansible vault
+        echo "Retrieving GitHub authentication..."
+        GITHUB_TOKEN=$(ansible localhost -i inventory.yml -m debug -a "var=vault_github_token" --vault-password-file .vault_pass 2>/dev/null | 
+            grep -o '"vault_github_token": "[^"]*"' | 
+            sed 's/"vault_github_token": "\(.*\)"/\1/' || echo "")
+        
+        if [ -z "$GITHUB_TOKEN" ]; then
+            echo "ERROR: Could not retrieve GitHub token from vault."
+            echo "Ensure vault_github_token is set in vault and .vault_pass file exists."
+            exit 1
+        fi
+        
+        # Use GitHub API to get the latest successful build
+        echo "Checking GitHub API for latest successful build..."
+        API_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/proposals-app/proposalsapp/actions/workflows/build-${APP_NAME}.yml/runs?branch=main&status=success&per_page=1")
+        
+        LATEST_SHA=$(echo "$API_RESPONSE" | jq -r '.workflow_runs[0].head_sha[:7]' 2>/dev/null || echo "")
+        
+        if [ -n "$LATEST_SHA" ] && [ "$LATEST_SHA" != "null" ]; then
+            LATEST_TAG="main-$LATEST_SHA"
+            echo "✓ Found latest tag from GitHub Actions: $LATEST_TAG"
+        else
+            # Fallback: check current deployment in Consul
+            echo "Could not get tag from GitHub API. Checking Consul for current deployment..."
+            for server in "${CONSUL_SERVERS[@]}"; do
+                DEPLOYMENT_JSON=$(ansible $server -i inventory.yml -m uri -a \
+                    "url=http://localhost:8500/v1/kv/$APP_NAME/deployment/main?raw method=GET" \
+                    --vault-password-file .vault_pass 2>/dev/null | \
+                    grep -o '{.*}' || echo "")
+                
+                if [ -n "$DEPLOYMENT_JSON" ]; then
+                    LATEST_TAG=$(echo "$DEPLOYMENT_JSON" | jq -r '.tag' 2>/dev/null || echo "")
+                    if [ -n "$LATEST_TAG" ] && [ "$LATEST_TAG" != "null" ]; then
+                        echo "✓ Using current deployment tag from Consul: $LATEST_TAG"
+                        break
+                    fi
+                fi
+            done
+        fi
+        
+        # Final fallback
+        if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
+            echo "Warning: Could not determine latest tag. Using 'latest' as fallback."
+            LATEST_TAG="latest"
+        fi
+        
+        FULL_IMAGE="$IMAGE_NAME:$LATEST_TAG"
+        echo "Using image: $FULL_IMAGE"
+        
+        # Create deployment metadata
+        DEPLOYMENT_JSON=$(cat <<EOF
+{
+  "tag": "$LATEST_TAG",
+  "image": "$FULL_IMAGE",
+  "branch": "main",
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "deployed_by": "deploy-application.sh",
+  "deployed_from": "$(hostname)"
+}
+EOF
+)
+        
+        # Update Consul KV with retry logic
+        CONSUL_UPDATED=false
+        for server in "${CONSUL_SERVERS[@]}"; do
+            echo "Updating Consul KV on $server..."
+            
+            # Try up to 3 times with exponential backoff
+            for attempt in 1 2 3; do
+                if ansible $server -i inventory.yml -m uri -a \
+                    "url=http://localhost:8500/v1/kv/$APP_NAME/deployment/main method=PUT body='$DEPLOYMENT_JSON' body_format=json" \
+                    --vault-password-file .vault_pass > /dev/null 2>&1; then
+                    echo "✓ Successfully updated Consul KV on $server"
+                    CONSUL_UPDATED=true
+                    break 2
+                else
+                    echo "Attempt ${attempt}/3 failed for ${server}"
+                    [ $attempt -lt 3 ] && sleep $((attempt * 2))
+                fi
+            done
+        done
+        
+        if [ "$CONSUL_UPDATED" = false ]; then
+            echo "ERROR: Failed to update Consul KV on all servers!"
+            echo "Deployment will proceed but Nomad may not detect the new image."
+        fi
+    fi
+
     # Check if NOMAD_ADDR is set
     if [ -z "$NOMAD_ADDR" ]; then
         echo "NOMAD_ADDR not set. Deploying via Ansible on first Nomad server..."
@@ -84,18 +193,53 @@ run_deploy() {
 
         echo "Using Nomad server: $NOMAD_SERVER"
 
-        # Copy the job file to remote
-        ansible $NOMAD_SERVER -i inventory.yml -m copy -a "src=$NOMAD_FILE dest=/tmp/$APP_NAME.nomad" || exit 1
+        # Create a temporary job file with updated image
+        TEMP_NOMAD_FILE="/tmp/${APP_NAME}_deploy_$$.nomad"
+        cp "$NOMAD_FILE" "$TEMP_NOMAD_FILE"
+        
+        # Update the image in the job file if we have the full image
+        if [ ! -z "$FULL_IMAGE" ]; then
+            echo "Updating job file with image: $FULL_IMAGE"
+            sed -i.bak "s|image = \".*\"|image = \"$FULL_IMAGE\"|g" "$TEMP_NOMAD_FILE"
+        fi
+
+        # Copy the job file to remote with vault password
+        ansible $NOMAD_SERVER -i inventory.yml -m copy \
+            -a "src=$TEMP_NOMAD_FILE dest=/tmp/$APP_NAME.nomad" \
+            --vault-password-file .vault_pass || exit 1
 
         # Run the job on remote
-        ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job run /tmp/$APP_NAME.nomad" || exit 1
+        ansible $NOMAD_SERVER -i inventory.yml -m shell \
+            -a "nomad job run /tmp/$APP_NAME.nomad" \
+            --vault-password-file .vault_pass || exit 1
 
         # Clean up
-        ansible $NOMAD_SERVER -i inventory.yml -m file -a "path=/tmp/$APP_NAME.nomad state=absent"
+        ansible $NOMAD_SERVER -i inventory.yml -m file \
+            -a "path=/tmp/$APP_NAME.nomad state=absent" \
+            --vault-password-file .vault_pass
+        rm -f "$TEMP_NOMAD_FILE" "$TEMP_NOMAD_FILE.bak"
     else
         echo "Using NOMAD_ADDR: $NOMAD_ADDR"
-        echo "Executing: nomad job run $NOMAD_FILE"
-        nomad job run "$NOMAD_FILE"
+        
+        # Create a temporary job file with updated image
+        TEMP_NOMAD_FILE="/tmp/${APP_NAME}_deploy_$$.nomad"
+        cp "$NOMAD_FILE" "$TEMP_NOMAD_FILE"
+        
+        # Update the image in the job file if we have the full image
+        if [ ! -z "$FULL_IMAGE" ]; then
+            echo "Updating job file with image: $FULL_IMAGE"
+            sed -i.bak "s|image = \".*\"|image = \"$FULL_IMAGE\"|g" "$TEMP_NOMAD_FILE"
+        fi
+        
+        echo "Executing: nomad job run $TEMP_NOMAD_FILE"
+        if ! nomad job run "$TEMP_NOMAD_FILE"; then
+            echo "ERROR: Failed to deploy job to Nomad"
+            rm -f "$TEMP_NOMAD_FILE" "$TEMP_NOMAD_FILE.bak"
+            exit 1
+        fi
+        
+        # Clean up
+        rm -f "$TEMP_NOMAD_FILE" "$TEMP_NOMAD_FILE.bak"
     fi
 }
 

@@ -5,9 +5,9 @@ job "rindexer" {
   update {
     max_parallel      = 1
     health_check      = "checks"
-    min_healthy_time  = "30s"
-    healthy_deadline  = "5m"
-    progress_deadline = "10m"
+    min_healthy_time  = "10s"
+    healthy_deadline  = "2m"
+    progress_deadline = "5m"
     auto_revert       = true
     auto_promote      = true
     canary            = 1
@@ -28,7 +28,7 @@ job "rindexer" {
       max_parallel = 1
       health_check = "checks"
       min_healthy_time = "10s"
-      healthy_deadline = "5m"
+      healthy_deadline = "2m"
     }
 
     reschedule {
@@ -114,23 +114,44 @@ job "rindexer" {
         DATABASE_TIMEOUT = "30"
       }
 
-      # This template watches for deployment changes and forces a restart
+      # This template watches for image changes and triggers restart
+      # Only watches the image field to prevent restart loops
       template {
-        destination = "local/deployment.txt"
+        destination = "local/deployment-trigger.txt"
         change_mode = "restart"
         data = <<EOF
-{{ key "rindexer/deployment/main" }}
+{{ $deploymentJson := keyOrDefault "rindexer/deployment/main" "{}" }}
+{{ if $deploymentJson }}
+{{ $deployment := $deploymentJson | parseJSON }}
+{{ if $deployment.image }}{{ $deployment.image }}{{ else }}no-image{{ end }}
+{{ else }}
+no-deployment
+{{ end }}
 EOF
       }
       
+      # Environment configuration template
+      # Does not trigger restarts to avoid loops
       template {
         data = <<EOF
 # Deployment metadata from Consul
-{{ $deployment := keyOrDefault "rindexer/deployment/main" "{}" | parseJSON }}
-DEPLOYMENT_IMAGE={{ $deployment.image | default "unknown" }}
-DEPLOYMENT_TAG={{ $deployment.tag | default "unknown" }}
-DEPLOYMENT_SHA={{ $deployment.sha | default "unknown" }}
-DEPLOYMENT_TIME={{ $deployment.timestamp | default "unknown" }}
+{{ $deploymentJson := keyOrDefault "rindexer/deployment/main" "{}" }}
+{{ if $deploymentJson }}
+{{ $deployment := $deploymentJson | parseJSON }}
+DEPLOYMENT_IMAGE={{ if $deployment.image }}{{ $deployment.image }}{{ else }}unknown{{ end }}
+DEPLOYMENT_TAG={{ if $deployment.tag }}{{ $deployment.tag }}{{ else }}unknown{{ end }}
+DEPLOYMENT_SHA={{ if $deployment.sha }}{{ $deployment.sha }}{{ else }}unknown{{ end }}
+DEPLOYMENT_TIME={{ if $deployment.timestamp }}{{ $deployment.timestamp }}{{ else }}unknown{{ end }}
+DEPLOYMENT_AUTHOR={{ if $deployment.author }}{{ $deployment.author }}{{ else }}unknown{{ end }}
+DEPLOYMENT_WORKFLOW_URL={{ if $deployment.workflow_run_url }}{{ $deployment.workflow_run_url }}{{ else }}unknown{{ end }}
+{{ else }}
+DEPLOYMENT_IMAGE=unknown
+DEPLOYMENT_TAG=unknown
+DEPLOYMENT_SHA=unknown
+DEPLOYMENT_TIME=unknown
+DEPLOYMENT_AUTHOR=unknown
+DEPLOYMENT_WORKFLOW_URL=unknown
+{{ end }}
 
 # Database connection - use local pgpool connection string from Consul KV
 DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
@@ -153,8 +174,8 @@ OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "rindexer/otel_exporter_otlp_endpoin
 EOF
         destination = "secrets/env"
         env         = true
-        change_mode = "restart"
-        change_signal = "SIGTERM"
+        change_mode = "signal"
+        change_signal = "SIGHUP"
       }
 
       resources {
@@ -173,8 +194,8 @@ EOF
         check {
           type     = "http"
           path     = "/health"
-          interval = "30s"
-          timeout  = "5s"
+          interval = "5s"
+          timeout  = "2s"
         }
       }
     }
