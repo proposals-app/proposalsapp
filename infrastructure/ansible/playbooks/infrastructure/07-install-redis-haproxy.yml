@@ -1,0 +1,189 @@
+---
+- name: Install HAProxy for Redis on app nodes
+  hosts: nomad_clients
+  become: yes
+  vars:
+    # Build etcd endpoints dynamically from inventory
+    etcd_endpoints: "{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+    haproxy_version: "2.8"
+    confd_version: "0.16.0"
+  
+  tasks:
+    - name: Install HAProxy
+      package:
+        name: haproxy
+        state: present
+    
+    - name: Create HAProxy directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: haproxy
+        group: haproxy
+        mode: '0755'
+      loop:
+        - /etc/haproxy
+        - /var/run/haproxy
+        - /var/lib/haproxy
+    
+    - name: Install Confd
+      get_url:
+        url: "https://github.com/kelseyhightower/confd/releases/download/v{{ confd_version }}/confd-{{ confd_version }}-linux-amd64"
+        dest: /usr/local/bin/confd
+        mode: '0755'
+    
+    - name: Create Confd directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/confd
+        - /etc/confd/conf.d
+        - /etc/confd/templates
+    
+    - name: Copy Confd configuration for Redis
+      copy:
+        src: ../../files/confd-redis.toml
+        dest: /etc/confd/conf.d/redis.toml
+        mode: '0644'
+    
+    - name: Copy HAProxy template for Confd
+      template:
+        src: ../../templates/haproxy-redis-confd.cfg.j2
+        dest: /etc/confd/templates/haproxy-redis.cfg.tmpl
+        mode: '0644'
+    
+    - name: Create systemd drop-in directory for Confd
+      file:
+        path: /etc/systemd/system/confd-redis.service.d
+        state: directory
+        mode: '0755'
+    
+    - name: Create Confd permissions drop-in
+      copy:
+        content: |
+          [Service]
+          # Allow Confd to reload HAProxy
+          AmbientCapabilities=CAP_KILL CAP_SYS_ADMIN
+          CapabilityBoundingSet=CAP_KILL CAP_SYS_ADMIN
+        dest: /etc/systemd/system/confd-redis.service.d/permissions.conf
+        mode: '0644'
+    
+    - name: Create Confd systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Confd for HAProxy Redis
+          After=network.target etcd.service
+          Wants=etcd.service
+          
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/bin/confd -backend etcd -node {{ etcd_endpoints }} -interval 10
+          Restart=always
+          RestartSec=5
+          Environment="LOCAL_DATACENTER={{ datacenter }}"
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/confd-redis.service
+        mode: '0644'
+    
+    - name: Create initial HAProxy configuration
+      copy:
+        content: |
+          global
+              maxconn 4096
+              log /dev/log local0
+              log /dev/log local1 notice
+              stats socket /var/run/haproxy/admin.sock mode 660 level admin
+              stats timeout 30s
+              user haproxy
+              group haproxy
+              daemon
+          
+          defaults
+              log     global
+              mode    tcp
+              option  tcplog
+              option  dontlognull
+              timeout connect 5000
+              timeout client  30000
+              timeout server  30000
+              timeout check   2000
+              retries 3
+          
+          # Stats interface
+          listen stats
+              bind *:8404
+              mode http
+              stats enable
+              stats uri /stats
+              stats refresh 10s
+              stats admin if TRUE
+          
+          # Temporary Redis backend until Confd populates real config
+          listen redis
+              bind *:6380
+              mode tcp
+              server temp 127.0.0.1:6379 check inter 5s fall 3 rise 2
+        dest: /etc/haproxy/haproxy.cfg
+        mode: '0644'
+        backup: yes
+    
+    - name: Enable and start HAProxy
+      systemd:
+        name: haproxy
+        enabled: yes
+        state: started
+        daemon_reload: yes
+    
+    - name: Enable and start Confd
+      systemd:
+        name: confd-redis
+        enabled: yes
+        state: started
+        daemon_reload: yes
+    
+    - name: Create Redis connection test script
+      copy:
+        content: |
+          #!/bin/bash
+          # Test Redis connection through HAProxy
+          
+          REDIS_PASSWORD="{{ redis_password | default('proposalsapp_redis_password') }}"
+          
+          echo "Testing Redis connection through HAProxy on port 6380..."
+          redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" ping
+          
+          echo "Testing write operation..."
+          redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" SET test:key "test-value-$(date +%s)"
+          
+          echo "Testing read operation..."
+          redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" GET test:key
+          
+          echo "Checking HAProxy stats..."
+          curl -s http://localhost:8404/stats | grep -E "(redis_write|redis_read)" | head -20
+        dest: /usr/local/bin/test-redis-haproxy
+        mode: '0755'
+    
+    - name: Check HAProxy status
+      systemd:
+        name: haproxy
+        state: started
+      register: haproxy_status
+    
+    - name: Display HAProxy status
+      debug:
+        msg: "HAProxy service status: {{ haproxy_status.status.ActiveState }}"
+      when: haproxy_status is defined and haproxy_status.status is defined
+    
+    - name: Note about Redis deployment
+      debug:
+        msg: |
+          HAProxy for Redis has been installed and configured.
+          To complete the setup:
+          1. Deploy Redis using: ./deploy-application.sh redis
+          2. HAProxy will listen on port 6380 once Redis is running
+          3. Stats available at: http://localhost:8404/stats

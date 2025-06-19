@@ -147,6 +147,7 @@ PLAYBOOKS=(
     "playbooks/infrastructure/04-install-etcd.yml:Installing etcd for Patroni DCS and Confd"
     "playbooks/infrastructure/05-install-postgres.yml:Installing PostgreSQL with Patroni HA"
     "playbooks/infrastructure/06-install-pgpool.yml:Installing pgpool-II with dynamic configuration via Confd"
+    "playbooks/infrastructure/07-install-redis-haproxy.yml:Installing HAProxy for Redis local-first routing"
 )
 
 # Setup GitHub runners if PAT is configured
@@ -230,6 +231,7 @@ if [ $failed -eq 0 ]; then
     echo "  • pgpool-II connection pooler on application nodes"
     echo "  • Confd for dynamic pgpool-II configuration from etcd"
     echo "  • Local-first load balancing (83% reads to local DB)"
+    echo "  • HAProxy for Redis with local-first routing (90% reads to local Redis)"
     echo "  • 3 GitHub Actions self-hosted runners"
     echo ""
     echo -e "${CYAN}Next steps:${NC}"

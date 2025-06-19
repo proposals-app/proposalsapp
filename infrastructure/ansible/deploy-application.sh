@@ -14,6 +14,7 @@ show_usage() {
     echo "  cloudflared      - Cloudflare tunnel daemon for Zero Trust access"
     echo "  traefik          - Edge router and load balancer with automatic HTTPS"
     echo "  web              - Next.js frontend application"
+    echo "  redis            - Redis cache with HA and local-first routing"
     echo ""
     echo "Examples:"
     echo "  $0 rindexer"
@@ -31,7 +32,7 @@ ACTION=${2:-both}
 APP_DIR="applications/$APP_NAME"
 
 # List of valid applications
-VALID_APPS="rindexer discourse cloudflared traefik web"
+VALID_APPS="rindexer discourse cloudflared traefik web redis"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then

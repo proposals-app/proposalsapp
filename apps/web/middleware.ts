@@ -18,6 +18,15 @@ export default function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
+  // Log for debugging subdomain routing issues
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Middleware] Request:', {
+      hostname,
+      pathname: url.pathname,
+      search: url.search,
+    });
+  }
+
   // Get configured domain from env or use default for local development
   const configuredRootDomain =
     process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
@@ -59,14 +68,31 @@ export default function middleware(request: NextRequest) {
 
   // Handle specific subdomains with specialized implementations
   if (specialSubdomains.includes(subdomain)) {
-    // Rewrite to the specialized implementation
-    url.pathname = `/${subdomain}${url.pathname}`;
+    // Check if the pathname already starts with the subdomain to avoid double routing
+    if (!url.pathname.startsWith(`/${subdomain}`)) {
+      // Rewrite to the specialized implementation
+      url.pathname = `/${subdomain}${url.pathname}`;
+    }
+    
+    // Log the rewrite for debugging
+    if (process.env.NODE_ENV === 'development' || url.pathname.includes(`/${subdomain}/${subdomain}`)) {
+      console.log('[Middleware] Subdomain rewrite:', {
+        subdomain,
+        originalPath: request.nextUrl.pathname,
+        rewrittenPath: url.pathname,
+        wasAlreadyPrefixed: request.nextUrl.pathname.startsWith(`/${subdomain}`),
+      });
+    }
+    
     return NextResponse.rewrite(url);
   }
   // Handle other DAOs through the dynamic [daoSlug] route
   else {
-    // Rewrite to the dynamic [daoSlug] route
-    url.pathname = `/[daoSlug]${url.pathname}`;
+    // Check if the pathname already contains [daoSlug] to avoid double routing
+    if (!url.pathname.startsWith('/[daoSlug]')) {
+      // Rewrite to the dynamic [daoSlug] route
+      url.pathname = `/[daoSlug]${url.pathname}`;
+    }
     // Store the actual slug in searchParams to be accessed in the page
     url.searchParams.set('daoSlug', subdomain);
     return NextResponse.rewrite(url);

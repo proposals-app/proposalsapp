@@ -1,0 +1,9 @@
+[template]
+src = "haproxy-redis.cfg.tmpl"
+dest = "/etc/haproxy/haproxy.cfg"
+keys = [
+    "/service/redis",
+    "/service/redis-sentinel",
+]
+check_cmd = "haproxy -f {{.src}} -c"
+reload_cmd = "systemctl reload haproxy"

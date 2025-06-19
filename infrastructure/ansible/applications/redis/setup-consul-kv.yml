@@ -1,0 +1,85 @@
+---
+- name: Setup Redis Consul KV configuration
+  hosts: consul_servers
+  gather_facts: yes
+  vars:
+    consul_url: "http://localhost:8500"
+    consul_token: "{{ lookup('env', 'CONSUL_HTTP_TOKEN') }}"
+    redis_pwd: "proposalsapp_redis_password"
+    redis_port: 6380
+    
+  tasks:
+    - name: Check if Consul token is set
+      debug:
+        msg: "No Consul token found - assuming ACLs are not enabled"
+      when: consul_token == ""
+    
+    - name: Set etcd endpoints dynamically
+      set_fact:
+        etcd_endpoints: "{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+    
+    - name: Set Redis configuration in Consul KV
+      uri:
+        url: "{{ consul_url }}/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+        headers: "{{ {'X-Consul-Token': consul_token} if consul_token else {} }}"
+        status_code: 200
+      loop:
+        # Redis configuration
+        - { key: "redis/password", value: "{{ redis_pwd }}" }
+        - { key: "redis/maxmemory", value: "2gb" }
+        - { key: "redis/maxmemory_policy", value: "allkeys-lru" }
+        - { key: "redis/master", value: "" }  # Will be set by first node or Sentinel
+        - { key: "redis/master_host", value: "localhost" }  # Default until Sentinel elects
+        - { key: "redis/master_port", value: "6379" }
+        
+        # HAProxy configuration
+        - { key: "redis/haproxy/enabled", value: "true" }
+        - { key: "redis/haproxy/frontend_port", value: "6380" }
+        - { key: "redis/haproxy/stats_port", value: "8404" }
+        - { key: "redis/haproxy/local_weight", value: "10" }
+        - { key: "redis/haproxy/remote_weight", value: "1" }
+        
+        # etcd endpoints for Confd
+        - { key: "etcd/endpoints", value: "{{ etcd_endpoints }}" }
+        
+        # Application Redis URLs (using HAProxy)
+        - { key: "web/redis_url", value: "redis://:{{ redis_pwd }}@localhost:{{ redis_port }}/0" }
+        - { key: "email-service/redis_url", value: "redis://:{{ redis_pwd }}@localhost:{{ redis_port }}/0" }
+        
+        # Connection strings - local (always localhost)
+        - { key: "redis/connection_string/local", value: "redis://:{{ redis_pwd }}@localhost:{{ redis_port }}/0" }
+        
+        # Connection strings - hostnames
+        - { key: "redis/connection_string/hostname/apps-sib-01", value: "redis://:{{ redis_pwd }}@apps-sib-01:{{ redis_port }}/0" }
+        - { key: "redis/connection_string/hostname/apps-sib-03", value: "redis://:{{ redis_pwd }}@apps-sib-03:{{ redis_port }}/0" }
+        - { key: "redis/connection_string/hostname/apps-fsn-01", value: "redis://:{{ redis_pwd }}@apps-fsn-01:{{ redis_port }}/0" }
+        
+        # Connection strings - Tailscale IPs
+        - { key: "redis/connection_string/tailscale/apps-sib-01", value: "redis://:{{ redis_pwd }}@{{ hostvars['apps-sib-01']['tailscale_ip'] }}:{{ redis_port }}/0" }
+        - { key: "redis/connection_string/tailscale/apps-sib-03", value: "redis://:{{ redis_pwd }}@{{ hostvars['apps-sib-03']['tailscale_ip'] }}:{{ redis_port }}/0" }
+        - { key: "redis/connection_string/tailscale/apps-fsn-01", value: "redis://:{{ redis_pwd }}@{{ hostvars['apps-fsn-01']['tailscale_ip'] }}:{{ redis_port }}/0" }
+        
+        # Redis metadata
+        - { key: "redis/port", value: "{{ redis_port }}" }
+        - { key: "redis/enabled", value: "true" }
+      # no_log: true  # Temporarily disabled for debugging
+    
+    - name: Initialize etcd with Redis service structure
+      shell: |
+        # Create initial structure in etcd for Redis instances
+        ETCD_ENDPOINTS="{{ etcd_endpoints }}"
+        
+        # Try each endpoint until one works
+        for endpoint in $(echo $ETCD_ENDPOINTS | tr ',' ' '); do
+          # Create base structure
+          if curl -s -X POST "$endpoint/v3/kv/put" \
+            -H "Content-Type: application/json" \
+            -d '{"key":"'$(echo -n "/service/redis/instances" | base64)'","value":"'$(echo -n "{}" | base64)'"}' >/dev/null 2>&1; then
+            echo "Initialized etcd structure at $endpoint"
+            break
+          fi
+        done
+      delegate_to: "{{ groups['consul_servers'][0] }}"
+      run_once: true

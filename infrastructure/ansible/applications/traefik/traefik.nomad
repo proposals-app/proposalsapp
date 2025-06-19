@@ -111,12 +111,6 @@ EOF
 # Dynamic configuration for Cloudflare tunnels
 http:
   middlewares:
-    # Subdomain rewrite for arbitrum
-    arbitrum-rewrite:
-      replacePathRegex:
-        regex: "^/(.*)$"
-        replacement: "/arbitrum/$1"
-
     # Security headers
     secure-headers:
       headers:
