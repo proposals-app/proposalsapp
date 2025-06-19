@@ -26,10 +26,13 @@ cd infrastructure/ansible
 ```
 
 Traefik will:
-- Listen on ports 80 (HTTP) and 443 (HTTPS)
+- Listen on ports 8080 (HTTP) and 8443 (HTTPS) 
+- Dashboard on port 9080
 - Automatically redirect HTTP to HTTPS
 - Use Cloudflare DNS challenge for Let's Encrypt certificates
 - Route traffic based on Host headers to appropriate services
+
+**Note**: Traefik runs on high ports (8080/8443) instead of standard ports (80/443) due to container restrictions. Cloudflared tunnel handles the port mapping.
 
 ### 2. Deploy Cloudflared (Tunnel)
 
@@ -43,9 +46,10 @@ Cloudflared creates a secure tunnel from Cloudflare's edge to your infrastructur
 1. Go to Zero Trust → Access → Tunnels
 2. Find your tunnel (using the token ID)
 3. Configure public hostnames:
-   - `proposal.vote` → `http://traefik:443`
-   - `*.proposal.vote` → `http://traefik:443`
+   - `proposal.vote` → `http://traefik:8443`
+   - `*.proposal.vote` → `http://traefik:8443`
 4. Enable "No TLS Verify" in origin settings (Traefik handles SSL)
+5. The tunnel will handle mapping external port 443 to Traefik's 8443
 
 ### 3. Deploy Web Application
 

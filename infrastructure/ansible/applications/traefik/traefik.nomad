@@ -25,13 +25,13 @@ job "traefik" {
     
     network {
       port "http" {
-        static = 80
+        static = 8080
       }
       port "https" {
-        static = 443
+        static = 8443
       }
       port "api" {
-        static = 8080
+        static = 9080
       }
     }
     
@@ -67,7 +67,7 @@ api:
 
 entryPoints:
   web:
-    address: ":80"
+    address: ":8080"
     http:
       redirections:
         entrypoint:
@@ -75,24 +75,19 @@ entryPoints:
           scheme: https
           permanent: true
   websecure:
-    address: ":443"
+    address: ":8443"
   traefik:
-    address: ":8080"
+    address: ":9080"
 
 providers:
-  consul:
-    endpoint:
-      address: "{{ env "CONSUL_HTTP_ADDR" | default "127.0.0.1:8500" }}"
-      scheme: http
-    exposedByDefault: false
-    prefix: traefik
-    
   consulCatalog:
     endpoint:
-      address: "{{ env "CONSUL_HTTP_ADDR" | default "127.0.0.1:8500" }}"
+      address: "127.0.0.1:8500"
       scheme: http
     exposedByDefault: false
     prefix: traefik
+    watch: true
+    serviceName: traefik
     
   file:
     directory: /etc/traefik/dynamic

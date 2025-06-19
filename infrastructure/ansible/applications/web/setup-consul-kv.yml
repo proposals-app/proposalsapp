@@ -110,9 +110,10 @@
 
           Cloudflare tunnel configuration (done in Cloudflare dashboard):
           - Create a tunnel and get the token
-          - Configure public hostname: *.proposal.vote → http://traefik:443
-          - Configure public hostname: proposal.vote → http://traefik:443
-          - The tunnel should point to any Traefik instance (port 443)
+          - Configure public hostname: *.proposal.vote → http://traefik:8443
+          - Configure public hostname: proposal.vote → http://traefik:8443
+          - The tunnel should point to any Traefik instance (port 8443)
+          - Enable "No TLS Verify" in advanced settings
 
           Note: Database credentials are securely stored in Consul KV by the pgpool playbook
           ========================================
