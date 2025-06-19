@@ -155,6 +155,9 @@ RESEND_API_KEY={{ keyOrDefault "web/resend_api_key" "" }}
 # Authentication
 BETTER_AUTH_SECRET={{ keyOrDefault "web/better_auth_secret" "" }}
 
+# Tally API
+TALLY_API_KEY={{ keyOrDefault "web/tally_api_key" "" }}
+
 # Redis cache - connects via local HAProxy
 REDIS_URL={{ keyOrDefault "web/redis_url" "redis://:proposalsapp_redis_password@localhost:6380/0" }}
 

@@ -32,6 +32,10 @@
       - key: "web/better_auth_secret"
         value: "{{ vault_web_better_auth_secret }}"
 
+      # Tally API
+      - key: "web/tally_api_key"
+        value: "{{ vault_tally_api_key }}"
+
   tasks:
     - name: Ensure Consul is available
       wait_for:
