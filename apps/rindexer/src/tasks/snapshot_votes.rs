@@ -21,8 +21,8 @@ use std::{collections::HashSet, time::Duration};
 use tracing::{debug, error, info, instrument, warn};
 
 // Constants
-const REFRESH_INTERVAL: Duration = Duration::from_secs(3 * 60);
-const MAX_BATCH_SIZE: usize = 100;
+const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
+const MAX_BATCH_SIZE: usize = 10;
 const MAX_LOOPS: usize = 10;
 const SNAPSHOT_GRAPHQL_ENDPOINT: &str = "https://hub.snapshot.org/graphql";
 
