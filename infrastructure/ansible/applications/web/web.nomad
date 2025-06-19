@@ -153,22 +153,19 @@ EOF
           "frontend",
           "nextjs",
           "traefik.enable=true",
-          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`{subdomain:[a-z]+}.proposal.vote`)",
-          "traefik.http.routers.web.entrypoints=websecure",
-          "traefik.http.routers.web.tls=true",
-          "traefik.http.routers.web.tls.certresolver=cloudflare",
-          "traefik.http.routers.web.tls.domains[0].main=proposal.vote",
-          "traefik.http.routers.web.tls.domains[0].sans=*.proposal.vote",
+          "traefik.enable=true",
+          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`^[a-z]+\\.proposal\\.vote$`)",
+          "traefik.http.routers.web.entrypoints=web",
           "traefik.http.services.web.loadbalancer.server.port=3002",
-          "traefik.http.routers.web.middlewares=secure-headers,compress"
+          "traefik.http.services.web.loadbalancer.passhostheader=true"
         ]
         port = "http"
         
         check {
           type     = "http"
-          path     = "/"
-          interval = "30s"
-          timeout  = "10s"
+          path     = "/api/health"
+          interval = "10s"
+          timeout  = "5s"
           
           header {
             Host = ["proposal.vote"]

@@ -27,9 +27,6 @@ job "traefik" {
       port "http" {
         static = 8080
       }
-      port "https" {
-        static = 8443
-      }
       port "api" {
         static = 9080
       }
@@ -39,8 +36,8 @@ job "traefik" {
       driver = "docker"
       
       config {
-        image = "traefik:v3.0"
-        ports = ["http", "https", "api"]
+        image = "traefik:v3.4.1"
+        ports = ["http", "api"]
         network_mode = "host"
         
         volumes = [
@@ -68,14 +65,6 @@ api:
 entryPoints:
   web:
     address: ":8080"
-    http:
-      redirections:
-        entrypoint:
-          to: websecure
-          scheme: https
-          permanent: true
-  websecure:
-    address: ":8443"
   traefik:
     address: ":9080"
 
@@ -87,23 +76,12 @@ providers:
     exposedByDefault: false
     prefix: traefik
     watch: true
-    serviceName: traefik
     
   file:
     directory: /etc/traefik/dynamic
     watch: true
 
-certificatesResolvers:
-  cloudflare:
-    acme:
-      email: {{ key "traefik/acme_email" }}
-      storage: /acme.json
-      dnsChallenge:
-        provider: cloudflare
-        delayBeforeCheck: 0
-        resolvers:
-          - "1.1.1.1:53"
-          - "1.0.0.1:53"
+# Certificate resolvers removed - using HTTP only
 
 log:
   level: INFO
@@ -133,6 +111,12 @@ EOF
 # Dynamic configuration for Cloudflare tunnels
 http:
   middlewares:
+    # Subdomain rewrite for arbitrum
+    arbitrum-rewrite:
+      replacePathRegex:
+        regex: "^/(.*)$"
+        replacement: "/arbitrum/$1"
+    
     # Security headers
     secure-headers:
       headers:
@@ -161,10 +145,6 @@ EOF
       }
       
       env {
-        # Cloudflare API credentials for Let's Encrypt DNS challenge
-        CF_API_EMAIL = "${CF_API_EMAIL}"
-        CF_API_KEY = "${CF_API_KEY}"
-        
         # Consul address
         CONSUL_HTTP_ADDR = "localhost:8500"
       }
@@ -217,11 +197,6 @@ EOF
         port = "http"
       }
       
-      service {
-        name = "traefik-https"
-        tags = ["https", "lb"]
-        port = "https"
-      }
     }
   }
 }
