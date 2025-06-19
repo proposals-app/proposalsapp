@@ -29,6 +29,8 @@
       # Email service
       - key: "web/resend_api_key"
         value: "{{ vault_resend_api_key }}"
+      - key: "web/better_auth_secret"
+        value: "{{ vault_web_better_auth_secret }}"
 
   tasks:
     - name: Ensure Consul is available

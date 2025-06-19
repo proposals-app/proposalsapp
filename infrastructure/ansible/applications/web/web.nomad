@@ -79,30 +79,9 @@ job "web" {
         NODE_ENV = "production"
         PORT = "3002"
         
-        # Application configuration
-        NEXT_PUBLIC_ROOT_DOMAIN = "${ROOT_DOMAIN}"
-        NEXT_PUBLIC_SPECIAL_SUBDOMAINS = "${SPECIAL_SUBDOMAINS}"
-        
-        # Database connection - use local pgpool connection string from Consul KV
-        DATABASE_URL = "${DATABASE_URL}"
-        ARBITRUM_DATABASE_URL = "${DATABASE_URL}"
-        UNISWAP_DATABASE_URL = "${DATABASE_URL}"
-        
         # Observability
         NEXT_OTEL_VERBOSE = "1"
-        OTEL_EXPORTER_OTLP_ENDPOINT = "${OTEL_EXPORTER_OTLP_ENDPOINT}"
         OTEL_SERVICE_NAME = "web"
-        
-        # PostHog analytics
-        NEXT_PUBLIC_POSTHOG_KEY = "${POSTHOG_KEY}"
-        
-        # Web Push notifications
-        NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY = "${WEB_PUSH_PUBLIC_KEY}"
-        WEB_PUSH_PRIVATE_KEY = "${WEB_PUSH_PRIVATE_KEY}"
-        WEB_PUSH_EMAIL = "${WEB_PUSH_EMAIL}"
-        
-        # Email service
-        RESEND_API_KEY = "${RESEND_API_KEY}"
       }
       
       template {
@@ -113,24 +92,33 @@ WEB_IMAGE=ghcr.io/proposals-app/proposalsapp/web:{{ $imageTag }}
 
 # Application configuration from Consul KV
 ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposals.app" }}
+NEXT_PUBLIC_ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposals.app" }}
 SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
+NEXT_PUBLIC_SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
 
 # Database connection - use local pgpool connection string from Consul KV
 DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+ARBITRUM_DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+UNISWAP_DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
 
 # OpenTelemetry configuration from Consul KV
 OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "web/otel_exporter_otlp_endpoint" "" }}
 
 # Analytics and monitoring
 POSTHOG_KEY={{ keyOrDefault "web/posthog_key" "" }}
+NEXT_PUBLIC_POSTHOG_KEY={{ keyOrDefault "web/posthog_key" "" }}
 
 # Web Push configuration
 WEB_PUSH_PUBLIC_KEY={{ keyOrDefault "web/web_push_public_key" "" }}
+NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY={{ keyOrDefault "web/web_push_public_key" "" }}
 WEB_PUSH_PRIVATE_KEY={{ keyOrDefault "web/web_push_private_key" "" }}
 WEB_PUSH_EMAIL={{ keyOrDefault "web/web_push_email" "" }}
 
 # Email service
 RESEND_API_KEY={{ keyOrDefault "web/resend_api_key" "" }}
+
+# Authentication
+BETTER_AUTH_SECRET={{ keyOrDefault "web/better_auth_secret" "" }}
 
 EOF
         destination = "secrets/env"
