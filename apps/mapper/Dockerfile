@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang \
     lld \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=planner /app/recipe.json recipe.json
@@ -48,6 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang \
     lld \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Build the project
