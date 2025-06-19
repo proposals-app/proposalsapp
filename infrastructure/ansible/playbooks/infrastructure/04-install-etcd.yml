@@ -128,7 +128,7 @@
     - name: Check if etcd cluster already exists
       shell: |
         export ETCDCTL_API=3
-        /usr/local/bin/etcdctl member list 2>/dev/null || echo "no_cluster"
+        timeout 10 /usr/local/bin/etcdctl member list 2>/dev/null || echo "no_cluster"
       register: existing_cluster
       failed_when: false
       changed_when: false
@@ -202,7 +202,7 @@
       shell: |
         export ETCDCTL_API=3
         # Check current cluster status
-        /usr/local/bin/etcdctl endpoint status --write-out=table
+        timeout 15 /usr/local/bin/etcdctl endpoint status --write-out=table
 
         # Verify network latency between nodes
         echo "Checking network latency between etcd nodes..."
@@ -214,11 +214,12 @@
       register: etcd_perf_check
       changed_when: false
       run_once: true
+      timeout: 30
 
     - name: Verify etcd cluster members
       shell: |
         export ETCDCTL_API=3
-        /usr/local/bin/etcdctl member list
+        timeout 10 /usr/local/bin/etcdctl member list
       register: etcd_members
       changed_when: false
       run_once: true
@@ -226,74 +227,34 @@
     - name: Verify etcd cluster health
       shell: |
         export ETCDCTL_API=3
-        /usr/local/bin/etcdctl endpoint health --endpoints={{ groups['postgres_nodes'] | map('extract', hostvars, 'tailscale_ip') | map('regex_replace', '$', ':2379') | join(',') }}
+        timeout 15 /usr/local/bin/etcdctl endpoint health --endpoints={{ groups['postgres_nodes'] | map('extract', hostvars, 'tailscale_ip') | map('regex_replace', '$', ':2379') | join(',') }}
       register: etcd_cluster_health
       changed_when: false
       run_once: true
 
-    - name: Create etcd health check script
-      copy:
-        content: |
-          #!/bin/bash
-          export ETCDCTL_API=3
-
-          # Check local endpoint
-          if ! /usr/local/bin/etcdctl endpoint health; then
-            echo "ERROR: Local etcd endpoint is unhealthy"
-            exit 1
-          fi
-
-          # Check cluster status
-          if ! /usr/local/bin/etcdctl endpoint status --write-out=table; then
-            echo "ERROR: Cannot get cluster status"
-            exit 1
-          fi
-
-          # Check for leader
-          leader_count=$(/usr/local/bin/etcdctl endpoint status --write-out=json | jq '[.[] | select(.Status.leader == true)] | length')
-          if [ "$leader_count" -ne 1 ]; then
-            echo "ERROR: Expected 1 leader, found $leader_count"
-            exit 1
-          fi
-
-          # Check database size (warn if > 1GB)
-          db_size=$(/usr/local/bin/etcdctl endpoint status --write-out=json | jq '.[0].Status.dbSize')
-          if [ "$db_size" -gt 1073741824 ]; then
-            echo "WARNING: Database size is large: $(($db_size / 1024 / 1024))MB"
-          fi
-
-          echo "etcd cluster is healthy"
-          exit 0
-        dest: /usr/local/bin/etcd-health-check
+    - name: Deploy etcd health check script
+      template:
+        src: ../../templates/etcd-health-check.sh.j2
+        dest: /usr/local/bin/etcd-health-check.sh
+        owner: root
+        group: root
         mode: "0755"
 
-    - name: Create etcd health check timer
-      copy:
-        content: |
-          [Unit]
-          Description=etcd Health Check Timer
-
-          [Timer]
-          OnBootSec=2min
-          OnUnitActiveSec=5min
-
-          [Install]
-          WantedBy=timers.target
-        dest: /etc/systemd/system/etcd-health-check.timer
-
-    - name: Create etcd health check service
-      copy:
-        content: |
-          [Unit]
-          Description=etcd Health Check
-          After=etcd.service
-
-          [Service]
-          Type=oneshot
-          ExecStart=/usr/local/bin/etcd-health-check
-          StandardOutput=journal
-          StandardError=journal
+    - name: Deploy etcd health check service
+      template:
+        src: ../../templates/etcd-health-check.service.j2
         dest: /etc/systemd/system/etcd-health-check.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy etcd health check timer
+      template:
+        src: ../../templates/etcd-health-check.timer.j2
+        dest: /etc/systemd/system/etcd-health-check.timer
+        owner: root
+        group: root
+        mode: "0644"
 
     - name: Enable and start health check timer
       systemd:

@@ -1,0 +1,26 @@
+[Unit]
+Description=pgpool-II Health Check Service  
+After=pgpool2.service postgresql@17-main.service
+Requires=pgpool2.service
+PartOf=pgpool2.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pgpool-health-check.sh check
+User=postgres
+Group=postgres
+StandardOutput=journal
+StandardError=journal
+
+# Service hardening
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/postgresql
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

@@ -311,6 +311,37 @@
         mode: "0644"
       notify: reload consul
 
+    - name: Deploy pgpool health check script
+      template:
+        src: ../../templates/pgpool-health-check.sh.j2
+        dest: /usr/local/bin/pgpool-health-check.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy pgpool health check service
+      template:
+        src: ../../templates/pgpool-health-check.service.j2
+        dest: /etc/systemd/system/pgpool-health-check.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy pgpool health check timer
+      template:
+        src: ../../templates/pgpool-health-check.timer.j2
+        dest: /etc/systemd/system/pgpool-health-check.timer
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable and start pgpool health check timer
+      systemd:
+        name: pgpool-health-check.timer
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
     - name: Install pgpool_exporter for Prometheus monitoring
       ignore_errors: yes
       block:

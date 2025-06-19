@@ -1,0 +1,274 @@
+#!/bin/bash
+# pgpool-II Comprehensive Health Check Script
+# Purpose: Monitors pgpool-II connection pool health and backend status
+#
+# Problem this solves:
+# - pgpool-II can lose track of backend servers after failovers
+# - Connection pool exhaustion can cause service degradation
+# - Backend weight configuration needs verification
+# - Query routing (read/write splitting) needs monitoring
+#
+# How it works:
+# 1. Checks pgpool-II service status
+# 2. Verifies backend server configuration
+# 3. Tests connection pooling functionality
+# 4. Validates query routing behavior
+# 5. Monitors connection pool utilization
+#
+# Exit codes:
+# - 0: Healthy
+# - 1: Critical failure requiring intervention
+
+set -euo pipefail
+
+# Configuration
+PGPOOL_PORT=5432
+PGPOOL_USER="postgres"
+PGPOOL_PASSWORD="{{ postgres_password }}"
+LOG_TAG="pgpool-health"
+TIMEOUT_SECONDS=10
+
+# Logging function
+log() {
+    local level=$1
+    shift
+    logger -t "${LOG_TAG}" -p "daemon.${level}" "$@"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $@"
+}
+
+# Set PostgreSQL password for authentication
+export PGPASSWORD="${PGPOOL_PASSWORD}"
+
+# Check if pgpool service is running
+check_service_running() {
+    if ! systemctl is-active --quiet pgpool2; then
+        log "error" "pgpool2 service is not running"
+        return 1
+    fi
+    
+    log "info" "pgpool2 service is running"
+    return 0
+}
+
+# Check pgpool connectivity
+check_pgpool_connectivity() {
+    log "info" "Testing pgpool connectivity"
+    
+    if ! timeout ${TIMEOUT_SECONDS} psql -h localhost -p ${PGPOOL_PORT} -U ${PGPOOL_USER} -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+        log "error" "Cannot connect to pgpool"
+        return 1
+    fi
+    
+    log "info" "pgpool connectivity successful"
+    return 0
+}
+
+# Check backend server status
+check_backend_status() {
+    log "info" "Checking pgpool backend server status"
+    
+    local backend_status
+    if ! backend_status=$(timeout ${TIMEOUT_SECONDS} psql -h localhost -p ${PGPOOL_PORT} -U ${PGPOOL_USER} -d postgres \
+        -t -c "SHOW POOL_NODES;" 2>/dev/null); then
+        log "error" "Cannot retrieve backend status from pgpool"
+        return 1
+    fi
+    
+    # Parse backend status
+    local total_backends=0
+    local active_backends=0
+    local primary_found=false
+    
+    while IFS='|' read -r node_id hostname port status role select_cnt load_balance_node rep_delay rep_state rep_sync_state last_status_change; do
+        # Skip header and empty lines
+        [[ "$node_id" =~ ^[[:space:]]*[0-9]+[[:space:]]*$ ]] || continue
+        
+        total_backends=$((total_backends + 1))
+        
+        # Clean up fields
+        hostname=$(echo "$hostname" | tr -d ' ')
+        status=$(echo "$status" | tr -d ' ')
+        role=$(echo "$role" | tr -d ' ')
+        
+        if [ "$status" = "up" ]; then
+            active_backends=$((active_backends + 1))
+            log "info" "Backend $hostname:$port is $status (role: $role)"
+        else
+            log "warning" "Backend $hostname:$port is $status (role: $role)"
+        fi
+        
+        if [ "$role" = "primary" ]; then
+            primary_found=true
+        fi
+        
+    done <<< "$backend_status"
+    
+    log "info" "Backend summary: $active_backends/$total_backends active"
+    
+    if [ $active_backends -eq 0 ]; then
+        log "error" "No active backend servers"
+        return 1
+    fi
+    
+    if [ "$primary_found" = false ]; then
+        log "error" "No primary backend server found"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Check connection pool status
+check_connection_pools() {
+    log "info" "Checking pgpool connection pool status"
+    
+    local pool_status
+    if ! pool_status=$(timeout ${TIMEOUT_SECONDS} psql -h localhost -p ${PGPOOL_PORT} -U ${PGPOOL_USER} -d postgres \
+        -t -c "SHOW POOL_PROCESSES;" 2>/dev/null); then
+        log "warning" "Cannot retrieve connection pool status"
+        return 0  # Non-critical
+    fi
+    
+    # Count active connections
+    local total_processes=0
+    local active_processes=0
+    
+    while IFS='|' read -r pool_pid start_time database username create_time pool_majorversion pool_minorversion pool_counter pool_backendpid pool_connected; do
+        # Skip header and empty lines
+        [[ "$pool_pid" =~ ^[[:space:]]*[0-9]+[[:space:]]*$ ]] || continue
+        
+        total_processes=$((total_processes + 1))
+        
+        pool_connected=$(echo "$pool_connected" | tr -d ' ')
+        if [ "$pool_connected" != "0" ]; then
+            active_processes=$((active_processes + 1))
+        fi
+        
+    done <<< "$pool_status"
+    
+    log "info" "Connection pool summary: $active_processes/$total_processes processes active"
+    
+    return 0
+}
+
+# Test read/write query routing
+test_query_routing() {
+    log "info" "Testing pgpool query routing"
+    
+    # Test write query (should go to primary)
+    local write_result
+    if ! write_result=$(timeout ${TIMEOUT_SECONDS} psql -h localhost -p ${PGPOOL_PORT} -U ${PGPOOL_USER} -d postgres \
+        -t -c "SELECT pg_is_in_recovery();" 2>/dev/null | tr -d ' '); then
+        log "warning" "Cannot test write query routing"
+        return 0  # Non-critical
+    fi
+    
+    if [ "$write_result" = "f" ]; then
+        log "info" "Write queries correctly routed to primary"
+    else
+        log "warning" "Write queries may be routed to replica (pg_is_in_recovery returned: $write_result)"
+    fi
+    
+    # Test connection to pgpool stats
+    if timeout ${TIMEOUT_SECONDS} psql -h localhost -p ${PGPOOL_PORT} -U ${PGPOOL_USER} -d postgres \
+        -c "SELECT version();" >/dev/null 2>&1; then
+        log "info" "pgpool query processing is functional"
+    else
+        log "warning" "pgpool query processing may have issues"
+    fi
+    
+    return 0
+}
+
+# Check configuration file timestamp
+check_config_freshness() {
+    log "info" "Checking pgpool configuration freshness"
+    
+    local config_file="/etc/pgpool2/pgpool.conf"
+    local backend_config="/etc/pgpool2/backend.conf"
+    
+    if [ -f "$config_file" ]; then
+        local config_age=$(($(date +%s) - $(stat -c %Y "$config_file" 2>/dev/null || echo 0)))
+        if [ $config_age -lt 300 ]; then  # Less than 5 minutes old
+            log "info" "pgpool configuration recently updated (${config_age}s ago)"
+        fi
+    fi
+    
+    if [ -f "$backend_config" ]; then
+        local backend_age=$(($(date +%s) - $(stat -c %Y "$backend_config" 2>/dev/null || echo 0)))
+        if [ $backend_age -lt 300 ]; then  # Less than 5 minutes old
+            log "info" "pgpool backend configuration recently updated (${backend_age}s ago)"
+        fi
+    fi
+    
+    return 0
+}
+
+# Main health check function
+perform_health_check() {
+    log "info" "Starting pgpool health check on {{ inventory_hostname }}"
+    
+    local exit_code=0
+    
+    # Check service status
+    if ! check_service_running; then
+        exit_code=1
+    fi
+    
+    # Check connectivity
+    if ! check_pgpool_connectivity; then
+        exit_code=1
+    fi
+    
+    # If pgpool is accessible, check internals
+    if [ $exit_code -eq 0 ]; then
+        if ! check_backend_status; then
+            exit_code=1
+        fi
+        
+        # Non-critical checks
+        check_connection_pools || true
+        test_query_routing || true
+        check_config_freshness || true
+    fi
+    
+    if [ $exit_code -eq 0 ]; then
+        log "info" "pgpool health check completed successfully"
+    else
+        log "error" "pgpool health check failed"
+    fi
+    
+    return $exit_code
+}
+
+# Script entry point
+main() {
+    local mode="${1:-check}"
+    
+    case "${mode}" in
+        check)
+            perform_health_check
+            ;;
+        status)
+            # Quick status check
+            if check_service_running && check_pgpool_connectivity; then
+                echo "pgpool is healthy"
+                exit 0
+            else
+                echo "pgpool is unhealthy"
+                exit 1
+            fi
+            ;;
+        backends)
+            # Show backend status only
+            check_backend_status
+            ;;
+        *)
+            echo "Usage: $0 [check|status|backends]"
+            exit 1
+            ;;
+    esac
+}
+
+# Execute main function
+main "$@"

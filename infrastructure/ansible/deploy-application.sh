@@ -79,7 +79,10 @@ run_deploy() {
         # Use direct Nomad connection
         if nomad job status "$APP_NAME" >/dev/null 2>&1; then
             echo "Found existing $APP_NAME deployment. Stopping it..."
-            nomad job stop -purge "$APP_NAME" || echo "Warning: Failed to stop existing job"
+            if ! nomad job stop -purge "$APP_NAME"; then
+                echo "ERROR: Failed to stop existing job $APP_NAME"
+                exit 1
+            fi
             echo "Waiting for cleanup..."
             sleep 5
         fi
@@ -89,7 +92,10 @@ run_deploy() {
         if [ -n "$NOMAD_SERVER" ]; then
             if ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job status $APP_NAME" --vault-password-file .vault_pass >/dev/null 2>&1; then
                 echo "Found existing $APP_NAME deployment. Stopping it..."
-                ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job stop -purge $APP_NAME" --vault-password-file .vault_pass || echo "Warning: Failed to stop existing job"
+                if ! ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job stop -purge $APP_NAME" --vault-password-file .vault_pass; then
+                    echo "ERROR: Failed to stop existing job $APP_NAME via Ansible"
+                    exit 1
+                fi
                 echo "Waiting for cleanup..."
                 sleep 5
             fi

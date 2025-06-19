@@ -72,14 +72,22 @@
         ETCD_ENDPOINTS="{{ etcd_endpoints }}"
         
         # Try each endpoint until one works
+        success=false
         for endpoint in $(echo $ETCD_ENDPOINTS | tr ',' ' '); do
-          # Create base structure
-          if curl -s -X POST "$endpoint/v3/kv/put" \
+          # Create base structure with timeout
+          if curl -s --connect-timeout 5 --max-time 10 -X POST "$endpoint/v3/kv/put" \
             -H "Content-Type: application/json" \
             -d '{"key":"'$(echo -n "/service/redis/instances" | base64)'","value":"'$(echo -n "{}" | base64)'"}' >/dev/null 2>&1; then
             echo "Initialized etcd structure at $endpoint"
+            success=true
             break
           fi
         done
+        
+        if [ "$success" = "false" ]; then
+          echo "ERROR: Failed to initialize etcd structure on any endpoint"
+          exit 1
+        fi
       delegate_to: "{{ groups['consul_servers'][0] }}"
       run_once: true
+      timeout: 30
