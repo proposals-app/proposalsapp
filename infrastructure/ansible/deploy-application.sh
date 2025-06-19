@@ -11,6 +11,7 @@ show_usage() {
     echo "Available applications:"
     echo "  rindexer         - Blockchain indexer service"
     echo "  discourse        - Discourse forum indexer service"
+    echo "  mapper           - Data relationship engine for grouping proposals and karma calculation"
     echo "  cloudflared      - Cloudflare tunnel daemon for Zero Trust access"
     echo "  traefik          - Edge router and load balancer with automatic HTTPS"
     echo "  web              - Next.js frontend application"
@@ -32,7 +33,7 @@ ACTION=${2:-both}
 APP_DIR="applications/$APP_NAME"
 
 # List of valid applications
-VALID_APPS="rindexer discourse cloudflared traefik web redis"
+VALID_APPS="rindexer discourse mapper cloudflared traefik web redis"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then
