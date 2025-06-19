@@ -16,9 +16,20 @@ The issue appears to be a double path rewrite happening at two different layers:
 
 ### 1. Updated Next.js Middleware (apps/web/middleware.ts)
 
-Added checks to prevent double path rewriting:
+Added checks to prevent double path rewriting and redirect path-based access to subdomain:
 
 ```typescript
+// BLOCK DIRECT PATH ACCESS: Redirect /arbitrum to arbitrum.proposal.vote
+if (!subdomain && specialSubdomains.some(special => url.pathname.startsWith(`/${special}`))) {
+  const detectedDao = specialSubdomains.find(special => url.pathname.startsWith(`/${special}`));
+  if (detectedDao) {
+    const targetUrl = new URL(request.url);
+    targetUrl.hostname = `${detectedDao}.${rootDomain}`;
+    targetUrl.pathname = url.pathname.replace(`/${detectedDao}`, '') || '/';
+    return NextResponse.redirect(targetUrl, 301);
+  }
+}
+
 // For special subdomains
 if (specialSubdomains.includes(subdomain)) {
   // Check if the pathname already starts with the subdomain to avoid double routing
@@ -29,11 +40,23 @@ if (specialSubdomains.includes(subdomain)) {
 }
 ```
 
-### 2. Removed Unused Traefik Middleware
+### 2. Fixed Domain Configuration Mismatch
+
+Updated the default domain in the app to match infrastructure:
+
+```typescript
+// apps/web/app/layout.tsx
+const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposal.vote';
+
+// apps/web/middleware.ts  
+const defaultDomain = hostname.includes('localhost') ? 'localhost:3000' : 'proposal.vote';
+```
+
+### 3. Removed Unused Traefik Middleware
 
 Removed the `arbitrum-rewrite` middleware from Traefik configuration that was defined but not being used, to avoid confusion.
 
-### 3. Added Debugging Logs
+### 4. Added Debugging Logs
 
 Added logging to help diagnose the issue if it persists:
 
@@ -64,10 +87,19 @@ If the issue persists after these fixes, check the Cloudflare tunnel configurati
 
 After deploying these fixes:
 
-1. Access `https://arbitrum.proposal.vote` and verify it loads correctly
-2. Navigate to a specific proposal group and ensure the URL doesn't contain `/arbitrum/arbitrum`
-3. Check the application logs for any middleware rewrite warnings
-4. Test other subdomains like `uniswap.proposal.vote` to ensure they work correctly
+1. **Subdomain Access (Should Work):**
+   - Access `https://arbitrum.proposal.vote` and verify it loads correctly
+   - Access `https://uniswap.proposal.vote` and verify it loads correctly
+   - Navigate to proposal groups and ensure URLs are clean
+
+2. **Path Access (Should Redirect):**
+   - Access `https://proposal.vote/arbitrum` and verify it redirects to `https://arbitrum.proposal.vote`
+   - Access `https://proposal.vote/uniswap` and verify it redirects to `https://uniswap.proposal.vote`
+
+3. **Logs and Debugging:**
+   - Check application logs for middleware redirect/rewrite messages
+   - Ensure no double routing (`/arbitrum/arbitrum`) appears in logs
+   - Verify redirect responses return 301 status
 
 ## Rollback Plan
 

@@ -8,7 +8,7 @@ import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/providers/posthog-provider';
 
-const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';
+const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposal.vote';
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${rootDomain}`),

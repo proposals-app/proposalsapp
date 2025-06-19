@@ -27,9 +27,9 @@ export default function middleware(request: NextRequest) {
     });
   }
 
-  // Get configured domain from env or use default for local development
-  const configuredRootDomain =
-    process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
+  // Get configured domain from env or use default based on environment
+  const defaultDomain = hostname.includes('localhost') ? 'localhost:3000' : 'proposal.vote';
+  const configuredRootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
 
   // Special subdomains with custom implementations
   const specialSubdomains = process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS?.split(
@@ -58,6 +58,24 @@ export default function middleware(request: NextRequest) {
     // In production, extract subdomain from hostname
     if (hostname !== rootDomain && hostname.endsWith(`.${rootDomain}`)) {
       subdomain = hostname.replace(`.${rootDomain}`, '');
+    }
+  }
+
+  // BLOCK DIRECT PATH ACCESS: If accessing root domain with /arbitrum or /uniswap paths, redirect to subdomain
+  if (!subdomain && specialSubdomains.some(special => url.pathname.startsWith(`/${special}`))) {
+    const detectedDao = specialSubdomains.find(special => url.pathname.startsWith(`/${special}`));
+    if (detectedDao) {
+      // Redirect to proper subdomain
+      const targetUrl = new URL(request.url);
+      targetUrl.hostname = `${detectedDao}.${rootDomain}`;
+      targetUrl.pathname = url.pathname.replace(`/${detectedDao}`, '') || '/';
+      
+      console.log('[Middleware] Redirecting path access to subdomain:', {
+        from: request.url,
+        to: targetUrl.toString(),
+      });
+      
+      return NextResponse.redirect(targetUrl, 301);
     }
   }
 
