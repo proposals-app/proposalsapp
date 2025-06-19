@@ -52,7 +52,7 @@ job "web" {
     
     network {
       port "http" {
-        static = 3000
+        static = 3002
       }
     }
     
@@ -77,7 +77,7 @@ job "web" {
       env {
         # Node.js settings
         NODE_ENV = "production"
-        PORT = "3000"
+        PORT = "3002"
         
         # Application configuration
         NEXT_PUBLIC_ROOT_DOMAIN = "${ROOT_DOMAIN}"
@@ -85,6 +85,8 @@ job "web" {
         
         # Database connection - use local pgpool connection string from Consul KV
         DATABASE_URL = "${DATABASE_URL}"
+        ARBITRUM_DATABASE_URL = "${DATABASE_URL}"
+        UNISWAP_DATABASE_URL = "${DATABASE_URL}"
         
         # Observability
         NEXT_OTEL_VERBOSE = "1"
@@ -157,16 +159,20 @@ EOF
           "traefik.http.routers.web.tls.certresolver=cloudflare",
           "traefik.http.routers.web.tls.domains[0].main=proposal.vote",
           "traefik.http.routers.web.tls.domains[0].sans=*.proposal.vote",
-          "traefik.http.services.web.loadbalancer.server.port=3000",
+          "traefik.http.services.web.loadbalancer.server.port=3002",
           "traefik.http.routers.web.middlewares=secure-headers,compress"
         ]
         port = "http"
         
         check {
           type     = "http"
-          path     = "/api/health"
+          path     = "/"
           interval = "30s"
-          timeout  = "5s"
+          timeout  = "10s"
+          
+          header {
+            Host = ["proposal.vote"]
+          }
         }
       }
     }
