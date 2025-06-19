@@ -69,6 +69,7 @@ export default function middleware(request: NextRequest) {
       const targetUrl = new URL(request.url);
       targetUrl.hostname = `${detectedDao}.${rootDomain}`;
       targetUrl.pathname = url.pathname.replace(`/${detectedDao}`, '') || '/';
+      targetUrl.port = ''; // Clear the port to use default (80/443)
       
       console.log('[Middleware] Redirecting path access to subdomain:', {
         from: request.url,
