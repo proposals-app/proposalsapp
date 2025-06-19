@@ -61,9 +61,11 @@ job "rindexer" {
       driver = "docker"
 
       config {
-        image = "${RINDEXER_IMAGE}"
+        # Image is hardcoded here, but will be overridden by job updates
+        image = "ghcr.io/proposals-app/proposalsapp/rindexer:latest"
         ports = ["health"]
         network_mode = "host"
+        force_pull = true
 
         # Add logging configuration
         logging {
@@ -99,7 +101,7 @@ job "rindexer" {
 
         # OpenTelemetry configuration
         OTEL_EXPORTER_OTLP_ENDPOINT = "${OTEL_EXPORTER_OTLP_ENDPOINT}"
-        OTEL_SERVICE_NAME = "rindexer"
+        OTEL_SERVICE_NAME = "consul-rindexer"
 
         # Indexer settings
         INDEXER_BATCH_SIZE = "100"
@@ -112,11 +114,23 @@ job "rindexer" {
         DATABASE_TIMEOUT = "30"
       }
 
+      # This template watches for deployment changes and forces a restart
+      template {
+        destination = "local/deployment.txt"
+        change_mode = "restart"
+        data = <<EOF
+{{ key "rindexer/deployment/main" }}
+EOF
+      }
+      
       template {
         data = <<EOF
-# Always use main branch for production deployments
-{{ $imageTag := keyOrDefault "rindexer/image/main" "latest" }}
-RINDEXER_IMAGE=ghcr.io/proposals-app/proposalsapp/rindexer:{{ $imageTag }}
+# Deployment metadata from Consul
+{{ $deployment := keyOrDefault "rindexer/deployment/main" "{}" | parseJSON }}
+DEPLOYMENT_IMAGE={{ $deployment.image | default "unknown" }}
+DEPLOYMENT_TAG={{ $deployment.tag | default "unknown" }}
+DEPLOYMENT_SHA={{ $deployment.sha | default "unknown" }}
+DEPLOYMENT_TIME={{ $deployment.timestamp | default "unknown" }}
 
 # Database connection - use local pgpool connection string from Consul KV
 DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}

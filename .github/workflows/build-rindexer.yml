@@ -122,25 +122,81 @@ jobs:
           echo "New image available for main branch: ${{ steps.webhook.outputs.image }}"
           echo "Tag: ${{ steps.webhook.outputs.tag }}"
           
+          # Wait for image to be available in registry
+          echo "Waiting for image to be available in registry..."
+          for i in {1..30}; do
+            if docker manifest inspect "${{ steps.webhook.outputs.image }}" > /dev/null 2>&1; then
+              echo "✓ Image is available in registry"
+              break
+            fi
+            echo "Waiting for image replication... ($i/30)"
+            sleep 2
+          done
+          
+          # Create deployment metadata
+          DEPLOYMENT_JSON=$(cat <<EOF
+          {
+            "tag": "${{ steps.webhook.outputs.tag }}",
+            "image": "${{ steps.webhook.outputs.image }}",
+            "branch": "main",
+            "sha": "${{ github.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit_message": $(echo '${{ github.event.head_commit.message }}' | jq -Rs .)
+          }
+          EOF
+          )
+          
           # Update image tag in Consul KV to trigger redeployment
           # Using internal Tailscale address since runners are in the network
           CONSUL_ADDR="http://consul-nomad-sib-01:8500"
           
-          echo "Updating Consul KV with new image tag for main branch..."
+          echo "Updating Consul KV with deployment information..."
           
-          # Update the image tag for main branch
+          # Update deployment info atomically
           curl -s -X PUT \
-            "$CONSUL_ADDR/v1/kv/rindexer/image/main" \
-            -d "${{ steps.webhook.outputs.tag }}" || {
+            "$CONSUL_ADDR/v1/kv/rindexer/deployment/main" \
+            -d "$DEPLOYMENT_JSON" || {
               echo "Warning: Failed to update Consul KV"
               echo "Trying alternative Consul server..."
               # Try another datacenter if first one fails
               curl -s -X PUT \
-                "http://consul-nomad-sib-03:8500/v1/kv/rindexer/image/main" \
-                -d "${{ steps.webhook.outputs.tag }}"
+                "http://consul-nomad-sib-03:8500/v1/kv/rindexer/deployment/main" \
+                -d "$DEPLOYMENT_JSON"
             }
           
-          echo "Main branch image updated. Rindexer will be automatically redeployed by Nomad."
+          echo "Deployment information updated."
+          
+          # Now update the Nomad job with the new image
+          echo "Updating Nomad job with new image..."
+          
+          # Get the job spec from Nomad
+          NOMAD_ADDR="http://consul-nomad-sib-01:4646"
+          JOB_JSON=$(curl -s "${NOMAD_ADDR}/v1/job/rindexer" | jq '.Job')
+          
+          if [[ -z "$JOB_JSON" || "$JOB_JSON" == "null" ]]; then
+            echo "Warning: Could not fetch current job spec, trying alternative server..."
+            NOMAD_ADDR="http://consul-nomad-sib-03:4646"
+            JOB_JSON=$(curl -s "${NOMAD_ADDR}/v1/job/rindexer" | jq '.Job')
+          fi
+          
+          if [[ -n "$JOB_JSON" && "$JOB_JSON" != "null" ]]; then
+            # Update the image in the job spec
+            UPDATED_JOB=$(echo "$JOB_JSON" | jq \
+              --arg image "${{ steps.webhook.outputs.image }}" \
+              '.TaskGroups[0].Tasks[0].Config.image = $image')
+            
+            # Submit the updated job
+            echo "$UPDATED_JOB" | jq '{"Job": .}' | \
+              curl -s -X POST "${NOMAD_ADDR}/v1/jobs" \
+                -H "Content-Type: application/json" \
+                -d @- > /dev/null
+            
+            echo "✓ Nomad job updated with new image"
+          else
+            echo "✗ Warning: Could not update Nomad job directly. Relying on template restart."
+          fi
+          
+          echo "Rindexer will be automatically redeployed by Nomad."
           
       - name: Log build information
         if: success() && github.event_name == 'push' && github.ref != 'refs/heads/main'

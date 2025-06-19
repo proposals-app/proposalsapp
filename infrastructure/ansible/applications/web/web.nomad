@@ -60,9 +60,11 @@ job "web" {
       driver = "docker"
       
       config {
-        image = "${WEB_IMAGE}"
+        # Image is hardcoded here, but will be overridden by job updates
+        image = "ghcr.io/proposals-app/proposalsapp/web:latest"
         ports = ["http"]
         network_mode = "host"
+        force_pull = true
         
         # Add logging configuration
         logging {
@@ -84,11 +86,23 @@ job "web" {
         OTEL_SERVICE_NAME = "web"
       }
       
+      # This template watches for deployment changes and forces a restart
+      template {
+        destination = "local/deployment.txt"
+        change_mode = "restart"
+        data = <<EOF
+{{ key "web/deployment/main" }}
+EOF
+      }
+      
       template {
         data = <<EOF
-# Always use main branch for production deployments
-{{ $imageTag := keyOrDefault "web/image/main" "latest" }}
-WEB_IMAGE=ghcr.io/proposals-app/proposalsapp/web:{{ $imageTag }}
+# Deployment metadata from Consul
+{{ $deployment := keyOrDefault "web/deployment/main" "{}" | parseJSON }}
+DEPLOYMENT_IMAGE={{ $deployment.image | default "unknown" }}
+DEPLOYMENT_TAG={{ $deployment.tag | default "unknown" }}
+DEPLOYMENT_SHA={{ $deployment.sha | default "unknown" }}
+DEPLOYMENT_TIME={{ $deployment.timestamp | default "unknown" }}
 
 # Application configuration from Consul KV
 ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposals.app" }}
