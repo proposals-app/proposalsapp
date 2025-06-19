@@ -181,10 +181,12 @@ EOF
           "frontend",
           "nextjs",
           "traefik.enable=true",
-          "traefik.http.routers.web.rule=Host(`proposal.vote`) || Host(`arbitrum.proposal.vote`) || Host(`uniswap.proposal.vote`)",
+          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`[a-z]+\\.proposal\\.vote`)",
           "traefik.http.routers.web.entrypoints=web",
           "traefik.http.services.web.loadbalancer.server.port=3002",
-          "traefik.http.services.web.loadbalancer.passhostheader=true"
+          "traefik.http.services.web.loadbalancer.passhostheader=true",
+          "traefik.http.routers.web.priority=1",
+          "traefik.http.routers.web.middlewares=secure-headers@file,rate-limit@file,compress@file"
         ]
         port = "http"
         

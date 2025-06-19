@@ -124,6 +124,7 @@ http:
         customFrameOptionsValue: "SAMEORIGIN"
         referrerPolicy: "strict-origin-when-cross-origin"
 
+
     # Rate limiting
     rate-limit:
       rateLimit:
