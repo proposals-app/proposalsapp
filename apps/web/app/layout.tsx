@@ -8,14 +8,16 @@ import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/providers/posthog-provider';
 
+const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://proposals.app'),
-  title: 'proposals.app',
-  applicationName: 'proposals.app',
+  metadataBase: new URL(`https://${rootDomain}`),
+  title: rootDomain,
+  applicationName: rootDomain,
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'proposals.app',
+    title: rootDomain,
   },
   description:
     'The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.',
