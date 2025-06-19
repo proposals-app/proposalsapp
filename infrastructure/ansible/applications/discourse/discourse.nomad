@@ -53,7 +53,7 @@ job "discourse" {
 
     network {
       port "health" {
-        to = 3001
+        static = 3001
       }
     }
 

@@ -53,7 +53,7 @@ job "rindexer" {
 
     network {
       port "health" {
-        to = 3000
+        static = 3000
       }
     }
 
