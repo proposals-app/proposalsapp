@@ -148,8 +148,7 @@ BETTERSTACK_KEY={{ keyOrDefault "discourse/betterstack_key" "" }}
 EOF
         destination = "secrets/env"
         env         = true
-        change_mode = "signal"
-        change_signal = "SIGHUP"
+        change_mode = "noop"
       }
 
       resources {

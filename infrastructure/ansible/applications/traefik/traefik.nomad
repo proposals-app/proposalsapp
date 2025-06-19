@@ -1,10 +1,10 @@
 job "traefik" {
   datacenters = ["dc1", "dc2", "dc3"]
   type = "system"  # Run on all nodes for high availability
-  
+
   # High priority to ensure it runs
   priority = 95
-  
+
   update {
     max_parallel      = 1
     health_check      = "checks"
@@ -14,7 +14,7 @@ job "traefik" {
     auto_revert       = true
     stagger           = "30s"
   }
-  
+
   group "traefik" {
     restart {
       attempts = 10
@@ -22,7 +22,7 @@ job "traefik" {
       delay    = "25s"
       mode     = "delay"
     }
-    
+
     network {
       port "http" {
         static = 8080
@@ -31,20 +31,20 @@ job "traefik" {
         static = 9080
       }
     }
-    
+
     task "traefik" {
       driver = "docker"
-      
+
       config {
         image = "traefik:v3.4.1"
         ports = ["http", "api"]
         network_mode = "host"
-        
+
         volumes = [
           "local/traefik.yml:/etc/traefik/traefik.yml",
           "local/dynamic:/etc/traefik/dynamic"
         ]
-        
+
         logging {
           type = "json-file"
           config {
@@ -53,7 +53,7 @@ job "traefik" {
           }
         }
       }
-      
+
       template {
         destination = "local/traefik.yml"
         data = <<EOF
@@ -76,7 +76,7 @@ providers:
     exposedByDefault: false
     prefix: traefik
     watch: true
-    
+
   file:
     directory: /etc/traefik/dynamic
     watch: true
@@ -104,7 +104,7 @@ ping:
   entryPoint: traefik
 EOF
       }
-      
+
       template {
         destination = "local/dynamic/cloudflare.yml"
         data = <<EOF
@@ -116,7 +116,7 @@ http:
       replacePathRegex:
         regex: "^/(.*)$"
         replacement: "/arbitrum/$1"
-    
+
     # Security headers
     secure-headers:
       headers:
@@ -129,13 +129,13 @@ http:
         stsSeconds: 31536000
         customFrameOptionsValue: "SAMEORIGIN"
         referrerPolicy: "strict-origin-when-cross-origin"
-        
+
     # Rate limiting
     rate-limit:
       rateLimit:
         average: 100
         burst: 50
-        
+
     # Compression
     compress:
       compress:
@@ -143,12 +143,12 @@ http:
           - text/event-stream
 EOF
       }
-      
+
       env {
         # Consul address
         CONSUL_HTTP_ADDR = "localhost:8500"
       }
-      
+
       template {
         data = <<EOF
 # Cloudflare credentials from Consul KV
@@ -162,15 +162,15 @@ EOF
         env         = true
         change_mode = "restart"
       }
-      
+
       resources {
         cpu    = 200   # 200 MHz
         memory = 256   # 256MB RAM
-        
+
         # Allow bursting for traffic spikes
         memory_max = 512
       }
-      
+
       service {
         name = "traefik"
         tags = [
@@ -182,7 +182,7 @@ EOF
           "traefik.http.routers.api.service=api@internal"
         ]
         port = "api"
-        
+
         check {
           type     = "http"
           path     = "/ping"
@@ -190,13 +190,13 @@ EOF
           timeout  = "2s"
         }
       }
-      
+
       service {
         name = "traefik-http"
         tags = ["http", "lb"]
         port = "http"
       }
-      
+
     }
   }
 }

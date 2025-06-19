@@ -175,6 +175,37 @@ for playbook_info in "${PLAYBOOKS[@]}"; do
     sleep 5
 done
 
+# Optional database verification
+if [ $failed -eq 0 ]; then
+    echo -e "\n${CYAN}========================================${NC}"
+    echo -e "${CYAN}Optional Database Connection Verification${NC}"
+    echo -e "${CYAN}========================================${NC}"
+    echo -e "${YELLOW}Would you like to run comprehensive database connection verification?${NC}"
+    echo ""
+    echo "This will verify:"
+    echo "  • PostgreSQL cluster health and replication"
+    echo "  • etcd cluster consensus and Patroni state"
+    echo "  • pgpool-II proxy health and configuration"
+    echo "  • Connection strings and query routing"
+    echo "  • Read/write distribution and load balancing"
+    echo ""
+    read -p "Run database verification? (y/N): " run_verification
+    
+    if [[ "$run_verification" =~ ^[Yy]$ ]]; then
+        echo -e "\n${BLUE}Running database connection verification...${NC}"
+        if run_playbook "playbooks/infrastructure/07-verify-database-connections.yml" "Database Connection Verification"; then
+            echo -e "${GREEN}✓ Database verification completed successfully${NC}"
+        else
+            echo -e "${YELLOW}⚠ Database verification encountered issues${NC}"
+            echo "Check the output above for specific failures"
+        fi
+    else
+        echo -e "${CYAN}Skipping database verification${NC}"
+        echo "You can run it later with:"
+        echo "ansible-playbook -i inventory.yml playbooks/infrastructure/07-verify-database-connections.yml"
+    fi
+fi
+
 # Summary
 echo -e "\n${BLUE}========================================${NC}"
 if [ "$MODE" = "recreate" ]; then
@@ -207,6 +238,9 @@ if [ $failed -eq 0 ]; then
     echo "3. Check PostgreSQL cluster: patronictl -c /etc/patroni/patroni.yml list"
     echo "4. Test pgpool connection: psql -h localhost -p 5432 -U proposalsapp -d proposalsapp"
     echo "5. Deploy applications: ./deploy-application.sh <app-name>"
+    echo ""
+    echo -e "${CYAN}Database verification:${NC}"
+    echo "• Run comprehensive checks: ansible-playbook -i inventory.yml playbooks/infrastructure/07-verify-database-connections.yml"
 else
     echo -e "${RED}✗ Some playbooks failed${NC}"
     echo ""

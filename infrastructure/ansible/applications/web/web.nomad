@@ -126,8 +126,8 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 {{ end }}
 
 # Application configuration from Consul KV
-ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposals.app" }}
-NEXT_PUBLIC_ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposals.app" }}
+ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposal.vote" }}
+NEXT_PUBLIC_ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposal.vote" }}
 SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
 NEXT_PUBLIC_SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
 
@@ -158,8 +158,7 @@ BETTER_AUTH_SECRET={{ keyOrDefault "web/better_auth_secret" "" }}
 EOF
         destination = "secrets/env"
         env         = true
-        change_mode = "signal"
-        change_signal = "SIGHUP"
+        change_mode = "noop"
       }
       
       resources {
@@ -176,8 +175,7 @@ EOF
           "frontend",
           "nextjs",
           "traefik.enable=true",
-          "traefik.enable=true",
-          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`^[a-z]+\\.proposal\\.vote$`)",
+          "traefik.http.routers.web.rule=Host(`proposal.vote`) || Host(`arbitrum.proposal.vote`) || Host(`uniswap.proposal.vote`)",
           "traefik.http.routers.web.entrypoints=web",
           "traefik.http.services.web.loadbalancer.server.port=3002",
           "traefik.http.services.web.loadbalancer.passhostheader=true"

@@ -71,6 +71,29 @@ run_deploy() {
 
     # Initialize FULL_IMAGE variable
     FULL_IMAGE=""
+    
+    # Check for existing deployment and stop it
+    echo "Checking for existing $APP_NAME deployment..."
+    if [ -n "$NOMAD_ADDR" ]; then
+        # Use direct Nomad connection
+        if nomad job status "$APP_NAME" >/dev/null 2>&1; then
+            echo "Found existing $APP_NAME deployment. Stopping it..."
+            nomad job stop -purge "$APP_NAME" || echo "Warning: Failed to stop existing job"
+            echo "Waiting for cleanup..."
+            sleep 5
+        fi
+    else
+        # Use Ansible to check via remote Nomad server
+        NOMAD_SERVER=$(ansible-inventory -i inventory.yml --list | jq -r '.nomad_servers.hosts[0]' 2>/dev/null || echo "")
+        if [ -n "$NOMAD_SERVER" ]; then
+            if ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job status $APP_NAME" --vault-password-file .vault_pass >/dev/null 2>&1; then
+                echo "Found existing $APP_NAME deployment. Stopping it..."
+                ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job stop -purge $APP_NAME" --vault-password-file .vault_pass || echo "Warning: Failed to stop existing job"
+                echo "Waiting for cleanup..."
+                sleep 5
+            fi
+        fi
+    fi
 
     # Update Consul KV with latest image for supported apps
     if [[ "$APP_NAME" =~ ^(web|rindexer|discourse)$ ]]; then
@@ -89,13 +112,13 @@ run_deploy() {
         
         # Get GitHub token from Ansible vault
         echo "Retrieving GitHub authentication..."
-        GITHUB_TOKEN=$(ansible localhost -i inventory.yml -m debug -a "var=vault_github_token" --vault-password-file .vault_pass 2>/dev/null | 
-            grep -o '"vault_github_token": "[^"]*"' | 
-            sed 's/"vault_github_token": "\(.*\)"/\1/' || echo "")
+        GITHUB_TOKEN=$(ansible localhost -i inventory.yml -m debug -a "var=vault_github_pat" --vault-password-file .vault_pass 2>/dev/null | 
+            grep -o '"vault_github_pat": "[^"]*"' | 
+            sed 's/"vault_github_pat": "\(.*\)"/\1/' || echo "")
         
         if [ -z "$GITHUB_TOKEN" ]; then
             echo "ERROR: Could not retrieve GitHub token from vault."
-            echo "Ensure vault_github_token is set in vault and .vault_pass file exists."
+            echo "Ensure vault_github_pat is set in vault and .vault_pass file exists."
             exit 1
         fi
         
@@ -209,9 +232,16 @@ EOF
             --vault-password-file .vault_pass || exit 1
 
         # Run the job on remote
+        echo "Deploying job to Nomad..."
         ansible $NOMAD_SERVER -i inventory.yml -m shell \
             -a "nomad job run /tmp/$APP_NAME.nomad" \
             --vault-password-file .vault_pass || exit 1
+            
+        echo "✅ Job deployed successfully"
+        echo "Checking deployment status..."
+        ansible $NOMAD_SERVER -i inventory.yml -m shell \
+            -a "nomad job status $APP_NAME | head -10" \
+            --vault-password-file .vault_pass
 
         # Clean up
         ansible $NOMAD_SERVER -i inventory.yml -m file \
@@ -232,11 +262,17 @@ EOF
         fi
         
         echo "Executing: nomad job run $TEMP_NOMAD_FILE"
+        echo "Deploying job to Nomad..."
         if ! nomad job run "$TEMP_NOMAD_FILE"; then
             echo "ERROR: Failed to deploy job to Nomad"
             rm -f "$TEMP_NOMAD_FILE" "$TEMP_NOMAD_FILE.bak"
             exit 1
         fi
+        
+        echo "✅ Job deployed successfully"
+        echo "Checking deployment status..."
+        sleep 3
+        nomad job status "$APP_NAME" | head -10
         
         # Clean up
         rm -f "$TEMP_NOMAD_FILE" "$TEMP_NOMAD_FILE.bak"

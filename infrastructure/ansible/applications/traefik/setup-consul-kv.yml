@@ -32,7 +32,7 @@
       loop: "{{ consul_kv_values }}"
       loop_control:
         label: "{{ item.key }} in {{ current_datacenter }}"
-      no_log: true  # Don't log sensitive values
+      no_log: true # Don't log sensitive values
 
     - name: Display setup information for this datacenter
       debug:

@@ -174,8 +174,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "rindexer/otel_exporter_otlp_endpoin
 EOF
         destination = "secrets/env"
         env         = true
-        change_mode = "signal"
-        change_signal = "SIGHUP"
+        change_mode = "noop"
       }
 
       resources {

@@ -50,8 +50,9 @@ job "cloudflared" {
     }
     
     network {
+      mode = "host"
       port "metrics" {
-        to = 2000
+        static = 2000
       }
     }
     
@@ -60,6 +61,7 @@ job "cloudflared" {
       
       config {
         image = "cloudflare/cloudflared:latest"
+        network_mode = "host"
         ports = ["metrics"]
         args = [
           "tunnel",
@@ -97,6 +99,7 @@ EOF
         change_mode = "restart"
       }
       
+      
       resources {
         cpu    = 100   # Minimal CPU
         memory = 128   # 128MB RAM
@@ -108,7 +111,7 @@ EOF
           "tunnel", 
           "cloudflare", 
           "zero-trust",
-          "ingress.service=http://traefik:443",
+          "ingress.service=http://traefik-http.service.consul:8080",
           "ingress.originRequest.noTLSVerify=true"
         ]
         port = "metrics"
