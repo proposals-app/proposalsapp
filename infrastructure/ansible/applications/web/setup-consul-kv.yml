@@ -1,0 +1,118 @@
+---
+- name: Setup Consul KV values for web in all datacenters
+  hosts: consul_servers
+  become: true
+  vars:
+    consul_kv_values:
+      # Application configuration
+      - key: "web/root_domain"
+        value: "{{ vault_web_root_domain }}"
+      - key: "web/special_subdomains"
+        value: "{{ vault_web_special_subdomains }}"
+        
+      # OpenTelemetry configuration
+      - key: "web/otel_exporter_otlp_endpoint"
+        value: "{{ vault_otel_exporter_otlp_endpoint }}"
+        
+      # Analytics
+      - key: "web/posthog_key"
+        value: "{{ vault_web_posthog_key }}"
+        
+      # Web Push configuration
+      - key: "web/web_push_public_key"
+        value: "{{ vault_web_push_public_key }}"
+      - key: "web/web_push_private_key"
+        value: "{{ vault_web_push_private_key }}"
+      - key: "web/web_push_email"
+        value: "{{ vault_web_push_email }}"
+        
+      # Email service
+      - key: "web/resend_api_key"
+        value: "{{ vault_resend_api_key }}"
+
+  tasks:
+    - name: Ensure Consul is available
+      wait_for:
+        port: 8500
+        host: localhost
+        timeout: 60
+
+    - name: Get local Consul datacenter info
+      uri:
+        url: "http://localhost:8500/v1/agent/self"
+        method: GET
+      register: consul_info
+
+    - name: Set datacenter variable
+      set_fact:
+        current_datacenter: "{{ consul_info.json.Config.Datacenter }}"
+
+    - name: Store values in local datacenter's Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop: "{{ consul_kv_values }}"
+      loop_control:
+        label: "{{ item.key }} in {{ current_datacenter }}"
+      no_log: true # Don't log sensitive values
+
+    - name: Display setup information for this datacenter
+      debug:
+        msg: |
+          ========================================
+          Consul KV Setup Complete for {{ current_datacenter }}
+          ========================================
+
+          Environment variables have been stored in Consul KV
+          for datacenter: {{ current_datacenter }}
+
+          Run this playbook on all consul servers to replicate
+          the configuration across all datacenters.
+          ========================================
+      run_once: true
+
+- name: Display final deployment instructions
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Show deployment instructions
+      debug:
+        msg: |
+          ========================================
+          Web Application Setup Complete
+          ========================================
+
+          To deploy the web application:
+          1. Ensure this playbook has been run on all consul servers
+          2. Run: nomad job run infrastructure/ansible/applications/web/web.nomad
+
+          The web application always deploys from the main branch.
+          Feature branches are built and stored in ghcr.io but not automatically deployed.
+
+          To verify the values in each datacenter:
+          - consul kv get web/root_domain
+          - consul kv get pgpool/connection_string/local
+          - consul kv get web/image/main
+
+          The web service will:
+          - Run 3 instances spread across datacenters
+          - Connect to the local pgpool instance using the connection string from Consul KV
+          - Serve the Next.js application on port 3000
+          - Send metrics to the observability stack
+          - Pull the latest Docker image from the main branch
+
+          Traffic flow:
+          1. Cloudflare Edge → Cloudflared tunnel → Traefik → Web app
+          2. Main domain: https://proposal.vote
+          3. Subdomains: https://arbitrum.proposal.vote, https://uniswap.proposal.vote
+          4. All HTTP traffic automatically redirected to HTTPS by Traefik
+
+          Cloudflare tunnel configuration (done in Cloudflare dashboard):
+          - Create a tunnel and get the token
+          - Configure public hostname: *.proposal.vote → http://traefik:443
+          - Configure public hostname: proposal.vote → http://traefik:443
+          - The tunnel should point to any Traefik instance (port 443)
+
+          Note: Database credentials are securely stored in Consul KV by the pgpool playbook
+          ========================================

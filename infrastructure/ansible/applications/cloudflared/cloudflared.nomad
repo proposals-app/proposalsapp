@@ -104,7 +104,13 @@ EOF
       
       service {
         name = "cloudflared"
-        tags = ["tunnel", "cloudflare", "zero-trust"]
+        tags = [
+          "tunnel", 
+          "cloudflare", 
+          "zero-trust",
+          "ingress.service=http://traefik:443",
+          "ingress.originRequest.noTLSVerify=true"
+        ]
         port = "metrics"
         
         check {

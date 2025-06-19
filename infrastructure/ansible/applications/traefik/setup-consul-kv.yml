@@ -1,0 +1,95 @@
+---
+- name: Setup Consul KV values for Traefik
+  hosts: consul_servers
+  become: true
+  vars:
+    consul_kv_values:
+      - key: "traefik/cf_api_email"
+        value: "{{ vault_cloudflare_email | default('admin@proposal.vote') }}"
+      - key: "traefik/cf_api_key"
+        value: "{{ vault_cloudflare_api_token }}"
+      - key: "traefik/acme_email"
+        value: "{{ vault_acme_email | default('admin@proposal.vote') }}"
+      - key: "traefik/domain"
+        value: "proposal.vote"
+
+  tasks:
+    - name: Ensure Consul is available
+      wait_for:
+        port: 8500
+        host: localhost
+        timeout: 60
+
+    - name: Get local Consul datacenter info
+      uri:
+        url: "http://localhost:8500/v1/agent/self"
+        method: GET
+      register: consul_info
+
+    - name: Set datacenter variable
+      set_fact:
+        current_datacenter: "{{ consul_info.json.Config.Datacenter }}"
+
+    - name: Store values in local datacenter's Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop: "{{ consul_kv_values }}"
+      loop_control:
+        label: "{{ item.key }} in {{ current_datacenter }}"
+      no_log: true  # Don't log sensitive values
+
+    - name: Display setup information for this datacenter
+      debug:
+        msg: |
+          ========================================
+          Traefik Setup Complete for {{ current_datacenter }}
+          ========================================
+
+          Configuration has been stored in Consul KV
+          for datacenter: {{ current_datacenter }}
+
+          Run this playbook on all consul servers to replicate
+          the configuration across all datacenters.
+          ========================================
+      run_once: true
+
+- name: Display final deployment instructions
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Show deployment instructions
+      debug:
+        msg: |
+          ========================================
+          Traefik Setup Complete
+          ========================================
+
+          To deploy Traefik:
+          1. Ensure this playbook has been run on all consul servers
+          2. Run: nomad job run applications/traefik/traefik.nomad
+
+          Traefik will:
+          - Run on all nodes as a system job for high availability
+          - Listen on ports 80 (HTTP) and 443 (HTTPS)
+          - Automatically redirect HTTP to HTTPS
+          - Use Cloudflare DNS for Let's Encrypt certificates
+          - Discover services via Consul catalog
+          - Provide dashboard at traefik.<domain>:8080
+
+          Service Discovery:
+          - Services must have Consul tags starting with "traefik."
+          - Example tags for a web service:
+            - "traefik.enable=true"
+            - "traefik.http.routers.myapp.rule=Host(`myapp.example.com`)"
+            - "traefik.http.routers.myapp.entrypoints=websecure"
+            - "traefik.http.routers.myapp.tls.certresolver=cloudflare"
+
+          To verify the deployment:
+          - Check Nomad: nomad job status traefik
+          - Check health: curl http://<node>:8080/ping
+          - View dashboard: http://<node>:8080/dashboard/
+
+          Note: Ensure ports 80, 443, and 8080 are accessible
+          ========================================

@@ -1,0 +1,241 @@
+job "traefik" {
+  datacenters = ["dc1", "dc2", "dc3"]
+  type = "system"  # Run on all nodes for high availability
+  
+  # High priority to ensure it runs
+  priority = 95
+  
+  update {
+    max_parallel      = 1
+    health_check      = "checks"
+    min_healthy_time  = "30s"
+    healthy_deadline  = "5m"
+    progress_deadline = "10m"
+    auto_revert       = true
+    auto_promote      = true
+    stagger           = "30s"
+  }
+  
+  group "traefik" {
+    # Ensure automatic rescheduling on node failure
+    reschedule {
+      delay          = "30s"
+      delay_function = "exponential"
+      max_delay      = "10m"
+      unlimited      = true
+    }
+    
+    restart {
+      attempts = 10
+      interval = "5m"
+      delay    = "25s"
+      mode     = "delay"
+    }
+    
+    network {
+      port "http" {
+        static = 80
+      }
+      port "https" {
+        static = 443
+      }
+      port "api" {
+        static = 8080
+      }
+    }
+    
+    task "traefik" {
+      driver = "docker"
+      
+      config {
+        image = "traefik:v3.0"
+        ports = ["http", "https", "api"]
+        network_mode = "host"
+        
+        volumes = [
+          "local/traefik.yml:/etc/traefik/traefik.yml",
+          "local/dynamic:/etc/traefik/dynamic"
+        ]
+        
+        logging {
+          type = "json-file"
+          config {
+            max-size = "10m"
+            max-file = "3"
+          }
+        }
+      }
+      
+      template {
+        destination = "local/traefik.yml"
+        data = <<EOF
+# Traefik static configuration
+api:
+  dashboard: true
+  debug: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+  traefik:
+    address: ":8080"
+
+providers:
+  consul:
+    endpoint:
+      address: "{{ env "CONSUL_HTTP_ADDR" | default "127.0.0.1:8500" }}"
+      scheme: http
+    exposedByDefault: false
+    prefix: traefik
+    
+  consulCatalog:
+    endpoint:
+      address: "{{ env "CONSUL_HTTP_ADDR" | default "127.0.0.1:8500" }}"
+      scheme: http
+    exposedByDefault: false
+    prefix: traefik
+    
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: {{ key "traefik/acme_email" }}
+      storage: /acme.json
+      dnsChallenge:
+        provider: cloudflare
+        delayBeforeCheck: 0
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"
+
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+
+ping:
+  entryPoint: traefik
+EOF
+      }
+      
+      template {
+        destination = "local/dynamic/cloudflare.yml"
+        data = <<EOF
+# Dynamic configuration for Cloudflare tunnels
+http:
+  middlewares:
+    # Security headers
+    secure-headers:
+      headers:
+        frameDeny: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "strict-origin-when-cross-origin"
+        
+    # Rate limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        
+    # Compression
+    compress:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
+EOF
+      }
+      
+      env {
+        # Cloudflare API credentials for Let's Encrypt DNS challenge
+        CF_API_EMAIL = "${CF_API_EMAIL}"
+        CF_API_KEY = "${CF_API_KEY}"
+        
+        # Consul address
+        CONSUL_HTTP_ADDR = "localhost:8500"
+      }
+      
+      template {
+        data = <<EOF
+# Cloudflare credentials from Consul KV
+CF_API_EMAIL={{ keyOrDefault "traefik/cf_api_email" "" }}
+CF_API_KEY={{ keyOrDefault "traefik/cf_api_key" "" }}
+
+# Domain configuration
+DOMAIN={{ keyOrDefault "traefik/domain" "proposal.vote" }}
+EOF
+        destination = "secrets/env"
+        env         = true
+        change_mode = "restart"
+      }
+      
+      resources {
+        cpu    = 200   # 200 MHz
+        memory = 256   # 256MB RAM
+        
+        # Allow bursting for traffic spikes
+        memory_max = 512
+      }
+      
+      service {
+        name = "traefik"
+        tags = [
+          "lb",
+          "urlprefix-/traefik",
+          "traefik.enable=true",
+          "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)",
+          "traefik.http.routers.api.entrypoints=traefik",
+          "traefik.http.routers.api.service=api@internal"
+        ]
+        port = "api"
+        
+        check {
+          type     = "http"
+          path     = "/ping"
+          interval = "10s"
+          timeout  = "2s"
+        }
+      }
+      
+      service {
+        name = "traefik-http"
+        tags = ["http", "lb"]
+        port = "http"
+      }
+      
+      service {
+        name = "traefik-https"
+        tags = ["https", "lb"]
+        port = "https"
+      }
+    }
+  }
+}
