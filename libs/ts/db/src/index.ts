@@ -32,9 +32,6 @@ export const db_pool_public = new Pool({
   connectionString: process.env.DATABASE_URL,
   min: 5,
   max: 10,
-  ssl: {
-    rejectUnauthorized: false,
-  },
 });
 
 export const db_pool_arbitrum = new Pool({
@@ -42,9 +39,6 @@ export const db_pool_arbitrum = new Pool({
   options: '-c search_path=arbitrum',
   min: 5,
   max: 10,
-  ssl: {
-    rejectUnauthorized: false,
-  },
 });
 
 export const db_pool_uniswap = new Pool({
@@ -52,9 +46,6 @@ export const db_pool_uniswap = new Pool({
   options: '-c search_path=uniswap',
   min: 5,
   max: 10,
-  ssl: {
-    rejectUnauthorized: false,
-  },
 });
 
 db_pool_arbitrum.on('connect', (client) => {
