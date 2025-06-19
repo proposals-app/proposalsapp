@@ -12,19 +12,10 @@ job "traefik" {
     healthy_deadline  = "5m"
     progress_deadline = "10m"
     auto_revert       = true
-    auto_promote      = true
     stagger           = "30s"
   }
   
   group "traefik" {
-    # Ensure automatic rescheduling on node failure
-    reschedule {
-      delay          = "30s"
-      delay_function = "exponential"
-      max_delay      = "10m"
-      unlimited      = true
-    }
-    
     restart {
       attempts = 10
       interval = "5m"
