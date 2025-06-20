@@ -439,17 +439,7 @@
       delay: 5
       until: redis_test.rc == 0
 
-    - name: Store Redis connection details in Consul KV
-      uri:
-        url: "http://localhost:8500/v1/kv/{{ item.key }}"
-        method: PUT
-        body: "{{ item.value }}"
-      loop:
-        - { key: "redis/connection_string/haproxy", value: "redis://:{{ redis_password | urlencode }}@localhost:6380" }
-        - { key: "redis/port/haproxy", value: "6380" }
-        - { key: "redis/password", value: "{{ redis_password }}" }
-        - { key: "redis/enabled", value: "true" }
-      run_once: true
+    # Note: Redis connection strings are stored in all datacenters via separate play below
 
     - name: Display HAProxy Redis info
       debug:
@@ -500,3 +490,47 @@
           ========================================
           {{ redis_overview.stdout }}
           ========================================
+
+# Store Redis connection strings in all datacenters
+- name: Store Redis connection strings in Consul KV across all datacenters
+  hosts: consul_servers
+  become: true
+  vars:
+    redis_password: "{{ vault_redis_password }}"
+    consul_kv_values:
+      - { key: "redis/connection_string/haproxy", value: "redis://:{{ redis_password | urlencode }}@localhost:6380" }
+      - { key: "redis/port/haproxy", value: "6380" }
+      - { key: "redis/password", value: "{{ redis_password }}" }
+      - { key: "redis/enabled", value: "true" }
+  
+  tasks:
+    - name: Ensure Consul is available
+      wait_for:
+        port: 8500
+        host: localhost
+        timeout: 60
+
+    - name: Get local Consul datacenter info
+      uri:
+        url: "http://localhost:8500/v1/agent/self"
+        method: GET
+      register: consul_info
+
+    - name: Set datacenter variable
+      set_fact:
+        current_datacenter: "{{ consul_info.json.Config.Datacenter }}"
+
+    - name: Store Redis values in local datacenter's Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop: "{{ consul_kv_values }}"
+      loop_control:
+        label: "{{ item.key }} in {{ current_datacenter }}"
+
+    - name: Display setup information for this datacenter
+      debug:
+        msg: |
+          Redis connection strings stored in {{ current_datacenter }}
+          Keys: redis/connection_string/haproxy, redis/port/haproxy, redis/password, redis/enabled

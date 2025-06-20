@@ -38,18 +38,14 @@ frontend redis_frontend
     tcp-request inspect-delay 100ms
     tcp-request content accept if WAIT_END
     
-    # Route based on command type
-    acl is_write_cmd payload(0,7) -m str -i MULTI EXEC DISCARD
-    acl is_write_cmd payload(0,6) -m str -i SELECT FLUSHDB FLUSHALL
-    acl is_write_cmd payload(0,5) -m str -i WATCH UNWATCH
-    acl is_write_cmd payload(0,4) -m str -i SET DEL INCR DECR LPUSH RPUSH SADD SREM ZADD ZREM HSET HDEL
-    acl is_write_cmd payload(0,3) -m str -i APPEND SETEX PSETEX SETNX GETSET
-    
-    # Use write backend for write commands, read backend for everything else
-    use_backend redis_write if is_write_cmd
-    default_backend redis_read
+    # For now, route all traffic to master to avoid READONLY errors
+    # The ACL-based routing is not reliable with modern Redis clients
+    # TODO: Implement proper read/write splitting at the application level
+    default_backend redis_write
 
 # Write backend - always goes to master
+# Note: Currently all traffic goes here to avoid READONLY errors
+# TODO: Implement read/write splitting at application level
 backend redis_write
     mode tcp
     option tcp-check
@@ -70,7 +66,8 @@ backend redis_write
     {{ end }}
     {{ end }}
 
-# Read backend - LOCAL ONLY when healthy, fallback to remote if needed
+# Read backend - CURRENTLY UNUSED (all traffic goes to master)
+# This will be re-enabled once application-level read/write splitting is implemented
 backend redis_read
     mode tcp
     balance roundrobin

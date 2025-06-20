@@ -203,6 +203,7 @@
     etcd_client_port: 2379
     postgres_password: "{{ vault_postgres_password }}"
     postgres_replication_password: "{{ vault_postgres_replication_password }}"
+    proposalsapp_password: "{{ vault_postgres_password }}"
     postgres_user: "postgres"
     postgres_db_name: "proposalsapp"
     postgres_shared_buffers: "2GB"
@@ -663,7 +664,7 @@
     - name: Create pool_passwd file for SCRAM authentication
       copy:
         content: |
-          {{ database_user }}:{{ vault_postgres_password }}
+          {{ database_user }}:{{ database_password }}
         dest: "{{ pgpool_config_dir }}/pool_passwd"
         owner: postgres
         group: postgres
@@ -817,20 +818,7 @@
         name: consul
         state: reloaded
 
-    - name: Store pgpool connection strings in Consul KV
-      uri:
-        url: "http://localhost:8500/v1/kv/{{ item.key }}"
-        method: PUT
-        body: "{{ item.value }}"
-      loop:
-        - {
-            key: "pgpool/connection_string/local",
-            value: "postgresql://{{ database_user }}:{{ database_password | urlencode }}@localhost:5432/{{ database_name }}",
-          }
-        - { key: "pgpool/port", value: "5432" }
-        - { key: "pgpool/enabled", value: "true" }
-        - { key: "pgpool/pool_mode", value: "transaction" }
-      run_once: true
+    # Note: pgpool connection strings are stored in all datacenters via separate play below
 
 # Final verification
 - name: Verify PostgreSQL Cluster
@@ -858,3 +846,52 @@
           
           Connection via pgpool: postgresql://proposalsapp:***@localhost:5432/proposalsapp
           ========================================
+
+# Store pgpool connection strings in all datacenters
+- name: Store pgpool connection strings in Consul KV across all datacenters
+  hosts: consul_servers
+  become: true
+  vars:
+    database_name: proposalsapp
+    database_user: proposalsapp
+    database_password: "{{ vault_postgres_password }}"
+    consul_kv_values:
+      - {
+          key: "pgpool/connection_string/local",
+          value: "postgresql://{{ database_user }}:{{ database_password | urlencode }}@localhost:5432/{{ database_name }}",
+        }
+      - { key: "pgpool/port", value: "5432" }
+      - { key: "pgpool/enabled", value: "true" }
+      - { key: "pgpool/pool_mode", value: "transaction" }
+  
+  tasks:
+    - name: Ensure Consul is available
+      wait_for:
+        port: 8500
+        host: localhost
+        timeout: 60
+
+    - name: Get local Consul datacenter info
+      uri:
+        url: "http://localhost:8500/v1/agent/self"
+        method: GET
+      register: consul_info
+
+    - name: Set datacenter variable
+      set_fact:
+        current_datacenter: "{{ consul_info.json.Config.Datacenter }}"
+
+    - name: Store pgpool values in local datacenter's Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop: "{{ consul_kv_values }}"
+      loop_control:
+        label: "{{ item.key }} in {{ current_datacenter }}"
+
+    - name: Display setup information for this datacenter
+      debug:
+        msg: |
+          pgpool connection strings stored in {{ current_datacenter }}
+          Keys: pgpool/connection_string/local, pgpool/port, pgpool/enabled, pgpool/pool_mode

@@ -17,7 +17,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'proposalsapp') THEN
         CREATE ROLE proposalsapp WITH 
             LOGIN                                   -- Can log in
-            PASSWORD '{{ postgres_password }}'      -- Secure password from Ansible vault
+            PASSWORD '{{ proposalsapp_password }}'  -- Application-specific password from Ansible vault
             CREATEDB                                -- Can create databases
             CREATEROLE;                            -- Can create other roles
         RAISE NOTICE 'Created role: proposalsapp';

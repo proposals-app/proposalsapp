@@ -165,7 +165,8 @@ BETTER_AUTH_SECRET={{ keyOrDefault "web/better_auth_secret" "" }}
 TALLY_API_KEY={{ keyOrDefault "web/tally_api_key" "" }}
 
 # Redis cache - connects via local HAProxy
-{{ $redisUrl := keyOrDefault "web/redis_url" "redis://:proposalsapp_redis_password@localhost:6380/0" }}
+# Uses the connection string set by the Redis installation playbook
+{{ $redisUrl := keyOrDefault "redis/connection_string/haproxy" "redis://:password@localhost:6380" }}
 REDIS_URL={{ $redisUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
 
 EOF
