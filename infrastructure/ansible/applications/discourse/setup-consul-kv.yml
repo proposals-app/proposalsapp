@@ -4,10 +4,6 @@
   become: true
   vars:
     consul_kv_values:
-      # OpenTelemetry configuration (same as rindexer)
-      - key: "discourse/otel_exporter_otlp_endpoint"
-        value: "{{ vault_otel_exporter_otlp_endpoint }}"
-
       # BetterStack monitoring key
       - key: "discourse/betterstack_key"
         value: "{{ vault_discourse_betterstack_key }}"
@@ -73,7 +69,6 @@
           Feature branches are built and stored in ghcr.io but not automatically deployed.
 
           To verify the values in each datacenter:
-          - consul kv get discourse/otel_exporter_otlp_endpoint
           - consul kv get discourse/betterstack_key
           - consul kv get pgpool/connection_string/local
           - consul kv get discourse/image/main

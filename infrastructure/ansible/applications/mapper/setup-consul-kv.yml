@@ -8,10 +8,6 @@
       - key: "mapper/betterstack_key"
         value: "{{ vault_mapper_betterstack_key }}"
 
-      # OpenTelemetry configuration
-      - key: "mapper/otel_exporter_otlp_endpoint"
-        value: "{{ vault_otel_exporter_otlp_endpoint }}"
-
   tasks:
     - name: Ensure Consul is available
       wait_for:

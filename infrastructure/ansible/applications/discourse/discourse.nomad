@@ -88,10 +88,6 @@ job "discourse" {
         # Database
         DATABASE_URL = "${DATABASE_URL}"
 
-        # OpenTelemetry configuration
-        OTEL_EXPORTER_OTLP_ENDPOINT = "${OTEL_EXPORTER_OTLP_ENDPOINT}"
-        OTEL_SERVICE_NAME = "consul-discourse"
-
         # BetterStack monitoring (optional)
         BETTERSTACK_KEY = "${BETTERSTACK_KEY}"
 
@@ -144,9 +140,6 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 # Replace localhost with host.docker.internal for Docker container access
 {{ $dbUrl := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
 DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
-
-# OpenTelemetry configuration from Consul KV
-OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "discourse/otel_exporter_otlp_endpoint" "" }}
 
 # BetterStack monitoring key (optional)
 BETTERSTACK_KEY={{ keyOrDefault "discourse/betterstack_key" "" }}

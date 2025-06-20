@@ -79,8 +79,6 @@ job "mapper" {
         RUST_LOG = "info,mapper=debug"
         RUST_BACKTRACE = "1"
 
-        # Service name for observability
-        OTEL_SERVICE_NAME = "consul-mapper"
       }
 
       # This template watches for image changes and triggers restart
@@ -126,9 +124,6 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 # Replace localhost with host.docker.internal for Docker container access
 {{ $dbUrl := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
 DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
-
-# OpenTelemetry configuration from Consul KV
-OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "mapper/otel_exporter_otlp_endpoint" "" }}
 
 # BetterStack monitoring
 BETTERSTACK_KEY={{ keyOrDefault "mapper/betterstack_key" "" }}

@@ -78,6 +78,22 @@ client {
     path = "/var/run/docker.sock"
     read_only = true    # Read-only for security
   }
+
+  # Observability stack volumes
+  host_volume "loki-data" {
+    path = "/opt/nomad-volumes/loki"
+    read_only = false
+  }
+
+  host_volume "grafana-data" {
+    path = "/opt/nomad-volumes/grafana"
+    read_only = false
+  }
+
+  host_volume "prometheus-data" {
+    path = "/opt/nomad-volumes/prometheus"
+    read_only = false
+  }
 }
 
 # Consul Integration

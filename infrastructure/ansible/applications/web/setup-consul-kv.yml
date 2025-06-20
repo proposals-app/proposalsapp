@@ -10,10 +10,6 @@
       - key: "web/special_subdomains"
         value: "{{ vault_web_special_subdomains }}"
 
-      # OpenTelemetry configuration
-      - key: "web/otel_exporter_otlp_endpoint"
-        value: "{{ vault_otel_exporter_otlp_endpoint }}"
-
       # Analytics
       - key: "web/posthog_key"
         value: "{{ vault_web_posthog_key }}"

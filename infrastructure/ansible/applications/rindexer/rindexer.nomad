@@ -106,10 +106,6 @@ job "rindexer" {
         ETHERSCAN_API_KEY = "${ETHERSCAN_API_KEY}"
         OPTIMISTIC_SCAN_API_KEY = "${OPTIMISTIC_SCAN_API_KEY}"
 
-        # OpenTelemetry configuration
-        OTEL_EXPORTER_OTLP_ENDPOINT = "${OTEL_EXPORTER_OTLP_ENDPOINT}"
-        OTEL_SERVICE_NAME = "consul-rindexer"
-
         # Indexer settings
         INDEXER_BATCH_SIZE = "100"
         INDEXER_RETRY_LIMIT = "3"
@@ -178,9 +174,6 @@ OPTIMISM_NODE_URL={{ keyOrDefault "rindexer/optimism_node_url" "" }}
 ARBISCAN_API_KEY={{ keyOrDefault "rindexer/arbiscan_api_key" "" }}
 ETHERSCAN_API_KEY={{ keyOrDefault "rindexer/etherscan_api_key" "" }}
 OPTIMISTIC_SCAN_API_KEY={{ keyOrDefault "rindexer/optimistic_scan_api_key" "" }}
-
-# OpenTelemetry configuration from Consul KV
-OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "rindexer/otel_exporter_otlp_endpoint" "" }}
 
 EOF
         destination = "secrets/env"

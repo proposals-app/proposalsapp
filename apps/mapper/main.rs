@@ -7,7 +7,7 @@ use reqwest::Client;
 use sea_orm::DatabaseConnection;
 use tokio::time::Duration;
 use tracing::{error, info, warn};
-use utils::tracing::setup_otel;
+use tracing_subscriber::{fmt, EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod grouper;
 mod karma;
@@ -35,7 +35,27 @@ pub async fn initialize_db() -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let _otel = setup_otel().await?;
+    
+    // Initialize JSON logging for stdout
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info"))
+        .add_directive("hyper_util=off".parse().unwrap())
+        .add_directive("alloy_rpc_client=off".parse().unwrap())
+        .add_directive("reqwest=off".parse().unwrap())
+        .add_directive("alloy_transport_http=off".parse().unwrap());
+    
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(
+            fmt::layer()
+                .json()
+                .with_target(true)
+                .with_file(true)
+                .with_line_number(true)
+                .with_thread_ids(true)
+        )
+        .init();
+
     info!("Application starting up");
     initialize_db().await?;
 

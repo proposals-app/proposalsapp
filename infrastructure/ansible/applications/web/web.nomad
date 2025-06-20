@@ -85,9 +85,6 @@ job "web" {
         NODE_ENV = "production"
         PORT = "3002"
         
-        # Observability
-        NEXT_OTEL_VERBOSE = "1"
-        OTEL_SERVICE_NAME = "web"
       }
       
       # This template watches for image changes and triggers restart
@@ -141,9 +138,6 @@ NEXT_PUBLIC_SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitru
 DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
 ARBITRUM_DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
 UNISWAP_DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
-
-# OpenTelemetry configuration from Consul KV
-OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "web/otel_exporter_otlp_endpoint" "" }}
 
 # Analytics and monitoring
 POSTHOG_KEY={{ keyOrDefault "web/posthog_key" "" }}

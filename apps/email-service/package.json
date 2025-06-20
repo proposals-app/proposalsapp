@@ -8,7 +8,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "node-cron": "^4.1.0"
+    "node-cron": "^4.1.1"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^11.0.3",

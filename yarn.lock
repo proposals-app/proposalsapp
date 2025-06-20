@@ -2714,9 +2714,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@chromatic-com/storybook@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "@chromatic-com/storybook@npm:4.0.0"
+"@chromatic-com/storybook@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "@chromatic-com/storybook@npm:4.0.1"
   dependencies:
     "@neoconfetti/react": "npm:^1.0.0"
     chromatic: "npm:^12.0.0"
@@ -2725,7 +2725,7 @@ __metadata:
     strip-ansi: "npm:^7.1.0"
   peerDependencies:
     storybook: ^0.0.0-0 || ^9.0.0 || ^9.1.0-0
-  checksum: 10c0/36c3cfb3cfb25522e888206c3fe20b3cd5053c418afd5917b5a3ad7d93b839312cebd5c1f0a42e5c931e18a400a701781a2692d4c61ddda3a91fff62edd969b6
+  checksum: 10c0/9789d2c42db587c215172d240211fe21f7c7888868330fdfa34d9faf534d001f796ef3cf057fa8cdd49c85aeb10b0c8796205388d8182e8a3864aadeed09542b
   languageName: node
   linkType: hard
 
@@ -5997,7 +5997,7 @@ __metadata:
     kysely: "npm:0.28.2"
     kysely-codegen: "npm:0.18.5"
     kysely-ctl: "npm:^0.13.1"
-    pg: "npm:8.16.1"
+    pg: "npm:8.16.2"
     typescript: "npm:^5.8.3"
   languageName: unknown
   linkType: soft
@@ -6019,7 +6019,7 @@ __metadata:
     date-fns: "npm:^4.1.0"
     dotenv: "npm:^16.5.0"
     express: "npm:^5.1.0"
-    node-cron: "npm:^4.1.0"
+    node-cron: "npm:^4.1.1"
     supertest: "npm:^7.1.1"
     testcontainers: "npm:^11.0.3"
     tsx: "npm:^4.20.3"
@@ -6089,7 +6089,7 @@ __metadata:
   resolution: "@proposalsapp/web@workspace:apps/web"
   dependencies:
     "@ai-sdk/react": "npm:^1.2.12"
-    "@chromatic-com/storybook": "npm:^4.0.0"
+    "@chromatic-com/storybook": "npm:^4.0.1"
     "@dnd-kit/core": "npm:^6.3.1"
     "@dnd-kit/modifiers": "npm:^9.0.0"
     "@dnd-kit/sortable": "npm:^10.0.0"
@@ -6161,7 +6161,7 @@ __metadata:
     hast: "npm:^1.0.0"
     hast-util-to-dom: "npm:^4.0.1"
     jsdom: "npm:26.1.0"
-    lucide-react: "npm:^0.518.0"
+    lucide-react: "npm:^0.519.0"
     mdast-util-from-markdown: "npm:^2.0.2"
     mdast-util-gfm: "npm:^3.1.0"
     mdast-util-gfm-table: "npm:^2.0.0"
@@ -19943,12 +19943,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^0.518.0":
-  version: 0.518.0
-  resolution: "lucide-react@npm:0.518.0"
+"lucide-react@npm:^0.519.0":
+  version: 0.519.0
+  resolution: "lucide-react@npm:0.519.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/ba5483b54ef2a3571b488f9602fa18dfe762f0e0b15c0a1f6504713631ae4c50b7c4830f0c8ced4f5f41d2681f37bf67a759a0d0e62e07f00bdcdb50c7ea1279
+  checksum: 10c0/38c47d9cd8d98b5d688f5b2cc15e3b889165c2110438742b8b1a918d45c3d583b3f204a319fe28e1eb89d51fe4db3183329a69e12afe8b16c17b9057f08a405a
   languageName: node
   linkType: hard
 
@@ -21341,10 +21341,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-cron@npm:^4.1.0":
-  version: 4.1.0
-  resolution: "node-cron@npm:4.1.0"
-  checksum: 10c0/41aa0a66ac3988ea5dcc4eea7f61c57e2266c8b18bfaee4527145406fe568a300803b37446a45fe45e735571eaed42f6f1c359c8b455a2f20a04d214cc561249
+"node-cron@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "node-cron@npm:4.1.1"
+  checksum: 10c0/4798e3bc4a234512eae22e4a69dd24f82b5516e92011bfdeedb09270ab47a982c991c7fa5c4a9e22167123a1f01350dd041485560be1fd4abf174be15910b91c
   languageName: node
   linkType: hard
 
@@ -22648,10 +22648,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg-protocol@npm:^1.10.1":
-  version: 1.10.1
-  resolution: "pg-protocol@npm:1.10.1"
-  checksum: 10c0/f684e4aaae52b296139b5ee573819e5eedbdd09c5dc4616a139da2034716f0bd83e30ab478ad688415e4bc77b5e59335f4e1b41b4890472541b12e217c375adb
+"pg-protocol@npm:^1.10.2":
+  version: 1.10.2
+  resolution: "pg-protocol@npm:1.10.2"
+  checksum: 10c0/3f9b5aba3f356190738ea25ecded3cd033cd2218789acf9c67b75788932c4b594eeb7043481822b69eaae4d84401e00142a2ef156297a8347987a78a52afd50e
   languageName: node
   linkType: hard
 
@@ -22683,14 +22683,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg@npm:8.16.1":
-  version: 8.16.1
-  resolution: "pg@npm:8.16.1"
+"pg@npm:8.16.2":
+  version: 8.16.2
+  resolution: "pg@npm:8.16.2"
   dependencies:
     pg-cloudflare: "npm:^1.2.6"
     pg-connection-string: "npm:^2.9.1"
     pg-pool: "npm:^3.10.1"
-    pg-protocol: "npm:^1.10.1"
+    pg-protocol: "npm:^1.10.2"
     pg-types: "npm:2.2.0"
     pgpass: "npm:1.0.5"
   peerDependencies:
@@ -22701,7 +22701,7 @@ __metadata:
   peerDependenciesMeta:
     pg-native:
       optional: true
-  checksum: 10c0/f5053a37074a01cb889085b6242659784c0345bb10ca9d0e6d7ea1bbbd0d0e63b3e212c7fa3fc66d6838ce9f03eed3b9aff44dd3ffc5f1cbb1eee6468c2e2b15
+  checksum: 10c0/e444103fda2fa236bb7951e534bbce52d81df8f0ca43b36cdd32da2e558946ae011fa6a0fcfea2e48d935addba821868e76d3f4f670b313f639a3d24fcd420af
   languageName: node
   linkType: hard
 
