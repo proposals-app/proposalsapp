@@ -111,7 +111,7 @@ EOF
           "tunnel", 
           "cloudflare", 
           "zero-trust",
-          "ingress.service=http://traefik-http.service.consul:8080",
+          "ingress.service=http://localhost:8080",
           "ingress.originRequest.noTLSVerify=true"
         ]
         port = "metrics"
