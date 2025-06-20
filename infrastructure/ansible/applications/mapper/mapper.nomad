@@ -9,7 +9,7 @@ job "mapper" {
     healthy_deadline  = "2m"
     progress_deadline = "5m"
     auto_revert       = true
-    auto_promote      = true
+    auto_promote      = false
     canary            = 0
     stagger           = "30s"
   }
@@ -44,14 +44,25 @@ job "mapper" {
       migrate = true
     }
     
+    network {
+      port "http" {
+        to = 3000
+      }
+    }
+    
     task "mapper" {
       driver = "docker"
       
       config {
         # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/mapper:latest"
-        network_mode = "host"
+        ports = ["http"]
         force_pull = true
+        
+        # Allow container to access host services
+        extra_hosts = [
+          "host.docker.internal:host-gateway"
+        ]
         
         # Add logging configuration
         logging {
@@ -112,7 +123,8 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 {{ end }}
 
 # Database connection - use local pgpool connection string from Consul KV
-DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+# Replace localhost with host.docker.internal for Docker container access
+DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
 
 # OpenTelemetry configuration from Consul KV
 OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "mapper/otel_exporter_otlp_endpoint" "" }}
@@ -141,11 +153,11 @@ EOF
           "rust",
           "data-processing"
         ]
+        port = "http"
         
         check {
-          type     = "script"
-          command  = "/bin/sh"
-          args     = ["-c", "ps aux | grep -v grep | grep mapper"]
+          type     = "http"
+          path     = "/health"
           interval = "10s"
           timeout  = "2s"
         }

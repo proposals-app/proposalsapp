@@ -53,7 +53,7 @@ job "discourse" {
 
     network {
       port "health" {
-        static = 3001
+        to = 3000
       }
     }
 
@@ -64,8 +64,12 @@ job "discourse" {
         # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/discourse:latest"
         ports = ["health"]
-        network_mode = "host"
         force_pull = true
+        
+        # Allow container to access host services
+        extra_hosts = [
+          "host.docker.internal:host-gateway"
+        ]
 
         # Add logging configuration
         logging {
@@ -137,7 +141,8 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 {{ end }}
 
 # Database connection - use local pgpool connection string from Consul KV
-DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+# Replace localhost with host.docker.internal for Docker container access
+DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
 
 # OpenTelemetry configuration from Consul KV
 OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "discourse/otel_exporter_otlp_endpoint" "" }}

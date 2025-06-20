@@ -53,7 +53,7 @@ job "rindexer" {
 
     network {
       port "health" {
-        static = 3000
+        to = 3000
       }
     }
 
@@ -64,8 +64,12 @@ job "rindexer" {
         # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/rindexer:latest"
         ports = ["health"]
-        network_mode = "host"
         force_pull = true
+        
+        # Allow container to access host services
+        extra_hosts = [
+          "host.docker.internal:host-gateway"
+        ]
 
         # Add logging configuration
         logging {
@@ -154,7 +158,8 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 {{ end }}
 
 # Database connection - use local pgpool connection string from Consul KV
-DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+# Replace localhost with host.docker.internal for Docker container access
+DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
 
 # Chain RPC endpoints from Consul KV
 ETHEREUM_NODE_URL={{ keyOrDefault "rindexer/ethereum_node_url" "" }}

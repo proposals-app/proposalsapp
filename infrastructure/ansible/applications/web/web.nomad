@@ -52,7 +52,7 @@ job "web" {
     
     network {
       port "http" {
-        static = 3002
+        to = 3002
       }
     }
     
@@ -63,8 +63,12 @@ job "web" {
         # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/web:latest"
         ports = ["http"]
-        network_mode = "host"
         force_pull = true
+        
+        # Allow container to access host services
+        extra_hosts = [
+          "host.docker.internal:host-gateway"
+        ]
         
         # Add logging configuration
         logging {
@@ -132,9 +136,10 @@ SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }
 NEXT_PUBLIC_SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
 
 # Database connection - use local pgpool connection string from Consul KV
-DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
-ARBITRUM_DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
-UNISWAP_DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+# Replace localhost with host.docker.internal for Docker container access
+DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
+ARBITRUM_DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
+UNISWAP_DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
 
 # OpenTelemetry configuration from Consul KV
 OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "web/otel_exporter_otlp_endpoint" "" }}
@@ -159,7 +164,7 @@ BETTER_AUTH_SECRET={{ keyOrDefault "web/better_auth_secret" "" }}
 TALLY_API_KEY={{ keyOrDefault "web/tally_api_key" "" }}
 
 # Redis cache - connects via local HAProxy
-REDIS_URL={{ keyOrDefault "web/redis_url" "redis://:proposalsapp_redis_password@localhost:6380/0" }}
+REDIS_URL={{ keyOrDefault "web/redis_url" "redis://:proposalsapp_redis_password@localhost:6380/0" | regexReplaceAll "localhost" "host.docker.internal" }}
 
 EOF
         destination = "secrets/env"
