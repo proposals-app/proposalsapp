@@ -58,6 +58,19 @@ nomad_acl_enabled: false
 # Backup configuration
 backup_retention_days: 30
 backup_schedule: "0 2 * * *" # 2 AM daily
-# Postgres passwords from vault
+
+# Network configuration
+network_ranges:
+  tailscale: "100.64.0.0/10"
+  docker_default: "172.17.0.0/16"
+  docker_custom_1: "172.18.0.0/16"
+  docker_custom_2: "172.19.0.0/16"
+  docker_custom_3: "172.20.0.0/15"
+
+dns_servers:
+  tailscale_magic_dns: "100.100.100.100"
+
+# Database passwords from vault
 postgres_password: "{{ vault_postgres_password }}"
 postgres_replication_password: "{{ vault_postgres_replication_password }}"
+redis_password: "{{ vault_redis_password }}"

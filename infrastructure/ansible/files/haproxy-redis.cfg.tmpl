@@ -53,7 +53,7 @@ frontend redis_frontend
 backend redis_write
     mode tcp
     option tcp-check
-    tcp-check send AUTH\ {{ .redis_password }}\r\n
+    tcp-check send AUTH\ {{ getv "/service/redis/password" "proposalsapp_redis_password" }}\r\n
     tcp-check expect string +OK
     tcp-check send PING\r\n
     tcp-check expect string +PONG
@@ -63,32 +63,41 @@ backend redis_write
     tcp-check expect string +OK
     
     # Master server (dynamically updated by confd)
-    {{ range $server := .redis_servers }}
-    {{ if eq $server.role "master" }}
-    server {{ $server.name }} {{ $server.host }}:{{ $server.port }} check inter 2s rise 2 fall 3
+    {{ range gets "/service/redis/instances/*" }}
+    {{ $data := json .Value }}
+    {{ if eq $data.role "master" }}
+    server {{ $data.name }} {{ $data.host }}:{{ $data.port }} check inter 2s rise 2 fall 3
     {{ end }}
     {{ end }}
 
-# Read backend - prefer local replica with weight-based routing
+# Read backend - LOCAL ONLY when healthy, fallback to remote if needed
 backend redis_read
     mode tcp
     balance roundrobin
     option tcp-check
-    tcp-check send AUTH\ {{ .redis_password }}\r\n
+    tcp-check send AUTH\ {{ getv "/service/redis/password" "proposalsapp_redis_password" }}\r\n
     tcp-check expect string +OK
     tcp-check send PING\r\n
     tcp-check expect string +PONG
     tcp-check send QUIT\r\n
     tcp-check expect string +OK
     
-    # Local datacenter gets higher weight (10x)
-    # This achieves ~90% local reads when local Redis is available
-    {{ $local_dc := .local_datacenter }}
-    {{ range $server := .redis_servers }}
-    {{ if eq $server.datacenter $local_dc }}
-    server {{ $server.name }} {{ $server.host }}:{{ $server.port }} check inter 2s rise 2 fall 3 weight 10
-    {{ else }}
-    server {{ $server.name }} {{ $server.host }}:{{ $server.port }} check inter 2s rise 2 fall 3 weight 1
+    # Local datacenter servers - PRIMARY servers for reads
+    # ALL reads go here when these servers are healthy
+    {{ $local_dc := getenv "LOCAL_DATACENTER" }}
+    {{ range gets "/service/redis/instances/*" }}
+    {{ $data := json .Value }}
+    {{ if eq $data.datacenter $local_dc }}
+    server {{ $data.name }} {{ $data.host }}:{{ $data.port }} check inter 2s rise 2 fall 3
+    {{ end }}
+    {{ end }}
+    
+    # Remote datacenter servers - BACKUP ONLY
+    # Only used when ALL local servers are down
+    {{ range gets "/service/redis/instances/*" }}
+    {{ $data := json .Value }}
+    {{ if ne $data.datacenter $local_dc }}
+    server {{ $data.name }}_backup {{ $data.host }}:{{ $data.port }} check inter 2s rise 2 fall 3 backup
     {{ end }}
     {{ end }}
 
@@ -105,6 +114,7 @@ backend redis_sentinel
     option tcp-check
     tcp-check connect
     
-    {{ range $server := .sentinel_servers }}
-    server {{ $server.name }} {{ $server.host }}:{{ $server.port }} check inter 2s rise 2 fall 3
+    {{ range gets "/service/redis-sentinel/instances/*" }}
+    {{ $data := json .Value }}
+    server {{ $data.name }} {{ $data.host }}:{{ $data.port }} check inter 2s rise 2 fall 3
     {{ end }}

@@ -1,0 +1,41 @@
+# Redis Sentinel Configuration for ProposalsApp
+# Node: {{ inventory_hostname }}
+# Datacenter: {{ datacenter }}
+
+# Network
+bind 0.0.0.0 ::
+port {{ sentinel_port }}
+protected-mode yes
+
+# Paths
+dir /var/lib/redis
+logfile /var/log/redis/sentinel.log
+pidfile /run/redis/sentinel.pid
+daemonize no
+
+# Sentinel monitoring configuration
+# Monitor the Redis master at redis-sib-01
+sentinel monitor proposalsapp-redis {{ hostvars['redis-sib-01']['tailscale_ip'] }} {{ redis_port }} 2
+sentinel auth-pass proposalsapp-redis {{ redis_password }}
+
+# Sentinel timing configuration
+sentinel down-after-milliseconds proposalsapp-redis 5000
+sentinel parallel-syncs proposalsapp-redis 1
+sentinel failover-timeout proposalsapp-redis 180000
+
+# Notification scripts (optional)
+# sentinel notification-script proposalsapp-redis /usr/local/bin/redis-notify.sh
+# sentinel client-reconfig-script proposalsapp-redis /usr/local/bin/redis-reconfig.sh
+
+# Prevent Sentinel from being reconfigured at runtime via API
+sentinel deny-scripts-reconfig yes
+
+# Announce Sentinel to other Sentinels
+sentinel announce-ip {{ tailscale_ip }}
+sentinel announce-port {{ sentinel_port }}
+
+# Log level
+loglevel notice
+
+# Require password for Sentinel
+requirepass {{ redis_password }}

@@ -4,8 +4,9 @@
 # This configuration provides:
 # - Connection pooling with transaction mode
 # - Automatic read/write splitting
-# - Local-first load balancing (83% of reads go to local database)
-# - Automatic failover handling
+# - LOCAL ONLY reads when local database is healthy
+# - Automatic failover to remote databases only when local is down
+#
 
 #------------------------------------------------------------------------------
 # NETWORK CONFIGURATION
@@ -128,20 +129,21 @@ failover_on_backend_error = off
 failover_on_backend_shutdown = off
 
 #------------------------------------------------------------------------------
-# BACKEND SERVERS - Simplified static configuration
+# BACKEND SERVERS - LOCAL FIRST CONFIGURATION
 #------------------------------------------------------------------------------
-# Weight distribution: Local database gets weight 10, remote databases get weight 1
-# This means ~83% of read queries will go to the local database
-# Write queries always go to the primary regardless of weight
+# Strategy: 
+# - Local database gets weight 100
+# - Remote databases get weight 0 (only used when local is down)
+# This ensures 100% of reads go to local database when healthy
 {{$local_dc := getenv "LOCAL_DATACENTER"}}
 
 # Backend 0 - db-sib-01
 backend_hostname0 = '{{getv "/local/ips/dc1" ""}}'
 backend_port0 = 5432
 {{if eq $local_dc "dc1"}}
-backend_weight0 = 10
+backend_weight0 = 100
 {{else}}
-backend_weight0 = 1
+backend_weight0 = 0
 {{end}}
 backend_data_directory0 = '/var/lib/postgresql/17/main'
 backend_flag0 = 'ALLOW_TO_FAILOVER'
@@ -151,9 +153,9 @@ backend_application_name0 = 'pgpool_dc1'
 backend_hostname1 = '{{getv "/local/ips/dc2" ""}}'
 backend_port1 = 5432
 {{if eq $local_dc "dc2"}}
-backend_weight1 = 10
+backend_weight1 = 100
 {{else}}
-backend_weight1 = 1
+backend_weight1 = 0
 {{end}}
 backend_data_directory1 = '/var/lib/postgresql/17/main'
 backend_flag1 = 'ALLOW_TO_FAILOVER'
@@ -163,9 +165,9 @@ backend_application_name1 = 'pgpool_dc2'
 backend_hostname2 = '{{getv "/local/ips/dc3" ""}}'
 backend_port2 = 5432
 {{if eq $local_dc "dc3"}}
-backend_weight2 = 10
+backend_weight2 = 100
 {{else}}
-backend_weight2 = 1
+backend_weight2 = 0
 {{end}}
 backend_data_directory2 = '/var/lib/postgresql/17/main'
 backend_flag2 = 'ALLOW_TO_FAILOVER'

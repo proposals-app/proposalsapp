@@ -1,0 +1,18 @@
+#!/bin/bash
+# Redis health check script for Consul
+
+REDIS_PASSWORD="{{ redis_password }}"
+REDIS_PORT="{{ redis_port }}"
+
+# Check if Redis is responding to ping
+if redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" ping 2>/dev/null | grep -q "PONG"; then
+    # Check if Redis can perform basic operations
+    TEST_KEY="health:check:$(date +%s)"
+    if redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" SET "$TEST_KEY" "OK" EX 10 2>/dev/null | grep -q "OK"; then
+        if redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" GET "$TEST_KEY" 2>/dev/null | grep -q "OK"; then
+            exit 0
+        fi
+    fi
+fi
+
+exit 2

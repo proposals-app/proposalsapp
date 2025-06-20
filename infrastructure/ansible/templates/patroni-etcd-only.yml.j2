@@ -129,10 +129,10 @@ bootstrap:
   # Rules are processed top-to-bottom, first match wins
   pg_hba:
   # Replication connections - restricted to Tailscale network
-  - host replication replicator 100.64.0.0/10 scram-sha-256
+  - host replication replicator {{ network_ranges.tailscale }} scram-sha-256
   
   # Application connections - Tailscale network only
-  - host all all 100.64.0.0/10 scram-sha-256
+  - host all all {{ network_ranges.tailscale }} scram-sha-256
   
   # Local connections - for maintenance via patronictl
   - local all all peer

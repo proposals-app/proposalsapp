@@ -1,4 +1,8 @@
 ---
+# This playbook installs pgpool-II with LOCAL-ONLY read routing
+# - ALL reads go to local PostgreSQL instances when healthy (weight=100)
+# - Remote instances have weight=0 (only used when local is down)
+# - Write queries always go to the primary regardless of location
 - name: Install and configure pgpool-II
   hosts: nomad_clients
   become: true
@@ -167,7 +171,7 @@
 
     - name: Deploy pgpool Confd template
       copy:
-        src: ../../files/pgpool-simple.conf.tmpl
+        src: ../../files/pgpool.conf.tmpl
         dest: /etc/confd/templates/pgpool.conf.tmpl
         owner: root
         group: root
@@ -292,6 +296,18 @@
       shell: /usr/sbin/pgpool reload
       ignore_errors: true  # Ignore if pgpool is not running yet
 
+    - name: Restart pgpool to ensure all configurations are applied
+      systemd:
+        name: pgpool
+        state: restarted
+      
+    - name: Wait for pgpool to be ready after restart
+      wait_for:
+        port: 5432
+        host: localhost
+        delay: 5
+        timeout: 30
+
     - name: Create pgpool Consul health check
       copy:
         content: |
@@ -398,7 +414,7 @@
         rule: allow
         port: "5432"
         proto: tcp
-        src: "100.64.0.0/10"
+        src: "{{ network_ranges.tailscale }}"
         comment: "Allow pgpool access from Tailscale network"
       when: ansible_facts['virtualization_type'] != 'lxc'
       ignore_errors: yes
@@ -425,6 +441,9 @@
 
     - name: Store pgpool connection strings in all Consul datacenters
       block:
+        - name: URL-encode database password
+          set_fact:
+            encoded_password: "{{ database_password | urlencode }}"
         - name: Store pgpool connection strings in dc1
           uri:
             url: "http://{{ hostvars['consul-nomad-sib-01'].tailscale_ip }}:8500/v1/kv/{{ item.key }}"
@@ -434,33 +453,33 @@
             # Local connection (always uses localhost)
             - {
                 key: "pgpool/connection_string/local",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@localhost:5432/{{ database_name }}",
               }
             # Hostname-based connections
             - {
                 key: "pgpool/connection_string/hostname/apps-sib-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-sib-01:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/hostname/apps-sib-03",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-sib-03:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/hostname/apps-fsn-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-fsn-01:5432/{{ database_name }}",
               }
             # Tailscale IP connections
             - {
                 key: "pgpool/connection_string/tailscale/apps-sib-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/tailscale/apps-sib-03",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/tailscale/apps-fsn-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
               }
             # pgpool metadata
             - { key: "pgpool/port", value: "5432" }
@@ -477,33 +496,33 @@
             # Local connection (always uses localhost)
             - {
                 key: "pgpool/connection_string/local",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@localhost:5432/{{ database_name }}",
               }
             # Hostname-based connections
             - {
                 key: "pgpool/connection_string/hostname/apps-sib-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-sib-01:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/hostname/apps-sib-03",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-sib-03:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/hostname/apps-fsn-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-fsn-01:5432/{{ database_name }}",
               }
             # Tailscale IP connections
             - {
                 key: "pgpool/connection_string/tailscale/apps-sib-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/tailscale/apps-sib-03",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/tailscale/apps-fsn-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
               }
             # pgpool metadata
             - { key: "pgpool/port", value: "5432" }
@@ -520,33 +539,33 @@
             # Local connection (always uses localhost)
             - {
                 key: "pgpool/connection_string/local",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@localhost:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@localhost:5432/{{ database_name }}",
               }
             # Hostname-based connections
             - {
                 key: "pgpool/connection_string/hostname/apps-sib-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-01:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-sib-01:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/hostname/apps-sib-03",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-sib-03:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-sib-03:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/hostname/apps-fsn-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@apps-fsn-01:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@apps-fsn-01:5432/{{ database_name }}",
               }
             # Tailscale IP connections
             - {
                 key: "pgpool/connection_string/tailscale/apps-sib-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-sib-01'].tailscale_ip }}:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/tailscale/apps-sib-03",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-sib-03'].tailscale_ip }}:5432/{{ database_name }}",
               }
             - {
                 key: "pgpool/connection_string/tailscale/apps-fsn-01",
-                value: "postgresql://{{ database_user }}:{{ database_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
+                value: "postgresql://{{ database_user }}:{{ encoded_password }}@{{ hostvars['apps-fsn-01'].tailscale_ip }}:5432/{{ database_name }}",
               }
             # pgpool metadata
             - { key: "pgpool/port", value: "5432" }
@@ -583,7 +602,8 @@
           pgpool-II Features:
           - Transaction pooling for efficient connections
           - Automatic read/write splitting based on query parsing
-          - Weight-based load balancing (local servers have 10x weight)
+          - LOCAL-ONLY reads (100% to local DB when healthy)
+          - Automatic failover to remote DBs when local is down
           - Dynamic backend configuration via Confd watching etcd
           - Health checks and automatic failover
           - Prometheus metrics on port 9719

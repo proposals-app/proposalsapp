@@ -137,9 +137,10 @@ NEXT_PUBLIC_SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitru
 
 # Database connection - use local pgpool connection string from Consul KV
 # Replace localhost with host.docker.internal for Docker container access
-DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
-ARBITRUM_DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
-UNISWAP_DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
+{{ $dbUrl := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
+ARBITRUM_DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
+UNISWAP_DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
 
 # OpenTelemetry configuration from Consul KV
 OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "web/otel_exporter_otlp_endpoint" "" }}
@@ -164,7 +165,8 @@ BETTER_AUTH_SECRET={{ keyOrDefault "web/better_auth_secret" "" }}
 TALLY_API_KEY={{ keyOrDefault "web/tally_api_key" "" }}
 
 # Redis cache - connects via local HAProxy
-REDIS_URL={{ keyOrDefault "web/redis_url" "redis://:proposalsapp_redis_password@localhost:6380/0" | regexReplaceAll "localhost" "host.docker.internal" }}
+{{ $redisUrl := keyOrDefault "web/redis_url" "redis://:proposalsapp_redis_password@localhost:6380/0" }}
+REDIS_URL={{ $redisUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
 
 EOF
         destination = "secrets/env"

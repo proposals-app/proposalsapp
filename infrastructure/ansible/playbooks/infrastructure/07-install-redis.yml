@@ -1,0 +1,524 @@
+---
+# This playbook installs Redis with Sentinel on dedicated redis nodes
+# Similar to PostgreSQL setup with Patroni
+# - Redis runs on dedicated redis-xxx LXC containers
+# - HAProxy for Redis runs on app nodes (nomad_clients)
+# - Redis Sentinel provides automatic failover
+# - One master, two replicas across datacenters
+- name: Install and configure Redis with Sentinel
+  hosts: redis_nodes
+  become: true
+  vars:
+    redis_version: "7"
+    redis_port: 6379
+    sentinel_port: 26379
+    redis_password: "{{ vault_redis_password }}"
+    redis_maxmemory: "2gb"
+    redis_maxmemory_policy: "allkeys-lru"
+    etcd_client_port: 2379
+    etcd_endpoints: "{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}"
+
+  tasks:
+    - name: Create directory for APT keyrings
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Redis GPG key
+      get_url:
+        url: https://packages.redis.io/gpg
+        dest: /etc/apt/keyrings/redis-archive-keyring.asc
+        mode: '0644'
+
+    - name: Add Redis APT repository with signed-by
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/redis-archive-keyring.asc] https://packages.redis.io/deb {{ ansible_distribution_release }} main"
+        state: present
+        update_cache: yes
+
+    - name: Install Redis and dependencies
+      apt:
+        name:
+          - redis-server
+          - redis-sentinel
+          - redis-tools
+          - python3-redis
+          - jq
+          - curl
+          - etcd-client
+        state: present
+        update_cache: yes
+
+    - name: Stop default Redis services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - redis-server
+        - redis-sentinel
+      ignore_errors: yes
+
+    - name: Create Redis directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: redis
+        group: redis
+        mode: '0755'
+      loop:
+        - /etc/redis
+        - /var/lib/redis
+        - /var/log/redis
+        - /run/redis
+        - /run/redis-sentinel
+
+    - name: Determine initial Redis role
+      set_fact:
+        redis_role: "{% if inventory_hostname == 'redis-sib-01' %}master{% else %}replica{% endif %}"
+
+    - name: Create Redis configuration
+      template:
+        src: ../../templates/redis.conf.j2
+        dest: /etc/redis/redis.conf
+        owner: redis
+        group: redis
+        mode: '0640'
+        backup: yes
+      notify: restart redis
+
+    - name: Create Redis Sentinel configuration
+      template:
+        src: ../../templates/redis-sentinel.conf.j2
+        dest: /etc/redis/sentinel.conf
+        owner: redis
+        group: redis
+        mode: '0640'
+        backup: yes
+      notify: restart sentinel
+
+    - name: Create Redis systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Redis In-Memory Data Store
+          After=network.target
+          
+          [Service]
+          Type=notify
+          ExecStart=/usr/bin/redis-server /etc/redis/redis.conf --supervised systemd
+          ExecStop=/usr/bin/redis-cli -a {{ redis_password }} shutdown
+          TimeoutStopSec=0
+          Restart=always
+          User=redis
+          Group=redis
+          RuntimeDirectory=redis
+          RuntimeDirectoryMode=0755
+          
+          # Security
+          NoNewPrivileges=yes
+          PrivateTmp=yes
+          ProtectSystem=strict
+          ReadWritePaths=/var/lib/redis /var/log/redis /run/redis /run/redis-sentinel /etc/redis
+          
+          # Performance
+          LimitNOFILE=65535
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/redis.service
+        mode: '0644'
+
+    - name: Create Redis Sentinel systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Redis Sentinel
+          After=network.target redis.service
+          
+          [Service]
+          Type=notify
+          ExecStart=/usr/bin/redis-sentinel /etc/redis/sentinel.conf --supervised systemd
+          Restart=always
+          User=redis
+          Group=redis
+          RuntimeDirectory=redis-sentinel
+          RuntimeDirectoryMode=0755
+          
+          # Security
+          NoNewPrivileges=yes
+          PrivateTmp=yes
+          ProtectSystem=strict
+          ReadWritePaths=/var/lib/redis /var/log/redis /run/redis /run/redis-sentinel /etc/redis
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/redis-sentinel.service
+        mode: '0644'
+
+    - name: Create Redis etcd registration script
+      template:
+        src: ../../templates/redis-etcd-register.sh.j2
+        dest: /usr/local/bin/redis-etcd-register
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create Redis etcd registration service
+      copy:
+        content: |
+          [Unit]
+          Description=Register Redis in etcd
+          After=redis.service network-online.target
+          Wants=network-online.target
+          
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/bin/redis-etcd-register
+          RemainAfterExit=yes
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/redis-etcd-register.service
+        mode: '0644'
+
+    - name: Create Redis etcd registration timer
+      copy:
+        content: |
+          [Unit]
+          Description=Periodically register Redis in etcd
+          
+          [Timer]
+          OnBootSec=30s
+          OnUnitActiveSec=30s
+          
+          [Install]
+          WantedBy=timers.target
+        dest: /etc/systemd/system/redis-etcd-register.timer
+        mode: '0644'
+
+    - name: Start and enable Redis service
+      systemd:
+        name: redis
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Wait for Redis to start
+      wait_for:
+        port: "{{ redis_port }}"
+        host: localhost
+        delay: 5
+        timeout: 30
+
+    - name: Set up Redis replication on replicas
+      shell: |
+        redis-cli -a {{ redis_password }} REPLICAOF {{ hostvars['redis-sib-01']['tailscale_ip'] }} {{ redis_port }}
+      when: redis_role == "replica"
+      ignore_errors: yes
+
+    - name: Create Sentinel log file with proper permissions
+      file:
+        path: /var/log/redis/sentinel.log
+        state: touch
+        owner: redis
+        group: redis
+        mode: '0640'
+
+    - name: Wait before starting Sentinel
+      pause:
+        seconds: 10
+        prompt: "Waiting for Redis to stabilize before starting Sentinel"
+
+    - name: Start and enable Redis Sentinel
+      systemd:
+        name: redis-sentinel
+        state: started
+        enabled: true
+
+    - name: Enable and start Redis etcd registration timer
+      systemd:
+        name: redis-etcd-register.timer
+        enabled: yes
+        state: started
+
+    - name: Run initial Redis etcd registration
+      systemd:
+        name: redis-etcd-register.service
+        state: started
+
+    - name: Create Redis health check script
+      template:
+        src: ../../templates/redis-health-check.sh.j2
+        dest: /usr/local/bin/redis-health-check
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create Redis Consul health check
+      copy:
+        content: |
+          {
+            "service": {
+              "name": "redis",
+              "tags": ["database", "cache", "{{ redis_role }}"],
+              "port": {{ redis_port }},
+              "check": {
+                "id": "redis-health",
+                "name": "Redis Health Check",
+                "args": ["/usr/local/bin/redis-health-check"],
+                "interval": "10s",
+                "timeout": "5s"
+              }
+            }
+          }
+        dest: /etc/consul.d/redis.json
+        mode: '0644'
+      notify: reload consul
+
+    - name: Configure firewall for Redis
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+        src: "{{ network_ranges.tailscale }}"
+        comment: "Allow {{ item }} from Tailscale network"
+      loop:
+        - "{{ redis_port }}"
+        - "{{ sentinel_port }}"
+      when: ansible_facts['virtualization_type'] != 'lxc'
+      ignore_errors: yes
+
+    - name: Test Redis connectivity
+      shell: |
+        redis-cli -a {{ redis_password }} ping
+      register: redis_ping
+      changed_when: false
+
+    - name: Display Redis status
+      debug:
+        msg: |
+          Redis installation complete!
+          Node: {{ inventory_hostname }}
+          Role: {{ redis_role }}
+          Redis Port: {{ redis_port }}
+          Sentinel Port: {{ sentinel_port }}
+          Status: {{ redis_ping.stdout }}
+
+  handlers:
+    - name: restart redis
+      systemd:
+        name: redis
+        state: restarted
+
+    - name: restart sentinel
+      systemd:
+        name: redis-sentinel
+        state: restarted
+
+    - name: reload consul
+      systemd:
+        name: consul
+        state: reloaded
+
+- name: Install HAProxy for Redis on app nodes
+  hosts: nomad_clients
+  become: yes
+  vars:
+    etcd_endpoints: "{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+    redis_password: "{{ vault_redis_password }}"
+
+  tasks:
+    - name: Ensure HAProxy is installed
+      package:
+        name: haproxy
+        state: present
+
+    - name: Create HAProxy runtime directory
+      file:
+        path: /var/run/haproxy
+        state: directory
+        owner: haproxy
+        group: haproxy
+        mode: '0755'
+
+    - name: Create confd directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/confd
+        - /etc/confd/conf.d
+        - /etc/confd/templates
+
+    - name: Copy HAProxy template for Redis
+      copy:
+        src: ../../files/haproxy-redis.cfg.tmpl
+        dest: /etc/confd/templates/haproxy-redis.cfg.tmpl
+        mode: '0644'
+
+    - name: Copy confd configuration for Redis
+      copy:
+        src: ../../files/confd-redis.toml
+        dest: /etc/confd/conf.d/redis.toml
+        mode: '0644'
+
+    - name: Create confd configuration file for Redis
+      copy:
+        content: |
+          backend = "etcdv3"
+          confdir = "/etc/confd"
+          log-level = "info"
+          interval = 10
+          noop = false
+          
+          # etcd backend configuration
+          nodes = [{% for endpoint in etcd_endpoints.split(',') %}"{{ endpoint }}"{% if not loop.last %},{% endif %}{% endfor %}]
+          
+          # Watch all keys
+          watch = true
+        dest: /etc/confd/confd-redis.toml
+        mode: '0644'
+
+    - name: Create Confd systemd service for Redis
+      copy:
+        content: |
+          [Unit]
+          Description=Confd for HAProxy Redis
+          After=network.target etcd.service
+          Wants=etcd.service
+          
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/bin/confd -config-file /etc/confd/confd-redis.toml
+          Restart=always
+          RestartSec=5
+          Environment="LOCAL_DATACENTER={{ datacenter }}"
+          # Permissions to reload HAProxy
+          AmbientCapabilities=CAP_KILL CAP_SYS_ADMIN
+          CapabilityBoundingSet=CAP_KILL CAP_SYS_ADMIN
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/confd-redis.service
+        mode: '0644'
+
+    - name: Set Redis configuration in etcd
+      shell: |
+        {% for host in groups['postgres_nodes'] %}
+        etcdctl --endpoints=http://{{ hostvars[host]['tailscale_ip'] }}:2379 \
+          put "/service/redis/password" "{{ redis_password }}" && break
+        {% endfor %}
+      run_once: true
+
+    - name: Initialize Redis instances structure in etcd
+      shell: |
+        {% for host in groups['postgres_nodes'] %}
+        etcdctl --endpoints=http://{{ hostvars[host]['tailscale_ip'] }}:2379 \
+          put "/service/redis/instances" "{}" && break
+        {% endfor %}
+      run_once: true
+
+    - name: Check etcd Redis data
+      shell: |
+        {% for host in groups['postgres_nodes'] %}
+        etcdctl --endpoints=http://{{ hostvars[host]['tailscale_ip'] }}:2379 \
+          get /service/redis --prefix && break
+        {% endfor %}
+      register: etcd_redis_data
+      run_once: true
+
+    - name: Debug etcd Redis data
+      debug:
+        var: etcd_redis_data.stdout_lines
+      run_once: true
+
+    - name: Ensure HAProxy service is enabled and started
+      systemd:
+        name: haproxy
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Enable and start confd-redis service
+      systemd:
+        name: confd-redis
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Check confd-redis service status
+      command: systemctl status confd-redis
+      register: confd_status
+      ignore_errors: yes
+
+    - name: Debug confd-redis status
+      debug:
+        var: confd_status.stdout_lines
+
+    - name: Check if HAProxy config was generated
+      stat:
+        path: /etc/haproxy/haproxy.cfg
+      register: haproxy_cfg
+
+    - name: Debug HAProxy config existence
+      debug:
+        msg: "HAProxy config exists: {{ haproxy_cfg.stat.exists }}"
+
+    - name: Wait for confd to generate HAProxy config
+      pause:
+        seconds: 15
+        prompt: "Waiting for confd to generate HAProxy configuration"
+
+    - name: Check HAProxy config after wait
+      command: cat /etc/haproxy/haproxy.cfg
+      register: haproxy_config
+      ignore_errors: yes
+
+    - name: Debug HAProxy config content
+      debug:
+        var: haproxy_config.stdout_lines
+      when: haproxy_config.rc == 0
+
+    - name: Restart HAProxy to load Redis configuration
+      systemd:
+        name: haproxy
+        state: restarted
+      when: haproxy_cfg.stat.exists
+
+    - name: Wait for HAProxy Redis configuration
+      wait_for:
+        port: 6380
+        host: localhost
+        timeout: 30
+        delay: 5
+
+    - name: Create Redis test script
+      copy:
+        content: |
+          #!/bin/bash
+          # Test Redis connection through HAProxy
+          
+          REDIS_PASSWORD="{{ redis_password }}"
+          
+          echo "Testing Redis connection through HAProxy on port 6380..."
+          redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" ping
+          
+          echo "Testing write operation..."
+          redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" SET test:key "test-value-$(date +%s)"
+          
+          echo "Testing read operation..."
+          redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" GET test:key
+        dest: /usr/local/bin/test-redis
+        mode: '0755'
+
+    - name: Display HAProxy Redis info
+      debug:
+        msg: |
+          HAProxy Redis configuration complete!
+          Connect to Redis via: localhost:6380
+          Password: Stored in vault as vault_redis_password
+          
+          Test with: /usr/local/bin/test-redis

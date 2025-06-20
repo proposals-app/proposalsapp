@@ -6,4 +6,4 @@ keys = [
     "/service/redis-sentinel",
 ]
 check_cmd = "haproxy -f {{.src}} -c"
-reload_cmd = "systemctl reload haproxy"
+reload_cmd = "systemctl reload haproxy || systemctl restart haproxy"

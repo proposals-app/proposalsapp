@@ -142,7 +142,8 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 
 # Database connection - use local pgpool connection string from Consul KV
 # Replace localhost with host.docker.internal for Docker container access
-DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
+{{ $dbUrl := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
 
 # OpenTelemetry configuration from Consul KV
 OTEL_EXPORTER_OTLP_ENDPOINT={{ keyOrDefault "discourse/otel_exporter_otlp_endpoint" "" }}

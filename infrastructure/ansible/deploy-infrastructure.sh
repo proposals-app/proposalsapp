@@ -147,7 +147,7 @@ PLAYBOOKS=(
     "playbooks/infrastructure/04-install-etcd.yml:Installing etcd for Patroni DCS and Confd"
     "playbooks/infrastructure/05-install-postgres.yml:Installing PostgreSQL with Patroni HA"
     "playbooks/infrastructure/06-install-pgpool.yml:Installing pgpool-II with dynamic configuration via Confd"
-    "playbooks/infrastructure/07-install-redis-haproxy.yml:Installing HAProxy for Redis local-first routing"
+    "playbooks/infrastructure/07-install-redis.yml:Installing Redis with Sentinel HA and HAProxy local-first routing"
 )
 
 # Setup GitHub runners if PAT is configured
@@ -194,7 +194,7 @@ if [ $failed -eq 0 ]; then
     
     if [[ "$run_verification" =~ ^[Yy]$ ]]; then
         echo -e "\n${BLUE}Running database connection verification...${NC}"
-        if run_playbook "playbooks/infrastructure/07-verify-database-connections.yml" "Database Connection Verification"; then
+        if run_playbook "playbooks/infrastructure/08-verify-database-connections.yml" "Database Connection Verification"; then
             echo -e "${GREEN}✓ Database verification completed successfully${NC}"
         else
             echo -e "${YELLOW}⚠ Database verification encountered issues${NC}"
@@ -203,7 +203,7 @@ if [ $failed -eq 0 ]; then
     else
         echo -e "${CYAN}Skipping database verification${NC}"
         echo "You can run it later with:"
-        echo "ansible-playbook -i inventory.yml playbooks/infrastructure/07-verify-database-connections.yml"
+        echo "ansible-playbook -i inventory.yml playbooks/infrastructure/08-verify-database-connections.yml"
     fi
 fi
 
@@ -228,10 +228,11 @@ if [ $failed -eq 0 ]; then
     echo "  • 3 Nomad client nodes for applications"
     echo "  • 3 etcd nodes for Patroni distributed configuration"
     echo "  • 3 PostgreSQL nodes with Patroni HA"
-    echo "  • pgpool-II connection pooler on application nodes"
-    echo "  • Confd for dynamic pgpool-II configuration from etcd"
-    echo "  • Local-first load balancing (83% reads to local DB)"
-    echo "  • HAProxy for Redis with local-first routing (90% reads to local Redis)"
+    echo "  • 3 Redis nodes with Sentinel HA"
+    echo "  • pgpool-II connection pooler on app nodes for PostgreSQL"
+    echo "  • HAProxy on app nodes for Redis"
+    echo "  • Confd for dynamic configuration from etcd"
+    echo "  • Local-first routing (100% reads to local DB/Redis when healthy)"
     echo "  • 3 GitHub Actions self-hosted runners"
     echo ""
     echo -e "${CYAN}Next steps:${NC}"
@@ -239,10 +240,11 @@ if [ $failed -eq 0 ]; then
     echo "2. Verify Nomad cluster: nomad server members"
     echo "3. Check PostgreSQL cluster: patronictl -c /etc/patroni/patroni.yml list"
     echo "4. Test pgpool connection: psql -h localhost -p 5432 -U proposalsapp -d proposalsapp"
-    echo "5. Deploy applications: ./deploy-application.sh <app-name>"
+    echo "5. Check Redis cluster: redis-cli -h localhost -p 6380 -a <password> info replication"
+    echo "6. Deploy applications: ./deploy-application.sh <app-name>"
     echo ""
     echo -e "${CYAN}Database verification:${NC}"
-    echo "• Run comprehensive checks: ansible-playbook -i inventory.yml playbooks/infrastructure/07-verify-database-connections.yml"
+    echo "• Run comprehensive checks: ansible-playbook -i inventory.yml playbooks/infrastructure/08-verify-database-connections.yml"
 else
     echo -e "${RED}✗ Some playbooks failed${NC}"
     echo ""

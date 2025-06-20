@@ -442,6 +442,111 @@
         name: consul
         state: restarted
 
+- name: Configure Consul Clients on Redis nodes
+  hosts: redis_nodes
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - consul
+        state: present
+
+    - name: Fix Consul directory permissions
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: consul
+        group: consul
+        mode: "0755"
+      loop:
+        - /var/lib/consul
+        - /opt/consul
+        - /etc/consul
+
+    - name: Fetch CA cert from server
+      fetch:
+        src: /opt/consul/consul-agent-ca.pem
+        dest: /tmp/consul-ca/
+        flat: yes
+      delegate_to: consul-nomad-sib-01
+      run_once: true
+
+    - name: Copy CA cert to Redis nodes
+      copy:
+        src: /tmp/consul-ca/consul-agent-ca.pem
+        dest: /opt/consul/consul-agent-ca.pem
+        owner: consul
+        group: consul
+        mode: "0644"
+
+    - name: Create Consul config directory for Redis nodes
+      file:
+        path: /etc/consul.d
+        state: directory
+        owner: consul
+        group: consul
+        mode: "0755"
+
+    - name: Create Consul client configuration for Redis nodes
+      template:
+        src: ../../templates/consul-client.hcl.j2
+        dest: /etc/consul.d/consul.hcl
+        owner: consul
+        group: consul
+        mode: "0640"
+      notify:
+        - reload systemd redis
+        - restart consul redis
+
+    - name: Create systemd service directory for Redis nodes
+      file:
+        path: /etc/systemd/system/consul.service.d
+        state: directory
+        mode: "0755"
+
+    - name: Create Consul systemd service override for Redis nodes
+      copy:
+        content: |
+          [Unit]
+          Wants=tailscaled.service
+          After=network-online.target tailscaled.service
+
+          [Service]
+          Type=simple
+          TimeoutStartSec=0
+          Restart=on-failure
+          RestartSec=5
+          # Wait for Tailscale interface to be ready
+          ExecStartPre=/bin/bash -c 'until ip addr show tailscale0 2>/dev/null | grep -q "inet "; do echo "Waiting for tailscale0 interface..."; sleep 1; done'
+        dest: /etc/systemd/system/consul.service.d/override.conf
+      notify:
+        - reload systemd redis
+        - restart consul redis
+
+    - name: Reload systemd and start Consul
+      systemd:
+        name: consul
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: reload systemd redis
+      systemd:
+        daemon_reload: yes
+
+    - name: restart consul redis
+      systemd:
+        name: consul
+        state: restarted
+
 # Verification checks at the end
 - name: Verify Consul Cluster
   hosts: consul_servers
@@ -593,6 +698,32 @@
   gather_facts: false
   tasks:
     - name: Check Consul client health
+      shell: |
+        if ! systemctl is-active consul >/dev/null 2>&1; then
+          echo "ERROR: Consul service is not running"
+          exit 1
+        fi
+
+        # Check if connected to cluster
+        if ! consul members | grep -q "{{ inventory_hostname }}.*alive"; then
+          echo "ERROR: Not connected to Consul cluster"
+          exit 1
+        fi
+
+        echo "OK: Consul client connected"
+      register: client_health
+      changed_when: false
+      failed_when: client_health.rc != 0
+
+    - name: Display client status
+      debug:
+        msg: "Consul client on {{ inventory_hostname }}: {{ client_health.stdout }}"
+
+- name: Verify Consul Clients on Redis nodes
+  hosts: redis_nodes
+  gather_facts: false
+  tasks:
+    - name: Check Consul client health on Redis nodes
       shell: |
         if ! systemctl is-active consul >/dev/null 2>&1; then
           echo "ERROR: Consul service is not running"

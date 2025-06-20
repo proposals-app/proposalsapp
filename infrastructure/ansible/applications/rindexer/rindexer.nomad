@@ -65,11 +65,14 @@ job "rindexer" {
         image = "ghcr.io/proposals-app/proposalsapp/rindexer:latest"
         ports = ["health"]
         force_pull = true
-        
+
         # Allow container to access host services
         extra_hosts = [
           "host.docker.internal:host-gateway"
         ]
+
+        # DNS configuration for better host resolution
+        dns_servers = ["8.8.8.8", "8.8.4.4"]
 
         # Add logging configuration
         logging {
@@ -133,7 +136,7 @@ no-deployment
 {{ end }}
 EOF
       }
-      
+
       # Environment configuration template
       # Does not trigger restarts to avoid loops
       template {
@@ -159,7 +162,10 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 
 # Database connection - use local pgpool connection string from Consul KV
 # Replace localhost with host.docker.internal for Docker container access
-DATABASE_URL={{ keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" | regexReplaceAll "localhost" "host.docker.internal" }}
+# Note: This regex is specifically designed to replace only the hostname part
+# Pattern explanation: @localhost: matches the literal string after password
+{{ $dbUrl := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
 
 # Chain RPC endpoints from Consul KV
 ETHEREUM_NODE_URL={{ keyOrDefault "rindexer/ethereum_node_url" "" }}

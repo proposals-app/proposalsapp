@@ -5,19 +5,21 @@ set -e
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 <application-name> [action]"
-    echo "Actions: setup, deploy, both (default)"
+    echo "Usage: $0 <application-name|all> [action]"
+    echo "Actions: setup, deploy, both (default), continue (for 'all' only)"
     echo ""
     echo "Available applications:"
+    echo "  all              - Deploy all applications in the correct order"
     echo "  rindexer         - Blockchain indexer service"
     echo "  discourse        - Discourse forum indexer service"
     echo "  mapper           - Data relationship engine for grouping proposals and karma calculation"
     echo "  cloudflared      - Cloudflare tunnel daemon for Zero Trust access"
     echo "  traefik          - Edge router and load balancer with automatic HTTPS"
     echo "  web              - Next.js frontend application"
-    echo "  redis            - Redis cache with HA and local-first routing"
     echo ""
     echo "Examples:"
+    echo "  $0 all              # Deploy all applications (stops on first error)"
+    echo "  $0 all continue     # Deploy all applications (continues on errors)"
     echo "  $0 rindexer"
     echo "  $0 rindexer setup"
     echo "  $0 rindexer deploy"
@@ -30,15 +32,86 @@ fi
 
 APP_NAME=$1
 ACTION=${2:-both}
+
+cd "$(dirname "$0")"
+
+# Handle "all" option
+if [ "$APP_NAME" = "all" ]; then
+    echo "=========================================="
+    echo "Deploying all applications in order"
+    echo "=========================================="
+    
+    # Define deployment order based on dependencies:
+    # 1. cloudflared   - Tunnel for external access (needed for Traefik)
+    # 2. traefik       - Load balancer/proxy (web app needs it for routing)
+    # 3. rindexer      - Blockchain indexer (populates database)
+    # 4. discourse     - Forum indexer (populates database)
+    # 5. mapper        - Data processor (needs data from rindexer/discourse)
+    # 6. web           - Frontend (needs all backend services)
+    DEPLOYMENT_ORDER="cloudflared traefik rindexer discourse mapper web"
+    
+    # Check if we should continue on error
+    CONTINUE_ON_ERROR=false
+    if [ "$ACTION" = "continue" ]; then
+        CONTINUE_ON_ERROR=true
+        ACTION="both"
+        echo "Note: Will continue deploying even if some applications fail"
+    fi
+    
+    FAILED_APPS=""
+    SUCCEEDED_APPS=""
+    
+    for app in $DEPLOYMENT_ORDER; do
+        echo ""
+        echo "=========================================="
+        echo "Deploying $app..."
+        echo "=========================================="
+        
+        if "$0" "$app" "$ACTION"; then
+            SUCCEEDED_APPS="$SUCCEEDED_APPS $app"
+            echo "✅ $app deployed successfully"
+            
+            # Add a delay between deployments to allow services to stabilize
+            if [ "$app" != "web" ]; then
+                echo "Waiting 10 seconds before next deployment..."
+                sleep 10
+            fi
+        else
+            FAILED_APPS="$FAILED_APPS $app"
+            echo "❌ $app deployment failed"
+            
+            if [ "$CONTINUE_ON_ERROR" = false ]; then
+                echo "Stopping deployment due to failure. Use 'all continue' to continue on errors."
+                break
+            fi
+        fi
+    done
+    
+    echo ""
+    echo "=========================================="
+    echo "Deployment Summary"
+    echo "=========================================="
+    if [ -n "$SUCCEEDED_APPS" ]; then
+        echo "✅ Succeeded:$SUCCEEDED_APPS"
+    fi
+    if [ -n "$FAILED_APPS" ]; then
+        echo "❌ Failed:$FAILED_APPS"
+        exit 1
+    else
+        echo "All applications deployed successfully!"
+    fi
+    exit 0
+fi
+
 APP_DIR="applications/$APP_NAME"
 
 # List of valid applications
-VALID_APPS="rindexer discourse mapper cloudflared traefik web redis"
+VALID_APPS="rindexer discourse mapper cloudflared traefik web"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then
     echo "Error: Invalid application '$APP_NAME'"
-    echo "Valid applications: $VALID_APPS"
+    echo "Valid applications: $VALID_APPS, all"
     exit 1
 fi
 
@@ -46,8 +119,6 @@ if [ ! -d "$APP_DIR" ]; then
     echo "Error: Application '$APP_NAME' not found in $APP_DIR"
     exit 1
 fi
-
-cd "$(dirname "$0")"
 
 # Function to run setup playbooks
 run_setup() {

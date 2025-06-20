@@ -91,7 +91,11 @@ export function ResultsChart({ results }: ResultsChartProps) {
     };
 
     // Initialize ECharts instance
-    const chart = echarts.init(chartRef.current, null, { renderer: 'svg' });
+    const chart = echarts.init(chartRef.current, null, { 
+      renderer: 'svg',
+      width: 'auto',
+      height: 'auto'
+    });
 
     const isRankedChoice = deserializedResults.voteType === 'ranked-choice';
 
@@ -505,6 +509,38 @@ export function ResultsChart({ results }: ResultsChartProps) {
 
     chart.setOption(options);
 
+    // Force initial resize after a short delay to ensure container has dimensions
+    const resizeTimer = setTimeout(() => {
+      chart.resize();
+    }, 100);
+
+    // Additional resize after a longer delay to catch any late rendering
+    const longerResizeTimer = setTimeout(() => {
+      chart.resize();
+    }, 500);
+
+    // Also trigger resize on window load to catch any late layout shifts
+    const handleLoad = () => {
+      chart.resize();
+    };
+    window.addEventListener('load', handleLoad);
+
+    // Use IntersectionObserver to trigger resize when chart becomes visible
+    const intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            chart.resize();
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    
+    if (chartRef.current) {
+      intersectionObserver.observe(chartRef.current);
+    }
+
     // Resize observer for better handling of element resize
     const resizeObserver = new ResizeObserver(() => {
       chart.resize();
@@ -514,6 +550,10 @@ export function ResultsChart({ results }: ResultsChartProps) {
     }
 
     return () => {
+      clearTimeout(resizeTimer);
+      clearTimeout(longerResizeTimer);
+      window.removeEventListener('load', handleLoad);
+      intersectionObserver.disconnect();
       resizeObserver.disconnect();
       chart.dispose();
     };

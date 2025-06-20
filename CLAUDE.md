@@ -160,10 +160,12 @@ ProposalsApp runs on a highly available, geographically distributed infrastructu
 - **DC2** (`sib-03`) - Sibiu, Romania - Different building/network  
 - **DC3** (`fsn-01`) - Falkenstein, Germany - Geographic redundancy
 
-Each datacenter runs on Proxmox with 3 LXC containers:
+Each datacenter runs on Proxmox with 5 LXC containers:
 - `consul-nomad-xxx`: Control plane (Consul server, Nomad server)
-- `apps-xxx`: Application layer (Nomad client, pgpool-II, app workloads)
+- `apps-xxx`: Application layer (Nomad client, pgpool-II, HAProxy for Redis, app workloads)
 - `db-xxx`: Database layer (PostgreSQL 17, Patroni, etcd)
+- `redis-xxx`: Cache layer (Redis 7, Sentinel for HA)
+- `github-runner-xxx`: CI/CD runners for GitHub Actions
 
 All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network).
 
@@ -199,7 +201,18 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 - Query parsing for automatic read/write splitting
 - Single connection URL: `postgresql://user:pass@localhost:5432/db`
 - Automatic backend updates via Confd watching etcd
-- Weight-based load balancing (local servers have 2x weight for reads)
+- **LOCAL-ONLY reads** (weight=100 for local, weight=0 for remote)
+- 100% of reads go to local database when healthy
+- Remote databases only used when local is down
+
+#### Redis + Sentinel (Cache)
+- Redis 7 with automatic failover via Sentinel
+- One master, two replicas across datacenters
+- HAProxy on app nodes for connection routing
+- Single connection URL: `redis://localhost:6380`
+- **LOCAL-ONLY reads** (primary servers with backup mode)
+- 100% of reads go to local Redis when healthy
+- Automatic write routing to master regardless of location
 
 ### Deployment Process
 
@@ -231,6 +244,9 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
    
    # 6. Setup pgpool-II proxy
    ansible-playbook -i inventory.yml playbooks/06-install-pgpool.yml --vault-password-file .vault_pass
+   
+   # 7. Install Redis with Sentinel and HAProxy
+   ansible-playbook -i inventory.yml playbooks/07-install-redis.yml --vault-password-file .vault_pass
    ```
 
 #### Application Deployment (Nomad)
@@ -239,7 +255,6 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 # Deploy infrastructure services
 nomad job run infrastructure/nomad-jobs/cloudflared.nomad
 nomad job run infrastructure/nomad-jobs/traefik.nomad
-nomad job run infrastructure/nomad-jobs/redis.nomad
 
 # Deploy applications
 nomad job run infrastructure/nomad-jobs/web.nomad
@@ -264,8 +279,10 @@ All applications use multi-stage Docker builds:
 - Run via Kysely migration CLI
 
 #### Connection Strings
-- Applications: `postgresql://user:pass@localhost:5432/db` (via pgpool-II)
-- Direct access: `postgresql://user:pass@db-sib-01:5432/db` (via Tailscale hostname)
+- PostgreSQL: `postgresql://user:pass@localhost:5432/db` (via pgpool-II)
+- Redis: `redis://user:pass@localhost:6380` (via HAProxy)
+- Direct PostgreSQL: `postgresql://user:pass@db-sib-01:5432/db` (via Tailscale hostname)
+- Direct Redis: `redis://user:pass@redis-sib-01:6379` (via Tailscale hostname)
 
 ### Monitoring & Operations
 
@@ -283,6 +300,10 @@ nomad job status
 # Database
 patronictl -c /etc/patroni/config.yml list
 
+# Redis
+redis-cli -h localhost -p 6380 -a <password> info replication
+redis-cli -h localhost -p 26379 sentinel masters
+
 # etcd
 etcdctl endpoint health --endpoints=<all-nodes>
 ```
@@ -291,11 +312,13 @@ etcdctl endpoint health --endpoints=<all-nodes>
 - **Datacenter failure**: Automatic failover, maintains quorum with 2/3 DCs
 - **Network partition**: DC3 isolation handled gracefully
 - **Database failure**: Patroni promotes new primary in ~30-45 seconds
+- **Redis failure**: Sentinel promotes new master in ~10-15 seconds
 - **WAN federation issues**: Automatic repair via health check service
 
 ### Security
 - All traffic encrypted via Tailscale VPN
 - PostgreSQL uses SCRAM-SHA-256 authentication
+- Redis uses password authentication (requirepass)
 - Network restricted to Tailscale network (100.64.0.0/10)
 - Secrets stored in Ansible Vault
 - ACLs enabled on Consul and Nomad
@@ -330,19 +353,32 @@ etcdctl endpoint health --endpoints=<all-nodes>
    - Dynamic backend configuration via Confd watching etcd
    - Automatic primary/replica discovery
    - Query parser for read/write splitting
-   - **Weight-based load balancing** (local servers have 2x weight)
-   - Ensures local databases handle majority of read traffic
+   - **LOCAL-ONLY reads** (weight=100 for local, weight=0 for remote)
+   - 100% of reads go to local database when healthy
    - Automatic configuration reload on topology changes
    - Native PostgreSQL protocol on port 5432
 
-5. **Confd**: Dynamic configuration management
-   - Watches etcd for Patroni state changes
-   - Automatically regenerates pgpool backend configuration
-   - Ensures write queries always route to current primary
-   - Maintains local-first server ordering with appropriate weights
-   - Zero-downtime configuration updates via pgpool reload
+5. **Redis with Sentinel**: High-availability cache
+   - Redis 7 with automatic failover
+   - One master, two replicas across datacenters
+   - Sentinel monitors and promotes on failure
+   - Password authentication for security
+   - etcd registration for dynamic discovery
 
-6. **Nomad**: Container orchestration
+6. **HAProxy**: Load balancer for Redis
+   - Runs on app nodes for local access
+   - TCP-level command inspection for read/write splitting
+   - **LOCAL-ONLY reads** using backup server mode
+   - 100% of reads go to local Redis when healthy
+   - Dynamic configuration via Confd watching etcd
+
+7. **Confd**: Dynamic configuration management
+   - Two instances: one for pgpool, one for HAProxy
+   - Watches etcd for topology changes
+   - Automatically updates backend configurations
+   - Zero-downtime configuration reloads
+
+8. **Nomad**: Container orchestration
    - Manages application deployments
    - Integrated with Consul for service registration
 
