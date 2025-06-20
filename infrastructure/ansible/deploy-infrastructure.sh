@@ -144,10 +144,8 @@ PLAYBOOKS=(
     "playbooks/infrastructure/01-provision-and-prepare-lxcs.yml:Provisioning LXC containers and base setup"
     "playbooks/infrastructure/02-install-consul.yml:Installing and configuring Consul"
     "playbooks/infrastructure/03-install-nomad.yml:Installing and configuring Nomad"
-    "playbooks/infrastructure/04-install-etcd.yml:Installing etcd for Patroni DCS and Confd"
-    "playbooks/infrastructure/05-install-postgres.yml:Installing PostgreSQL with Patroni HA"
-    "playbooks/infrastructure/06-install-pgpool.yml:Installing pgpool-II with dynamic configuration via Confd"
-    "playbooks/infrastructure/07-install-redis.yml:Installing Redis with Sentinel HA and HAProxy local-first routing"
+    "playbooks/infrastructure/04-install-postgres-unified.yml:Installing PostgreSQL with Patroni, etcd, and pgpool-II"
+    "playbooks/infrastructure/05-install-redis-unified.yml:Installing Redis with Sentinel and HAProxy"
 )
 
 # Setup GitHub runners if PAT is configured
@@ -194,7 +192,7 @@ if [ $failed -eq 0 ]; then
     
     if [[ "$run_verification" =~ ^[Yy]$ ]]; then
         echo -e "\n${BLUE}Running database connection verification...${NC}"
-        if run_playbook "playbooks/infrastructure/08-verify-database-connections.yml" "Database Connection Verification"; then
+        if run_playbook "playbooks/infrastructure/06-verify-database-connections.yml" "Database Connection Verification"; then
             echo -e "${GREEN}✓ Database verification completed successfully${NC}"
         else
             echo -e "${YELLOW}⚠ Database verification encountered issues${NC}"
@@ -203,7 +201,7 @@ if [ $failed -eq 0 ]; then
     else
         echo -e "${CYAN}Skipping database verification${NC}"
         echo "You can run it later with:"
-        echo "ansible-playbook -i inventory.yml playbooks/infrastructure/08-verify-database-connections.yml"
+        echo "ansible-playbook -i inventory.yml playbooks/infrastructure/06-verify-database-connections.yml"
     fi
 fi
 
@@ -226,12 +224,12 @@ if [ $failed -eq 0 ]; then
     fi
     echo "  • 3 Consul/Nomad servers (one per datacenter)"
     echo "  • 3 Nomad client nodes for applications"
-    echo "  • 3 etcd nodes for Patroni distributed configuration"
     echo "  • 3 PostgreSQL nodes with Patroni HA"
     echo "  • 3 Redis nodes with Sentinel HA"
+    echo "  • Shared etcd cluster for both PostgreSQL and Redis configuration"
     echo "  • pgpool-II connection pooler on app nodes for PostgreSQL"
     echo "  • HAProxy on app nodes for Redis"
-    echo "  • Confd for dynamic configuration from etcd"
+    echo "  • Unified Confd managing both pgpool and HAProxy configurations"
     echo "  • Local-first routing (100% reads to local DB/Redis when healthy)"
     echo "  • 3 GitHub Actions self-hosted runners"
     echo ""
@@ -244,7 +242,7 @@ if [ $failed -eq 0 ]; then
     echo "6. Deploy applications: ./deploy-application.sh <app-name>"
     echo ""
     echo -e "${CYAN}Database verification:${NC}"
-    echo "• Run comprehensive checks: ansible-playbook -i inventory.yml playbooks/infrastructure/08-verify-database-connections.yml"
+    echo "• Run comprehensive checks: ansible-playbook -i inventory.yml playbooks/infrastructure/06-verify-database-connections.yml"
 else
     echo -e "${RED}✗ Some playbooks failed${NC}"
     echo ""

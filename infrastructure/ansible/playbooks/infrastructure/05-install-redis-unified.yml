@@ -1,10 +1,9 @@
 ---
-# This playbook installs Redis with Sentinel on dedicated redis nodes
-# Similar to PostgreSQL setup with Patroni
-# - Redis runs on dedicated redis-xxx LXC containers
-# - HAProxy for Redis runs on app nodes (nomad_clients)
-# - Redis Sentinel provides automatic failover
-# - One master, two replicas across datacenters
+# Unified Redis installation playbook
+# Installs Redis with Sentinel on dedicated nodes and HAProxy on app nodes
+# Uses the same etcd instance as PostgreSQL for configuration management
+
+# Part 1: Install Redis and Sentinel on dedicated redis nodes
 - name: Install and configure Redis with Sentinel
   hosts: redis_nodes
   become: true
@@ -31,7 +30,7 @@
         dest: /etc/apt/keyrings/redis-archive-keyring.asc
         mode: '0644'
 
-    - name: Add Redis APT repository with signed-by
+    - name: Add Redis APT repository
       apt_repository:
         repo: "deb [signed-by=/etc/apt/keyrings/redis-archive-keyring.asc] https://packages.redis.io/deb {{ ansible_distribution_release }} main"
         state: present
@@ -86,7 +85,6 @@
         group: redis
         mode: '0640'
         backup: yes
-      notify: restart redis
 
     - name: Create Redis Sentinel configuration
       template:
@@ -96,7 +94,6 @@
         group: redis
         mode: '0640'
         backup: yes
-      notify: restart sentinel
 
     - name: Create Redis systemd service
       copy:
@@ -218,7 +215,7 @@
       when: redis_role == "replica"
       ignore_errors: yes
 
-    - name: Create Sentinel log file with proper permissions
+    - name: Create Sentinel log file
       file:
         path: /var/log/redis/sentinel.log
         state: touch
@@ -229,7 +226,7 @@
     - name: Wait before starting Sentinel
       pause:
         seconds: 10
-        prompt: "Waiting for Redis to stabilize before starting Sentinel"
+      run_once: true
 
     - name: Start and enable Redis Sentinel
       systemd:
@@ -275,20 +272,11 @@
           }
         dest: /etc/consul.d/redis.json
         mode: '0644'
-      notify: reload consul
 
-    - name: Configure firewall for Redis
-      ufw:
-        rule: allow
-        port: "{{ item }}"
-        proto: tcp
-        src: "{{ network_ranges.tailscale }}"
-        comment: "Allow {{ item }} from Tailscale network"
-      loop:
-        - "{{ redis_port }}"
-        - "{{ sentinel_port }}"
-      when: ansible_facts['virtualization_type'] != 'lxc'
-      ignore_errors: yes
+    - name: Reload Consul to register Redis service
+      systemd:
+        name: consul
+        state: reloaded
 
     - name: Test Redis connectivity
       shell: |
@@ -306,22 +294,7 @@
           Sentinel Port: {{ sentinel_port }}
           Status: {{ redis_ping.stdout }}
 
-  handlers:
-    - name: restart redis
-      systemd:
-        name: redis
-        state: restarted
-
-    - name: restart sentinel
-      systemd:
-        name: redis-sentinel
-        state: restarted
-
-    - name: reload consul
-      systemd:
-        name: consul
-        state: reloaded
-
+# Part 2: Configure HAProxy for Redis on app nodes
 - name: Install HAProxy for Redis on app nodes
   hosts: nomad_clients
   become: yes
@@ -330,10 +303,13 @@
     redis_password: "{{ vault_redis_password }}"
 
   tasks:
-    - name: Ensure HAProxy is installed
+    - name: Ensure HAProxy and Redis tools are installed
       package:
-        name: haproxy
+        name: 
+          - haproxy
+          - redis-tools
         state: present
+        update_cache: yes
 
     - name: Create HAProxy runtime directory
       file:
@@ -343,66 +319,25 @@
         group: haproxy
         mode: '0755'
 
-    - name: Create confd directories
-      file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-      loop:
-        - /etc/confd
-        - /etc/confd/conf.d
-        - /etc/confd/templates
-
     - name: Copy HAProxy template for Redis
       copy:
         src: ../../files/haproxy-redis.cfg.tmpl
         dest: /etc/confd/templates/haproxy-redis.cfg.tmpl
         mode: '0644'
 
-    - name: Copy confd configuration for Redis
+    - name: Create Redis resource configuration for Confd
       copy:
-        src: ../../files/confd-redis.toml
+        content: |
+          [template]
+          src = "haproxy-redis.cfg.tmpl"
+          dest = "/etc/haproxy/haproxy.cfg"
+          keys = [
+            "/service/redis",
+            "/service/redis-sentinel",
+          ]
+          check_cmd = "haproxy -f {{ '{{.src}}' }} -c"
+          reload_cmd = "systemctl reload haproxy || systemctl restart haproxy"
         dest: /etc/confd/conf.d/redis.toml
-        mode: '0644'
-
-    - name: Create confd configuration file for Redis
-      copy:
-        content: |
-          backend = "etcdv3"
-          confdir = "/etc/confd"
-          log-level = "info"
-          interval = 10
-          noop = false
-          
-          # etcd backend configuration
-          nodes = [{% for endpoint in etcd_endpoints.split(',') %}"{{ endpoint }}"{% if not loop.last %},{% endif %}{% endfor %}]
-          
-          # Watch all keys
-          watch = true
-        dest: /etc/confd/confd-redis.toml
-        mode: '0644'
-
-    - name: Create Confd systemd service for Redis
-      copy:
-        content: |
-          [Unit]
-          Description=Confd for HAProxy Redis
-          After=network.target etcd.service
-          Wants=etcd.service
-          
-          [Service]
-          Type=simple
-          ExecStart=/usr/local/bin/confd -config-file /etc/confd/confd-redis.toml
-          Restart=always
-          RestartSec=5
-          Environment="LOCAL_DATACENTER={{ datacenter }}"
-          # Permissions to reload HAProxy
-          AmbientCapabilities=CAP_KILL CAP_SYS_ADMIN
-          CapabilityBoundingSet=CAP_KILL CAP_SYS_ADMIN
-          
-          [Install]
-          WantedBy=multi-user.target
-        dest: /etc/systemd/system/confd-redis.service
         mode: '0644'
 
     - name: Set Redis configuration in etcd
@@ -421,6 +356,11 @@
         {% endfor %}
       run_once: true
 
+    - name: Wait for Redis nodes to register in etcd
+      pause:
+        seconds: 30
+        prompt: "Waiting for Redis nodes to register themselves in etcd..."
+
     - name: Check etcd Redis data
       shell: |
         {% for host in groups['postgres_nodes'] %}
@@ -435,6 +375,20 @@
         var: etcd_redis_data.stdout_lines
       run_once: true
 
+    - name: Restart Confd to pick up Redis template
+      systemd:
+        name: confd
+        state: restarted
+
+    - name: Wait for Confd to generate HAProxy configuration
+      pause:
+        seconds: 15
+
+    - name: Check if HAProxy config was generated
+      stat:
+        path: /etc/haproxy/haproxy.cfg
+      register: haproxy_cfg
+
     - name: Ensure HAProxy service is enabled and started
       systemd:
         name: haproxy
@@ -442,53 +396,13 @@
         state: started
         daemon_reload: yes
 
-    - name: Enable and start confd-redis service
-      systemd:
-        name: confd-redis
-        enabled: yes
-        state: started
-        daemon_reload: yes
-
-    - name: Check confd-redis service status
-      command: systemctl status confd-redis
-      register: confd_status
-      ignore_errors: yes
-
-    - name: Debug confd-redis status
-      debug:
-        var: confd_status.stdout_lines
-
-    - name: Check if HAProxy config was generated
-      stat:
-        path: /etc/haproxy/haproxy.cfg
-      register: haproxy_cfg
-
-    - name: Debug HAProxy config existence
-      debug:
-        msg: "HAProxy config exists: {{ haproxy_cfg.stat.exists }}"
-
-    - name: Wait for confd to generate HAProxy config
-      pause:
-        seconds: 15
-        prompt: "Waiting for confd to generate HAProxy configuration"
-
-    - name: Check HAProxy config after wait
-      command: cat /etc/haproxy/haproxy.cfg
-      register: haproxy_config
-      ignore_errors: yes
-
-    - name: Debug HAProxy config content
-      debug:
-        var: haproxy_config.stdout_lines
-      when: haproxy_config.rc == 0
-
     - name: Restart HAProxy to load Redis configuration
       systemd:
         name: haproxy
         state: restarted
       when: haproxy_cfg.stat.exists
 
-    - name: Wait for HAProxy Redis configuration
+    - name: Wait for HAProxy Redis port
       wait_for:
         port: 6380
         host: localhost
@@ -511,14 +425,78 @@
           
           echo "Testing read operation..."
           redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" GET test:key
+          
+          echo ""
+          echo "Getting replication info..."
+          redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" INFO replication | grep -E "role:|connected_slaves:|slave[0-9]+:"
         dest: /usr/local/bin/test-redis
         mode: '0755'
+
+    - name: Test Redis through HAProxy
+      command: /usr/local/bin/test-redis
+      register: redis_test
+      retries: 3
+      delay: 5
+      until: redis_test.rc == 0
+
+    - name: Store Redis connection details in Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "redis/connection_string/haproxy", value: "redis://:{{ redis_password | urlencode }}@localhost:6380" }
+        - { key: "redis/port/haproxy", value: "6380" }
+        - { key: "redis/password", value: "{{ redis_password }}" }
+        - { key: "redis/enabled", value: "true" }
+      run_once: true
 
     - name: Display HAProxy Redis info
       debug:
         msg: |
-          HAProxy Redis configuration complete!
+          ========================================
+          Redis HA Cluster with HAProxy
+          ========================================
           Connect to Redis via: localhost:6380
           Password: Stored in vault as vault_redis_password
           
+          Connection string: redis://:***@localhost:6380
+          
           Test with: /usr/local/bin/test-redis
+          
+          Features:
+          - Automatic master discovery via Sentinel
+          - LOCAL-ONLY reads when local Redis is healthy
+          - Write commands always go to master
+          - Read commands use local instance (backup mode for remote)
+          ========================================
+
+# Part 3: Verification
+- name: Verify Redis Cluster
+  hosts: redis_nodes[0]
+  gather_facts: false
+  vars:
+    redis_password: "{{ vault_redis_password }}"
+    etcd_endpoints: "{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+  tasks:
+    - name: Get Redis replication status
+      shell: |
+        echo "=== REDIS REPLICATION STATUS ==="
+        redis-cli -a {{ redis_password }} INFO replication
+        echo ""
+        echo "=== SENTINEL STATUS ==="
+        redis-cli -p 26379 SENTINEL masters
+        echo ""
+        echo "=== ETCD REDIS KEYS ==="
+        etcdctl --endpoints="{{ etcd_endpoints }}" get /service/redis --prefix --keys-only
+      register: redis_overview
+      changed_when: false
+
+    - name: Display Redis cluster overview
+      debug:
+        msg: |
+          ========================================
+          Redis Cluster Overview
+          ========================================
+          {{ redis_overview.stdout }}
+          ========================================

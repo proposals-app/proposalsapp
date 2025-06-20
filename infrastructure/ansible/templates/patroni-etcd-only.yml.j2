@@ -160,11 +160,6 @@ bootstrap:
 
   # Cluster Creation Method
   method: initdb        # Create new cluster from scratch
-  
-  # Post-Initialization Script
-  # Runs after cluster is created but before it's opened for connections
-  # Used to create databases, schemas, and initial data
-  post_init: /tmp/patroni-post-init.sh
 
 # PostgreSQL Instance Configuration
 # Settings specific to this PostgreSQL instance

@@ -1,0 +1,860 @@
+---
+# Unified PostgreSQL installation playbook
+# Combines etcd, Patroni/PostgreSQL, and pgpool-II installation
+# Uses a single shared etcd instance for both PostgreSQL and Redis
+
+# Part 1: Install etcd on database nodes
+- name: Install etcd for distributed configuration
+  hosts: postgres_nodes
+  become: true
+  vars:
+    etcd_version: "3.5.16"
+    etcd_client_port: 2379
+    etcd_peer_port: 2380
+    etcd_data_dir: "/var/lib/etcd"
+    etcd_wal_dir: "/var/lib/etcd/wal"
+    etcd_user: "etcd"
+    etcd_group: "etcd"
+    etcd_ionice_class: "2"
+    etcd_ionice_priority: "0"
+
+  tasks:
+    - name: Set connection to use tailscale IP if available
+      set_fact:
+        ansible_host: "{{ tailscale_ip }}"
+      when: tailscale_ip is defined and tailscale_ip != ''
+
+    - name: Create etcd user
+      user:
+        name: "{{ etcd_user }}"
+        system: yes
+        shell: /bin/false
+        home: "{{ etcd_data_dir }}"
+        createhome: no
+
+    - name: Create etcd directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ etcd_user }}"
+        group: "{{ etcd_group }}"
+        mode: "0700"
+      loop:
+        - "{{ etcd_data_dir }}"
+        - "{{ etcd_wal_dir }}"
+        - /etc/etcd
+        - /var/lib/etcd/ssl
+
+    - name: Download etcd binary
+      unarchive:
+        src: "https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
+        dest: /tmp
+        remote_src: yes
+        creates: "/tmp/etcd-v{{ etcd_version }}-linux-amd64/etcd"
+        extra_opts:
+          - --no-same-owner
+          - --no-same-permissions
+      retries: 3
+      delay: 5
+
+    - name: Install etcd binaries
+      copy:
+        src: "/tmp/etcd-v{{ etcd_version }}-linux-amd64/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        mode: "0755"
+        owner: root
+        group: root
+        remote_src: yes
+      loop:
+        - etcd
+        - etcdctl
+        - etcdutl
+
+    - name: Generate etcd configuration
+      template:
+        src: ../../templates/etcd.conf.j2
+        dest: /etc/etcd/etcd.conf
+        owner: "{{ etcd_user }}"
+        group: "{{ etcd_group }}"
+        mode: "0644"
+
+    - name: Create etcd systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=etcd key-value store
+          Documentation=https://etcd.io
+          After=network-online.target tailscaled.service
+          Wants=network-online.target
+
+          [Service]
+          Type=notify
+          User={{ etcd_user }}
+          Group={{ etcd_group }}
+          ExecStart=/usr/local/bin/etcd --config-file=/etc/etcd/etcd.conf
+          Restart=on-failure
+          RestartSec=5
+          LimitNOFILE=65536
+          StartLimitBurst=3
+
+          # Security hardening
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=strict
+          ProtectHome=yes
+          ReadWritePaths={{ etcd_data_dir }} {{ etcd_wal_dir }}
+          ProtectKernelTunables=true
+          ProtectKernelModules=true
+          ProtectControlGroups=true
+          RestrictRealtime=true
+          RestrictNamespaces=true
+          RestrictSUIDSGID=true
+          PrivateDevices=true
+
+          # Wait for Tailscale interface
+          ExecStartPre=/bin/bash -c 'until ip addr show tailscale0 2>/dev/null | grep -q "inet "; do echo "Waiting for tailscale0 interface..."; sleep 1; done'
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/etcd.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Set etcd environment for etcdctl
+      copy:
+        content: |
+          export ETCDCTL_API=3
+          export ETCDCTL_ENDPOINTS=http://localhost:{{ etcd_client_port }}
+        dest: /etc/profile.d/etcd.sh
+        mode: "0644"
+
+    - name: Start etcd on all nodes
+      systemd:
+        name: etcd
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Wait for etcd cluster to form
+      wait_for:
+        port: "{{ etcd_client_port }}"
+        host: localhost
+        delay: 5
+        timeout: 60
+
+    - name: Wait for cluster to stabilize
+      pause:
+        seconds: 30
+      run_once: true
+
+    - name: Verify etcd cluster health
+      shell: |
+        export ETCDCTL_API=3
+        timeout 15 /usr/local/bin/etcdctl endpoint health --endpoints={{ groups['postgres_nodes'] | map('extract', hostvars, 'tailscale_ip') | map('regex_replace', '$', ':2379') | join(',') }}
+      register: etcd_cluster_health
+      changed_when: false
+      run_once: true
+
+    - name: Deploy etcd health check components
+      block:
+        - name: Deploy etcd health check script
+          template:
+            src: ../../templates/etcd-health-check.sh.j2
+            dest: /usr/local/bin/etcd-health-check.sh
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Deploy etcd health check service
+          template:
+            src: ../../templates/etcd-health-check.service.j2
+            dest: /etc/systemd/system/etcd-health-check.service
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Deploy etcd health check timer
+          template:
+            src: ../../templates/etcd-health-check.timer.j2
+            dest: /etc/systemd/system/etcd-health-check.timer
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Enable and start health check timer
+          systemd:
+            name: etcd-health-check.timer
+            enabled: yes
+            state: started
+            daemon_reload: yes
+
+# Part 2: Install PostgreSQL with Patroni
+- name: Install PostgreSQL with Patroni HA
+  hosts: postgres_nodes
+  become: true
+  vars:
+    postgresql_version: "17"
+    patroni_version: "4.0.6"
+    postgres_version: "17"
+    postgres_port: 5432
+    patroni_rest_api_port: 8008
+    consul_client_port: 8500
+    etcd_client_port: 2379
+    postgres_password: "{{ vault_postgres_password }}"
+    postgres_replication_password: "{{ vault_postgres_replication_password }}"
+    postgres_user: "postgres"
+    postgres_db_name: "proposalsapp"
+    postgres_shared_buffers: "2GB"
+    postgres_effective_cache_size: "6GB"
+    postgres_work_mem: "16MB"
+
+  tasks:
+    - name: Add PostgreSQL APT key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+        state: present
+
+    - name: Install PostgreSQL and dependencies
+      apt:
+        name:
+          - "postgresql-{{ postgresql_version }}"
+          - "postgresql-contrib-{{ postgresql_version }}"
+          - "postgresql-{{ postgresql_version }}-repack"
+          - python3-pip
+          - python3-psycopg2
+          - libpq-dev
+          - pipx
+          - python3-venv
+          - python3-full
+        state: present
+        update_cache: yes
+
+    - name: Stop PostgreSQL service
+      systemd:
+        name: postgresql
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Install Patroni for postgres user
+      shell: |
+        su - postgres -c '
+        export PATH="/usr/bin:$PATH"
+        pipx install "patroni[etcd3]=={{ patroni_version }}" --include-deps
+        pipx inject patroni psycopg2-binary etcd3 cdiff
+        pipx runpip patroni uninstall -y py-consul || true
+        '
+
+    - name: Create Patroni configuration directory
+      file:
+        path: /etc/patroni
+        state: directory
+        mode: "0755"
+
+    - name: Create PostgreSQL data directory
+      file:
+        path: /var/lib/postgresql/{{ postgresql_version }}/data
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0700"
+
+    - name: Generate Patroni configuration
+      template:
+        src: ../../templates/patroni-etcd-only.yml.j2
+        dest: /etc/patroni/patroni.yml
+        owner: postgres
+        group: postgres
+        mode: "0640"
+
+    - name: Generate Patroni bootstrap SQL
+      template:
+        src: ../../templates/patroni-bootstrap.sql.j2
+        dest: /tmp/patroni-bootstrap.sql
+        owner: postgres
+        group: postgres
+        mode: "0644"
+
+    - name: Create Patroni systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Patroni PostgreSQL HA
+          After=syslog.target network.target etcd.service
+          Wants=etcd.service
+
+          [Service]
+          Type=simple
+          User=postgres
+          Group=postgres
+          Environment="PATH=/var/lib/postgresql/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+          ExecStart=/var/lib/postgresql/.local/bin/patroni /etc/patroni/patroni.yml
+          ExecReload=/bin/kill -s HUP $MAINPID
+          KillMode=process
+          TimeoutSec=30
+          Restart=always
+          RestartSec=10
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/patroni.service
+
+    - name: Start Patroni on primary node first
+      systemd:
+        name: patroni
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      when: postgres_role == 'primary'
+
+    - name: Wait for primary to initialize
+      pause:
+        seconds: 45
+      when: postgres_role == 'primary'
+
+    - name: Wait for cluster initialization in etcd
+      shell: |
+        export ETCDCTL_API=3
+        for i in {1..60}; do
+          if /usr/local/bin/etcdctl get /service/proposalsapp/initialize > /dev/null 2>&1; then
+            echo "Cluster initialized"
+            exit 0
+          fi
+          sleep 5
+        done
+        exit 1
+      run_once: true
+
+    - name: Start Patroni on standby nodes
+      systemd:
+        name: patroni
+        state: started
+        enabled: yes
+      when: postgres_role != 'primary'
+
+    - name: Wait for all nodes to join cluster
+      pause:
+        seconds: 30
+      run_once: true
+
+    - name: Wait for leader election
+      shell: |
+        for i in {1..30}; do
+          if /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep -q "Leader"; then
+            echo "Leader found"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "No leader found"
+        exit 1
+      run_once: true
+      delegate_to: "{{ groups['postgres_nodes'][0] }}"
+
+    - name: Configure synchronous replication
+      shell: |
+        standby_nodes=$(/var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list | grep "Replica" | awk '{print $2}' | tr '\n' ',' | sed 's/,$//')
+        if [ -n "$standby_nodes" ]; then
+          sync_standby_names="ANY 1 ($standby_nodes)"
+          /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml edit-config \
+            -s "synchronous_mode=true" \
+            -s "synchronous_mode_strict=false" \
+            -s "postgresql.parameters.synchronous_commit=remote_apply" \
+            -s "postgresql.parameters.synchronous_standby_names='$sync_standby_names'" \
+            --force
+        fi
+      run_once: true
+      delegate_to: "{{ groups['postgres_nodes'] | select('match', '.*sib-01') | first }}"
+
+    - name: Create application database and user
+      shell: |
+        export PGPASSWORD="{{ postgres_password }}"
+        
+        # Wait for PostgreSQL to be ready
+        for i in {1..30}; do
+          if psql -h localhost -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then
+            break
+          fi
+          sleep 2
+        done
+        
+        # Create proposalsapp role if it doesn't exist
+        psql -h localhost -U postgres -d postgres -c "
+          DO \$\$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'proposalsapp') THEN
+              CREATE ROLE proposalsapp WITH LOGIN PASSWORD '{{ postgres_password }}' CREATEDB CREATEROLE;
+            END IF;
+          END
+          \$\$;
+        "
+        
+        # Create database if it doesn't exist (using a different approach)
+        if ! psql -h localhost -U postgres -lqt | cut -d \| -f 1 | grep -qw proposalsapp; then
+          psql -h localhost -U postgres -d postgres -c "CREATE DATABASE proposalsapp OWNER proposalsapp ENCODING UTF8"
+        fi
+        
+        # Grant permissions
+        psql -h localhost -U postgres -d proposalsapp -c "
+          GRANT ALL PRIVILEGES ON DATABASE proposalsapp TO proposalsapp;
+          GRANT ALL ON SCHEMA public TO proposalsapp;
+        "
+      run_once: true
+      delegate_to: "{{ groups['postgres_nodes'] | select('match', '.*sib-01') | first }}"
+
+    - name: Register PostgreSQL in Consul
+      uri:
+        url: "http://localhost:{{ consul_client_port }}/v1/agent/service/register"
+        method: PUT
+        body_format: json
+        body:
+          ID: "postgres-{{ inventory_hostname }}"
+          Name: "postgres"
+          Tags:
+            - "{{ postgres_role }}"
+            - "{{ datacenter }}"
+          Port: 5432
+          Check:
+            TCP: "localhost:5432"
+            Interval: "10s"
+
+    - name: Store PostgreSQL connection details in Consul KV
+      uri:
+        url: "http://localhost:{{ consul_client_port }}/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - { key: "postgresql/primary_host", value: "{{ inventory_hostname }}" }
+        - { key: "postgresql/port", value: "5432" }
+        - { key: "postgresql/database", value: "{{ postgres_db_name }}" }
+        - { key: "postgresql/username", value: "proposalsapp" }
+        - { key: "postgresql/password", value: "{{ postgres_password }}" }
+      when: postgres_role == 'primary'
+      run_once: true
+
+# Part 3: Install Confd on application nodes
+- name: Install Confd on application nodes
+  hosts: nomad_clients
+  become: yes
+  vars:
+    confd_version: "0.16.0"
+    etcd_client_port: 2379
+
+  tasks:
+    - name: Install etcd-client
+      apt:
+        name: etcd-client
+        state: present
+        update_cache: yes
+
+    - name: Download and install Confd
+      get_url:
+        url: "https://github.com/kelseyhightower/confd/releases/download/v{{ confd_version }}/confd-{{ confd_version }}-linux-amd64"
+        dest: /usr/local/bin/confd
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create Confd directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - /etc/confd
+        - /etc/confd/conf.d
+        - /etc/confd/templates
+
+    - name: Create unified Confd configuration
+      copy:
+        content: |
+          backend = "etcdv3"
+          confdir = "/etc/confd"
+          log-level = "info"
+          interval = 10
+          noop = false
+
+          nodes = [
+          {% for host in groups['postgres_nodes'] %}
+            "http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}"{% if not loop.last %},{% endif %}
+          {% endfor %}
+          ]
+        dest: /etc/confd/confd.toml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create pgpool resource configuration
+      copy:
+        content: |
+          [template]
+          src = "pgpool.conf.tmpl"
+          dest = "/etc/pgpool2/pgpool.conf"
+          owner = "postgres"
+          group = "postgres"
+          mode = "0644"
+
+          keys = [
+            "/service/proposalsapp/leader",
+            "/service/proposalsapp/members",
+            "/local/datacenter",
+            "/local/ips",
+            "/pgcat",
+          ]
+
+          reload_cmd = "systemctl is-active --quiet pgpool && pgpool reload || true"
+        dest: /etc/confd/conf.d/pgpool.toml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create Confd systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Confd
+          Documentation=https://github.com/kelseyhightower/confd
+          After=network.target etcd.service
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/bin/confd -config-file /etc/confd/confd.toml
+          Restart=always
+          RestartSec=5
+          StandardOutput=journal
+          StandardError=journal
+          Environment="LOCAL_DATACENTER={{ datacenter }}"
+
+          # Security hardening
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=strict
+          ProtectHome=true
+          ReadWritePaths=/etc/pgpool2 /etc/haproxy
+
+          # Permissions for reloading services
+          AmbientCapabilities=CAP_KILL CAP_SYS_ADMIN
+          CapabilityBoundingSet=CAP_KILL CAP_SYS_ADMIN
+
+          # Resource limits
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/confd.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable Confd service (but don't start yet)
+      systemd:
+        name: confd
+        enabled: yes
+        state: stopped
+        daemon_reload: yes
+
+# Part 4: Install pgpool-II on application nodes
+- name: Install and configure pgpool-II
+  hosts: nomad_clients
+  become: true
+  vars:
+    pgpool_version: "4.5.0"
+    pgpool_config_dir: /etc/pgpool2
+    pgpool_log_dir: /var/log/pgpool2
+    pgpool_run_dir: /var/run/pgpool
+    pgpool_data_dir: /var/lib/pgpool2
+    database_name: proposalsapp
+    database_user: proposalsapp
+    database_password: "{{ vault_postgres_password }}"
+    pgpool_admin_password: "{{ vault_pgpool_admin_password | default(vault_postgres_password) }}"
+    pgpool_pcp_password: "{{ vault_pgpool_pcp_password | default(pgpool_admin_password) }}"
+    etcd_client_port: 2379
+
+  tasks:
+    - name: Wait for PostgreSQL cluster to be ready
+      pause:
+        seconds: 20
+      run_once: true
+
+    - name: Add PostgreSQL APT key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL APT repository
+      apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main"
+        state: present
+        update_cache: yes
+
+    - name: Install pgpool-II and dependencies
+      apt:
+        name:
+          - pgpool2
+          - postgresql-client-17
+          - libpq5
+          - python3-psycopg2
+        state: present
+
+    - name: Stop default pgpool service
+      systemd:
+        name: pgpool2
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Create pgpool directories
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner | default('postgres') }}"
+        group: "{{ item.group | default('postgres') }}"
+        mode: "{{ item.mode | default('0755') }}"
+      loop:
+        - { path: "{{ pgpool_config_dir }}" }
+        - { path: "{{ pgpool_log_dir }}" }
+        - { path: "{{ pgpool_run_dir }}" }
+        - { path: "{{ pgpool_data_dir }}" }
+        - { path: "/var/run/postgresql", mode: "0755" }
+        - { path: "/run/postgresql", mode: "0755" }
+        - { path: "/run/pgpool", mode: "0755" }
+
+    - name: Create initial pgpool configuration
+      template:
+        src: ../../templates/pgpool.conf.j2
+        dest: "{{ pgpool_config_dir }}/pgpool.conf"
+        owner: postgres
+        group: postgres
+        mode: "0644"
+        backup: yes
+
+    - name: Create pool_hba configuration
+      template:
+        src: ../../templates/pool_hba.conf.j2
+        dest: "{{ pgpool_config_dir }}/pool_hba.conf"
+        owner: postgres
+        group: postgres
+        mode: "0644"
+
+    - name: Generate PCP password hash
+      shell: |
+        echo -n "{{ pgpool_pcp_password }}pgpool" | md5sum | awk '{print $1}'
+      register: pcp_password_hash
+      changed_when: false
+
+    - name: Create pcp.conf
+      copy:
+        content: |
+          pgpool:{{ pcp_password_hash.stdout }}
+        dest: "{{ pgpool_config_dir }}/pcp.conf"
+        owner: postgres
+        group: postgres
+        mode: "0600"
+
+    - name: Create pool_passwd file for SCRAM authentication
+      copy:
+        content: |
+          {{ database_user }}:{{ vault_postgres_password }}
+        dest: "{{ pgpool_config_dir }}/pool_passwd"
+        owner: postgres
+        group: postgres
+        mode: "0600"
+
+    - name: Set local datacenter and IPs in etcd
+      shell: |
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/datacenter" "{{ datacenter }}"
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/ips/{{ datacenter }}" "{{ tailscale_ip }}"
+        {% for host in groups['postgres_nodes'] %}
+        etcdctl --endpoints="{% for h in groups['postgres_nodes'] %}http://{{ hostvars[h]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/local/ips/{{ hostvars[host]['datacenter'] }}" "{{ hostvars[host]['tailscale_ip'] }}"
+        {% endfor %}
+      changed_when: false
+
+    - name: Set pgcat password in etcd
+      shell: |
+        etcdctl --endpoints="{% for host in groups['postgres_nodes'] %}http://{{ hostvars[host]['tailscale_ip'] }}:{{ etcd_client_port }}{% if not loop.last %},{% endif %}{% endfor %}" \
+                put "/pgcat/password" "{{ vault_postgres_password }}"
+      changed_when: false
+      run_once: true
+
+    - name: Deploy pgpool Confd template
+      copy:
+        src: ../../files/pgpool.conf.tmpl
+        dest: /etc/confd/templates/pgpool.conf.tmpl
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create custom pgpool systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=pgpool-II PostgreSQL connection pooler
+          After=network-online.target confd.service
+          Wants=network-online.target
+
+          [Service]
+          Type=forking
+          PIDFile=/run/pgpool/pgpool.pid
+          User=postgres
+          Group=postgres
+
+          Environment="PGDATA=/var/lib/postgresql/17/main"
+          
+          ExecStart=/usr/sbin/pgpool -D -f {{ pgpool_config_dir }}/pgpool.conf -F {{ pgpool_config_dir }}/pcp.conf -a {{ pgpool_config_dir }}/pool_hba.conf
+          ExecReload=/usr/sbin/pgpool reload
+          ExecStop=/usr/sbin/pgpool -m fast stop
+
+          Restart=always
+          RestartSec=10
+
+          LimitNOFILE=65536
+
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier=pgpool
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/pgpool.service
+        mode: "0644"
+
+    - name: Start Confd service
+      systemd:
+        name: confd
+        state: started
+
+    - name: Wait for Confd to generate pgpool configuration
+      pause:
+        seconds: 15
+
+    - name: Start and enable pgpool service
+      systemd:
+        name: pgpool
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Wait for pgpool to start
+      wait_for:
+        port: 5432
+        host: localhost
+        delay: 5
+        timeout: 30
+
+    - name: Test pgpool connection
+      shell: |
+        PGPASSWORD='{{ database_password }}' psql -h 127.0.0.1 -p 5432 -U {{ database_user }} -d {{ database_name }} -c "SELECT 1 as test" -t
+      register: pgpool_test
+      retries: 3
+      delay: 5
+      until: pgpool_test.rc == 0
+
+    - name: Deploy pgpool health check components
+      block:
+        - name: Deploy pgpool health check script
+          template:
+            src: ../../templates/pgpool-health-check.sh.j2
+            dest: /usr/local/bin/pgpool-health-check.sh
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Deploy pgpool health check service
+          template:
+            src: ../../templates/pgpool-health-check.service.j2
+            dest: /etc/systemd/system/pgpool-health-check.service
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Deploy pgpool health check timer
+          template:
+            src: ../../templates/pgpool-health-check.timer.j2
+            dest: /etc/systemd/system/pgpool-health-check.timer
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Enable and start pgpool health check timer
+          systemd:
+            name: pgpool-health-check.timer
+            enabled: yes
+            state: started
+            daemon_reload: yes
+
+    - name: Create pgpool Consul health check
+      copy:
+        content: |
+          {
+            "service": {
+              "name": "pgpool",
+              "tags": ["postgres", "proxy", "pooler"],
+              "port": 5432,
+              "check": {
+                "tcp": "localhost:5432",
+                "interval": "10s",
+                "timeout": "5s"
+              }
+            }
+          }
+        dest: /etc/consul.d/pgpool.json
+        mode: "0644"
+
+    - name: Reload Consul to register pgpool service
+      systemd:
+        name: consul
+        state: reloaded
+
+    - name: Store pgpool connection strings in Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop:
+        - {
+            key: "pgpool/connection_string/local",
+            value: "postgresql://{{ database_user }}:{{ database_password | urlencode }}@localhost:5432/{{ database_name }}",
+          }
+        - { key: "pgpool/port", value: "5432" }
+        - { key: "pgpool/enabled", value: "true" }
+        - { key: "pgpool/pool_mode", value: "transaction" }
+      run_once: true
+
+# Final verification
+- name: Verify PostgreSQL Cluster
+  hosts: postgres_nodes[0]
+  gather_facts: false
+  tasks:
+    - name: Get cluster overview
+      shell: |
+        echo "=== PATRONI CLUSTER OVERVIEW ==="
+        /var/lib/postgresql/.local/bin/patronictl -c /etc/patroni/patroni.yml list
+        echo ""
+        echo "=== ETCD KEYS ==="
+        export ETCDCTL_API=3
+        /usr/local/bin/etcdctl get /service --prefix --keys-only | head -20
+      register: cluster_overview
+      changed_when: false
+
+    - name: Display cluster overview
+      debug:
+        msg: |
+          ========================================
+          PostgreSQL HA Cluster with pgpool-II
+          ========================================
+          {{ cluster_overview.stdout }}
+          
+          Connection via pgpool: postgresql://proposalsapp:***@localhost:5432/proposalsapp
+          ========================================
