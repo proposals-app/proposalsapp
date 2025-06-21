@@ -104,6 +104,35 @@
         mode: "0640"
       notify: restart nomad
 
+    - name: Create systemd override directory for Nomad
+      file:
+        path: /etc/systemd/system/nomad.service.d
+        state: directory
+        mode: "0755"
+
+    - name: Create Nomad systemd service override
+      copy:
+        content: |
+          [Service]
+          Environment="CONSUL_HTTP_ADDR=http://127.0.0.1:{{ consul_client_port }}"
+        dest: /etc/systemd/system/nomad.service.d/override.conf
+      notify:
+        - reload systemd
+        - restart nomad
+
+    - name: Create host volume directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: nomad
+        group: nomad
+        mode: "0755"
+      loop:
+        - /opt/nomad-volumes
+        - /opt/nomad-volumes/loki
+        - /opt/nomad-volumes/grafana
+        - /opt/nomad-volumes/prometheus
+
     - name: Create Docker daemon configuration
       copy:
         content: |
@@ -142,11 +171,16 @@
         name: "{{ item }}"
         state: started
         enabled: yes
+        daemon_reload: yes
       loop:
         - docker
         - nomad
 
   handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
     - name: restart nomad
       systemd:
         name: nomad

@@ -14,22 +14,66 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Function to get the first available Nomad server
 get_nomad_server() {
-    # Try to get Nomad server IPs from inventory
-    local servers=(
-        "100.125.71.27"  # consul-nomad-sib-01
-        "100.92.177.11"  # consul-nomad-sib-03
-        "100.69.93.109"  # consul-nomad-fsn-01
-    )
-
-    for server in "${servers[@]}"; do
-        if curl -s -f "http://${server}:4646/v1/status/leader" >/dev/null 2>&1; then
-            echo "http://${server}:4646"
-            return 0
+    # Get vault password file path
+    local vault_pass_file="${SCRIPT_DIR}/.vault_pass"
+    
+    # Extract Nomad server IPs from inventory using ansible
+    echo "Extracting Nomad server information from inventory..." >&2
+    local nomad_servers=$(ansible nomad_servers -i "${SCRIPT_DIR}/inventory.yml" \
+        --vault-password-file "${vault_pass_file}" \
+        -m debug -a "var=tailscale_ip" 2>/dev/null | \
+        grep -o '"tailscale_ip": "[^"]*"' | \
+        cut -d'"' -f4 | \
+        grep -v '^$' || true)
+    
+    # If no tailscale IPs found, try ansible_host
+    if [ -z "$nomad_servers" ]; then
+        nomad_servers=$(ansible nomad_servers -i "${SCRIPT_DIR}/inventory.yml" \
+            --vault-password-file "${vault_pass_file}" \
+            -m debug -a "var=ansible_host" 2>/dev/null | \
+            grep -o '"ansible_host": "[^"]*"' | \
+            cut -d'"' -f4 | \
+            grep -v '^$' || true)
+    fi
+    
+    # If still no servers found, fall back to known IPs
+    if [ -z "$nomad_servers" ]; then
+        nomad_servers="100.125.71.27 100.92.177.11 100.69.93.109"
+    fi
+    
+    # Check if we need authentication
+    local auth_args=""
+    if [ -n "$NOMAD_TOKEN" ]; then
+        auth_args="-H X-Nomad-Token:${NOMAD_TOKEN}"
+    fi
+    
+    # Try each server
+    for server in $nomad_servers; do
+        echo "Trying Nomad server at ${server}..." >&2
+        # Use separate curl command to handle auth header properly
+        if [ -n "$NOMAD_TOKEN" ]; then
+            if curl -s -f -H "X-Nomad-Token:${NOMAD_TOKEN}" "http://${server}:4646/v1/status/leader" >/dev/null 2>&1; then
+                echo "http://${server}:4646"
+                return 0
+            fi
+        else
+            if curl -s -f "http://${server}:4646/v1/status/leader" >/dev/null 2>&1; then
+                echo "http://${server}:4646"
+                return 0
+            fi
         fi
     done
-
+    
+    echo "" >&2
     echo "Error: Could not find any accessible Nomad server" >&2
-    echo "Please set NOMAD_ADDR environment variable manually" >&2
+    echo "" >&2
+    echo "Troubleshooting steps:" >&2
+    echo "1. Ensure you are connected to the Tailscale VPN" >&2
+    echo "2. Set NOMAD_ADDR manually: export NOMAD_ADDR=http://<server-ip>:4646" >&2
+    echo "3. If ACLs are enabled, set NOMAD_TOKEN: export NOMAD_TOKEN=<your-token>" >&2
+    echo "" >&2
+    echo "To find Nomad servers manually, run:" >&2
+    echo "  ansible nomad_servers -i inventory.yml --list-hosts --vault-password-file .vault_pass" >&2
     return 1
 }
 

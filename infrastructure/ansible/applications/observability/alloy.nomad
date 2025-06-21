@@ -52,25 +52,60 @@ job "alloy" {
 // File discovery
 local.file_match "logs" {
   path_targets = [
+    // rindexer logs
     {
       __path__ = "/var/lib/nomad/alloc/*/alloc/logs/rindexer.stdout.*",
       job = "rindexer",
+      stream = "stdout",
     },
+    {
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/rindexer.stderr.*",
+      job = "rindexer",
+      stream = "stderr",
+    },
+    // discourse logs
     {
       __path__ = "/var/lib/nomad/alloc/*/alloc/logs/discourse.stdout.*",
       job = "discourse",
+      stream = "stdout",
     },
+    {
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/discourse.stderr.*",
+      job = "discourse",
+      stream = "stderr",
+    },
+    // mapper logs
     {
       __path__ = "/var/lib/nomad/alloc/*/alloc/logs/mapper.stdout.*",
       job = "mapper",
+      stream = "stdout",
     },
+    {
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/mapper.stderr.*",
+      job = "mapper",
+      stream = "stderr",
+    },
+    // web logs
     {
       __path__ = "/var/lib/nomad/alloc/*/alloc/logs/web.stdout.*",
       job = "web",
+      stream = "stdout",
     },
+    {
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/web.stderr.*",
+      job = "web",
+      stream = "stderr",
+    },
+    // email-service logs
     {
       __path__ = "/var/lib/nomad/alloc/*/alloc/logs/email-service.stdout.*",
       job = "email-service",
+      stream = "stdout",
+    },
+    {
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/email-service.stderr.*",
+      job = "email-service",
+      stream = "stderr",
     },
   ]
 }
@@ -104,10 +139,11 @@ loki.process "json" {
     action_on_failure = "fudge"
   }
 
-  // Add level label if found
+  // Add level label if found and stream label
   stage.labels {
     values = {
       level = "",
+      stream = "",
     }
   }
 
