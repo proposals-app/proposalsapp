@@ -531,7 +531,12 @@ export async function getTotalVotingPower(daoId: string): Promise<number> {
   cacheLife('hours');
   cacheTag(`total-vp-${daoId}`); // Add tag
 
-  daoIdSchema.parse(daoId);
+  // Validate daoId
+  try {
+    daoIdSchema.parse(daoId);
+  } catch {
+    return 0;
+  }
 
   try {
     const result = await db.public

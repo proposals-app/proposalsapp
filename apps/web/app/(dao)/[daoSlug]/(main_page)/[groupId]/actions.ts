@@ -37,7 +37,13 @@ import { revalidateTag } from 'next/cache';
 
 export async function updateLastReadAt(groupId: string, daoSlug: string) {
   try {
-    groupIdSchema.parse(groupId);
+    // Validate groupId
+    try {
+      groupIdSchema.parse(groupId);
+    } catch {
+      // Invalid groupId, silently return
+      return;
+    }
     const { userId } = await requireAuth(daoSlug);
 
     const now = new Date();
@@ -71,9 +77,22 @@ export async function getGroup(groupId: string) {
   'use cache';
   cacheLife('hours');
 
-  groupIdSchema.parse(groupId);
+  // Handle special cases first
+  if (
+    groupId === 'favicon.ico' ||
+    groupId === 'robots.txt' ||
+    groupId === 'sitemap.xml'
+  ) {
+    return null;
+  }
 
-  if (groupId == 'favicon.ico') return null;
+  // Validate after special cases
+  try {
+    groupIdSchema.parse(groupId);
+  } catch (_error) {
+    // Return null for invalid UUIDs instead of throwing
+    return null;
+  }
 
   let group: Selectable<ProposalGroup> | null = null;
 
@@ -209,7 +228,13 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
   'use cache';
   cacheLife('minutes');
 
-  groupIdSchema.parse(groupId);
+  // Validate groupId
+  try {
+    groupIdSchema.parse(groupId);
+  } catch {
+    // Return empty array for invalid groupId
+    return [];
+  }
 
   const bodies: BodyVersionType[] = [];
 
@@ -444,7 +469,13 @@ async function getAuthor(groupId: string) {
   'use cache';
   cacheLife('hours');
 
-  groupIdSchema.parse(groupId);
+  // Validate groupId
+  try {
+    groupIdSchema.parse(groupId);
+  } catch {
+    // Return null for invalid groupId
+    return null;
+  }
 
   const group = await db.public
     .selectFrom('proposalGroup')
@@ -675,7 +706,13 @@ export async function getFeed(
   'use cache';
   cacheLife('minutes');
 
-  groupIdSchema.parse(groupId);
+  // Validate groupId
+  try {
+    groupIdSchema.parse(groupId);
+  } catch {
+    // Return empty results for invalid groupId
+    return { votes: [], posts: [], events: [] };
+  }
 
   let author = null;
 
@@ -1170,7 +1207,17 @@ export async function getGroupHeader(groupId: string): Promise<{
   'use cache';
   cacheLife('hours');
 
-  groupIdSchema.parse(groupId);
+  // Validate groupId
+  try {
+    groupIdSchema.parse(groupId);
+  } catch {
+    // Return default values for invalid groupId
+    return {
+      originalAuthorName: 'Unknown',
+      originalAuthorPicture: '',
+      groupName: 'Invalid Group',
+    };
+  }
 
   interface AuthorInfo {
     originalAuthorName: string;

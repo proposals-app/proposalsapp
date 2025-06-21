@@ -55,7 +55,16 @@ export async function getNonVoters(proposalId: string) {
     discourseUserId: string;
   };
 
-  proposalIdSchema.parse(proposalId);
+  // Validate proposalId
+  try {
+    proposalIdSchema.parse(proposalId);
+  } catch {
+    return {
+      totalNumberOfNonVoters: 0,
+      totalVotingPower: 0,
+      nonVoters: [],
+    };
+  }
 
   // 0. Fetch proposal
   const proposal = await db.public
@@ -285,7 +294,12 @@ export async function getVotesWithVoters(proposalId: string) {
   'use cache';
   cacheLife('minutes');
 
-  proposalIdSchema.parse(proposalId);
+  // Validate proposalId
+  try {
+    proposalIdSchema.parse(proposalId);
+  } catch {
+    return [];
+  }
 
   // 0. Fetch proposal to get daoId
   const proposal = await db.public
@@ -518,9 +532,14 @@ export async function getDelegateVotingPower(
   'use cache';
   cacheLife('hours');
 
-  voterAddressSchema.parse(voterAddress);
-  daoSlugSchema.parse(daoSlug);
-  proposalIdSchema.parse(proposalId);
+  // Validate all parameters
+  try {
+    voterAddressSchema.parse(voterAddress);
+    daoSlugSchema.parse(daoSlug);
+    proposalIdSchema.parse(proposalId);
+  } catch {
+    return null;
+  }
 
   // Get the proposal to determine timestamps
   const proposal = await db.public
