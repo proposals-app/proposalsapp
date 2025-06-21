@@ -82,7 +82,7 @@ job "discourse" {
       }
 
       env {
-        RUST_LOG = "info,discourse=debug"
+        # Removed RUST_LOG to allow JSON formatting from code
         RUST_BACKTRACE = "1"
 
         # Database

@@ -32,7 +32,7 @@ job "alloy" {
 
         volumes = [
           "local/config.alloy:/etc/alloy/config.alloy",
-          "/opt/nomad/alloc:/opt/nomad/alloc:ro",
+          "/var/lib/nomad/alloc:/var/lib/nomad/alloc:ro",
           "/var/log:/var/log:ro",
         ]
 
@@ -47,164 +47,114 @@ job "alloy" {
 
       template {
         data = <<EOF
-// Discover Nomad allocation log files
-local.file_match "nomad_logs" {
+// Simple Alloy configuration for ProposalsApp logs
+
+// File discovery
+local.file_match "logs" {
   path_targets = [
     {
-      __path__ = "/opt/nomad/alloc/*/alloc/logs/*.stdout.[0-9]*",
-      job = "nomad-alloc-logs",
-      stream = "stdout",
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/rindexer.stdout.*",
+      job = "rindexer",
     },
     {
-      __path__ = "/opt/nomad/alloc/*/alloc/logs/*.stderr.[0-9]*", 
-      job = "nomad-alloc-logs",
-      stream = "stderr",
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/discourse.stdout.*",
+      job = "discourse",
+    },
+    {
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/mapper.stdout.*",
+      job = "mapper",
+    },
+    {
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/web.stdout.*",
+      job = "web",
+    },
+    {
+      __path__ = "/var/lib/nomad/alloc/*/alloc/logs/email-service.stdout.*",
+      job = "email-service",
     },
   ]
-  sync_period = "10s"
 }
 
-// Tail the discovered log files
-loki.source.file "nomad_files" {
-  targets    = local.file_match.nomad_logs.targets
-  forward_to = [loki.process.nomad_logs.receiver]
-  
-  // Don't re-read old logs on restart
-  tail_from_end = false
+// Read log files
+loki.source.file "logs" {
+  targets = local.file_match.logs.targets
+  forward_to = [loki.process.json.receiver]
+  tail_from_end = true
 }
 
-// Process and enrich logs
-loki.process "nomad_logs" {
-  // Extract metadata from file path
-  stage.regex {
-    expression = "/opt/nomad/alloc/(?P<alloc_id>[^/]+)/alloc/logs/(?P<task_name>[^.]+)\\.(?P<stream>stdout|stderr)"
-  }
-  
-  // Add extracted values as labels
-  stage.labels {
-    values = {
-      alloc_id    = "alloc_id",
-      task_name   = "task_name",
-      service_name = "task_name",  // Use task_name as service_name
-      stream      = "stream",
-      datacenter  = "{{ env "node.datacenter" }}",
-      node        = "{{ env "node.unique.name" }}",
-    }
-  }
-
-  // Parse JSON logs if present
+// Process logs
+loki.process "json" {
+  // Try to parse as JSON
   stage.json {
     expressions = {
-      level      = "level",
-      message    = "message", 
-      timestamp  = "timestamp",
-      target     = "target",
-      span       = "span",
-      file       = "file",
-      line       = "line",
-    }
-    
-    // Don't fail if JSON parsing fails (for non-JSON logs)
-    drop_malformed = false
-  }
-
-  // Set level label from parsed JSON or default to info
-  stage.labels {
-    values = {
+      timestamp = "timestamp",
       level = "level",
+      message = "message",
+      service = "service",
+      user_id = "user_id",
+      dao = "dao",
+      proposal_id = "proposal_id",
     }
   }
 
-  // Use timestamp from log if available
+  // Set timestamp if found
   stage.timestamp {
     source = "timestamp"
     format = "RFC3339"
-    fallback_formats = [
-      "2006-01-02T15:04:05.999999999Z07:00",
-      "2006-01-02T15:04:05Z07:00",
-    ]
-    
-    // Don't fail if timestamp parsing fails
     action_on_failure = "fudge"
   }
-  
-  forward_to = [loki.write.loki.receiver]
-}
 
-// System logs (optional)
-local.file_match "system_logs" {
-  path_targets = [
-    {
-      __path__ = "/var/log/syslog",
-      job = "syslog",
-    },
-  ]
-  sync_period = "10s"
-}
-
-loki.source.file "system_files" {
-  targets    = local.file_match.system_logs.targets
-  forward_to = [loki.process.system_logs.receiver]
-}
-
-loki.process "system_logs" {
-  // Parse syslog format
-  stage.regex {
-    expression = "^(?P<timestamp>\\w+ \\d+ \\d+:\\d+:\\d+) (?P<hostname>\\S+) (?P<program>\\S+?)(\\[(?P<pid>\\d+)\\])?: (?P<message>.*)$"
-  }
-  
+  // Add level label if found
   stage.labels {
     values = {
-      hostname = "hostname",
-      program  = "program",
+      level = "",
     }
   }
-  
-  stage.timestamp {
-    source = "timestamp"
-    format = "Jan 02 15:04:05"
-    
-    // Add the current year since syslog doesn't include it
-    location = "Local"
+
+  // Add high cardinality fields as metadata
+  stage.structured_metadata {
+    values = {
+      service = "",
+      user_id = "",
+      dao = "",
+      proposal_id = "",
+    }
   }
-  
+
+  // Output the message or original line
+  stage.output {
+    source = "message"
+  }
+
   forward_to = [loki.write.loki.receiver]
 }
 
-// Send logs to Loki
+// Send to Loki
 loki.write "loki" {
   endpoint {
-    url = "http://{{ range service "loki" }}{{ .Address }}:{{ .Port }}{{ end }}/loki/api/v1/push"
-    tenant_id = "proposalsapp"
-    
-    // Batch configuration
-    // batch_size = 1048576  // Default is fine
-    // batch_wait = "1s"     // Default is fine
+    url = "http://{{ range service "loki@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:3100{{ end }}/loki/api/v1/push"
+    batch_size = "1MiB"
+    batch_wait = "1s"
   }
   
-  // External labels added to all logs
   external_labels = {
     cluster = "proposalsapp",
     datacenter = "{{ env "node.datacenter" }}",
   }
 }
 
-// Expose metrics for monitoring
+// Metrics export
 prometheus.exporter.self "alloy" {}
 
-// Scrape our own metrics
 prometheus.scrape "alloy" {
-  targets    = prometheus.exporter.self.alloy.targets
+  targets = prometheus.exporter.self.alloy.targets
   forward_to = [prometheus.remote_write.metrics.receiver]
-  
-  // Scrape every 60s
   scrape_interval = "60s"
 }
 
-// Send metrics to Prometheus (optional)
 prometheus.remote_write "metrics" {
   endpoint {
-    url = "http://prometheus.service.consul:9090/api/v1/write"
+    url = "http://{{ range service "prometheus@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:9090{{ end }}/api/v1/write"
   }
 }
 EOF
@@ -222,8 +172,7 @@ EOF
         port = "http"
         tags = ["metrics", "ui", "urlprefix-/alloy"]
         
-        # Use Tailscale IP for service registration
-        address = "${attr.tailscale.ip}"
+        # Let Consul determine the address
 
         check {
           type     = "http"

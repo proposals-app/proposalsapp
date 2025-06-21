@@ -14,6 +14,12 @@ job "prometheus" {
     constraint {
       distinct_hosts = true
     }
+    
+    # Force deployment to dc1 for observability stack colocation
+    constraint {
+      attribute = "${node.datacenter}"
+      value     = "dc1"
+    }
 
     network {
       mode = "host"

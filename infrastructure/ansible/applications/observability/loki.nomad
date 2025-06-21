@@ -14,6 +14,12 @@ job "loki" {
     constraint {
       distinct_hosts = true
     }
+    
+    # Force deployment to dc1 for observability stack colocation
+    constraint {
+      attribute = "${node.datacenter}"
+      value     = "dc1"
+    }
 
     network {
       mode = "host"
@@ -66,6 +72,8 @@ server:
   http_listen_port: 3100
   grpc_listen_port: 9095
   log_level: info
+  grpc_server_max_recv_msg_size: 8388608  # 8MB
+  grpc_server_max_send_msg_size: 8388608  # 8MB
 
 common:
   instance_addr: 127.0.0.1
@@ -85,6 +93,7 @@ query_range:
       embedded_cache:
         enabled: true
         max_size_mb: 100
+  parallelise_shardable_queries: true
 
 schema_config:
   configs:
@@ -116,6 +125,11 @@ limits_config:
   max_streams_per_user: 10000
   volume_enabled: true
   allow_structured_metadata: true
+  max_entries_limit_per_query: 10000
+  max_global_streams_per_user: 50000
+  max_label_name_length: 1024
+  max_label_value_length: 2048
+  max_label_names_per_series: 30
 
 compactor:
   working_directory: /alloc/data/loki/compactor
@@ -127,6 +141,26 @@ compactor:
 
 pattern_ingester:
   enabled: true
+
+query_scheduler:
+  max_outstanding_requests_per_tenant: 2048
+
+frontend:
+  max_outstanding_per_tenant: 2048
+  
+ingester:
+  wal:
+    enabled: true
+    dir: /alloc/data/loki/wal
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+  chunk_idle_period: 1h
+  max_chunk_age: 2h
+  chunk_target_size: 1572864  # 1.5MB
+  chunk_retain_period: 5m
+  flush_check_period: 10s
 EOF
         destination = "local/loki.yaml"
         change_mode = "restart"
@@ -144,7 +178,7 @@ EOF
 
         check {
           type     = "http"
-          path     = "/metrics"
+          path     = "/ready"
           interval = "10s"
           timeout  = "2s"
         }

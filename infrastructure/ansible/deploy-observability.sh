@@ -148,15 +148,21 @@ if ! nomad job run "$SCRIPT_DIR/applications/observability/loki.nomad"; then
 fi
 wait_for_job_healthy "loki" 120
 
+# Give Loki time to fully initialize
+echo "Waiting for Loki to fully initialize..."
+sleep 15
+
 # Deploy Alloy (on all nodes)
 echo ""
 echo "Deploying Alloy (log & metrics collection)..."
+echo "Note: Alloy configuration has been simplified for better JSON log parsing"
 if ! nomad job run "$SCRIPT_DIR/applications/observability/alloy.nomad"; then
     echo "Error: Failed to deploy Alloy"
     exit 1
 fi
-# Alloy is a system job, so we just wait a bit
-sleep 15
+# Alloy is a system job, so we just wait a bit for it to start on all nodes
+echo "Waiting for Alloy to start on all nodes..."
+sleep 20
 
 # Deploy Prometheus
 echo ""
@@ -170,6 +176,7 @@ wait_for_job_healthy "prometheus" 120
 # Deploy Grafana
 echo ""
 echo "Deploying Grafana (visualization)..."
+echo "Note: Grafana includes a new 'ProposalsApp Logs Overview' dashboard"
 if ! nomad job run "$SCRIPT_DIR/applications/observability/grafana.nomad"; then
     echo "Error: Failed to deploy Grafana"
     exit 1
@@ -251,8 +258,21 @@ echo "Default Grafana credentials:"
 echo "- Username: admin"
 echo "- Password: admin"
 echo ""
+echo "Key improvements in this deployment:"
+echo "- Simplified Alloy log processing pipeline"
+echo "- Better JSON log parsing for Rust services"
+echo "- Normalized log level labels (error, warn, info, debug, trace)"
+echo "- Improved Grafana dashboard with better visualizations"
+echo "- Optimized Loki configuration for performance"
+echo ""
 echo "Logs are being collected from all Nomad allocations automatically."
+echo "Services detected: rindexer, discourse, mapper, web, email-service"
 echo ""
 echo "To see the actual access URLs, run:"
 echo "  ./show-observability-urls.sh"
+echo ""
+echo "To view logs in Grafana:"
+echo "1. Open Grafana at the URL above"
+echo "2. Navigate to 'Dashboards' → 'ProposalsApp Logs Overview'"
+echo "3. Use the service and level filters to explore logs"
 echo "========================================"

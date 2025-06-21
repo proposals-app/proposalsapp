@@ -76,7 +76,7 @@ job "mapper" {
 
       env {
         # Rust settings
-        RUST_LOG = "info,mapper=debug"
+        # Removed RUST_LOG to allow JSON formatting from code
         RUST_BACKTRACE = "1"
 
       }
