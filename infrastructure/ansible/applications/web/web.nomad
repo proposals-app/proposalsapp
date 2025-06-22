@@ -1,7 +1,7 @@
 job "web" {
   datacenters = ["dc1", "dc2", "dc3"]
   type = "service"
-  
+
   update {
     max_parallel      = 1
     health_check      = "checks"
@@ -13,58 +13,58 @@ job "web" {
     canary            = 1
     stagger           = "30s"
   }
-  
+
   group "web" {
     count = 3  # One per datacenter for high availability
-    
+
     # Spread across datacenters
     spread {
       attribute = "${node.datacenter}"
       weight    = 100
     }
-    
+
     migrate {
       max_parallel = 1
       health_check = "checks"
       min_healthy_time = "10s"
       healthy_deadline = "2m"
     }
-    
+
     reschedule {
       delay          = "30s"
       delay_function = "exponential"
       max_delay      = "1h"
       unlimited      = true
     }
-    
+
     restart {
       attempts = 3
       interval = "5m"
       delay    = "30s"
       mode     = "delay"
     }
-    
+
     ephemeral_disk {
       size    = 500
       sticky  = false
       migrate = true
     }
-    
+
     network {
       port "http" {
         to = 3002
       }
     }
-    
+
     task "web" {
       driver = "docker"
-      
+
       config {
         # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/web:latest"
         ports = ["http"]
         force_pull = true
-        
+
         # Add logging configuration
         logging {
           type = "json-file"
@@ -74,14 +74,14 @@ job "web" {
           }
         }
       }
-      
+
       env {
         # Node.js settings
         NODE_ENV = "production"
         PORT = "3002"
-        
+
       }
-      
+
       # This template watches for image changes and triggers restart
       # Only watches the image field to prevent restart loops
       template {
@@ -97,7 +97,7 @@ no-deployment
 {{ end }}
 EOF
       }
-      
+
       # Environment configuration template
       # Does not trigger restarts to avoid loops
       template {
@@ -169,22 +169,22 @@ EOF
         env         = true
         change_mode = "noop"
       }
-      
+
       resources {
-        cpu    = 1000  # 1 CPU core
+        cpu    = 2000  # 2 CPU core
         memory = 2048  # 2GB RAM
-        
+
         # Reserve additional resources for peak loads
         memory_max = 3072  # Allow bursting to 3GB
       }
-      
+
       service {
         name = "web"
         tags = [
           "frontend",
           "nextjs",
           "traefik.enable=true",
-          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`{subdomain:[a-z]+}\\.proposal\\.vote`)",
+          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`[a-z]+\\.proposal\\.vote`)",
           "traefik.http.routers.web.entrypoints=web",
           "traefik.http.services.web.loadbalancer.passhostheader=true",
           "traefik.http.routers.web.priority=1",
@@ -192,7 +192,7 @@ EOF
         ]
         port = "http"
         address_mode = "host"
-        
+
         check {
           type     = "http"
           path     = "/api/health"
