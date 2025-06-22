@@ -184,7 +184,7 @@ EOF
           "frontend",
           "nextjs",
           "traefik.enable=true",
-          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`[a-z]+\\.proposal\\.vote`)",
+          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`{subdomain:[a-z]+}\\.proposal\\.vote`)",
           "traefik.http.routers.web.entrypoints=web",
           "traefik.http.services.web.loadbalancer.passhostheader=true",
           "traefik.http.routers.web.priority=1",
@@ -198,10 +198,6 @@ EOF
           path     = "/api/health"
           interval = "5s"
           timeout  = "2s"
-          
-          header {
-            Host = ["proposal.vote"]
-          }
         }
       }
     }

@@ -7,7 +7,7 @@ use reqwest::Client;
 use sea_orm::DatabaseConnection;
 use tokio::time::Duration;
 use tracing::{error, info, warn};
-use tracing_subscriber::{fmt, EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod grouper;
 mod karma;
@@ -18,12 +18,12 @@ pub async fn initialize_db() -> Result<()> {
     let database_url =
         std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
     let mut opt = sea_orm::ConnectOptions::new(database_url);
-    opt.max_connections(25)
-        .min_connections(5)
-        .connect_timeout(Duration::from_secs(30))
-        .acquire_timeout(Duration::from_secs(30))
-        .idle_timeout(Duration::from_secs(10 * 60))
-        .max_lifetime(Duration::from_secs(30 * 60))
+    opt.max_connections(10) // Reduced from 25
+        .min_connections(2) // Reduced from 5
+        .connect_timeout(Duration::from_secs(10)) // Reduced from 30
+        .acquire_timeout(Duration::from_secs(20)) // Reduced from 30
+        .idle_timeout(Duration::from_secs(5 * 60)) // Reduced from 10 * 60
+        .max_lifetime(Duration::from_secs(30 * 60)) // Keep at 30 minutes
         .sqlx_logging(false);
     let db = sea_orm::Database::connect(opt)
         .await
@@ -35,7 +35,7 @@ pub async fn initialize_db() -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    
+
     // Initialize JSON logging for stdout
     let env_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info"))
@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
         .add_directive("alloy_rpc_client=off".parse().unwrap())
         .add_directive("reqwest=off".parse().unwrap())
         .add_directive("alloy_transport_http=off".parse().unwrap());
-    
+
     tracing_subscriber::registry()
         .with(env_filter)
         .with(
@@ -52,7 +52,7 @@ async fn main() -> Result<()> {
                 .with_target(true)
                 .with_file(true)
                 .with_line_number(true)
-                .with_thread_ids(true)
+                .with_thread_ids(true),
         )
         .init();
 

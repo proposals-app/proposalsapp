@@ -43,12 +43,12 @@ pub async fn initialize_db() -> Result<()> {
         std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = sea_orm::ConnectOptions::new(database_url);
-    opt.max_connections(25)
-        .min_connections(5)
-        .connect_timeout(Duration::from_secs(30))
-        .acquire_timeout(Duration::from_secs(30))
-        .idle_timeout(Duration::from_secs(10 * 60))
-        .max_lifetime(Duration::from_secs(30 * 60))
+    opt.max_connections(10) // Reduced from 25
+        .min_connections(2) // Reduced from 5
+        .connect_timeout(Duration::from_secs(10)) // Reduced from 30
+        .acquire_timeout(Duration::from_secs(20)) // Reduced from 30
+        .idle_timeout(Duration::from_secs(5 * 60)) // Reduced from 10 * 60
+        .max_lifetime(Duration::from_secs(30 * 60)) // Keep at 30 minutes
         .sqlx_logging(false);
 
     let db = sea_orm::Database::connect(opt)

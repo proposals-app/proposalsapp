@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 
 // Common schemas
-export const daoSlugSchema = z.literal(['arbitrum', 'uniswap'], {
+export const daoSlugSchema = z.enum(['arbitrum', 'uniswap'], {
   message: 'DAO slug must be valid.',
 });
 export const daoIdSchema = z.uuid({ message: 'Must be a valid UUID.' });
