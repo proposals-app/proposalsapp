@@ -12,7 +12,7 @@ const redis = createClient({
   // Keep connection alive with periodic pings
   pingInterval: 30000, // 30 seconds
   socket: {
-    keepAlive: 5000, // 5 seconds
+    keepAlive: true, // Enable TCP keep-alive
     connectTimeout: 10000, // 10 seconds
     reconnectStrategy: (times) => {
       // Exponential backoff with max delay of 30 seconds
