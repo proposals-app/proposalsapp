@@ -461,6 +461,44 @@
           - Read commands use local instance (backup mode for remote)
           ========================================
 
+    # Register HAProxy with Consul for service discovery
+    - name: Create HAProxy health check script
+      copy:
+        content: |
+          #!/bin/bash
+          # Check if HAProxy is running and responding
+          curl -f http://localhost:8404/stats >/dev/null 2>&1 || exit 1
+          # Check if Redis backend is reachable via HAProxy
+          timeout 2 redis-cli -h localhost -p 6380 -a '{{ redis_password }}' ping >/dev/null 2>&1 || exit 2
+          exit 0
+        dest: /usr/local/bin/haproxy-redis-health-check
+        mode: '0755'
+
+    - name: Create HAProxy Consul service definition
+      copy:
+        content: |
+          {
+            "service": {
+              "name": "haproxy-redis",
+              "tags": ["proxy", "redis", "cache", "local"],
+              "port": 6380,
+              "check": {
+                "id": "haproxy-redis-health",
+                "name": "HAProxy Redis Health Check",
+                "args": ["/usr/local/bin/haproxy-redis-health-check"],
+                "interval": "10s",
+                "timeout": "5s"
+              }
+            }
+          }
+        dest: /etc/consul.d/haproxy-redis.json
+        mode: '0644'
+
+    - name: Reload Consul to register HAProxy service
+      systemd:
+        name: consul
+        state: reloaded
+
 # Part 3: Verification
 - name: Verify Redis Cluster
   hosts: redis_nodes[0]

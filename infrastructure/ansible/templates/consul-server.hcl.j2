@@ -130,3 +130,8 @@ limits {
   http_max_conns_per_client = 200
   rpc_max_conns_per_client = 100
 }
+
+# Enable Script Checks
+# Required for services that use script-based health checks
+# enable_local_script_checks allows scripts defined in local service definitions
+enable_local_script_checks = true

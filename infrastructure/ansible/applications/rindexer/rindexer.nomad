@@ -66,11 +66,6 @@ job "rindexer" {
         ports = ["health"]
         force_pull = true
 
-        # Allow container to access host services
-        extra_hosts = [
-          "host.docker.internal:host-gateway"
-        ]
-
         # DNS configuration for better host resolution
         dns_servers = ["8.8.8.8", "8.8.4.4"]
 
@@ -156,12 +151,13 @@ DEPLOYMENT_AUTHOR=unknown
 DEPLOYMENT_WORKFLOW_URL=unknown
 {{ end }}
 
-# Database connection - use local pgpool connection string from Consul KV
-# Replace localhost with host.docker.internal for Docker container access
-# Note: This regex is specifically designed to replace only the hostname part
-# Pattern explanation: @localhost: matches the literal string after password
-{{ $dbUrl := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
-DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
+# Database connection - use Nomad service discovery to find pgpool
+# This will resolve to the pgpool service running on the same node
+{{ range service "pgpool" }}
+# Get connection string and replace localhost with discovered address
+{{ $connStr := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+DATABASE_URL={{ $connStr | regexReplaceAll "@localhost:" (printf "@%s:" .Address) }}
+{{ end }}
 
 # Chain RPC endpoints from Consul KV
 ETHEREUM_NODE_URL={{ keyOrDefault "rindexer/ethereum_node_url" "" }}

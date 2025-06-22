@@ -73,3 +73,8 @@ acl {
   enabled = false
   default_policy = "allow"
 }
+
+# Enable Script Checks
+# Required for services like HAProxy that use script-based health checks
+# enable_local_script_checks allows scripts defined in local service definitions
+enable_local_script_checks = true

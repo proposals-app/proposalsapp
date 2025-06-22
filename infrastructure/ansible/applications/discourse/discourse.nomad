@@ -65,11 +65,6 @@ job "discourse" {
         image = "ghcr.io/proposals-app/proposalsapp/discourse:latest"
         ports = ["health"]
         force_pull = true
-        
-        # Allow container to access host services
-        extra_hosts = [
-          "host.docker.internal:host-gateway"
-        ]
 
         # Add logging configuration
         logging {
@@ -136,10 +131,13 @@ DEPLOYMENT_AUTHOR=unknown
 DEPLOYMENT_WORKFLOW_URL=unknown
 {{ end }}
 
-# Database connection - use local pgpool connection string from Consul KV
-# Replace localhost with host.docker.internal for Docker container access
-{{ $dbUrl := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
-DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
+# Database connection - use Nomad service discovery to find pgpool
+# This will resolve to the pgpool service running on the same node
+{{ range service "pgpool" }}
+# Get connection string and replace localhost with discovered address
+{{ $connStr := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+DATABASE_URL={{ $connStr | regexReplaceAll "@localhost:" (printf "@%s:" .Address) }}
+{{ end }}
 
 # BetterStack monitoring key (optional)
 BETTERSTACK_KEY={{ keyOrDefault "discourse/betterstack_key" "" }}

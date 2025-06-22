@@ -65,11 +65,6 @@ job "web" {
         ports = ["http"]
         force_pull = true
         
-        # Allow container to access host services
-        extra_hosts = [
-          "host.docker.internal:host-gateway"
-        ]
-        
         # Add logging configuration
         logging {
           type = "json-file"
@@ -132,12 +127,15 @@ NEXT_PUBLIC_ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposal.vote" }}
 SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
 NEXT_PUBLIC_SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
 
-# Database connection - use local pgpool connection string from Consul KV
-# Replace localhost with host.docker.internal for Docker container access
-{{ $dbUrl := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
-DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
-ARBITRUM_DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
-UNISWAP_DATABASE_URL={{ $dbUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
+# Database connection - use Nomad service discovery to find pgpool
+# This will resolve to the pgpool service running on the same node
+{{ range service "pgpool" }}
+# Get connection string and replace localhost with discovered address
+{{ $connStr := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
+DATABASE_URL={{ $connStr | regexReplaceAll "@localhost:" (printf "@%s:" .Address) }}
+ARBITRUM_DATABASE_URL={{ $connStr | regexReplaceAll "@localhost:" (printf "@%s:" .Address) }}
+UNISWAP_DATABASE_URL={{ $connStr | regexReplaceAll "@localhost:" (printf "@%s:" .Address) }}
+{{ end }}
 
 # Analytics and monitoring
 POSTHOG_KEY={{ keyOrDefault "web/posthog_key" "" }}
@@ -158,10 +156,13 @@ BETTER_AUTH_SECRET={{ keyOrDefault "web/better_auth_secret" "" }}
 # Tally API
 TALLY_API_KEY={{ keyOrDefault "web/tally_api_key" "" }}
 
-# Redis cache - connects via local HAProxy
-# Uses the connection string set by the Redis installation playbook
-{{ $redisUrl := keyOrDefault "redis/connection_string/haproxy" "redis://:password@localhost:6380" }}
-REDIS_URL={{ $redisUrl | regexReplaceAll "@localhost:" "@host.docker.internal:" }}
+# Redis cache - connects via local HAProxy using service discovery
+# HAProxy is registered as "haproxy-redis" service on port 6380
+{{ range service "haproxy-redis" }}
+# Get Redis connection string and replace localhost with discovered address
+{{ $redisConnStr := keyOrDefault "redis/connection_string/haproxy" "redis://:password@localhost:6380" }}
+REDIS_URL={{ $redisConnStr | regexReplaceAll "@localhost:" (printf "@%s:" .Address) }}
+{{ end }}
 
 EOF
         destination = "secrets/env"
