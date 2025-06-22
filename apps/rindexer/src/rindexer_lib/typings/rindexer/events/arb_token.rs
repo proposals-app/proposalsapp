@@ -460,7 +460,6 @@ where
             })
             .clone();
 
-        #[allow(clippy::unnecessary_map_or)]
         let index_event_in_order = contract_details
             .index_event_in_order
             .as_ref()
@@ -474,7 +473,6 @@ where
             providers.insert(n.network.clone(), provider);
         }
 
-        #[allow(clippy::unnecessary_map_or)]
         let contract = ContractInformation {
             name: contract_details
                 .before_modify_name_if_filter_readonly()
@@ -490,7 +488,7 @@ where
                         .expect("must have a provider")
                         .clone(),
                     decoder: self.decoder(&c.network),
-                    indexing_contract_setup: c.indexing_contract_setup(),
+                    indexing_contract_setup: c.indexing_contract_setup(manifest_path),
                     start_block: c.start_block,
                     end_block: c.end_block,
                     disable_logs_bloom_checks: rindexer_yaml

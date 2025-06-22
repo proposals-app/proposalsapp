@@ -50,7 +50,7 @@ tracing-subscriber = "0.3.19"
 # pyroscope = "0.5.8"  # Removed - using stdout logging
 # pyroscope_pprofrs = "0.2.10"  # Removed - using stdout logging
 # rindexer = { path = "../rindexer/core", package = "rindexer" }
-rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp-new", package = "rindexer" }
+rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp", package = "rindexer" }
 tokio-retry = "0.3.0"
 serial_test = "3.2.0"
 proposalsapp-db = { path = "libs/rust/db" }

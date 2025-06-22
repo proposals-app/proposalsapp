@@ -1,8 +1,7 @@
-use crate::rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations_abi_gen::RindexerArbitrumSCNominationsGen::Date;
 use alloy::sol;
+use crate::rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations_abi_gen::RindexerArbitrumSCNominationsGen::Date;
 
 sol!(
-    #[allow(clippy::too_many_arguments)]
     #[derive(Debug)]
     #[sol(rpc, all_derives)]
     RindexerArbitrumSCNominationsGen,

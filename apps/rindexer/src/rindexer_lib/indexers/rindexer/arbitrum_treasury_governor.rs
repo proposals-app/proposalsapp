@@ -795,7 +795,10 @@ async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
     Ok(total_vp)
 }
 
-#[instrument(name = "arbitrum_treasury_governor_update_active_proposals_quorum", skip_all)]
+#[instrument(
+    name = "arbitrum_treasury_governor_update_active_proposals_quorum",
+    skip_all
+)]
 pub async fn update_active_proposals_quorum() -> Result<()> {
     let db = DB.get().unwrap();
 
@@ -838,17 +841,21 @@ pub async fn update_active_proposals_quorum() -> Result<()> {
             .proposalSnapshot(proposal_id_u256)
             .call()
             .await;
-        
+
         let current_quorum = match proposal_snapshot_block_result {
             Ok(snapshot_block) => {
-                match arbitrum_treasury_governor.quorum(snapshot_block).call().await {
+                match arbitrum_treasury_governor
+                    .quorum(snapshot_block)
+                    .call()
+                    .await
+                {
                     Ok(quorum_value) => quorum_value.to::<u128>() as f64 / (10.0f64.powi(18)),
                     Err(e) => {
                         error!(proposal_id = %proposal_id, error = %e, "Failed to fetch current quorum from contract");
                         continue;
                     }
                 }
-            },
+            }
             Err(e) => {
                 error!(proposal_id = %proposal_id, error = %e, "Failed to fetch proposal snapshot block");
                 continue;

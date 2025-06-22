@@ -5,7 +5,7 @@
 use alloy::{primitives::U64, transports::http::reqwest::header::HeaderMap};
 use rindexer::{
     lazy_static,
-    manifest::network::BlockPollFrequency,
+    manifest::network::{AddressFiltering, BlockPollFrequency},
     provider::{JsonRpcCachedProvider, RetryClientError, RindexerProvider, create_client},
     public_read_env_value,
 };
@@ -19,6 +19,7 @@ async fn create_shadow_client(
     compute_units_per_second: Option<u64>,
     block_poll_frequency: Option<BlockPollFrequency>,
     max_block_range: Option<U64>,
+    address_filtering: Option<AddressFiltering>,
 ) -> Result<Arc<JsonRpcCachedProvider>, RetryClientError> {
     let mut header = HeaderMap::new();
     header.insert(
@@ -35,6 +36,7 @@ async fn create_shadow_client(
         max_block_range,
         block_poll_frequency,
         header,
+        address_filtering,
     )
     .await
 }
@@ -60,6 +62,7 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 Some(U64::from(1000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
+                None,
             )
             .await
             .expect("Error creating provider")
@@ -83,6 +86,7 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 Some(U64::from(10000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
+                None,
             )
             .await
             .expect("Error creating provider")
@@ -106,6 +110,7 @@ pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 Some(U64::from(10000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
+                None,
             )
             .await
             .expect("Error creating provider")
@@ -129,6 +134,7 @@ pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 Some(U64::from(10000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
+                None,
             )
             .await
             .expect("Error creating provider")
@@ -152,6 +158,7 @@ pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 Some(U64::from(10000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
+                None,
             )
             .await
             .expect("Error creating provider")
