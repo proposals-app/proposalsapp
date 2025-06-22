@@ -5,9 +5,23 @@ import dotenv from 'dotenv';
 // Load environment variables from .env file
 dotenv.config();
 
-// Configure Redis client
+// Configure Redis client with keepalive settings
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-const redis = createClient({ url: redisUrl });
+const redis = createClient({ 
+  url: redisUrl,
+  // Keep connection alive with periodic pings
+  pingInterval: 30000, // 30 seconds
+  socket: {
+    keepAlive: 5000, // 5 seconds
+    connectTimeout: 10000, // 10 seconds
+    reconnectStrategy: (times) => {
+      // Exponential backoff with max delay of 30 seconds
+      const delay = Math.min(times * 50, 30000);
+      console.log(`Redis reconnecting attempt ${times}, delay: ${delay}ms`);
+      return delay;
+    }
+  }
+});
 
 // Connect to Redis
 (async () => {

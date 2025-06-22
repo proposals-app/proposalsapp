@@ -13,9 +13,15 @@ defaults
     mode    tcp
     option  tcplog
     option  dontlognull
+    # Connection timeout - how long to wait for initial connection
     timeout connect 5000
-    timeout client  30000
-    timeout server  30000
+    # Client timeout - max idle time for client connections (10 minutes)
+    # Increased from 30s to prevent "Socket closed unexpectedly" errors
+    timeout client  600000
+    # Server timeout - max idle time for server connections (10 minutes)
+    # Matches client timeout to prevent premature disconnections
+    timeout server  600000
+    # Health check timeout
     timeout check   2000
     retries 3
 
