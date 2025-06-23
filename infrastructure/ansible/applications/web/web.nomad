@@ -60,7 +60,7 @@ job "web" {
       driver = "docker"
 
       config {
-        # Image is hardcoded here, but will be overridden by job updates
+        # Image will be replaced during deployment
         image = "ghcr.io/proposals-app/proposalsapp/web:latest"
         ports = ["http"]
         force_pull = true
@@ -82,18 +82,23 @@ job "web" {
 
       }
 
-      # This template watches for image changes and triggers restart
-      # Only watches the image field to prevent restart loops
+      # Deployment metadata template for visibility
+      # Does not trigger restarts - deployment is handled by automation
       template {
-        destination = "local/deployment-trigger.txt"
-        change_mode = "restart"
+        destination = "local/deployment-info.txt"
+        change_mode = "noop"
         data = <<EOF
 {{ $deploymentJson := keyOrDefault "web/deployment/main" "{}" }}
 {{ if $deploymentJson }}
 {{ $deployment := $deploymentJson | parseJSON }}
-{{ if $deployment.image }}{{ $deployment.image }}{{ else }}no-image{{ end }}
+Current deployment target:
+  Image: {{ if $deployment.image }}{{ $deployment.image }}{{ else }}unknown{{ end }}
+  Tag: {{ if $deployment.tag }}{{ $deployment.tag }}{{ else }}unknown{{ end }}
+  SHA: {{ if $deployment.sha }}{{ $deployment.sha }}{{ else }}unknown{{ end }}
+  Time: {{ if $deployment.timestamp }}{{ $deployment.timestamp }}{{ else }}unknown{{ end }}
+  Author: {{ if $deployment.author }}{{ $deployment.author }}{{ else }}unknown{{ end }}
 {{ else }}
-no-deployment
+No deployment information available
 {{ end }}
 EOF
       }

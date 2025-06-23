@@ -249,7 +249,8 @@ run_deploy() {
   "branch": "main",
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "deployed_by": "deploy-application.sh",
-  "deployed_from": "$(hostname)"
+  "deployed_from": "$(hostname)",
+  "manual_deployment": true
 }
 EOF
 )
@@ -276,7 +277,36 @@ EOF
         
         if [ "$CONSUL_UPDATED" = false ]; then
             echo "ERROR: Failed to update Consul KV on all servers!"
-            echo "Deployment will proceed but Nomad may not detect the new image."
+            echo "Without Consul KV update, automated deployment will not trigger."
+            echo "Proceeding with manual deployment..."
+        else
+            # Check if automated deployment is enabled
+            echo "Checking for automated deployment service..."
+            AUTOMATION_ENABLED=false
+            for server in "${CONSUL_SERVERS[@]}"; do
+                if ansible $server -i inventory.yml -m systemd -a "name=consul-deployment-watcher" --vault-password-file .vault_pass 2>/dev/null | grep -q "active (running)"; then
+                    AUTOMATION_ENABLED=true
+                    break
+                fi
+            done
+            
+            if [ "$AUTOMATION_ENABLED" = true ]; then
+                echo "✓ Automated deployment is enabled and will handle the update."
+                echo "The deployment handler will:"
+                echo "  1. Detect the Consul KV change"
+                echo "  2. Update the Nomad job with the new image"
+                echo "  3. Perform a rolling update across all datacenters"
+                echo ""
+                echo "Monitor deployment progress with:"
+                echo "  - Nomad: nomad job status $APP_NAME"
+                echo "  - Logs: journalctl -u consul-deployment-watcher -f"
+                echo "  - Handler logs: tail -f /var/log/deployment-handler.log"
+                echo ""
+                echo "Skipping manual deployment as automation will handle it."
+                exit 0
+            else
+                echo "ℹ️  Automated deployment is not enabled. Proceeding with manual deployment."
+            fi
         fi
     fi
 
