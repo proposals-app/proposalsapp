@@ -600,3 +600,212 @@ export async function getDelegateVotingPower(
 }
 
 export type VotesWithVoters = AsyncReturnType<typeof getVotesWithVoters>;
+
+export async function getVotesWithVotersForProposals(proposalIds: string[]) {
+  'use cache';
+  cacheLife('minutes');
+
+  // Validate all proposalIds
+  const validProposalIds = proposalIds.filter((id) => {
+    try {
+      proposalIdSchema.parse(id);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  if (validProposalIds.length === 0) {
+    return [];
+  }
+
+  // 0. Fetch all proposals to get daoIds
+  const proposals = await db.public
+    .selectFrom('proposal')
+    .where('id', 'in', validProposalIds)
+    .select(['id', 'daoId'])
+    .execute();
+
+  if (proposals.length === 0) {
+    return [];
+  }
+
+  // Get unique daoIds (should typically be just one for a group)
+  const daoIds = [...new Set(proposals.map((p) => p.daoId))];
+
+  // 1. Fetch all votes for all proposals in a single query
+  const allVotes = await db.public
+    .selectFrom('vote')
+    .distinctOn(['proposalId', 'voterAddress'])
+    .select([
+      'id',
+      'choice',
+      'createdAt',
+      'proposalId',
+      'reason',
+      'voterAddress',
+      'votingPower',
+    ])
+    .where('proposalId', 'in', validProposalIds)
+    .orderBy('proposalId', 'asc')
+    .orderBy('voterAddress', 'asc')
+    .orderBy('createdAt', 'desc')
+    .execute();
+
+  // 2. Get all unique voter addresses
+  const voterAddresses = [
+    ...new Set(allVotes.map((vote) => vote.voterAddress)),
+  ];
+
+  if (voterAddresses.length === 0) {
+    return allVotes.map((vote) => ({
+      ...vote,
+      ens: null,
+      avatar: `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
+      latestVotingPower: null,
+      discourseUsername: null,
+      discourseAvatarUrl: null,
+      voterAddress: vote.voterAddress,
+    }));
+  }
+
+  // 3. Fetch all voters in a single query
+  const voters = await db.public
+    .selectFrom('voter')
+    .select(['id', 'address', 'ens', 'avatar'])
+    .where('address', 'in', voterAddresses)
+    .execute();
+
+  const voterMap = new Map(voters.map((voter) => [voter.address, voter]));
+  const voterIds = voters.map((v) => v.id);
+
+  // 4. Fetch latest voting power for each voter across all DAOs
+  const latestVotingPowers = await db.public
+    .selectFrom('votingPower')
+    .select(['voter', 'votingPower', 'daoId'])
+    .where('voter', 'in', voterAddresses)
+    .where('daoId', 'in', daoIds)
+    .orderBy('voter', 'asc')
+    .orderBy('daoId', 'asc')
+    .orderBy('timestamp', 'desc')
+    .distinctOn(['voter', 'daoId'])
+    .execute();
+
+  // Create a map for efficient latest voting power lookup by voter and daoId
+  const latestVotingPowerMap = new Map<string, number>();
+  latestVotingPowers.forEach((vp) => {
+    const key = `${vp.voter}-${vp.daoId}`;
+    latestVotingPowerMap.set(key, vp.votingPower);
+  });
+
+  // 5. Find delegate links for all voters across all DAOs
+  const delegateToVoterLinks = await db.public
+    .selectFrom('delegateToVoter as dtv')
+    .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
+    .where('dtv.voterId', 'in', voterIds)
+    .where('d.daoId', 'in', daoIds)
+    .orderBy('dtv.voterId', 'asc')
+    .orderBy('d.daoId', 'asc')
+    .orderBy('dtv.createdAt', 'desc')
+    .distinctOn(['dtv.voterId', 'd.daoId'])
+    .select(['dtv.voterId', 'dtv.delegateId', 'd.daoId'])
+    .execute();
+
+  const delegateIdByVoterAndDao = new Map<string, string>();
+  delegateToVoterLinks.forEach((link) => {
+    const key = `${link.voterId}-${link.daoId}`;
+    delegateIdByVoterAndDao.set(key, link.delegateId);
+  });
+  const delegateIds = [
+    ...new Set(delegateToVoterLinks.map((link) => link.delegateId)),
+  ];
+
+  // 6. Get all daoDiscourseIds for the DAOs
+  const daoDiscourses = await db.public
+    .selectFrom('daoDiscourse')
+    .where('daoId', 'in', daoIds)
+    .where('enabled', '=', true)
+    .select(['id', 'daoId'])
+    .execute();
+
+  let discourseUserMap = new Map<string, Selectable<DiscourseUser>>();
+  let discourseUserIdByDelegateId = new Map<string, string>();
+
+  if (delegateIds.length > 0 && daoDiscourses.length > 0) {
+    // 7. Find discourse user links for all delegates
+    const delegateToDiscourseLinks = await db.public
+      .selectFrom('delegateToDiscourseUser as dtdu')
+      .where('dtdu.delegateId', 'in', delegateIds)
+      .orderBy('dtdu.delegateId', 'asc')
+      .orderBy('dtdu.createdAt', 'desc')
+      .distinctOn('dtdu.delegateId')
+      .select(['dtdu.delegateId', 'dtdu.discourseUserId'])
+      .execute();
+
+    discourseUserIdByDelegateId = new Map(
+      delegateToDiscourseLinks.map((link) => [
+        link.delegateId,
+        link.discourseUserId,
+      ])
+    );
+
+    const discourseUserIds = [
+      ...new Set(delegateToDiscourseLinks.map((link) => link.discourseUserId)),
+    ];
+
+    // 8. Fetch all discourse users
+    if (discourseUserIds.length > 0) {
+      const discourseUsers = await db.public
+        .selectFrom('discourseUser')
+        .where('id', 'in', discourseUserIds)
+        .where(
+          'daoDiscourseId',
+          'in',
+          daoDiscourses.map((dd) => dd.id)
+        )
+        .selectAll()
+        .execute();
+
+      discourseUserMap = new Map(discourseUsers.map((du) => [du.id, du]));
+    }
+  }
+
+  // 9. Map proposal to daoId for lookup
+  const daoIdByProposalId = new Map(proposals.map((p) => [p.id, p.daoId]));
+
+  // 10. Combine all data
+  const votesWithVoters = allVotes.map((vote) => {
+    const voter = voterMap.get(vote.voterAddress);
+    const daoId = daoIdByProposalId.get(vote.proposalId);
+
+    const latestVotingPower = daoId
+      ? latestVotingPowerMap.get(`${vote.voterAddress}-${daoId}`)
+      : undefined;
+
+    let discourseUser: Selectable<DiscourseUser> | null = null;
+    if (voter && daoId) {
+      const delegateId = delegateIdByVoterAndDao.get(`${voter.id}-${daoId}`);
+      if (delegateId) {
+        const discourseUserId = discourseUserIdByDelegateId.get(delegateId);
+        if (discourseUserId) {
+          discourseUser = discourseUserMap.get(discourseUserId) || null;
+        }
+      }
+    }
+
+    return {
+      ...vote,
+      ens: voter?.ens || null,
+      avatar:
+        voter?.avatar ||
+        discourseUser?.avatarTemplate ||
+        `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
+      latestVotingPower: latestVotingPower ?? null,
+      discourseUsername: discourseUser?.username || null,
+      discourseAvatarUrl: discourseUser?.avatarTemplate || null,
+      voterAddress: vote.voterAddress,
+    };
+  });
+
+  return votesWithVoters;
+}

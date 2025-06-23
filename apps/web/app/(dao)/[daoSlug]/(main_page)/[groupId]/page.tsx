@@ -11,7 +11,7 @@ import { MenuBar } from './components/menubar/menu-bar';
 import { Timeline } from './components/timeline/timeline';
 import { Suspense } from 'react';
 import { DynamicLoadingMenuBar } from './components/menubar/loading-menu-bar';
-import { getVotesWithVoters } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
+import { getVotesWithVotersForProposals } from '../../(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 import { BodyHeader, BodyHeaderLoading } from './components/body/body-header';
 import { ResultsMobile } from './components/timeline/mobile/timeline-mobile';
 import { LastReadUpdater } from './components/last-read-updater';
@@ -208,12 +208,7 @@ async function FeedSection({
   ]);
 
   const proposalIds = group?.proposals.map((p) => p.id) || [];
-  const votesWithVotersPromises = proposalIds.map(async (proposalId) => {
-    return await getVotesWithVoters(proposalId);
-  });
-  const allVotesWithVoters = await Promise.all(votesWithVotersPromises).then(
-    (results) => results.flat()
-  );
+  const allVotesWithVoters = await getVotesWithVotersForProposals(proposalIds);
 
   if (!group) {
     notFound();

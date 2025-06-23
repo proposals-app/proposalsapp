@@ -759,44 +759,67 @@ export async function getFeed(
   const proposals: Selectable<Proposal>[] = [];
   const topics: Selectable<DiscourseTopic>[] = [];
 
+  // Batch fetch all proposals at once
   if (proposalItems.length > 0) {
-    for (const proposalItem of proposalItems) {
+    const fetchedProposals = await db.public
+      .selectFrom('proposal')
+      .selectAll()
+      .where((eb) =>
+        eb.or(
+          proposalItems.map((item) =>
+            eb('externalId', '=', item.externalId).and(
+              'governorId',
+              '=',
+              item.governorId
+            )
+          )
+        )
+      )
+      .execute();
+
+    proposals.push(...fetchedProposals);
+  }
+
+  // Batch fetch all votes with filtering at database level
+  if (proposals.length > 0) {
+    const proposalIds = proposals.map((p) => p.id);
+
+    let votesQuery = db.public
+      .selectFrom('vote')
+      .distinctOn('voterAddress')
+      .selectAll()
+      .where('proposalId', 'in', proposalIds)
+      .orderBy('voterAddress', 'asc')
+      .orderBy('createdAt', 'desc');
+
+    // Apply filtering at database level
+    if (fromFilter === FromFilterEnum.FIFTY_THOUSAND) {
+      votesQuery = votesQuery.where('votingPower', '>', 50000);
+    } else if (fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND) {
+      votesQuery = votesQuery.where('votingPower', '>', 500000);
+    } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
+      votesQuery = votesQuery.where('votingPower', '>', 5000000);
+    } else if (fromFilter === FromFilterEnum.AUTHOR && author?.voters) {
+      const authorAddresses = author.voters.map((av) => av.address);
+      votesQuery = votesQuery.where('voterAddress', 'in', authorAddresses);
+    }
+
+    const allVotesForProposals = await votesQuery.execute();
+    allVotes.push(...allVotesForProposals);
+
+    // Group votes by proposal
+    const votesByProposal = new Map<string, Selectable<Vote>[]>();
+    allVotesForProposals.forEach((vote) => {
+      const proposalVotes = votesByProposal.get(vote.proposalId) || [];
+      proposalVotes.push(vote);
+      votesByProposal.set(vote.proposalId, proposalVotes);
+    });
+
+    // Process each proposal with its votes
+    for (const proposal of proposals) {
       try {
-        const proposal = await db.public
-          .selectFrom('proposal')
-          .selectAll()
-          .where('externalId', '=', proposalItem.externalId)
-          .where('governorId', '=', proposalItem.governorId)
-          .executeTakeFirstOrThrow();
-
-        const allVotesForProposal = await db.public
-          .selectFrom('vote')
-          .distinctOn('voterAddress')
-          .selectAll()
-          .where('proposalId', '=', proposal.id)
-          .orderBy('voterAddress', 'asc')
-          .orderBy('createdAt', 'desc')
-          .execute();
-
-        const filteredVotesForTimeline = allVotesForProposal.filter((vote) => {
-          if (fromFilter === FromFilterEnum.FIFTY_THOUSAND) {
-            return vote.votingPower > 50000;
-          } else if (fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND) {
-            return vote.votingPower > 500000;
-          } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
-            return vote.votingPower > 5000000;
-          } else if (fromFilter === FromFilterEnum.ALL) {
-            return true;
-          } else if (fromFilter == FromFilterEnum.AUTHOR) {
-            return author?.voters
-              .map((av) => av.address)
-              .includes(vote.voterAddress);
-          }
-          return true;
-        });
-
-        proposals.push(proposal);
-        allVotes.push(...allVotesForProposal);
+        const proposalVotes = votesByProposal.get(proposal.id) || [];
+        const filteredVotesForTimeline = proposalVotes;
 
         const filteredProcessedResults = await processResultsAction(
           proposal,
@@ -944,6 +967,7 @@ export async function getFeed(
         });
 
         if (currentTimestamp >= startedAt) {
+          const allVotesForProposal = votesByProposal.get(proposal.id) || [];
           const processedResults = await processResultsAction(
             proposal,
             allVotesForProposal,
@@ -959,26 +983,8 @@ export async function getFeed(
             (feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES ||
               feedFilter == FeedFilterEnum.VOTES)
           ) {
-            processedVotes.push(
-              ...processedResults.votes.filter((vote) => {
-                if (fromFilter === FromFilterEnum.FIFTY_THOUSAND) {
-                  return vote.votingPower > 50000;
-                } else if (
-                  fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND
-                ) {
-                  return vote.votingPower > 500000;
-                } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
-                  return vote.votingPower > 5000000;
-                } else if (fromFilter === FromFilterEnum.ALL) {
-                  return true;
-                } else if (fromFilter == FromFilterEnum.AUTHOR) {
-                  return author?.voters
-                    .map((av) => av.address)
-                    .includes(vote.voterAddress);
-                }
-                return true;
-              })
-            );
+            // Votes are already filtered at database level, just add them
+            processedVotes.push(...processedResults.votes);
           }
 
           const voteSegments = calculateVoteSegments(processedResults);
@@ -1023,35 +1029,41 @@ export async function getFeed(
           }
         }
       } catch (error) {
-        console.error('Error fetching:', proposalItem, error);
+        console.error('Error processing proposal:', proposal.id, error);
       }
     }
   }
 
+  // Batch fetch all topics at once
   if (topicItems.length > 0) {
-    for (const topicItem of topicItems) {
-      try {
-        const t = await db.public
-          .selectFrom('discourseTopic')
-          .where('externalId', '=', parseInt(topicItem.externalId, 10))
-          .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
-          .selectAll()
-          .executeTakeFirstOrThrow();
+    const fetchedTopics = await db.public
+      .selectFrom('discourseTopic')
+      .selectAll()
+      .where((eb) =>
+        eb.or(
+          topicItems.map((item) =>
+            eb('externalId', '=', parseInt(item.externalId, 10)).and(
+              'daoDiscourseId',
+              '=',
+              item.daoDiscourseId
+            )
+          )
+        )
+      )
+      .execute();
 
-        topics.push(t);
-      } catch (error) {
-        console.error('Error fetching:', topicItem, error);
-      }
-    }
+    topics.push(...fetchedTopics);
   }
 
-  const createdAt = new Date(topics[0].createdAt);
-  events.push({
-    content: `Proposal initially posted on ${format(createdAt, 'MMM d')}`,
-    type: TimelineEventType.Discussion,
-    timestamp: createdAt,
-    url: `${daoDiscourse.discourseBaseUrl}/t/${topics[0].externalId}`,
-  });
+  if (topics.length > 0) {
+    const createdAt = new Date(topics[0].createdAt);
+    events.push({
+      content: `Proposal initially posted on ${format(createdAt, 'MMM d')}`,
+      type: TimelineEventType.Discussion,
+      timestamp: createdAt,
+      url: `${daoDiscourse.discourseBaseUrl}/t/${topics[0].externalId}`,
+    });
+  }
 
   if (topics.length > 0) {
     allPosts = await db.public
