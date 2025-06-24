@@ -60,7 +60,7 @@ async function GroupsHeader({ daoSlug }: { daoSlug: string }) {
       <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-300'>
         All Proposal Groups
       </h2>
-      {hasNewActivityInGroups && <MarkAllAsReadButton />}
+      {hasNewActivityInGroups && <MarkAllAsReadButton daoSlug={daoSlug} />}
     </div>
   );
 }

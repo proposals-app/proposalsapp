@@ -1,14 +1,12 @@
 'use client';
 
 import { markAllAsRead } from '../actions';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { Check } from 'lucide-react';
 
-export const MarkAllAsReadButton = () => {
+export const MarkAllAsReadButton = ({ daoSlug }: { daoSlug: string }) => {
   const router = useRouter();
-  const params = useParams();
-  const daoSlug = params?.daoSlug as string;
   const [isPending, startTransition] = useTransition();
 
   const handleMarkAllAsRead = async () => {
