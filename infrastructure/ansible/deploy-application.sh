@@ -16,6 +16,7 @@ show_usage() {
     echo "  cloudflared      - Cloudflare tunnel daemon for Zero Trust access"
     echo "  traefik          - Edge router and load balancer with automatic HTTPS"
     echo "  web              - Next.js frontend application"
+    echo "  email-service    - Email notification service for proposals"
     echo ""
     echo "Examples:"
     echo "  $0 all              # Deploy all applications (stops on first error)"
@@ -48,7 +49,8 @@ if [ "$APP_NAME" = "all" ]; then
     # 4. discourse     - Forum indexer (populates database)
     # 5. mapper        - Data processor (needs data from rindexer/discourse)
     # 6. web           - Frontend (needs all backend services)
-    DEPLOYMENT_ORDER="cloudflared traefik rindexer discourse mapper web"
+    # 7. email-service  - Email notifications (needs database and web)
+    DEPLOYMENT_ORDER="cloudflared traefik rindexer discourse mapper web email-service"
     
     # Check if we should continue on error
     CONTINUE_ON_ERROR=false
@@ -72,7 +74,7 @@ if [ "$APP_NAME" = "all" ]; then
             echo "✅ $app deployed successfully"
             
             # Add a delay between deployments to allow services to stabilize
-            if [ "$app" != "web" ]; then
+            if [ "$app" != "email-service" ]; then
                 echo "Waiting 10 seconds before next deployment..."
                 sleep 10
             fi
@@ -106,7 +108,7 @@ fi
 APP_DIR="applications/$APP_NAME"
 
 # List of valid applications
-VALID_APPS="rindexer discourse mapper cloudflared traefik web"
+VALID_APPS="rindexer discourse mapper cloudflared traefik web email-service"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then
@@ -175,7 +177,7 @@ run_deploy() {
     fi
 
     # Update Consul KV with latest image for supported apps
-    if [[ "$APP_NAME" =~ ^(web|rindexer|discourse)$ ]]; then
+    if [[ "$APP_NAME" =~ ^(web|rindexer|discourse|email-service)$ ]]; then
         echo "Checking for latest image for $APP_NAME..."
         
         # Define Consul servers
@@ -203,10 +205,11 @@ run_deploy() {
         
         # Use GitHub API to get the latest successful build
         echo "Checking GitHub API for latest successful build..."
+        WORKFLOW_FILE="build-${APP_NAME}.yml"
         API_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/proposals-app/proposalsapp/actions/workflows/build-${APP_NAME}.yml/runs?branch=main&status=success&per_page=1")
+            "https://api.github.com/repos/proposals-app/proposalsapp/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&status=success&per_page=1")
         
         LATEST_SHA=$(echo "$API_RESPONSE" | jq -r '.workflow_runs[0].head_sha[:7]' 2>/dev/null || echo "")
         

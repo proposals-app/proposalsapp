@@ -23,6 +23,15 @@ COPY libs/ts/db/ ./libs/ts/db/
 COPY libs/ts/emails/ ./libs/ts/emails/
 
 # Build the project
+ARG DATABASE_URL=postgres://user:password@host:5432/database
+ARG ARBITRUM_DATABASE_URL=postgres://user:password@host:5432/database   
+ARG UNISWAP_DATABASE_URL=postgres://user:password@host:5432/database
+ARG RESEND_API_KEY=re_dummy_key_for_build
+
+ENV DATABASE_URL=${DATABASE_URL}
+ENV ARBITRUM_DATABASE_URL=${ARBITRUM_DATABASE_URL}
+ENV UNISWAP_DATABASE_URL=${UNISWAP_DATABASE_URL}
+ENV RESEND_API_KEY=${RESEND_API_KEY}
 RUN yarn build-${APP_NAME}
 
 # Stage 2: Final
