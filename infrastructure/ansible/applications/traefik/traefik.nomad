@@ -151,7 +151,7 @@ CF_API_EMAIL={{ keyOrDefault "traefik/cf_api_email" "" }}
 CF_API_KEY={{ keyOrDefault "traefik/cf_api_key" "" }}
 
 # Domain configuration
-DOMAIN={{ keyOrDefault "traefik/domain" "proposal.vote" }}
+DOMAIN={{ keyOrDefault "traefik/domain" "proposals.app" }}
 EOF
         destination = "secrets/env"
         env         = true

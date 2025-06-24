@@ -28,8 +28,11 @@ export default function middleware(request: NextRequest) {
   }
 
   // Get configured domain from env or use default based on environment
-  const defaultDomain = hostname.includes('localhost') ? 'localhost:3000' : 'proposal.vote';
-  const configuredRootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
+  const defaultDomain = hostname.includes('localhost')
+    ? 'localhost:3000'
+    : 'proposals.app';
+  const configuredRootDomain =
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
 
   // Special subdomains with custom implementations
   const specialSubdomains = process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS?.split(
@@ -62,20 +65,25 @@ export default function middleware(request: NextRequest) {
   }
 
   // BLOCK DIRECT PATH ACCESS: If accessing root domain with /arbitrum or /uniswap paths, redirect to subdomain
-  if (!subdomain && specialSubdomains.some(special => url.pathname.startsWith(`/${special}`))) {
-    const detectedDao = specialSubdomains.find(special => url.pathname.startsWith(`/${special}`));
+  if (
+    !subdomain &&
+    specialSubdomains.some((special) => url.pathname.startsWith(`/${special}`))
+  ) {
+    const detectedDao = specialSubdomains.find((special) =>
+      url.pathname.startsWith(`/${special}`)
+    );
     if (detectedDao) {
       // Redirect to proper subdomain
       const targetUrl = new URL(request.url);
       targetUrl.hostname = `${detectedDao}.${rootDomain}`;
       targetUrl.pathname = url.pathname.replace(`/${detectedDao}`, '') || '/';
       targetUrl.port = ''; // Clear the port to use default (80/443)
-      
+
       console.log('[Middleware] Redirecting path access to subdomain:', {
         from: request.url,
         to: targetUrl.toString(),
       });
-      
+
       return NextResponse.redirect(targetUrl, 301);
     }
   }
@@ -92,17 +100,22 @@ export default function middleware(request: NextRequest) {
       // Rewrite to the specialized implementation
       url.pathname = `/${subdomain}${url.pathname}`;
     }
-    
+
     // Log the rewrite for debugging
-    if (process.env.NODE_ENV === 'development' || url.pathname.includes(`/${subdomain}/${subdomain}`)) {
+    if (
+      process.env.NODE_ENV === 'development' ||
+      url.pathname.includes(`/${subdomain}/${subdomain}`)
+    ) {
       console.log('[Middleware] Subdomain rewrite:', {
         subdomain,
         originalPath: request.nextUrl.pathname,
         rewrittenPath: url.pathname,
-        wasAlreadyPrefixed: request.nextUrl.pathname.startsWith(`/${subdomain}`),
+        wasAlreadyPrefixed: request.nextUrl.pathname.startsWith(
+          `/${subdomain}`
+        ),
       });
     }
-    
+
     return NextResponse.rewrite(url);
   }
   // Handle other DAOs through the dynamic [daoSlug] route

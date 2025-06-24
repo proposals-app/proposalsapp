@@ -5,7 +5,7 @@
   vars:
     consul_kv_values:
       - key: "traefik/domain"
-        value: "proposal.vote"
+        value: "proposals.app"
 
   tasks:
     - name: Ensure Consul is available

@@ -127,8 +127,8 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 {{ end }}
 
 # Application configuration from Consul KV
-ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposal.vote" }}
-NEXT_PUBLIC_ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposal.vote" }}
+ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposals.app" }}
+NEXT_PUBLIC_ROOT_DOMAIN={{ keyOrDefault "web/root_domain" "proposals.app" }}
 SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
 NEXT_PUBLIC_SPECIAL_SUBDOMAINS={{ keyOrDefault "web/special_subdomains" "arbitrum,uniswap" }}
 
@@ -189,7 +189,7 @@ EOF
           "frontend",
           "nextjs",
           "traefik.enable=true",
-          "traefik.http.routers.web.rule=Host(`proposal.vote`) || HostRegexp(`[a-z]+\\.proposal\\.vote`)",
+          "traefik.http.routers.web.rule=Host(`proposals.app`) || HostRegexp(`[a-z]+\\.proposals\\.app`)",
           "traefik.http.routers.web.entrypoints=web",
           "traefik.http.services.web.loadbalancer.passhostheader=true",
           "traefik.http.routers.web.priority=1",

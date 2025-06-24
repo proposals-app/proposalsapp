@@ -106,14 +106,14 @@
 
           Traffic flow:
           1. Cloudflare Edge → Cloudflared tunnel → Traefik → Web app
-          2. Main domain: https://proposal.vote
-          3. Subdomains: https://arbitrum.proposal.vote, https://uniswap.proposal.vote
+          2. Main domain: https://proposals.app
+          3. Subdomains: https://arbitrum.proposals.app, https://uniswap.proposals.app
           4. All HTTP traffic automatically redirected to HTTPS by Traefik
 
           Cloudflare tunnel configuration (done in Cloudflare dashboard):
           - Create a tunnel and get the token
-          - Configure public hostname: *.proposal.vote → http://traefik:8443
-          - Configure public hostname: proposal.vote → http://traefik:8443
+          - Configure public hostname: *.proposals.app → http://traefik:8443
+          - Configure public hostname: proposals.app → http://traefik:8443
           - The tunnel should point to any Traefik instance (port 8443)
           - Enable "No TLS Verify" in advanced settings
 
