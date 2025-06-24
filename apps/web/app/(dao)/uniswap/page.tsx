@@ -4,16 +4,15 @@ import {
   getTotalVotingPower,
 } from '../[daoSlug]/actions';
 import { GroupList } from '../[daoSlug]/components/group-list';
-import { MarkAllAsReadButton } from '../[daoSlug]/components/mark-all-as-read';
+import { UniswapActionBarClient } from './components/uniswap-action-bar-client';
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth/uniswap_auth';
 import { headers } from 'next/headers';
 import { UniswapSummaryHeader } from './components/uniswap-summary-header';
 import {
-  SkeletonText,
-  SkeletonButton,
   LoadingGroupList,
   LoadingHeader,
+  SkeletonActionBar,
 } from '@/app/components/ui/skeleton';
 import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
@@ -176,17 +175,17 @@ export default async function Page() {
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        {/* Enhanced Summary Header with progressive loading */}
+        {/* Summary Header - loads financial data independently */}
         <Suspense fallback={<LoadingHeader />}>
           <UniswapSummaryContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
-        {/* Enhanced Action Bar with progressive loading */}
-        <Suspense fallback={<ActionBarSkeleton />}>
+        {/* Action Bar - loads groups data independently */}
+        <Suspense fallback={<SkeletonActionBar />}>
           <ActionBarContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
 
-        {/* Enhanced Groups List with progressive loading */}
+        {/* Groups List - loads with pre-fetched active feeds */}
         <Suspense fallback={<LoadingGroupList />}>
           <GroupsContainer daoSlug={daoSlug} userId={userId} />
         </Suspense>
@@ -256,12 +255,10 @@ async function ActionBarContainer({
   );
 
   return (
-    <div className='mb-6 flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-      <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-300'>
-        All Proposal Groups
-      </h2>
-      {hasNewActivityInGroups && <MarkAllAsReadButton />}
-    </div>
+    <UniswapActionBarClient
+      hasNewActivity={hasNewActivityInGroups}
+      signedIn={userId ? true : false}
+    />
   );
 }
 
@@ -315,15 +312,5 @@ async function GroupsContainer({
       initialGroups={groupsWithInfo}
       signedIn={userId ? true : false}
     />
-  );
-}
-
-// Enhanced action bar skeleton for loading state
-function ActionBarSkeleton() {
-  return (
-    <div className='flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-      <SkeletonText width='12rem' size='lg' />
-      <SkeletonButton size='md' />
-    </div>
   );
 }
