@@ -96,11 +96,8 @@ const createDbUniswapInstance = () => {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var dbPublicInternal: Kysely<DB> | undefined;
-  // eslint-disable-next-line no-var
   var dbArbitrumInternal: Kysely<DB> | undefined;
-  // eslint-disable-next-line no-var
   var dbUniswapInternal: Kysely<DB> | undefined;
 }
 
