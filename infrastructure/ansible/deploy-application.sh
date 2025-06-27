@@ -287,7 +287,7 @@ EOF
             echo "Checking for automated deployment service..."
             AUTOMATION_ENABLED=false
             for server in "${CONSUL_SERVERS[@]}"; do
-                if ansible $server -i inventory.yml -m systemd -a "name=consul-deployment-watcher" --vault-password-file .vault_pass 2>/dev/null | grep -q "active (running)"; then
+                if ansible $server -i inventory.yml -m systemd -a "name=deployment-checker.timer" --vault-password-file .vault_pass 2>/dev/null | grep -q "active (running)"; then
                     AUTOMATION_ENABLED=true
                     break
                 fi

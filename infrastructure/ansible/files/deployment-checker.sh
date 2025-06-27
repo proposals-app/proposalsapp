@@ -107,7 +107,7 @@ fi
 # Update all tasks in all task groups with the new image
 # This handles jobs with multiple task groups and tasks
 UPDATED_JOB=$(echo "$JOB_JSON" | jq --arg img "$IMAGE" '
-  .Job.TaskGroups[]?.Tasks[]? |= 
+  .TaskGroups[].Tasks[] |= 
   if .Config.image then 
     .Config.image = $img 
   else . end
@@ -119,8 +119,8 @@ if [ -z "$UPDATED_JOB" ] || [ "$UPDATED_JOB" = "null" ]; then
     exit 1
 fi
 
-# Prepare the job submission
-JOB_SUBMISSION=$(echo "$UPDATED_JOB" | jq '{Job: .Job}')
+# Wrap the job in the expected format for submission
+JOB_SUBMISSION=$(echo "$UPDATED_JOB" | jq '{Job: .}')
 
 # Submit updated job
 log "Submitting updated job to Nomad"
