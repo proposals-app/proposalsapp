@@ -10,8 +10,8 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-alloy = { version = "1.0.12", features = ["full"] }
-alloy-ens = { version = "1.0.12", features = ["contract", "provider"] }
+alloy = { version = "1.0.13", features = ["full"] }
+alloy-ens = { version = "1.0.13", features = ["contract", "provider"] }
 anyhow = "1.0.98"
 async-trait = "0.1.88"
 axum = "0.8.4"
