@@ -10,7 +10,7 @@ CONSUL_ADDR="${CONSUL_ADDR:-http://localhost:8500}"
 NOMAD_ADDR="${NOMAD_ADDR:-http://localhost:4646}"
 
 # Applications to check
-APPS="web rindexer discourse mapper"
+APPS="web rindexer discourse mapper email-service"
 
 # Function to log messages
 log() {
@@ -60,11 +60,11 @@ check_and_deploy() {
         log "Image change detected for $app: $previous_image -> $new_image"
         
         # Deploy using the deployment script
-        if /opt/deployment/deploy-application.sh "$app" "$new_image"; then
+        if output=$(/opt/deployment/deploy-application.sh "$app" "$new_image" 2>&1); then
             save_state "$app" "$new_image"
             log "Successfully deployed $app with image $new_image"
         else
-            log "ERROR: Failed to deploy $app"
+            log "ERROR: Failed to deploy $app: $output"
         fi
     fi
 }
@@ -77,24 +77,73 @@ set -e
 APP=$1
 IMAGE=$2
 
-# Get current job and update image
-JOB_JSON=$(curl -s "http://localhost:4646/v1/job/${APP}")
-if [ -z "$JOB_JSON" ] || echo "$JOB_JSON" | grep -q "not found"; then
-    echo "Job $APP not found"
+# Validate inputs
+if [ -z "$APP" ] || [ -z "$IMAGE" ]; then
+    echo "Error: APP and IMAGE are required"
+    echo "Usage: $0 <app-name> <image-url>"
     exit 1
 fi
 
-# Update image in job spec
-UPDATED_JOB=$(echo "$JOB_JSON" | jq --arg img "$IMAGE" '.Job.TaskGroups[0].Tasks[0].Config.image = $img')
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] deploy-application: $*"
+}
+
+log "Starting deployment of $APP with image $IMAGE"
+
+# Get current job
+JOB_JSON=$(curl -s "http://localhost:4646/v1/job/${APP}")
+if [ -z "$JOB_JSON" ] || echo "$JOB_JSON" | grep -q "not found"; then
+    echo "Error: Job $APP not found in Nomad"
+    exit 1
+fi
+
+# Extract job structure
+JOB_NAME=$(echo "$JOB_JSON" | jq -r '.ID // empty')
+if [ -z "$JOB_NAME" ]; then
+    echo "Error: Could not extract job name from response"
+    exit 1
+fi
+
+# Update all tasks in all task groups with the new image
+# This handles jobs with multiple task groups and tasks
+UPDATED_JOB=$(echo "$JOB_JSON" | jq --arg img "$IMAGE" '
+  .Job.TaskGroups[]?.Tasks[]? |= 
+  if .Config.image then 
+    .Config.image = $img 
+  else . end
+')
+
+# Ensure we have a valid job structure
+if [ -z "$UPDATED_JOB" ] || [ "$UPDATED_JOB" = "null" ]; then
+    echo "Error: Failed to update job structure"
+    exit 1
+fi
+
+# Prepare the job submission
+JOB_SUBMISSION=$(echo "$UPDATED_JOB" | jq '{Job: .Job}')
 
 # Submit updated job
-RESPONSE=$(echo "{\"Job\": $UPDATED_JOB}" | curl -s -X POST -H "Content-Type: application/json" -d @- "http://localhost:4646/v1/job/${APP}")
+log "Submitting updated job to Nomad"
+RESPONSE=$(echo "$JOB_SUBMISSION" | curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -d @- "http://localhost:4646/v1/job/${APP}")
 
+# Check response
 if echo "$RESPONSE" | jq -e '.EvalID' >/dev/null 2>&1; then
-    echo "Deployment triggered successfully"
+    EVAL_ID=$(echo "$RESPONSE" | jq -r '.EvalID')
+    log "Deployment triggered successfully (Eval ID: $EVAL_ID)"
+    
+    # Wait briefly and check evaluation status
+    sleep 2
+    EVAL_STATUS=$(curl -s "http://localhost:4646/v1/evaluation/${EVAL_ID}" | jq -r '.Status // "unknown"')
+    log "Evaluation status: $EVAL_STATUS"
+    
+    echo "Deployment triggered successfully (Eval ID: $EVAL_ID, Status: $EVAL_STATUS)"
     exit 0
 else
-    echo "Deployment failed: $RESPONSE"
+    ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error // "Unknown error"' 2>/dev/null || echo "$RESPONSE")
+    echo "Error: Deployment failed - $ERROR_MSG"
+    log "Deployment failed: $RESPONSE"
     exit 1
 fi
 EOF
@@ -105,10 +154,20 @@ chmod +x /opt/deployment/deploy-application.sh
 mkdir -p "$(dirname "$LOG_FILE")"
 mkdir -p "$(dirname "$STATE_FILE")"
 
-log "Starting deployment check"
+log "Starting deployment check run"
 
+# Check if we can reach Consul and Nomad
+if ! curl -s "${CONSUL_ADDR}/v1/status/leader" >/dev/null 2>&1; then
+    log "WARNING: Cannot reach Consul at ${CONSUL_ADDR}"
+fi
+
+if ! curl -s "${NOMAD_ADDR}/v1/status/leader" >/dev/null 2>&1; then
+    log "WARNING: Cannot reach Nomad at ${NOMAD_ADDR}"
+fi
+
+# Check each application
 for app in $APPS; do
     check_and_deploy "$app"
 done
 
-log "Deployment check complete"
+log "Deployment check run complete"

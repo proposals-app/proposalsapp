@@ -1,6 +1,6 @@
 ---
 - name: Setup simplified deployment automation
-  hosts: consul-nomad-sib-01
+  hosts: nomad_servers
   become: true
   vars:
     deployment_dir: /opt/deployment
