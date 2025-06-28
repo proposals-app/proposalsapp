@@ -17,6 +17,7 @@ show_usage() {
     echo "  traefik          - Edge router and load balancer with automatic HTTPS"
     echo "  web              - Next.js frontend application"
     echo "  email-service    - Email notification service for proposals"
+    echo "  homepage         - Infrastructure dashboard with service discovery"
     echo ""
     echo "Examples:"
     echo "  $0 all              # Deploy all applications (stops on first error)"
@@ -50,7 +51,8 @@ if [ "$APP_NAME" = "all" ]; then
     # 5. mapper        - Data processor (needs data from rindexer/discourse)
     # 6. web           - Frontend (needs all backend services)
     # 7. email-service  - Email notifications (needs database and web)
-    DEPLOYMENT_ORDER="cloudflared traefik rindexer discourse mapper web email-service"
+    # 8. homepage      - Infrastructure dashboard (optional, displays all services)
+    DEPLOYMENT_ORDER="cloudflared traefik rindexer discourse mapper web email-service homepage"
     
     # Check if we should continue on error
     CONTINUE_ON_ERROR=false
@@ -108,7 +110,7 @@ fi
 APP_DIR="applications/$APP_NAME"
 
 # List of valid applications
-VALID_APPS="rindexer discourse mapper cloudflared traefik web email-service"
+VALID_APPS="rindexer discourse mapper cloudflared traefik web email-service homepage"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then

@@ -1,0 +1,41 @@
+---
+- name: Setup Homepage Configuration in Consul KV
+  hosts: consul_servers[0]
+  gather_facts: no
+  
+  tasks:
+    - name: Set Homepage configuration in Consul KV
+      uri:
+        url: "http://{{ inventory_hostname }}:8500/v1/kv/homepage/config"
+        method: PUT
+        body: |
+          {
+            "domain": "dashboard.proposals.app",
+            "theme": "dark",
+            "refresh_interval": 30,
+            "features": {
+              "consul_integration": true,
+              "nomad_integration": true,
+              "prometheus_integration": true,
+              "docker_integration": true
+            }
+          }
+        headers:
+          Content-Type: "application/json"
+      delegate_to: localhost
+
+    - name: Set service endpoints in Consul KV
+      uri:
+        url: "http://{{ inventory_hostname }}:8500/v1/kv/homepage/endpoints/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      delegate_to: localhost
+      loop:
+        - { key: "consul_dc1", value: "http://consul-nomad-sib-01:8500" }
+        - { key: "consul_dc2", value: "http://consul-nomad-sib-03:8500" }
+        - { key: "consul_dc3", value: "http://consul-nomad-fsn-01:8500" }
+        - { key: "nomad", value: "http://consul-nomad-sib-01:4646" }
+        - { key: "prometheus", value: "http://prometheus.service.consul:9090" }
+        - { key: "grafana", value: "http://grafana.service.consul:3000" }
+        - { key: "traefik", value: "http://traefik.service.consul:9080" }
+        - { key: "pgbackweb", value: "http://pgbackweb-sib-01:8085" }
