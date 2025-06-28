@@ -104,6 +104,7 @@ jobs:
             BUILD_DATE=${{ github.event.repository.updated_at }}
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.ref_name }}-${{ github.sha }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
 
       - name: Generate deployment webhook payload
         id: webhook
