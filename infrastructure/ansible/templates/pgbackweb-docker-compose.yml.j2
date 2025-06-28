@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  pgbackweb:
+    image: eduardolat/pgbackweb:{{ pgbackweb_version }}
+    container_name: pgbackweb
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - {{ pgbackweb_backup_dir }}:/backups
+    environment:
+      PBW_POSTGRES_CONN_STRING: "postgresql://{{ postgres_user }}:{{ postgres_password }}@{{ pgbackweb_postgres_host }}:{{ pgbackweb_postgres_port }}/{{ pgbackweb_postgres_database }}?sslmode=disable"
+      PBW_ENCRYPTION_KEY: "{{ pgbackweb_encryption_key }}"
+      PBW_LISTEN_HOST: "0.0.0.0"
+      PBW_LISTEN_PORT: "8085"
+      TZ: "UTC"
+    healthcheck:
+      test: timeout 10s bash -c ':> /dev/tcp/127.0.0.1/8085' || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

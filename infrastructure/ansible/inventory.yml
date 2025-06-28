@@ -87,6 +87,12 @@ all:
           datacenter: dc2
           proxmox_node: sib-03
           tailscale_ip: 100.85.62.104
+        pgbackweb-sib-01:
+          ansible_host: pgbackweb-sib-01
+          container_id: 5107
+          datacenter: dc1
+          proxmox_node: sib-01
+          tailscale_ip: 100.92.170.6
         redis-fsn-01:
           ansible_host: redis-fsn-01
           container_id: 5305
@@ -115,6 +121,9 @@ all:
         consul-nomad-fsn-01: null
         consul-nomad-sib-01: null
         consul-nomad-sib-03: null
+    pgbackweb:
+      hosts:
+        pgbackweb-sib-01: null
     postgres_nodes:
       hosts:
         db-fsn-01: null

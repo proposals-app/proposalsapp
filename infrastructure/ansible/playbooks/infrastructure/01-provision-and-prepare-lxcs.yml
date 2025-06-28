@@ -22,7 +22,7 @@
           mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
 
           # Remove known container hostnames
-          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01 redis-sib-01 redis-sib-03 redis-fsn-01 github-runner-sib-01 github-runner-sib-03 github-runner-fsn-01; do
+          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01 redis-sib-01 redis-sib-03 redis-fsn-01 github-runner-sib-01 github-runner-sib-03 github-runner-fsn-01 pgbackweb-sib-01; do
             ssh-keygen -f ~/.ssh/known_hosts -R "$host" 2>/dev/null || true
           done
         fi
@@ -77,6 +77,11 @@
         memory: 32768
         swap: 0
         disk: 100
+      pgbackweb:
+        cores: 2
+        memory: 4096
+        swap: 0
+        disk: 100
   tasks:
     - name: Install Python3 and pip
       apt:
@@ -93,7 +98,9 @@
 
     - name: Set container IDs based on hostname
       set_fact:
-        my_containers:
+        my_containers: "{{ base_containers + (pgbackweb_container if inventory_hostname == 'sib-01' else []) }}"
+      vars:
+        base_containers:
           - name: "consul-nomad-{{ inventory_hostname }}"
             id: "{{ container_id_base[inventory_hostname] + 1 }}"
             type: consul_nomad
@@ -109,6 +116,10 @@
           - name: "redis-{{ inventory_hostname }}"
             id: "{{ container_id_base[inventory_hostname] + 5 }}"
             type: redis
+        pgbackweb_container:
+          - name: "pgbackweb-{{ inventory_hostname }}"
+            id: "{{ container_id_base[inventory_hostname] + 7 }}"
+            type: pgbackweb
 
     - name: Check if our containers exist
       shell: "pct list | grep -E '^{{ item.id }}\\s' || echo 'not_found'"

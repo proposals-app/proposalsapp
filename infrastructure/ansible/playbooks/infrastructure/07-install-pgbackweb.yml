@@ -1,0 +1,109 @@
+---
+# Install and configure pgbackweb for PostgreSQL backups
+# Installs pgbackweb on its own dedicated LXC container
+
+- name: Install and configure pgbackweb
+  hosts: pgbackweb
+  become: true
+  vars:
+    pgbackweb_version: "latest"
+    pgbackweb_port: 8085
+    pgbackweb_data_dir: "/opt/pgbackweb"
+    pgbackweb_backup_dir: "/backups/pgbackweb"
+    
+    # PostgreSQL connection details for pgbackweb's own database
+    # This will connect to the main PostgreSQL cluster via pgpool on db-sib-01
+    pgbackweb_postgres_host: "db-sib-01"
+    pgbackweb_postgres_port: 5432
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - postgresql-client
+          - python3-psycopg2
+        state: present
+        update_cache: yes
+
+    - name: Create pgbackweb directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - "{{ pgbackweb_data_dir }}"
+        - "{{ pgbackweb_backup_dir }}"
+        - "/var/log/pgbackweb"
+
+    - name: Create pgbackweb database
+      postgresql_db:
+        name: "{{ pgbackweb_postgres_database }}"
+        port: "{{ pgbackweb_postgres_port }}"
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
+        login_host: "{{ pgbackweb_postgres_host }}"
+        state: present
+
+    - name: Create docker-compose file for pgbackweb
+      template:
+        src: ../../templates/pgbackweb-docker-compose.yml.j2
+        dest: "{{ pgbackweb_data_dir }}/docker-compose.yml"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create pgbackweb environment file
+      template:
+        src: ../../templates/pgbackweb.env.j2
+        dest: "{{ pgbackweb_data_dir }}/.env"
+        owner: root
+        group: root
+        mode: '0600'
+
+
+    - name: Pull pgbackweb Docker image
+      docker_image:
+        name: "eduardolat/pgbackweb:{{ pgbackweb_version }}"
+        source: pull
+        state: present
+
+    - name: Start pgbackweb container
+      shell: |
+        cd {{ pgbackweb_data_dir }}
+        docker-compose up -d
+      args:
+        chdir: "{{ pgbackweb_data_dir }}"
+
+    - name: Wait for pgbackweb to be ready
+      wait_for:
+        port: "{{ pgbackweb_port }}"
+        host: localhost
+        delay: 10
+        timeout: 60
+
+
+    - name: Install ufw if not present
+      apt:
+        name: ufw
+        state: present
+      ignore_errors: yes
+
+    - name: Configure firewall for pgbackweb
+      ufw:
+        rule: allow
+        port: "{{ pgbackweb_port }}"
+        proto: tcp
+        comment: "pgbackweb UI"
+      ignore_errors: yes
+
+    - name: Display pgbackweb access information
+      debug:
+        msg:
+          - "pgbackweb has been installed successfully!"
+          - "Access the UI at: http://{{ ansible_default_ipv4.address }}:{{ pgbackweb_port }}"
+          - "Create an account on first access"
+          - "Configure databases, destinations, and backup schedules through the web UI"

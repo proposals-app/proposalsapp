@@ -74,3 +74,7 @@ dns_servers:
 postgres_password: "{{ vault_postgres_password }}"
 postgres_replication_password: "{{ vault_postgres_replication_password }}"
 redis_password: "{{ vault_redis_password }}"
+
+# pgbackweb configuration
+pgbackweb_postgres_database: pgbackweb
+pgbackweb_encryption_key: "{{ vault_pgbackweb_encryption_key }}"
