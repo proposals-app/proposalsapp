@@ -73,7 +73,7 @@ lazy_static! {
     {
         Ok(client) => client,
         Err(e) => {
-            panic!("Failed to create HTTP client: {}", e);
+            panic!("Failed to create HTTP client: {e}");
         }
     };
     static ref JOBS_QUEUE: Arc<Mutex<VecDeque<TimestampJob>>> =
@@ -162,8 +162,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                 .get_block(BlockId::Number(block_number.into()))
                 .await
                 .context(format!(
-                    "Failed to get block {} from provider",
-                    block_number
+                    "Failed to get block {block_number} from provider"
                 ))?;
 
             if let Some(block) = block {
@@ -313,7 +312,7 @@ fn get_chain_config(network: &'static str) -> Result<ChainConfig> {
     CHAIN_CONFIG_MAP
         .get(network)
         .cloned()
-        .context(format!("Unsupported network: {}", network))
+        .context(format!("Unsupported network: {network}"))
 }
 
 #[instrument(name = "block_time_estimate_timestamp", skip(network), fields(network = network, block_number = block_number))]
@@ -376,8 +375,7 @@ async fn future_scan_api_request(
     block_number: u64,
 ) -> Result<Option<EstimateTimestamp>> {
     let url = format!(
-        "{}?module=block&action=getblockcountdown&blockno={}&apikey={}",
-        api_url, block_number, api_key
+        "{api_url}?module=block&action=getblockcountdown&blockno={block_number}&apikey={api_key}"
     );
     debug!(request_url = %url, "Sending future scan API request");
 
@@ -443,8 +441,7 @@ async fn past_scan_api_request(
     block_number: u64,
 ) -> Result<Option<BlockRewardResponse>> {
     let url = format!(
-        "{}?module=block&action=getblockreward&blockno={}&apikey={}",
-        api_url, block_number, api_key
+        "{api_url}?module=block&action=getblockreward&blockno={block_number}&apikey={api_key}"
     );
     debug!(request_url = %url, "Sending past scan API request");
 
@@ -538,8 +535,7 @@ mod request_tests {
             _ => panic!("Unsupported network for testing"),
         }
         .context(format!(
-            "Failed to get current block number for network: {}",
-            network
+            "Failed to get current block number for network: {network}"
         ))?
         .to::<u64>();
 
@@ -579,8 +575,7 @@ mod request_tests {
         }
 
         println!(
-            "Estimated time for {} block {}: {:?}",
-            network, target_block_number, estimated_time
+            "Estimated time for {network} block {target_block_number}: {estimated_time:?}"
         );
         Ok(())
     }
@@ -657,7 +652,7 @@ mod request_tests {
 
         let estimated_time = estimate_timestamp(network, block_number).await?;
 
-        println!("Estimated: {}, Expected: {}", estimated_time, expected_time);
+        println!("Estimated: {estimated_time}, Expected: {expected_time}");
 
         assert!(
             (estimated_time - expected_time).abs() <= tolerance,
@@ -698,7 +693,7 @@ mod request_tests {
         let mut rng = rng();
 
         for network in networks {
-            println!("Starting intensive test for network: {}", network);
+            println!("Starting intensive test for network: {network}");
             let current_block = match network {
                 "ethereum" => {
                     get_provider_cache_for_network("ethereum")
@@ -733,8 +728,7 @@ mod request_tests {
                 _ => panic!("Unsupported network for testing"),
             }
             .context(format!(
-                "Failed to get current block number for network: {}",
-                network
+                "Failed to get current block number for network: {network}"
             ))?
             .to::<u64>();
 
@@ -761,15 +755,13 @@ mod request_tests {
                         Ok(estimated_time) => {
                             assert!(estimated_time > DateTime::UNIX_EPOCH.naive_utc());
                             println!(
-                                "Network: {}, Task {}: Estimated time for block {}: {:?}, took {:?}",
-                                network, i, target_block_number, estimated_time, task_duration
+                                "Network: {network}, Task {i}: Estimated time for block {target_block_number}: {estimated_time:?}, took {task_duration:?}"
                             );
                             Ok(())
                         }
                         Err(e) => {
                             println!(
-                                "Network: {}, Task {} (block {}): Error: {}, took {:?}",
-                                network, i, target_block_number, e, task_duration
+                                "Network: {network}, Task {i} (block {target_block_number}): Error: {e}, took {task_duration:?}"
                             );
                             Err(e)
                         }
@@ -779,24 +771,21 @@ mod request_tests {
             let mut error_count = 0;
             while let Some(res) = tasks.join_next().await {
                 if let Err(e) = res? {
-                    eprintln!("Task failed: {:?}", e);
+                    eprintln!("Task failed: {e:?}");
                     error_count += 1;
                 }
             }
 
             let network_duration = network_start_time.elapsed();
             println!(
-                "Total duration for {} tasks on network {}: {:?}",
-                num_tasks_per_network, network, network_duration
+                "Total duration for {num_tasks_per_network} tasks on network {network}: {network_duration:?}"
             );
             println!(
-                "Number of failed tasks for network {}: {}",
-                network, error_count
+                "Number of failed tasks for network {network}: {error_count}"
             );
             assert_eq!(
                 error_count, 0,
-                "There were failing concurrent tasks for network {}.",
-                network
+                "There were failing concurrent tasks for network {network}."
             );
         }
 

@@ -1,7 +1,7 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
 use reqwest::Client;
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, de::DeserializeOwned};
 use std::{
     sync::Arc,
     time::{Duration, Instant},
@@ -16,6 +16,146 @@ static SNAPSHOT_MAX_RETRIES: usize = 5;
 static SNAPSHOT_MAX_CONCURRENT_REQUESTS: usize = 5;
 static SNAPSHOT_MAX_QUEUE: usize = 100;
 static SNAPSHOT_TIMEOUT: Duration = Duration::from_secs(60 * 5);
+
+pub const SNAPSHOT_GRAPHQL_ENDPOINT: &str = "https://hub.snapshot.org/graphql";
+
+// Response structures for Snapshot API
+
+/// Response from Snapshot GraphQL API for proposals query
+#[derive(Deserialize, Debug)]
+pub struct SnapshotProposalsResponse {
+    pub data: Option<SnapshotProposalData>,
+}
+
+/// Container for proposals data in the GraphQL response
+#[derive(Deserialize, Debug)]
+pub struct SnapshotProposalData {
+    pub proposals: Vec<SnapshotProposal>,
+}
+
+/// Represents a proposal from Snapshot
+#[derive(Clone, Deserialize, Debug)]
+pub struct SnapshotProposal {
+    pub id: String,
+    pub author: String,
+    pub title: String,
+    pub body: String,
+    pub discussion: String,
+    pub choices: Vec<String>,
+    pub scores_state: String,
+    pub privacy: String,
+    pub created: i64,
+    pub start: i64,
+    pub end: i64,
+    pub quorum: f64,
+    pub link: String,
+    pub state: String,
+    #[serde(rename = "type")]
+    pub proposal_type: String,
+    pub flagged: Option<bool>,
+    pub ipfs: String,
+}
+
+/// Response from Snapshot GraphQL API for votes query
+#[derive(Deserialize, Debug)]
+pub struct SnapshotVotesResponse {
+    pub data: Option<SnapshotVoteData>,
+}
+
+/// Container for votes data in the GraphQL response
+#[derive(Deserialize, Debug)]
+pub struct SnapshotVoteData {
+    pub votes: Option<Vec<SnapshotVote>>,
+}
+
+/// Represents a vote from Snapshot
+#[derive(Deserialize, Debug, Clone)]
+pub struct SnapshotVote {
+    pub voter: String,
+    pub reason: Option<String>,
+    pub choice: serde_json::Value,
+    pub vp: f64,
+    pub created: i64,
+    pub proposal: SnapshotProposalRef,
+    pub ipfs: String,
+}
+
+impl SnapshotVote {
+    /// Converts a SnapshotVote to a database vote model
+    pub fn to_active_model(
+        &self,
+        governor_id: sea_orm::prelude::Uuid,
+        dao_id: sea_orm::prelude::Uuid,
+    ) -> Result<Option<proposalsapp_db::models::vote::ActiveModel>> {
+        use chrono::DateTime;
+        use proposalsapp_db::models::vote;
+        use sea_orm::{ActiveValue::NotSet, Set};
+        use tracing::warn;
+
+        // Parse the created timestamp
+        let created_at = match DateTime::from_timestamp(self.created, 0) {
+            Some(dt) => dt.naive_utc(),
+            None => {
+                warn!(
+                    voter = self.voter,
+                    proposal_id = self.proposal.id,
+                    created = self.created,
+                    "Invalid created timestamp for vote, skipping."
+                );
+                return Ok(None);
+            }
+        };
+
+        // Process the choice value
+        let choice_value = if self.choice.is_number() {
+            match self.choice.as_i64() {
+                Some(choice) => (choice - 1).into(),
+                None => {
+                    warn!(
+                        voter = self.voter,
+                        proposal_id = self.proposal.id,
+                        choice = ?self.choice,
+                        "Invalid choice value for vote, skipping."
+                    );
+                    return Ok(None);
+                }
+            }
+        } else {
+            self.choice.clone()
+        };
+
+        // Create the vote model
+        let vote_model = vote::ActiveModel {
+            id: NotSet,
+            governor_id: Set(governor_id),
+            dao_id: Set(dao_id),
+            proposal_external_id: Set(self.proposal.id.clone()),
+            voter_address: Set(self.voter.clone()),
+            voting_power: Set(self.vp),
+            choice: Set(choice_value),
+            reason: Set(self.reason.clone()),
+            created_at: Set(created_at),
+            block_created_at: NotSet,
+            txid: Set(Some(self.ipfs.clone())),
+            proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
+        };
+
+        tracing::debug!(
+            voter = self.voter,
+            proposal_id = self.proposal.id,
+            created_at = ?created_at,
+            "Snapshot vote processed"
+        );
+
+        Ok(Some(vote_model))
+    }
+}
+
+/// Reference to a Snapshot proposal
+#[derive(Deserialize, Debug, Clone)]
+pub struct SnapshotProposalRef {
+    pub id: String,
+}
 
 struct RateLimiter {
     remaining: std::sync::atomic::AtomicU32,
@@ -131,6 +271,168 @@ impl SnapshotApiHandler {
 
         let response = response_receiver.await??;
         Ok(serde_json::from_str(&response)?)
+    }
+
+    /// Fetches a batch of proposals from Snapshot API for a given space
+    #[instrument(name = "fetch_proposals", skip(self), fields(space = space))]
+    pub async fn fetch_proposals(
+        &self,
+        space: &str,
+        skip: usize,
+        batch_size: usize,
+    ) -> Result<Vec<SnapshotProposal>> {
+        let graphql_query = format!(
+            r#"
+            {{
+                proposals(
+                    first: {batch_size},
+                    skip: {skip},
+                    orderBy: "created",
+                    orderDirection: asc,
+                    where: {{
+                        space: "{space}"
+                    }}
+                ) {{
+                    id
+                    author
+                    title
+                    body
+                    discussion
+                    choices
+                    scores
+                    scores_total
+                    scores_state
+                    privacy
+                    created
+                    start
+                    end
+                    quorum
+                    link
+                    state
+                    flagged
+                    type
+                    ipfs
+                }}
+            }}"#
+        );
+
+        debug!(space = %space, skip = skip, batch_size = batch_size, "Fetching snapshot proposals batch");
+
+        let response: SnapshotProposalsResponse = self
+            .fetch(SNAPSHOT_GRAPHQL_ENDPOINT, graphql_query)
+            .await
+            .with_context(|| {
+                format!("Failed to fetch proposals from Snapshot API for space {space}")
+            })?;
+
+        Ok(response.data.map(|d| d.proposals).unwrap_or_default())
+    }
+
+    /// Fetches votes from Snapshot API for the given space and proposals
+    #[instrument(name = "fetch_votes", skip(self), fields(space = space))]
+    pub async fn fetch_votes(
+        &self,
+        space: &str,
+        last_vote_created: i64,
+        proposal_ids: &[String],
+    ) -> Result<Vec<SnapshotVote>> {
+        let proposals_str = format!(
+            "[{}]",
+            proposal_ids
+                .iter()
+                .map(|id| format!("\"{id}\""))
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+
+        let graphql_query = format!(
+            r#"
+            {{
+                votes(
+                    first: {batch_size},
+                    orderBy: "created",
+                    orderDirection: asc,
+                    where: {{
+                        space: "{space}"
+                        created_gt: {last_created},
+                        proposal_in: {proposals}
+                    }}
+                ) {{
+                    voter
+                    reason
+                    choice
+                    vp
+                    created
+                    ipfs
+                    proposal {{
+                        id
+                    }}
+                }}
+            }}
+            "#,
+            batch_size = 100,
+            space = space,
+            last_created = last_vote_created,
+            proposals = proposals_str
+        );
+
+        debug!(space = %space, last_created = last_vote_created, proposal_count = proposal_ids.len(), "Fetching snapshot votes");
+
+        let response: SnapshotVotesResponse = self
+            .fetch(SNAPSHOT_GRAPHQL_ENDPOINT, graphql_query)
+            .await
+            .with_context(|| {
+                format!("Failed to fetch votes from Snapshot API for space {space}")
+            })?;
+
+        Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
+    }
+
+    /// Fetches votes for a specific proposal from Snapshot API
+    #[instrument(name = "fetch_proposal_votes", skip(self), fields(proposal_id = proposal_external_id))]
+    pub async fn fetch_proposal_votes(
+        &self,
+        proposal_external_id: &str,
+        skip: usize,
+        batch_size: usize,
+    ) -> Result<Vec<SnapshotVote>> {
+        let graphql_query = format!(
+            r#"
+            {{
+                votes(
+                    first: {batch_size},
+                    skip: {skip},
+                    orderBy: "created",
+                    orderDirection: asc,
+                    where: {{
+                        proposal: "{proposal_external_id}"
+                    }}
+                ) {{
+                    voter
+                    reason
+                    choice
+                    vp
+                    created
+                    ipfs
+                    proposal {{
+                        id
+                    }}
+                }}
+            }}"#
+        );
+
+        debug!(proposal_external_id = %proposal_external_id, skip = skip, batch_size = batch_size, "Fetching vote batch for proposal");
+
+        let response: SnapshotVotesResponse = self
+            .fetch(SNAPSHOT_GRAPHQL_ENDPOINT, graphql_query)
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to fetch votes from Snapshot API for proposal {proposal_external_id}"
+                )
+            })?;
+
+        Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
     }
 
     #[instrument(name = "snapshot_api_run_queue", skip(self, receiver))]

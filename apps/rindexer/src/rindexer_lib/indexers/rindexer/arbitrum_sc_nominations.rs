@@ -104,8 +104,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         .and_then(|caps| caps.get(1).map(|m| m.as_str()))
                         .map_or_else(String::new, |election_number| {
                             format!(
-                                "https://www.tally.xyz/gov/arbitrum/council/security-council/election/{}/round-1",
-                                election_number
+                                "https://www.tally.xyz/gov/arbitrum/council/security-council/election/{election_number}/round-1"
                             )
                         });
 

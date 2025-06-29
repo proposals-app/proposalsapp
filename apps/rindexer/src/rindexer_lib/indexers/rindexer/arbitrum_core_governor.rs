@@ -108,8 +108,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     let title = extract_title(&result.event_data.description);
                     let proposal_url = format!(
-                        "https://www.tally.xyz/gov/arbitrum/proposal/{}",
-                        proposal_id
+                        "https://www.tally.xyz/gov/arbitrum/proposal/{proposal_id}"
                     );
                     let choices = vec!["For", "Against", "Abstain"];
 

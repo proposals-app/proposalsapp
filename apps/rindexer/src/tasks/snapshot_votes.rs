@@ -3,19 +3,17 @@ use crate::extensions::{
         DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB,
         store_votes,
     },
-    snapshot_api::SNAPSHOT_API_HANDLER,
+    snapshot_api::{SNAPSHOT_API_HANDLER, SnapshotVote},
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use futures::{StreamExt, stream};
 use proposalsapp_db::models::{proposal, vote};
 use sea_orm::{
-    ActiveValue::NotSet,
     ColumnTrait, Condition, EntityOrSelect, EntityTrait, Order, QueryFilter, QueryOrder,
-    QuerySelect, Set, Value,
+    QuerySelect, Value,
     prelude::{Expr, Uuid},
 };
-use serde::Deserialize;
 use serde_json::json;
 use std::{collections::HashSet, time::Duration};
 use tracing::{debug, error, info, instrument, warn};
@@ -24,167 +22,6 @@ use tracing::{debug, error, info, instrument, warn};
 const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
 const MAX_BATCH_SIZE: usize = 10;
 const MAX_LOOPS: usize = 10;
-const SNAPSHOT_GRAPHQL_ENDPOINT: &str = "https://hub.snapshot.org/graphql";
-
-/// Response from Snapshot GraphQL API for votes query
-#[derive(Deserialize, Debug)]
-struct SnapshotVotesResponse {
-    data: Option<SnapshotVoteData>,
-}
-
-/// Container for votes data in the GraphQL response
-#[derive(Deserialize, Debug)]
-struct SnapshotVoteData {
-    votes: Option<Vec<SnapshotVote>>,
-}
-
-/// Represents a vote from Snapshot
-#[derive(Deserialize, Debug, Clone)]
-struct SnapshotVote {
-    voter: String,
-    reason: Option<String>,
-    choice: serde_json::Value,
-    vp: f64,
-    created: i64,
-    proposal: SnapshotProposalRef,
-    ipfs: String,
-}
-
-/// Reference to a Snapshot proposal
-#[derive(Deserialize, Debug, Clone)]
-struct SnapshotProposalRef {
-    id: String,
-}
-
-/// Formats a list of proposal IDs into a JSON array string for GraphQL queries
-fn format_proposal_ids(proposal_ids: &[String]) -> String {
-    format!(
-        "[{}]",
-        proposal_ids
-            .iter()
-            .map(|id| format!("\"{}\"", id))
-            .collect::<Vec<_>>()
-            .join(",")
-    )
-}
-
-/// Processes a vote from Snapshot and converts it to a database model
-fn process_vote(
-    vote_data: &SnapshotVote,
-    governor_id: Uuid,
-    dao_id: Uuid,
-) -> Result<Option<vote::ActiveModel>> {
-    // Parse the created timestamp
-    let created_at = match DateTime::from_timestamp(vote_data.created, 0) {
-        Some(dt) => dt.naive_utc(),
-        None => {
-            warn!(
-                voter = vote_data.voter,
-                proposal_id = vote_data.proposal.id,
-                created = vote_data.created,
-                "Invalid created timestamp for vote, skipping."
-            );
-            return Ok(None);
-        }
-    };
-
-    // Process the choice value
-    let choice_value = if vote_data.choice.is_number() {
-        match vote_data.choice.as_i64() {
-            Some(choice) => (choice - 1).into(),
-            None => {
-                warn!(
-                    voter = vote_data.voter,
-                    proposal_id = vote_data.proposal.id,
-                    choice = ?vote_data.choice,
-                    "Invalid choice value for vote, skipping."
-                );
-                return Ok(None);
-            }
-        }
-    } else {
-        vote_data.choice.clone()
-    };
-
-    // Create the vote model
-    let vote_model = vote::ActiveModel {
-        id: NotSet,
-        governor_id: Set(governor_id),
-        dao_id: Set(dao_id),
-        proposal_external_id: Set(vote_data.proposal.id.clone()),
-        voter_address: Set(vote_data.voter.clone()),
-        voting_power: Set(vote_data.vp),
-        choice: Set(choice_value),
-        reason: Set(vote_data.reason.clone()),
-        created_at: Set(created_at),
-        block_created_at: NotSet,
-        txid: Set(Some(vote_data.ipfs.clone())),
-        proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
-    };
-
-    debug!(
-        voter = vote_data.voter,
-        proposal_id = vote_data.proposal.id,
-        created_at = ?created_at,
-        "Snapshot vote processed"
-    );
-
-    Ok(Some(vote_model))
-}
-
-/// Fetches votes from Snapshot API for the given space and proposals
-async fn fetch_votes_batch(
-    space: &str,
-    last_vote_created: i64,
-    proposals_str: &str,
-) -> Result<Vec<SnapshotVote>> {
-    let graphql_query = format!(
-        r#"
-        {{
-            votes(
-                first: {batch_size},
-                orderBy: "created",
-                orderDirection: asc,
-                where: {{
-                    space: "{space}"
-                    created_gt: {last_created},
-                    proposal_in: {proposals}
-                }}
-            ) {{
-                voter
-                reason
-                choice
-                vp
-                created
-                ipfs
-                proposal {{
-                    id
-                }}
-            }}
-        }}
-        "#,
-        batch_size = 100,
-        space = space,
-        last_created = last_vote_created,
-        proposals = proposals_str
-    );
-
-    debug!(query = graphql_query, space = %space, "Fetching snapshot votes with query");
-
-    let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
-        .get()
-        .context("Snapshot API handler not initialized")?
-        .fetch(SNAPSHOT_GRAPHQL_ENDPOINT, graphql_query)
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to fetch votes from Snapshot API for space {}",
-                space
-            )
-        })?;
-
-    Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
-}
 
 #[instrument(name = "update_snapshot_votes", skip(dao_id, governor_id, space))]
 pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
@@ -202,7 +39,6 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
         return Ok(());
     }
 
-    let proposals_str = format_proposal_ids(&relevant_proposals);
     let mut processed_vote_hashes = HashSet::new();
 
     info!(
@@ -214,7 +50,12 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
     // Fetch votes in batches
     for loop_count in 0..MAX_LOOPS {
         // Fetch a batch of votes
-        let votes_data = match fetch_votes_batch(&space, last_vote_created, &proposals_str).await {
+        let votes_data = match SNAPSHOT_API_HANDLER
+            .get()
+            .context("Snapshot API handler not initialized")?
+            .fetch_votes(&space, last_vote_created, &relevant_proposals)
+            .await
+        {
             Ok(votes) => votes,
             Err(e) => {
                 error!(error = %e, space = %space, "Failed to fetch votes batch: {}", e);
@@ -260,7 +101,7 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
             max_created_in_batch = max_created_in_batch.max(vote_data.created);
 
             // Process the vote and add it to the storage batch if valid
-            if let Ok(Some(vote_model)) = process_vote(vote_data, governor_id, dao_id) {
+            if let Ok(Some(vote_model)) = vote_data.to_active_model(governor_id, dao_id) {
                 votes_to_store.push(vote_model);
             }
         }
@@ -559,57 +400,6 @@ async fn refresh_closed_shutter_votes(
     Ok(())
 }
 
-/// Fetches votes for a specific proposal from Snapshot API
-async fn fetch_proposal_votes_batch(
-    proposal_external_id: &str,
-    skip: usize,
-    batch_size: usize,
-) -> Result<Vec<SnapshotVote>> {
-    let graphql_query = format!(
-        r#"
-        {{
-            votes(
-                first: {batch_size},
-                skip: {skip},
-                orderBy: "created",
-                orderDirection: asc,
-                where: {{
-                    proposal: "{proposal_id}"
-                }}
-            ) {{
-                voter
-                reason
-                choice
-                vp
-                created
-                ipfs
-                proposal {{
-                    id
-                }}
-            }}
-        }}"#,
-        batch_size = batch_size,
-        skip = skip,
-        proposal_id = proposal_external_id
-    );
-
-    debug!(proposal_external_id = %proposal_external_id, "Fetching vote batch for proposal");
-
-    let response: SnapshotVotesResponse = SNAPSHOT_API_HANDLER
-        .get()
-        .context("Snapshot API handler not initialized")?
-        .fetch(SNAPSHOT_GRAPHQL_ENDPOINT, graphql_query)
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to fetch votes from Snapshot API for proposal {}",
-                proposal_external_id
-            )
-        })?;
-
-    Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
-}
-
 #[instrument(
     name = "refresh_votes_for_proposal",
     skip(governor_id, dao_id),
@@ -627,8 +417,11 @@ async fn refresh_votes_for_proposal(
 
     // Fetch all votes for the proposal in batches
     loop {
-        let votes_batch =
-            fetch_proposal_votes_batch(proposal_external_id, current_skip, MAX_BATCH_SIZE).await?;
+        let votes_batch = SNAPSHOT_API_HANDLER
+            .get()
+            .context("Snapshot API handler not initialized")?
+            .fetch_proposal_votes(proposal_external_id, current_skip, MAX_BATCH_SIZE)
+            .await?;
 
         if votes_batch.is_empty() {
             debug!(proposal_external_id = %proposal_external_id, "No more votes found for proposal, finished fetching.");
@@ -657,7 +450,7 @@ async fn refresh_votes_for_proposal(
     let mut processed_count = 0;
 
     for vote_data in &all_votes_data {
-        if let Ok(Some(vote_model)) = process_vote(vote_data, governor_id, dao_id) {
+        if let Ok(Some(vote_model)) = vote_data.to_active_model(governor_id, dao_id) {
             votes_to_store.push(vote_model);
             processed_count += 1;
         }
