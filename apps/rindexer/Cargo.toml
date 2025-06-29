@@ -36,8 +36,8 @@ tracing-subscriber = { workspace = true, features = ["fmt", "json", "env-filter"
 utils = { workspace = true }
 
 [dev-dependencies]
-mockito = "1.2"
-proptest = "1.0"
+mockito = { workspace = true }
+proptest = { workspace = true }
 
 [[bin]]
 name = "proposalsapp-rindexer"

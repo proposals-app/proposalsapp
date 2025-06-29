@@ -25,7 +25,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@serwist/next": "^9.0.15",
-    "@snapshot-labs/snapshot.js": "^0.13.1",
+    "@snapshot-labs/snapshot.js": "^0.14.0",
     "@tanstack/react-query": "^5.81.5",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@vercel/og": "^0.6.8",
