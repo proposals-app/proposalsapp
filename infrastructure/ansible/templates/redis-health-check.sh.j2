@@ -5,14 +5,33 @@ REDIS_PASSWORD="{{ redis_password }}"
 REDIS_PORT="{{ redis_port }}"
 
 # Check if Redis is responding to ping
-if redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" ping 2>/dev/null | grep -q "PONG"; then
-    # Check if Redis can perform basic operations
+if ! redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" ping 2>/dev/null | grep -q "PONG"; then
+    exit 2
+fi
+
+# Check Redis role
+ROLE=$(redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" info replication 2>/dev/null | grep "role:" | cut -d: -f2 | tr -d '\r')
+
+if [ "$ROLE" = "master" ]; then
+    # For master nodes, check if Redis can perform write operations
     TEST_KEY="health:check:$(date +%s)"
     if redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" SET "$TEST_KEY" "OK" EX 10 2>/dev/null | grep -q "OK"; then
         if redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" GET "$TEST_KEY" 2>/dev/null | grep -q "OK"; then
             exit 0
         fi
     fi
+    exit 2
+elif [ "$ROLE" = "slave" ]; then
+    # For replica nodes, check replication status
+    MASTER_LINK=$(redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" info replication 2>/dev/null | grep "master_link_status:" | cut -d: -f2 | tr -d '\r')
+    if [ "$MASTER_LINK" = "up" ]; then
+        # Also verify we can read data
+        if redis-cli -h localhost -p $REDIS_PORT -a "$REDIS_PASSWORD" GET "nonexistent:key" 2>/dev/null >/dev/null; then
+            exit 0
+        fi
+    fi
+    exit 2
+else
+    # Unknown role
+    exit 2
 fi
-
-exit 2

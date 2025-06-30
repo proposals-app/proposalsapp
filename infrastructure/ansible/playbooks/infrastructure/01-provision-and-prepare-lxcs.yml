@@ -81,7 +81,7 @@
         cores: 2
         memory: 4096
         swap: 0
-        disk: 100
+        disk: 200
   tasks:
     - name: Install Python3 and pip
       apt:
