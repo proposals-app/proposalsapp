@@ -4,14 +4,14 @@
   become: true
   vars:
     deployment_dir: /opt/deployment
-    
+
   tasks:
     - name: Stop and disable old watcher service if exists
       systemd:
         name: consul-deployment-watcher
         state: stopped
         enabled: no
-      ignore_errors: yes
+      ignore_errors: true
 
     - name: Create deployment directory
       file:
@@ -19,7 +19,7 @@
         state: directory
         owner: root
         group: root
-        mode: '0755'
+        mode: "0755"
 
     - name: Copy deployment checker script
       copy:
@@ -27,7 +27,7 @@
         dest: "{{ deployment_dir }}/deployment-checker.sh"
         owner: root
         group: root
-        mode: '0755'
+        mode: "0755"
 
     - name: Create systemd service for deployment checker
       copy:
@@ -81,18 +81,18 @@
           ========================================
           Simplified Deployment Automation Active
           ========================================
-          
+
           The system now checks for deployment updates every minute.
-          
+
           How it works:
           1. GitHub Actions builds and updates Consul KV
           2. Deployment checker runs every minute
           3. If image changed, it updates Nomad job
           4. Nomad performs rolling deployment
-          
+
           Monitor with:
           - journalctl -u deployment-checker -f
           - systemctl status deployment-checker.timer
           - tail -f /var/log/deployment-checker.log
-          
+
           ========================================"
