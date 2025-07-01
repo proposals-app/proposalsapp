@@ -18,15 +18,6 @@ export default function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
-  // Log for debugging subdomain routing issues
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Middleware] Request:', {
-      hostname,
-      pathname: url.pathname,
-      search: url.search,
-    });
-  }
-
   // Get configured domain from env or use default based on environment
   const defaultDomain = hostname.includes('localhost')
     ? 'localhost:3000'
@@ -79,11 +70,6 @@ export default function middleware(request: NextRequest) {
       targetUrl.pathname = url.pathname.replace(`/${detectedDao}`, '') || '/';
       targetUrl.port = ''; // Clear the port to use default (80/443)
 
-      console.log('[Middleware] Redirecting path access to subdomain:', {
-        from: request.url,
-        to: targetUrl.toString(),
-      });
-
       return NextResponse.redirect(targetUrl, 301);
     }
   }
@@ -99,21 +85,6 @@ export default function middleware(request: NextRequest) {
     if (!url.pathname.startsWith(`/${subdomain}`)) {
       // Rewrite to the specialized implementation
       url.pathname = `/${subdomain}${url.pathname}`;
-    }
-
-    // Log the rewrite for debugging
-    if (
-      process.env.NODE_ENV === 'development' ||
-      url.pathname.includes(`/${subdomain}/${subdomain}`)
-    ) {
-      console.log('[Middleware] Subdomain rewrite:', {
-        subdomain,
-        originalPath: request.nextUrl.pathname,
-        rewrittenPath: url.pathname,
-        wasAlreadyPrefixed: request.nextUrl.pathname.startsWith(
-          `/${subdomain}`
-        ),
-      });
     }
 
     return NextResponse.rewrite(url);

@@ -6,6 +6,7 @@ import {
   RankedChoiceVote,
   SingleChoiceVote,
   WeightedVote,
+  HiddenVote,
 } from '@/app/(dao)/[daoSlug]/components/vote-result/web';
 import type { ProcessedResults } from '@/lib/results_processing';
 import type { VoteSegmentData } from '@/lib/types';
@@ -34,9 +35,14 @@ const VoteComponents = {
 } as const;
 
 export function ResultEventMobile(props: ResultEventProps) {
-  const Component = props.result.voteType
-    ? VoteComponents[props.result.voteType]
-    : null;
+  // Use HiddenVote component if votes are hidden and not finalized
+  const isHidden =
+    props.result.hiddenVote && props.result.scoresState !== 'final';
+  const Component = isHidden
+    ? HiddenVote
+    : props.result.voteType
+      ? VoteComponents[props.result.voteType]
+      : null;
   const voteComponent = Component ? (
     <Component result={props.result} expanded={props.expanded} />
   ) : null;

@@ -7,6 +7,7 @@ import {
   RankedChoiceVote,
   SingleChoiceVote,
   WeightedVote,
+  HiddenVote,
 } from '@/app/(dao)/[daoSlug]/components/vote-result/web';
 import OnchainEventIcon from '@/public/assets/web/icons/onchain.svg';
 import OffchainEventIcon from '@/public/assets/web/icons/offchain.svg';
@@ -29,7 +30,11 @@ const VoteComponents = {
 } as const;
 
 export function ResultCard({ content, result }: ResultCardProps) {
-  const Component = result.voteType ? VoteComponents[result.voteType] : null;
+  // Use HiddenVote component if votes are hidden and not finalized
+  const isHidden = result.hiddenVote && result.scoresState !== 'final';
+  const Component = isHidden 
+    ? HiddenVote 
+    : (result.voteType ? VoteComponents[result.voteType] : null);
   const onchain = result.proposal.blockCreatedAt ? true : false;
 
   return (

@@ -37,5 +37,8 @@
     "libs/ts/visual-dom-diff",
     "apps/web",
     "apps/email-service"
-  ]
+  ],
+  "resolutions": {
+    "prettier": "^3.6.2"
+  }
 }

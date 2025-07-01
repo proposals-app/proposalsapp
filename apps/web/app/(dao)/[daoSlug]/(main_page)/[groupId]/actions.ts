@@ -987,14 +987,18 @@ export async function getFeed(
             processedVotes.push(...processedResults.votes);
           }
 
-          const voteSegments = calculateVoteSegments(processedResults);
-
           const metadata =
             typeof proposal.metadata === 'string'
               ? (JSON.parse(proposal.metadata) as ProposalMetadata)
               : (proposal.metadata as ProposalMetadata);
 
           const voteType = metadata?.voteType;
+
+          // Skip vote segment calculation for hidden votes that are not finalized
+          const voteSegments =
+            metadata?.hiddenVote && metadata?.scoresState !== 'final'
+              ? {} // Return empty segments for hidden votes
+              : calculateVoteSegments(processedResults);
 
           if (currentTimestamp > endedAt) {
             events.push({
