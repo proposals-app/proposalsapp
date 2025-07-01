@@ -146,6 +146,7 @@ PLAYBOOKS=(
     "playbooks/infrastructure/03-install-nomad.yml:Installing and configuring Nomad"
     "playbooks/infrastructure/04-install-postgres-unified.yml:Installing PostgreSQL with Patroni, etcd, and pgpool-II"
     "playbooks/infrastructure/05-install-redis-unified.yml:Installing Redis with Sentinel and HAProxy"
+    "playbooks/setup-deployment-automation-simple.yml:Setting up auto-deployment service"
 )
 
 # Setup GitHub runners if PAT is configured
@@ -231,6 +232,7 @@ if [ $failed -eq 0 ]; then
     echo "  • HAProxy on app nodes for Redis"
     echo "  • Unified Confd managing both pgpool and HAProxy configurations"
     echo "  • Local-first routing (100% reads to local DB/Redis when healthy)"
+    echo "  • Auto-deployment service monitoring GitHub Actions builds"
     echo "  • 3 GitHub Actions self-hosted runners"
     echo ""
     echo -e "${CYAN}Next steps:${NC}"
