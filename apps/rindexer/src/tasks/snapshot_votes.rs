@@ -30,6 +30,11 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
     // Get the timestamp of the latest vote we've already processed
     let mut last_vote_created = get_latest_vote_created(governor_id, dao_id).await?;
 
+    // Apply a 5-minute overlap window to catch votes that may have been delayed
+    // This helps catch votes that were submitted but not immediately visible in the API
+    const OVERLAP_WINDOW_SECS: i64 = 300; // 5 minutes
+    let fetch_from_timestamp = last_vote_created.saturating_sub(OVERLAP_WINDOW_SECS);
+
     // Fetch relevant proposals for this specific governor and DAO
     let relevant_proposals = get_relevant_proposals(governor_id, dao_id, last_vote_created).await?;
 
@@ -47,13 +52,17 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
         "Fetching votes for relevant snapshot proposals."
     );
 
+    // Track the fetch timestamp separately from last_vote_created
+    // This ensures we don't skip votes due to the overlap window
+    let mut current_fetch_from = fetch_from_timestamp;
+
     // Fetch votes in batches
     for loop_count in 0..MAX_LOOPS {
         // Fetch a batch of votes
         let votes_data = match SNAPSHOT_API_HANDLER
             .get()
             .context("Snapshot API handler not initialized")?
-            .fetch_votes(&space, last_vote_created, &relevant_proposals)
+            .fetch_votes(&space, current_fetch_from, &relevant_proposals)
             .await
         {
             Ok(votes) => votes,
@@ -76,8 +85,7 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
             "Processing batch of votes."
         );
 
-        // Track if we found new votes in this batch and the max timestamp
-        let mut new_votes_found = false;
+        // Track the max timestamp in this batch
         let mut max_created_in_batch = last_vote_created;
 
         // Process votes and prepare them for storage
@@ -94,10 +102,7 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
             }
             processed_vote_hashes.insert(vote_hash);
 
-            // Update tracking variables
-            if vote_data.created > last_vote_created {
-                new_votes_found = true;
-            }
+            // Track the maximum timestamp in this batch
             max_created_in_batch = max_created_in_batch.max(vote_data.created);
 
             // Process the vote and add it to the storage batch if valid
@@ -121,26 +126,30 @@ pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: Strin
             );
         }
 
-        // Only advance timestamp if we found new votes, otherwise we might be in an infinite loop
-        if new_votes_found {
+        // Update fetch timestamp for next iteration
+        if votes_data.is_empty() {
+            // No votes returned at all - we've caught up
+            debug!(
+                space = %space,
+                current_fetch_from = current_fetch_from,
+                "No votes returned in batch - fully caught up"
+            );
+            break;
+        }
+
+        // Always use the max timestamp from the batch for the next fetch
+        // This ensures we don't miss votes with the same timestamp
+        current_fetch_from = max_created_in_batch + 1;
+
+        // Update last_vote_created to track our overall progress
+        // This will be persisted for the next run
+        if max_created_in_batch > last_vote_created {
             last_vote_created = max_created_in_batch;
             debug!(
                 new_last_vote_created = last_vote_created,
-                "Advanced last vote created timestamp"
-            );
-        } else {
-            // If no new votes found, increment by 1 to avoid infinite loop on same timestamp
-            warn!(
-                space = %space,
-                batch_size = votes_data.len(),
-                processed_votes = votes_count,
-                last_vote_created = last_vote_created,
-                "No new votes found in batch - incrementing timestamp to avoid infinite loop. This may indicate missing votes."
-            );
-            last_vote_created += 1;
-            debug!(
-                incremented_last_vote_created = last_vote_created,
-                "Incremented timestamp to avoid infinite loop"
+                votes_in_batch = votes_data.len(),
+                new_fetch_from = current_fetch_from,
+                "Advanced timestamps for next iteration"
             );
         }
     }
