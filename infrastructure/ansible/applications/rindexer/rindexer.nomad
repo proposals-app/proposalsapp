@@ -176,6 +176,9 @@ ARBISCAN_API_KEY={{ keyOrDefault "rindexer/arbiscan_api_key" "" }}
 ETHERSCAN_API_KEY={{ keyOrDefault "rindexer/etherscan_api_key" "" }}
 OPTIMISTIC_SCAN_API_KEY={{ keyOrDefault "rindexer/optimistic_scan_api_key" "" }}
 
+# BetterStack monitoring
+BETTERSTACK_KEY={{ keyOrDefault "rindexer/betterstack_key" "" }}
+
 EOF
         destination = "secrets/env"
         env         = true

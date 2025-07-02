@@ -24,6 +24,10 @@
       - key: "rindexer/optimistic_scan_api_key"
         value: "{{ vault_rindexer_optimistic_scan_api_key }}"
 
+      # BetterStack monitoring
+      - key: "rindexer/betterstack_key"
+        value: "{{ vault_rindexer_betterstack_key }}"
+
   tasks:
     - name: Ensure Consul is available
       wait_for:
