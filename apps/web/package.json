@@ -79,7 +79,7 @@
     "viem": "^2.31.6",
     "wagmi": "^2.15.6",
     "web-push": "^3.6.7",
-    "zod": "^3.25.67"
+    "zod": "^3.25.71"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.0.1",
@@ -108,7 +108,7 @@
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
     "buffer": "^6.0.3",
-    "chromatic": "^13.0.1",
+    "chromatic": "^13.1.0",
     "concurrently": "^9.2.0",
     "eslint": "^9.30.1",
     "eslint-config-next": "^15.3.4",
