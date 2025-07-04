@@ -710,6 +710,8 @@
           PIDFile=/run/pgpool/pgpool.pid
           User=postgres
           Group=postgres
+          RuntimeDirectory=pgpool
+          RuntimeDirectoryMode=0755
 
           Environment="PGDATA=/var/lib/postgresql/17/main"
           

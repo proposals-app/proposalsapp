@@ -110,7 +110,7 @@
           Restart=always
           User=redis
           Group=redis
-          RuntimeDirectory=redis
+          RuntimeDirectory=redis redis-sentinel
           RuntimeDirectoryMode=0755
           
           # Security
