@@ -6113,7 +6113,7 @@ __metadata:
     "@radix-ui/react-slot": "npm:^1.2.3"
     "@rainbow-me/rainbowkit": "npm:^2.2.8"
     "@serwist/next": "npm:^9.0.15"
-    "@snapshot-labs/snapshot.js": "npm:^0.14.2"
+    "@snapshot-labs/snapshot.js": "npm:^0.14.3"
     "@storybook/addon-docs": "npm:^9.0.15"
     "@storybook/addon-onboarding": "npm:^9.0.15"
     "@storybook/nextjs": "npm:^9.0.15"
@@ -6178,7 +6178,7 @@ __metadata:
     posthog-js: "npm:^1.256.2"
     posthog-node: "npm:^5.1.1"
     prettier: "npm:^3.6.2"
-    prettier-plugin-classnames: "npm:^0.8.0"
+    prettier-plugin-classnames: "npm:^0.8.1"
     prettier-plugin-merge: "npm:^0.8.0"
     prettier-plugin-organize-imports: "npm:^4.1.0"
     prettier-plugin-tailwindcss: "npm:^0.6.13"
@@ -6208,11 +6208,11 @@ __metadata:
     typescript: "npm:^5.8.3"
     unified: "npm:^11.0.5"
     uuid: "npm:^11.1.0"
-    viem: "npm:^2.31.6"
+    viem: "npm:^2.31.7"
     wagmi: "npm:^2.15.6"
     web-push: "npm:^3.6.7"
     webpack: "npm:^5.99.9"
-    zod: "npm:^3.25.73"
+    zod: "npm:^3.25.74"
   languageName: unknown
   linkType: soft
 
@@ -7849,9 +7849,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@snapshot-labs/snapshot.js@npm:^0.14.2":
-  version: 0.14.2
-  resolution: "@snapshot-labs/snapshot.js@npm:0.14.2"
+"@snapshot-labs/snapshot.js@npm:^0.14.3":
+  version: 0.14.3
+  resolution: "@snapshot-labs/snapshot.js@npm:0.14.3"
   dependencies:
     "@ensdomains/eth-ens-namehash": "npm:^2.0.15"
     "@ethersproject/abi": "npm:^5.6.4"
@@ -7870,7 +7870,7 @@ __metadata:
     json-to-graphql-query: "npm:^2.2.4"
     lodash.set: "npm:^4.3.2"
     starknet: "npm:^6.11.0"
-  checksum: 10c0/284d436db799d09b5f10dba7e72e71848ad12e75982fe60fd4e9ef91c700d69f58fbea568e313a9ba21b0c686befc96405cb893c6e457b4f3f9f9b821775940d
+  checksum: 10c0/50901ef2e0d4cf8122036bb2b6736bda41f109b46726f97a03cd0c08af71a54a0a991449c2f6c77d8df9dc6879578b369292c622a16add50a958497e2667d04b
   languageName: node
   linkType: hard
 
@@ -23281,9 +23281,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier-plugin-classnames@npm:^0.8.0":
-  version: 0.8.0
-  resolution: "prettier-plugin-classnames@npm:0.8.0"
+"prettier-plugin-classnames@npm:^0.8.1":
+  version: 0.8.1
+  resolution: "prettier-plugin-classnames@npm:0.8.1"
   dependencies:
     zod: "npm:3.22.4"
   peerDependencies:
@@ -23295,7 +23295,7 @@ __metadata:
       optional: true
     prettier-plugin-svelte:
       optional: true
-  checksum: 10c0/ff2fd4798faf8fcb9af96b4eb1a4cc704a8af49ea3a0d0f4ae53b918b252fce411e10905cc3ca230a42008e1299c0993e032f2089a03a09ba53a69c7e688a67b
+  checksum: 10c0/d0c96d8dcc766256ac13ef7d43d57b91997698dd7b894dfa91fb8bee6c6cbd591a76e0cd63a30e5858ba431266572d9806cdba13bea460576900222e9b3e7b23
   languageName: node
   linkType: hard
 
@@ -28344,9 +28344,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:^2.31.6":
-  version: 2.31.6
-  resolution: "viem@npm:2.31.6"
+"viem@npm:^2.31.7":
+  version: 2.31.7
+  resolution: "viem@npm:2.31.7"
   dependencies:
     "@noble/curves": "npm:1.9.2"
     "@noble/hashes": "npm:1.8.0"
@@ -28361,7 +28361,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/0b01fa25cac1c857f846e57178cfc77d45df5b0c44125686d685fc6cbe45055f5c73143d475a4d7e1bf9d214529f5051778366e2103fe8473466f805ae69a359
+  checksum: 10c0/b75d83e2af264bb4274dad6f6382db035d3231d1e1ae1d8ff9874d0368754f632124f486a76e6bf0a22236608f53292a55c3a57675e742b7c2f89e54fee60c8c
   languageName: node
   linkType: hard
 
@@ -29396,10 +29396,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25.73":
-  version: 3.25.73
-  resolution: "zod@npm:3.25.73"
-  checksum: 10c0/dac012027decd7fc9206242a046b8e4ad175e3b4ae1fc8de62e60e650932f72ec709773b9861ec41c89cb7dce41b3536551f0ab5942ff2373592af8d2b667631
+"zod@npm:^3.25.74":
+  version: 3.25.74
+  resolution: "zod@npm:3.25.74"
+  checksum: 10c0/59e38b046ac333b5bd1ba325a83b6798721227cbfb1e69dfc7159bd7824b904241ab923026edb714fafefec3624265ae374a70aee9a5a45b365bd31781ffa105
   languageName: node
   linkType: hard
 
