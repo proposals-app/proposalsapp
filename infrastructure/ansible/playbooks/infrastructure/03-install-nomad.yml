@@ -30,8 +30,15 @@
     - name: Create Nomad systemd service override
       copy:
         content: |
+          [Unit]
+          # Ensure Consul is available
+          After=consul.service
+          Wants=consul.service
+          
           [Service]
           Environment="CONSUL_HTTP_ADDR=http://127.0.0.1:{{ consul_client_port }}"
+          # Add startup delay to ensure Consul is ready
+          ExecStartPre=/bin/sleep 5
         dest: /etc/systemd/system/nomad.service.d/override.conf
       notify:
         - reload systemd
@@ -113,9 +120,32 @@
     - name: Create Nomad systemd service override
       copy:
         content: |
+          [Unit]
+          # Ensure Consul is available
+          After=consul.service
+          Wants=consul.service
+          
           [Service]
           Environment="CONSUL_HTTP_ADDR=http://127.0.0.1:{{ consul_client_port }}"
+          # Add startup delay to ensure Consul is ready
+          ExecStartPre=/bin/sleep 5
         dest: /etc/systemd/system/nomad.service.d/override.conf
+      notify:
+        - reload systemd
+        - restart nomad
+
+    - name: Create additional Nomad client dependencies override
+      copy:
+        content: |
+          [Unit]
+          # Additional dependencies for Nomad clients
+          After=pgpool.service haproxy.service
+          
+          [Service]
+          # Extended startup checks for client nodes
+          ExecStartPre=/bin/bash -c 'for i in {1..30}; do consul catalog services | grep -q pgpool && echo "pgpool found in Consul" && break || (echo "Waiting for pgpool..." && sleep 2); done'
+          ExecStartPre=/bin/bash -c 'for i in {1..30}; do consul catalog services | grep -q haproxy-redis && echo "haproxy-redis found in Consul" && break || (echo "Waiting for haproxy-redis..." && sleep 2); done'
+        dest: /etc/systemd/system/nomad.service.d/client-dependencies.conf
       notify:
         - reload systemd
         - restart nomad

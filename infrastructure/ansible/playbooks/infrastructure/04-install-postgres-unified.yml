@@ -702,8 +702,9 @@
         content: |
           [Unit]
           Description=pgpool-II PostgreSQL connection pooler
-          After=network-online.target confd.service
+          After=network-online.target confd.service consul.service
           Wants=network-online.target
+          Before=nomad.service
 
           [Service]
           Type=forking
@@ -718,9 +719,13 @@
           ExecStart=/usr/sbin/pgpool -D -f {{ pgpool_config_dir }}/pgpool.conf -F {{ pgpool_config_dir }}/pcp.conf -a {{ pgpool_config_dir }}/pool_hba.conf
           ExecReload=/usr/sbin/pgpool reload
           ExecStop=/usr/sbin/pgpool -m fast stop
+          
+          # Health check before considering service started
+          ExecStartPost=/bin/bash -c 'for i in {1..30}; do PGPASSWORD="{{ vault_postgres_password }}" psql -h localhost -p 5432 -U proposalsapp -d proposalsapp -c "SELECT 1" >/dev/null 2>&1 && exit 0 || sleep 2; done; exit 1'
 
           Restart=always
           RestartSec=10
+          TimeoutStartSec=90
 
           LimitNOFILE=65536
 

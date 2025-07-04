@@ -10,11 +10,11 @@
     pgbackweb_port: 8085
     pgbackweb_data_dir: "/opt/pgbackweb"
     pgbackweb_backup_dir: "/backups/pgbackweb"
-    
-    # PostgreSQL connection details for pgbackweb's own database
-    # This will connect to the main PostgreSQL cluster via pgpool on db-sib-01
-    pgbackweb_postgres_host: "db-sib-01"
-    pgbackweb_postgres_port: 5432
+    pgbackweb_db_password: "{{ vault_pgbackweb_db_password | default('pgbackweb_secure_' + lookup('password', '/dev/null chars=ascii_letters,digits length=16')) }}"
+    pgbackweb_encryption_key: "{{ vault_pgbackweb_encryption_key }}"
+    postgres_user: "{{ vault_postgres_user }}"
+    postgres_password: "{{ vault_postgres_password }}"
+    pgbackweb_postgres_database: "pgbackweb"
 
   tasks:
     - name: Install required packages
@@ -39,14 +39,7 @@
         - "{{ pgbackweb_backup_dir }}"
         - "/var/log/pgbackweb"
 
-    - name: Create pgbackweb database
-      postgresql_db:
-        name: "{{ pgbackweb_postgres_database }}"
-        port: "{{ pgbackweb_postgres_port }}"
-        login_user: "{{ postgres_user }}"
-        login_password: "{{ postgres_password }}"
-        login_host: "{{ pgbackweb_postgres_host }}"
-        state: present
+    # pgbackweb now uses its own PostgreSQL container, no need to create database in main cluster
 
     - name: Create docker-compose file for pgbackweb
       template:
@@ -56,13 +49,7 @@
         group: root
         mode: '0644'
 
-    - name: Create pgbackweb environment file
-      template:
-        src: ../../templates/pgbackweb.env.j2
-        dest: "{{ pgbackweb_data_dir }}/.env"
-        owner: root
-        group: root
-        mode: '0600'
+    # Environment variables are now defined directly in docker-compose.yml
 
 
     - name: Pull pgbackweb Docker image
@@ -71,12 +58,36 @@
         source: pull
         state: present
 
-    - name: Start pgbackweb container
+    - name: Install netcat for service dependency check
+      apt:
+        name: netcat-openbsd
+        state: present
+
+    - name: Create systemd service for pgbackweb
+      template:
+        src: ../../templates/pgbackweb.service.j2
+        dest: /etc/systemd/system/pgbackweb.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Stop any existing pgbackweb container
       shell: |
         cd {{ pgbackweb_data_dir }}
-        docker-compose up -d
+        docker-compose down || true
       args:
         chdir: "{{ pgbackweb_data_dir }}"
+      ignore_errors: yes
+
+    - name: Enable and start pgbackweb service
+      systemd:
+        name: pgbackweb
+        enabled: yes
+        state: started
 
     - name: Wait for pgbackweb to be ready
       wait_for:
@@ -84,6 +95,27 @@
         host: localhost
         delay: 10
         timeout: 60
+
+    - name: Wait for pgbackweb database to be ready
+      wait_for:
+        port: 5433
+        host: localhost
+        delay: 5
+        timeout: 30
+
+    - name: Create initial admin user in pgbackweb
+      shell: |
+        # Wait a bit more for schema initialization
+        sleep 10
+        
+        # Create admin user with bcrypt hashed password 'wxh5ztn1cyv8qbk@VEX'
+        docker exec pgbackweb-db psql -U pgbackweb -d pgbackweb -c "
+          INSERT INTO users (name, email, password) 
+          VALUES ('Andrei V', 'contact@andreiv.com', '\$2b\$10\$9VzkBnBTbOL9y3xJKeofOucts2b8WvRttHBnAvlUyknCI4Hs3x8TW') 
+          ON CONFLICT (email) DO UPDATE SET password = '\$2b\$10\$9VzkBnBTbOL9y3xJKeofOucts2b8WvRttHBnAvlUyknCI4Hs3x8TW';
+        " || echo "User creation might have failed - database might not be initialized yet"
+      register: create_user_result
+      ignore_errors: yes
 
 
     - name: Install ufw if not present
@@ -100,6 +132,22 @@
         comment: "pgbackweb UI"
       ignore_errors: yes
 
+    - name: Create scripts directory
+      file:
+        path: /usr/local/bin
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy recovery script
+      copy:
+        src: ../../scripts/fix-pgbackweb-login.sh
+        dest: /usr/local/bin/fix-pgbackweb-login.sh
+        owner: root
+        group: root
+        mode: '0755'
+
     - name: Display pgbackweb access information
       debug:
         msg:
@@ -107,3 +155,5 @@
           - "Access the UI at: http://{{ ansible_default_ipv4.address }}:{{ pgbackweb_port }}"
           - "Create an account on first access"
           - "Configure databases, destinations, and backup schedules through the web UI"
+          - ""
+          - "If login fails after server restart, run: /usr/local/bin/fix-pgbackweb-login.sh"

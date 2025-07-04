@@ -5,9 +5,9 @@ job "mapper" {
   update {
     max_parallel      = 1
     health_check      = "checks"
-    min_healthy_time  = "10s"
-    healthy_deadline  = "2m"
-    progress_deadline = "5m"
+    min_healthy_time  = "30s"
+    healthy_deadline  = "5m"
+    progress_deadline = "10m"
     auto_revert       = true
     auto_promote      = false
     canary            = 0
@@ -32,10 +32,10 @@ job "mapper" {
     }
 
     restart {
-      attempts = 3
-      interval = "5m"
-      delay    = "30s"
-      mode     = "delay"
+      attempts = 5
+      interval = "10m"
+      delay    = "60s"
+      mode     = "exponential"
     }
 
     ephemeral_disk {
@@ -122,10 +122,22 @@ DEPLOYMENT_WORKFLOW_URL=unknown
 
 # Database connection - use Nomad service discovery to find pgpool
 # This will resolve to the pgpool service running on the same node
+{{ $pgpoolFound := false }}
 {{ range service "pgpool" }}
+{{ $pgpoolFound = true }}
 # Get connection string and replace localhost with discovered address
 {{ $connStr := keyOrDefault "pgpool/connection_string/local" "postgresql://proposalsapp:password@localhost:5432/proposalsapp" }}
 DATABASE_URL={{ $connStr | regexReplaceAll "@localhost:" (printf "@%s:" .Address) }}
+{{ end }}
+{{ if not $pgpoolFound }}
+# Fallback: Use connection string from Consul KV directly when pgpool service is not yet discovered
+{{ $connStr := keyOrDefault "pgpool/connection_string/local" "" }}
+{{ if $connStr }}
+DATABASE_URL={{ $connStr }}
+{{ else }}
+# Emergency fallback - this will cause the service to fail and retry
+DATABASE_URL=
+{{ end }}
 {{ end }}
 
 # BetterStack monitoring
@@ -134,7 +146,8 @@ BETTERSTACK_KEY={{ keyOrDefault "mapper/betterstack_key" "" }}
 EOF
         destination = "secrets/env"
         env         = true
-        change_mode = "noop"
+        change_mode = "restart"
+        splay       = "30s"
       }
 
       resources {

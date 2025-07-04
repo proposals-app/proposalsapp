@@ -100,13 +100,19 @@
         content: |
           [Unit]
           Description=Redis In-Memory Data Store
-          After=network.target
+          After=network.target consul.service
+          Before=nomad.service
           
           [Service]
           Type=notify
           ExecStart=/usr/bin/redis-server /etc/redis/redis.conf --supervised systemd
           ExecStop=/usr/bin/redis-cli -a {{ redis_password }} shutdown
+          
+          # Health check before considering service started
+          ExecStartPost=/bin/bash -c 'for i in {1..30}; do redis-cli -a {{ redis_password }} ping >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1'
+          
           TimeoutStopSec=0
+          TimeoutStartSec=60
           Restart=always
           User=redis
           Group=redis
@@ -388,6 +394,26 @@
       stat:
         path: /etc/haproxy/haproxy.cfg
       register: haproxy_cfg
+
+    - name: Create HAProxy systemd override directory
+      file:
+        path: /etc/systemd/system/haproxy.service.d
+        state: directory
+        mode: '0755'
+
+    - name: Create HAProxy systemd override for dependencies
+      copy:
+        content: |
+          [Unit]
+          After=network-online.target confd.service consul.service
+          Before=nomad.service
+          
+          [Service]
+          # Health check to ensure Redis is accessible
+          ExecStartPost=/bin/bash -c 'for i in {1..30}; do redis-cli -h localhost -p 6380 -a {{ redis_password }} ping >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1'
+          TimeoutStartSec=60
+        dest: /etc/systemd/system/haproxy.service.d/dependencies.conf
+        mode: '0644'
 
     - name: Ensure HAProxy service is enabled and started
       systemd:
