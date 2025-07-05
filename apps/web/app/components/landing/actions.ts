@@ -11,12 +11,9 @@ export async function getLandingPageStats() {
 
   try {
     // Get count of active DAOs
-    const activeDaos = await db.public
-      .selectFrom('dao')
-      .select(db.public.fn.count('id').as('count'))
-      .executeTakeFirst();
+    const activeDaos = await db.public.selectFrom('dao').selectAll().execute();
 
-    const daoCount = Number(activeDaos?.count ?? 0);
+    const daoCount = activeDaos.length;
 
     // Get count of active proposals (ongoing votes)
     const now = new Date();
@@ -28,10 +25,9 @@ export async function getLandingPageStats() {
       .where('proposal.endAt', '>', now)
       .where('proposal.startAt', '<=', now)
       .where('proposal.proposalState', '=', ProposalState.ACTIVE)
-      .select(db.public.fn.count('id').as('count'))
-      .executeTakeFirst();
+      .execute();
 
-    const activeProposalsCount = Number(activeProposals?.count ?? 0);
+    const activeProposalsCount = activeProposals.length;
 
     return {
       activeProposals: activeProposalsCount,
