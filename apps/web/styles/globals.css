@@ -329,3 +329,47 @@
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
 }
+
+/* Primary color override for brand accent */
+[data-theme='default'] .text-primary {
+  color: var(--brand-accent);
+}
+
+[data-theme='arbitrum'] .text-primary {
+  color: var(--brand-accent);
+}
+
+[data-theme='uniswap'] .text-primary {
+  color: var(--brand-accent);
+}
+
+/* Full page scroll snap */
+.snap-y {
+  scroll-snap-type: y mandatory;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+.snap-always {
+  scroll-snap-stop: always;
+}
+
+/* Smooth scrolling for the main container */
+@media (prefers-reduced-motion: no-preference) {
+  .snap-y {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Hide scrollbar for cleaner look */
+.snap-y::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+.snap-y {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
