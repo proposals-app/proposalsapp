@@ -26,7 +26,7 @@ export default async function Page() {
         <FullPageSection className='bg-zinc-900' data-theme='dark'>
           <FeatureSection
             title='Unified Proposal Page'
-            description='Everything about a proposal in one place. Discourse discussion, Snapshot votes and onchain unified.'
+            description='Everything about a proposal in one place. Discourse discussion, Snapshot votes and onchain votes unified.'
             points={[
               'All governance activity aggregated',
               'Cross-platform proposal tracking',
