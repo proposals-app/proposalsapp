@@ -4565,7 +4565,7 @@ __metadata:
   dependencies:
     "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/emails": "npm:1.0.0"
-    "@testcontainers/postgresql": "npm:^11.0.3"
+    "@testcontainers/postgresql": "npm:^11.1.0"
     "@tsconfig/recommended": "npm:^1.0.10"
     "@types/dotenv": "npm:^8.2.3"
     "@types/express": "npm:^5.0.3"
@@ -4578,7 +4578,7 @@ __metadata:
     express: "npm:^5.1.0"
     node-cron: "npm:^4.2.0"
     supertest: "npm:^7.1.1"
-    testcontainers: "npm:^11.0.3"
+    testcontainers: "npm:^11.1.0"
     tsx: "npm:^4.20.3"
     typescript: "npm:^5.8.3"
     vitest: "npm:^3.2.4"
@@ -4772,7 +4772,7 @@ __metadata:
     typescript: "npm:^5.8.3"
     unified: "npm:^11.0.5"
     uuid: "npm:^11.1.0"
-    viem: "npm:^2.31.7"
+    viem: "npm:2.x"
     wagmi: "npm:^2.15.6"
     web-push: "npm:^3.6.7"
     webpack: "npm:^5.99.9"
@@ -6992,12 +6992,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@testcontainers/postgresql@npm:^11.0.3":
-  version: 11.0.3
-  resolution: "@testcontainers/postgresql@npm:11.0.3"
+"@testcontainers/postgresql@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "@testcontainers/postgresql@npm:11.1.0"
   dependencies:
-    testcontainers: "npm:^11.0.3"
-  checksum: 10c0/84371cf40b21c045f15606800a457e86e1febe156243f178c6e619b3349c78964ee6e2e56c3dcc7679a184526ae1f22ce825fe3156607a7671ed1e2d60cd0690
+    testcontainers: "npm:^11.1.0"
+  checksum: 10c0/50a414d68f89a486015fcab79e811004c6282bb91394e81c97c5b31290fbfb59d893a59a47bd3d45e3ba9335af5bf338972136d8619f9bc4b8ab914cc55de605
   languageName: node
   linkType: hard
 
@@ -24440,9 +24440,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"testcontainers@npm:^11.0.3":
-  version: 11.0.3
-  resolution: "testcontainers@npm:11.0.3"
+"testcontainers@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "testcontainers@npm:11.1.0"
   dependencies:
     "@balena/dockerignore": "npm:^1.0.2"
     "@types/dockerode": "npm:^3.3.39"
@@ -24459,7 +24459,7 @@ __metadata:
     tar-fs: "npm:^3.0.9"
     tmp: "npm:^0.2.3"
     undici: "npm:^7.10.0"
-  checksum: 10c0/c5cfec9596aa8f9dd05671c0f1480fd38bc9a70c4b8c124be1245c0294ace040f6a8ea0428c39223baa2e50542d8b0182a2992cabe1e3ebe085035b9186f738d
+  checksum: 10c0/6df64e00a43fd37b7effddb583131cb99ef5095837763088035c405c593bb5607de737c32156264f14703694ef7a30e42f1082a5597a7c3fcc85e6d8a907ca46
   languageName: node
   linkType: hard
 
@@ -25890,7 +25890,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:>=2.29.0, viem@npm:^2.1.1, viem@npm:^2.31.7":
+"viem@npm:2.x, viem@npm:>=2.29.0, viem@npm:^2.1.1":
   version: 2.31.7
   resolution: "viem@npm:2.31.7"
   dependencies:

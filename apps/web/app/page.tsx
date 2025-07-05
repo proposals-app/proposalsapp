@@ -10,6 +10,11 @@ import { FullPageSection } from '@/app/components/landing/FullPageSection';
 export default async function Page() {
   return (
     <>
+      {/* Under Construction Banner */}
+      <div className='fixed top-0 right-0 left-0 z-50 bg-amber-500 px-4 py-2 text-center font-medium text-black'>
+        <span className='text-sm'>🚧 This page is under construction. 🚧</span>
+      </div>
+
       <Navigation />
       <main className='h-screen snap-y snap-mandatory overflow-x-hidden overflow-y-auto'>
         {/* Hero Section - Light */}
