@@ -14,35 +14,46 @@ import pg from 'pg';
 
 dotenv_config();
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not defined.');
-}
+// Check if we're in build phase - if so, use dummy values
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
 
-if (!process.env.ARBITRUM_DATABASE_URL) {
-  throw new Error('ARBITRUM_DATABASE_URL environment variable is not defined.');
-}
+// Only validate environment variables if not in build phase
+if (!isBuildPhase) {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not defined.');
+  }
 
-if (!process.env.UNISWAP_DATABASE_URL) {
-  throw new Error('UNISWAP_DATABASE_URL environment variable is not defined.');
+  if (!process.env.ARBITRUM_DATABASE_URL) {
+    throw new Error('ARBITRUM_DATABASE_URL environment variable is not defined.');
+  }
+
+  if (!process.env.UNISWAP_DATABASE_URL) {
+    throw new Error('UNISWAP_DATABASE_URL environment variable is not defined.');
+  }
 }
 
 const { Pool } = pg;
 
+// Use dummy connection strings during build phase
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://build:build@localhost:5432/build';
+const ARBITRUM_DATABASE_URL = process.env.ARBITRUM_DATABASE_URL || 'postgresql://build:build@localhost:5432/build';
+const UNISWAP_DATABASE_URL = process.env.UNISWAP_DATABASE_URL || 'postgresql://build:build@localhost:5432/build';
+
 export const db_pool_public = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: DATABASE_URL,
   min: 5,
   max: 10,
 });
 
 export const db_pool_arbitrum = new Pool({
-  connectionString: process.env.ARBITRUM_DATABASE_URL,
+  connectionString: ARBITRUM_DATABASE_URL,
   options: '-c search_path=arbitrum',
   min: 5,
   max: 10,
 });
 
 export const db_pool_uniswap = new Pool({
-  connectionString: process.env.UNISWAP_DATABASE_URL,
+  connectionString: UNISWAP_DATABASE_URL,
   options: '-c search_path=uniswap',
   min: 5,
   max: 10,
