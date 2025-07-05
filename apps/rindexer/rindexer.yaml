@@ -5,27 +5,27 @@ networks:
     chain_id: 1
     rpc: ${ETHEREUM_NODE_URL}
     block_poll_frequency: optimized
-    max_block_range: "1000"
+
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
     block_poll_frequency: optimized
-    max_block_range: "10000"
+
   - name: optimism
     chain_id: 10
     rpc: ${OPTIMISM_NODE_URL}
     block_poll_frequency: optimized
-    max_block_range: "10000"
+
   - name: polygon
     chain_id: 137
     rpc: ${POLYGON_NODE_URL}
     block_poll_frequency: optimized
-    max_block_range: "10000"
+
   - name: avalanche
     chain_id: 43114
     rpc: ${AVALANCHE_NODE_URL}
     block_poll_frequency: optimized
-    max_block_range: "10000"
+
 storage:
   postgres:
     enabled: true

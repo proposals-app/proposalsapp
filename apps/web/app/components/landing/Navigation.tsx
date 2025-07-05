@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
+import { SUPPORTED_DAOS } from './dao-config';
 
 export function Navigation() {
   const [isLight, setIsLight] = useState(true);
@@ -61,16 +62,31 @@ export function Navigation() {
 
       {/* Desktop Menu */}
       <div className='hidden items-center gap-6 sm:flex'>
-        <Link
-          href='https://arbitrum.proposals.app'
-          className={`hidden transition-colors duration-300 sm:block ${
-            isLight
-              ? 'text-zinc-700 hover:text-zinc-900'
-              : 'text-zinc-300 hover:text-zinc-100'
-          }`}
-        >
-          Arbitrum
-        </Link>
+        {SUPPORTED_DAOS.map((dao, index) => (
+          <>
+            <Link
+              key={dao.name}
+              href={dao.link}
+              className={`hidden transition-colors duration-300 sm:block ${
+                isLight
+                  ? 'text-zinc-700 hover:text-zinc-900'
+                  : 'text-zinc-300 hover:text-zinc-100'
+              }`}
+            >
+              {dao.name}
+            </Link>
+            {index < SUPPORTED_DAOS.length - 1 && (
+              <span
+                key={`separator-${index}`}
+                className={`hidden sm:block ${
+                  isLight ? 'text-zinc-400' : 'text-zinc-600'
+                }`}
+              >
+                |
+              </span>
+            )}
+          </>
+        ))}
         <span
           className={`hidden sm:block ${
             isLight ? 'text-zinc-400' : 'text-zinc-600'
@@ -118,17 +134,21 @@ export function Navigation() {
               isLight ? 'bg-white/90' : 'bg-zinc-900/90'
             }`}
           >
-            <Link
-              href='https://arbitrum.proposals.app'
-              onClick={() => setMobileMenuOpen(false)}
-              className={`block py-2 transition-colors duration-300 ${
-                isLight
-                  ? 'text-zinc-700 hover:text-zinc-900'
-                  : 'text-zinc-300 hover:text-zinc-100'
-              }`}
-            >
-              Arbitrum
-            </Link>
+            {SUPPORTED_DAOS.map((dao) => (
+              <Link
+                key={dao.name}
+                href={dao.link}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block py-2 transition-colors duration-300 ${
+                  isLight
+                    ? 'text-zinc-700 hover:text-zinc-900'
+                    : 'text-zinc-300 hover:text-zinc-100'
+                }`}
+              >
+                {dao.name}
+              </Link>
+            ))}
+            <div className={`border-t ${isLight ? 'border-zinc-200' : 'border-zinc-700'} my-2`} />
             <Link
               href='/docs'
               onClick={() => setMobileMenuOpen(false)}
