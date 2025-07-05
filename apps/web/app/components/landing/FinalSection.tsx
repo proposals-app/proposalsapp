@@ -50,7 +50,7 @@ export function FinalSection() {
               <h4 className='mb-3 text-sm font-semibold text-zinc-100'>
                 Product
               </h4>
-              <ul className='space-y-2 text-sm text-zinc-400'>
+              <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
                 <li>
                   <a href='#' className='transition-colors hover:text-zinc-100'>
                     Roadmap
@@ -67,7 +67,7 @@ export function FinalSection() {
               <h4 className='mb-3 text-sm font-semibold text-zinc-100'>
                 Resources
               </h4>
-              <ul className='space-y-2 text-sm text-zinc-400'>
+              <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
                 <li>
                   <a
                     href='/docs'
@@ -90,7 +90,7 @@ export function FinalSection() {
               <h4 className='mb-3 text-sm font-semibold text-zinc-100'>
                 Community
               </h4>
-              <ul className='space-y-2 text-sm text-zinc-400'>
+              <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
                 <li>
                   <a
                     href='https://discord.gg/proposalsapp'
@@ -113,7 +113,7 @@ export function FinalSection() {
               <h4 className='mb-3 text-sm font-semibold text-zinc-100'>
                 Legal
               </h4>
-              <ul className='space-y-2 text-sm text-zinc-400'>
+              <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
                 <li>
                   <a href='#' className='transition-colors hover:text-zinc-100'>
                     Privacy
@@ -130,7 +130,8 @@ export function FinalSection() {
 
           <div className='border-t border-zinc-800 pt-6 text-center text-sm text-zinc-400'>
             <p>
-              © 2024 ProposalsApp. The unified platform for DAO governance.
+              © {new Date().getFullYear()} ProposalsApp. The unified platform
+              for DAO governance.
             </p>
           </div>
         </div>

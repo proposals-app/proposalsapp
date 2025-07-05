@@ -16,7 +16,7 @@ export default async function Page() {
       </div>
 
       <Navigation />
-      <main className='h-screen snap-y snap-mandatory overflow-x-hidden overflow-y-auto'>
+      <main className='h-screen-safe snap-y snap-proximity overflow-x-hidden overflow-y-auto sm:snap-mandatory'>
         {/* Hero Section - Light */}
         <FullPageSection className='bg-stone-50' data-theme='light'>
           <Hero />

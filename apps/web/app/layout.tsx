@@ -7,6 +7,7 @@ import WalletProvider from './components/providers/wallet-provider';
 import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/providers/posthog-provider';
+import { SafariViewportProvider } from './components/providers/safari-viewport-provider';
 
 const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';
 
@@ -49,21 +50,23 @@ export default async function Layout({
         <link rel='manifest' href='/manifest.json' />
       </head>
       <body>
-        <Suspense>
-          <PostHogProvider>
-            <Suspense>
-              <WebVitals />
-            </Suspense>
-            <Suspense>
-              <NuqsAdapter>
-                <WalletProvider>
-                  <main>{children}</main>
-                  <Toaster />
-                </WalletProvider>
-              </NuqsAdapter>
-            </Suspense>
-          </PostHogProvider>
-        </Suspense>
+        <SafariViewportProvider>
+          <Suspense>
+            <PostHogProvider>
+              <Suspense>
+                <WebVitals />
+              </Suspense>
+              <Suspense>
+                <NuqsAdapter>
+                  <WalletProvider>
+                    <main>{children}</main>
+                    <Toaster />
+                  </WalletProvider>
+                </NuqsAdapter>
+              </Suspense>
+            </PostHogProvider>
+          </Suspense>
+        </SafariViewportProvider>
       </body>
     </html>
   );

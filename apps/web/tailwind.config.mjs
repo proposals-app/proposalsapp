@@ -3,6 +3,9 @@ const config = {
   content: ['./app/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      screens: {
+        'xs': '475px',
+      },
       fontFamily: {
         sans: ['Fira Sans', 'sans-serif'],
         mono: ['Fira Mono', 'monospace'],

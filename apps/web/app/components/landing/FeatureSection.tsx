@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
+import { Check } from 'lucide-react';
 
 interface FeatureSectionProps {
   title: string;
@@ -35,11 +36,11 @@ export function FeatureSection({
   return (
     <div ref={ref} className='flex h-full'>
       <div
-        className={`grid h-full w-full lg:grid-cols-2 ${reverse ? 'lg:flex-row-reverse' : ''}`}
+        className={`grid h-full w-full grid-cols-1 lg:grid-cols-2 ${reverse ? 'lg:flex-row-reverse' : ''} py-safe`}
       >
         {/* GIF/Image Side - Full Half */}
         <motion.div
-          className={`${reverse ? 'lg:order-2' : 'lg:order-1'} h-full ${bgColor} ${reverse ? 'border-l' : 'border-r'} ${borderColor}`}
+          className={`${reverse ? 'lg:order-2' : 'lg:order-1'} h-full min-h-[200px] sm:min-h-[300px] lg:min-h-0 ${bgColor} ${reverse ? 'lg:border-l' : 'lg:border-r'} ${borderColor}`}
           initial={{ opacity: 0, x: reverse ? 50 : -50 }}
           animate={
             inView
@@ -48,14 +49,16 @@ export function FeatureSection({
           }
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
-          <div className='flex h-full w-full items-center justify-center p-8'>
-            <p className={`text-2xl ${placeholderColor}`}>{title} Demo</p>
+          <div className='flex h-full w-full items-center justify-center p-4 sm:p-6 lg:p-8'>
+            <p className={`text-lg sm:text-xl lg:text-2xl ${placeholderColor}`}>
+              {title} Demo
+            </p>
           </div>
         </motion.div>
 
         {/* Text Side - Full Half */}
         <motion.div
-          className={`${reverse ? 'lg:order-1' : 'lg:order-2'} flex h-full items-center px-8 sm:px-12 lg:px-16`}
+          className={`${reverse ? 'lg:order-1' : 'lg:order-2'} flex h-full items-center px-4 py-8 sm:px-8 sm:py-12 md:px-12 lg:px-16 lg:py-0`}
           initial={{ opacity: 0, x: reverse ? -50 : 50 }}
           animate={
             inView
@@ -64,13 +67,19 @@ export function FeatureSection({
           }
           transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
         >
-          <div className='max-w-xl'>
-            <h2 className={`mb-6 text-4xl font-bold sm:text-5xl ${textColor}`}>
+          <div className='mx-auto w-full max-w-xl lg:mx-0'>
+            <h2
+              className={`mb-4 text-2xl font-bold sm:mb-6 sm:text-3xl md:text-4xl lg:text-5xl ${textColor}`}
+            >
               {title}
             </h2>
-            <p className={`mb-8 text-xl ${descriptionColor}`}>{description}</p>
+            <p
+              className={`mb-6 text-base sm:mb-8 sm:text-lg lg:text-xl ${descriptionColor}`}
+            >
+              {description}
+            </p>
             {points.length > 0 && (
-              <ul className='space-y-4'>
+              <ul className='space-y-3 sm:space-y-4'>
                 {points.map((point, index) => (
                   <motion.li
                     key={index}
@@ -79,10 +88,22 @@ export function FeatureSection({
                       inView ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }
                     }
                     transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-                    className='flex items-start gap-3'
+                    className='flex items-start gap-4'
                   >
-                    <span className={`mt-0.5 text-xl ${textColor}`}>•</span>
-                    <span className={`text-lg ${descriptionColor}`}>
+                    <div
+                      className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
+                        theme === 'dark' ? 'bg-zinc-700/50' : 'bg-stone-200/70'
+                      }`}
+                    >
+                      <Check
+                        className={`h-3.5 w-3.5 ${
+                          theme === 'dark' ? 'text-zinc-100' : 'text-stone-800'
+                        }`}
+                      />
+                    </div>
+                    <span
+                      className={`text-sm sm:text-base lg:text-lg ${descriptionColor} leading-relaxed`}
+                    >
                       {point}
                     </span>
                   </motion.li>

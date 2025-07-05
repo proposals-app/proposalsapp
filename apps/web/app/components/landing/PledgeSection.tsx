@@ -20,7 +20,7 @@ export function PledgeSection() {
         transition={{ duration: 0.8 }}
         className='mx-auto max-w-4xl text-center'
       >
-        <h2 className='mb-12 text-5xl font-bold text-zinc-100 sm:text-6xl'>
+        <h2 className='mb-8 text-3xl font-bold text-zinc-100 sm:mb-12 sm:text-4xl md:text-5xl lg:text-6xl'>
           The Pledge
         </h2>
 
@@ -28,7 +28,7 @@ export function PledgeSection() {
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: 1, delay: 0.3 }}
-          className='space-y-6 text-xl text-zinc-300 sm:text-2xl'
+          className='space-y-4 text-base text-zinc-300 sm:space-y-6 sm:text-lg md:text-xl lg:text-2xl'
         >
           <p>We pledge to make governance accessible to everyone.</p>
           <p>We pledge to keep this platform open source forever.</p>

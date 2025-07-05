@@ -28,7 +28,7 @@ export function HeroClient({
   daoLogos,
 }: HeroClientProps) {
   return (
-    <div className='relative flex h-full items-center justify-center'>
+    <div className='relative flex h-full items-center justify-center pb-[env(safe-area-inset-bottom)]'>
       {/* Hero Content */}
       <div className='w-full px-4 sm:px-6 lg:px-8'>
         <motion.div
@@ -37,7 +37,7 @@ export function HeroClient({
           variants={staggerChildren}
           className='mx-auto max-w-5xl text-center'
         >
-          <div className='text-4xl font-black tracking-tight text-stone-900 sm:text-5xl md:text-6xl lg:text-7xl'>
+          <div className='xs:text-5xl text-4xl font-black tracking-tight text-stone-900 sm:text-5xl md:text-6xl lg:text-7xl'>
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -55,7 +55,7 @@ export function HeroClient({
             </motion.span>
           </div>
 
-          <div className='mt-2 text-3xl font-black tracking-tight text-stone-900 sm:text-4xl md:text-5xl lg:text-6xl'>
+          <div className='xs:text-4xl mt-2 text-3xl font-black tracking-tight text-stone-900 sm:text-4xl md:text-5xl lg:text-6xl'>
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -76,15 +76,20 @@ export function HeroClient({
       </div>
 
       {/* Bottom Section with Counter and Logos */}
-      <div className='absolute right-0 bottom-0 left-0 pb-16'>
+      <div
+        className='absolute right-0 bottom-0 left-0 pb-8 sm:pb-12 md:pb-16'
+        style={{
+          paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))',
+        }}
+      >
         {/* Live Counter */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut', delay: 3.8 }}
-          className='mb-8 text-center font-mono text-base sm:text-lg'
+          className='mb-6 px-4 text-center font-mono text-sm sm:mb-8 sm:text-base lg:text-lg'
         >
-          <span className='inline-flex items-center gap-2'>
+          <span className='inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1'>
             <span className='text-primary font-bold'>{activeProposals}</span>
             <span className='text-stone-600'>Active Proposals Across</span>
             <span className='text-primary font-bold'>{daosCount}</span>
@@ -97,7 +102,7 @@ export function HeroClient({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut', delay: 4.2 }}
-          className='flex items-center justify-center gap-8'
+          className='flex items-center justify-center gap-4 px-4 sm:gap-6 lg:gap-8'
         >
           {daoLogos.map((dao) => (
             <a
@@ -111,23 +116,23 @@ export function HeroClient({
             </a>
           ))}
         </motion.div>
-      </div>
 
-      {/* Scroll Indicator */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut', delay: 4.5 }}
-        className='absolute bottom-8 left-1/2 -translate-x-1/2 transform'
-      >
+        {/* Scroll Indicator */}
         <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          className='text-stone-600'
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: 'easeOut', delay: 4.5 }}
+          className='mt-3 flex justify-center'
         >
-          ↓
+          <motion.div
+            animate={{ y: [0, 10, 0] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+            className='text-stone-600'
+          >
+            ↓
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </div>
   );
 }

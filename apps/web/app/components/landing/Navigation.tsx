@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { Menu, X } from 'lucide-react';
 
 export function Navigation() {
   const [isLight, setIsLight] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Create an intersection observer to detect which section is most visible
@@ -37,7 +39,7 @@ export function Navigation() {
   }, []);
 
   return (
-    <nav className='fixed top-10 right-0 left-0 z-40 flex items-center justify-between px-4 py-6 sm:px-6 lg:px-8'>
+    <nav className='fixed top-10 right-0 left-0 z-40 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-6 lg:px-8'>
       <div className='flex items-center gap-2'>
         <div className='relative h-8 w-8'>
           <img
@@ -56,7 +58,9 @@ export function Navigation() {
           />
         </div>
       </div>
-      <div className='flex items-center gap-6'>
+
+      {/* Desktop Menu */}
+      <div className='hidden items-center gap-6 sm:flex'>
         <Link
           href='https://arbitrum.proposals.app'
           className={`hidden transition-colors duration-300 sm:block ${
@@ -95,6 +99,61 @@ export function Navigation() {
           GitHub
         </Link>
       </div>
+
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className={`p-2 transition-colors duration-300 sm:hidden ${
+          isLight ? 'text-zinc-700' : 'text-zinc-300'
+        }`}
+      >
+        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className='fixed inset-x-0 top-24 mx-4 rounded-lg shadow-lg backdrop-blur-lg transition-all duration-300 sm:hidden'>
+          <div
+            className={`space-y-3 p-4 ${
+              isLight ? 'bg-white/90' : 'bg-zinc-900/90'
+            }`}
+          >
+            <Link
+              href='https://arbitrum.proposals.app'
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block py-2 transition-colors duration-300 ${
+                isLight
+                  ? 'text-zinc-700 hover:text-zinc-900'
+                  : 'text-zinc-300 hover:text-zinc-100'
+              }`}
+            >
+              Arbitrum
+            </Link>
+            <Link
+              href='/docs'
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block py-2 transition-colors duration-300 ${
+                isLight
+                  ? 'text-zinc-700 hover:text-zinc-900'
+                  : 'text-zinc-300 hover:text-zinc-100'
+              }`}
+            >
+              Docs
+            </Link>
+            <Link
+              href='https://github.com/proposals-app'
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block py-2 transition-colors duration-300 ${
+                isLight
+                  ? 'text-zinc-700 hover:text-zinc-900'
+                  : 'text-zinc-300 hover:text-zinc-100'
+              }`}
+            >
+              GitHub
+            </Link>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

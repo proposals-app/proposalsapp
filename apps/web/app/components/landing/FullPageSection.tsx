@@ -17,7 +17,9 @@ export function FullPageSection({
   return (
     <section
       className={cn(
-        'relative h-screen w-full snap-start snap-always overflow-hidden',
+        'relative w-full snap-start snap-always overflow-hidden',
+        // Use custom viewport height for Safari compatibility
+        'h-screen-safe',
         className
       )}
       style={{ background }}

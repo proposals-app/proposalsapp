@@ -4,6 +4,40 @@
 @custom-variant dark (&:is(.dark *));
 @config '../tailwind.config.mjs';
 
+/* Support for iOS safe areas and Safari mobile viewport */
+@supports (height: 100svh) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .py-safe {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Safari mobile viewport fix for full-height sections */
+@supports (-webkit-touch-callout: none) {
+  /* Target Safari only */
+  .h-\[100svh\] {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Custom viewport height property */
+:root {
+  --vh: 1vh;
+}
+
+/* Use calculated viewport height */
+.h-screen-safe {
+  height: calc(var(--vh, 1vh) * 100);
+}
+
 @layer utilities {
   /* Default Theme */
   [data-theme='default'] {
