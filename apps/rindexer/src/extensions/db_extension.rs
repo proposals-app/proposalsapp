@@ -431,16 +431,27 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
 
     for chunk in delegations.chunks(BATCH_SIZE) {
         let insert_result = delegation::Entity::insert_many(chunk.to_vec())
-            .on_conflict(OnConflict::new().do_nothing().to_owned())
+            .on_conflict(
+                OnConflict::columns([
+                    delegation::Column::Delegator,
+                    delegation::Column::DaoId,
+                    delegation::Column::Block,
+                    delegation::Column::Txid,
+                ])
+                .update_columns([delegation::Column::Delegate, delegation::Column::Timestamp])
+                .to_owned(),
+            )
             .exec(db)
             .await;
 
-        if let Err(e) = insert_result {
-            if !e.to_string().contains("None of the records are inserted") {
-                error!(error = %e, "Bulk insert of new delegations failed");
+        match insert_result {
+            Ok(result) => {
+                debug!(count = ?result, "Delegations upserted successfully");
             }
-        } else {
-            debug!(count = ?insert_result.as_ref(), "Bulk insert of new delegations completed");
+            Err(e) => {
+                error!(error = %e, "Failed to upsert delegations");
+                return Err(e.into());
+            }
         }
     }
 
@@ -462,16 +473,30 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
 
     for chunk in voting_powers.chunks(BATCH_SIZE) {
         let insert_result = voting_power::Entity::insert_many(chunk.to_vec())
-            .on_conflict(OnConflict::new().do_nothing().to_owned())
+            .on_conflict(
+                OnConflict::columns([
+                    voting_power::Column::Voter,
+                    voting_power::Column::DaoId,
+                    voting_power::Column::Block,
+                    voting_power::Column::Txid,
+                ])
+                .update_columns([
+                    voting_power::Column::VotingPower,
+                    voting_power::Column::Timestamp,
+                ])
+                .to_owned(),
+            )
             .exec(db)
             .await;
 
-        if let Err(e) = insert_result {
-            if !e.to_string().contains("None of the records are inserted") {
-                error!(error = %e, "Bulk insert of new voting powers failed");
+        match insert_result {
+            Ok(result) => {
+                debug!(count = ?result, "Voting powers upserted successfully");
             }
-        } else {
-            debug!(count = ?insert_result.as_ref(), "Bulk insert of new voting powers completed");
+            Err(e) => {
+                error!(error = %e, "Failed to upsert voting powers");
+                return Err(e.into());
+            }
         }
     }
 

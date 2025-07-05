@@ -21,7 +21,7 @@ use std::{
 };
 use tokio::{task::JoinSet, time::interval_at};
 use tracing::{Instrument, error, info, instrument, warn};
-use tracing_subscriber::{fmt, EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod db_handler;
 mod discourse_api;
@@ -50,7 +50,7 @@ lazy_static::lazy_static! {
 #[instrument]
 async fn main() -> Result<()> {
     dotenv().ok();
-    
+
     // Initialize JSON logging for stdout
     let env_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info"))
@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
         .add_directive("alloy_rpc_client=off".parse().unwrap())
         .add_directive("reqwest=off".parse().unwrap())
         .add_directive("alloy_transport_http=off".parse().unwrap());
-    
+
     tracing_subscriber::registry()
         .with(env_filter)
         .with(
@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
                 .with_target(true)
                 .with_file(true)
                 .with_line_number(true)
-                .with_thread_ids(true)
+                .with_thread_ids(true),
         )
         .init();
 

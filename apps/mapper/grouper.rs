@@ -456,13 +456,13 @@ fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
             if let Ok(id) = first_part.parse::<i32>() {
                 return (Some(id), None);
             }
-            
+
             // Otherwise, it's a slug. Check if there's an ID after the slug
             let slug = Some(first_part.to_string());
             let id = parts
                 .get(index + 2)
                 .and_then(|part| part.parse::<i32>().ok());
-            
+
             (id, slug)
         } else {
             (None, None)
