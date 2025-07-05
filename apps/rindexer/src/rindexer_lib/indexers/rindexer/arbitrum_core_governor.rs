@@ -180,8 +180,11 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         author: Set(Some(result.event_data.proposer.to_string())),
                     };
 
-                    store_proposal(proposal).await;
-                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "Proposal stored");
+                    if let Err(e) = store_proposal(proposal).await {
+                        error!(proposal_id = %proposal_id, error = %e, "Failed to store proposal");
+                    } else {
+                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "Proposal stored");
+                    }
                 }
 
                 info!(
@@ -246,8 +249,11 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                         author: NotSet,
                     };
 
-                    store_proposal(proposal).await;
-                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "Proposal state updated to Executed");
+                    if let Err(e) = store_proposal(proposal).await {
+                        error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal state to Executed");
+                    } else {
+                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "Proposal state updated to Executed");
+                    }
                 }
                 info!(
                     event_name = "ArbitrumCoreGovernor::ProposalExecuted",
@@ -321,8 +327,11 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                         author: NotSet,
                     };
 
-                    store_proposal(proposal).await;
-                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, end_at = ?end_at, "Proposal end_at updated for ProposalExtended event");
+                    if let Err(e) = store_proposal(proposal).await {
+                        error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal end_at for ProposalExtended event");
+                    } else {
+                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, end_at = ?end_at, "Proposal end_at updated for ProposalExtended event");
+                    }
                 }
                 info!(
                     event_name = "ArbitrumCoreGovernor::ProposalExtended",
@@ -401,7 +410,9 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                     .collect::<Vec<_>>()
                     .await;
 
-                store_votes(votes, governor_id_for_votes).await;
+                if let Err(e) = store_votes(votes, governor_id_for_votes).await {
+                    error!(error = %e, "Failed to store votes");
+                }
 
                 info!(
                     event_name = "ArbitrumCoreGovernor::VoteCast",

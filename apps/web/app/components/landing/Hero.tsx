@@ -7,12 +7,11 @@ const DAO_LOGOS = [
     logo: '/assets/project-logos/arbitrum.svg',
     link: 'https://arbitrum.proposals.app',
   },
-  // Add more DAOs here when needed
-  // {
-  //   name: 'Uniswap',
-  //   logo: '/assets/project-logos/uniswap.svg',
-  //   link: 'https://uniswap.proposals.app'
-  // },
+  {
+    name: 'Uniswap',
+    logo: '/assets/project-logos/uniswap.svg',
+    link: 'https://uniswap.proposals.app',
+  },
 ];
 
 export async function Hero() {

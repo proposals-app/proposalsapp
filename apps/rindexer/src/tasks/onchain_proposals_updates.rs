@@ -1,4 +1,6 @@
-use crate::rindexer_lib::indexers::rindexer::{arbitrum_core_governor, arbitrum_treasury_governor};
+use crate::rindexer_lib::indexers::rindexer::{
+    arbitrum_core_governor, arbitrum_treasury_governor, uni_governor,
+};
 use anyhow::{Context, Result};
 use tokio::time;
 use tracing::{info, instrument};
@@ -17,6 +19,9 @@ pub async fn run_periodic_proposal_state_update() -> Result<()> {
         arbitrum_treasury_governor::update_active_proposals_end_time()
             .await
             .context("Failed to update active proposals end time for arbitrum_treasury_governor")?;
+        uni_governor::update_active_proposals_end_time()
+            .await
+            .context("Failed to update active proposals end time for uni_governor")?;
 
         arbitrum_core_governor::update_ended_proposals_state()
             .await
@@ -24,6 +29,9 @@ pub async fn run_periodic_proposal_state_update() -> Result<()> {
         arbitrum_treasury_governor::update_ended_proposals_state()
             .await
             .context("Failed to update ended proposals state for arbitrum_treasury_governor")?;
+        uni_governor::update_ended_proposals_state()
+            .await
+            .context("Failed to update ended proposals state for uni_governor")?;
 
         arbitrum_core_governor::update_active_proposals_quorum()
             .await

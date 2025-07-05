@@ -176,8 +176,11 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         author: Set(Some(result.event_data.proposer.to_string())),
                     };
 
-                    store_proposal(proposal).await;
-                    debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumSCNominations Proposal stored");
+                    if let Err(e) = store_proposal(proposal).await {
+                        error!(proposal_id = %proposal_id, error = %e, "Failed to store proposal");
+                    } else {
+                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumSCNominations Proposal stored");
+                    }
                 }
 
                 info!(

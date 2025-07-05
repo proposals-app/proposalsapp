@@ -14,40 +14,40 @@ export function FinalSection() {
   return (
     <div ref={ref} className='flex h-full flex-col'>
       {/* Main Content */}
-      <div className='flex flex-1 items-center justify-center px-4 sm:px-6 lg:px-8'>
+      <div className='flex flex-1 items-center justify-center px-4 py-8 sm:px-6 sm:py-0 lg:px-8'>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6 }}
           className='mx-auto max-w-4xl text-center'
         >
-          <h2 className='mb-8 text-4xl font-bold text-zinc-100 sm:text-5xl'>
+          <h2 className='mb-6 text-3xl font-bold text-zinc-100 sm:mb-8 sm:text-4xl lg:text-5xl'>
             Ready to Transform Your Governance Experience?
           </h2>
 
-          <div className='mb-12 flex justify-center'>
+          <div className='mb-8 flex justify-center sm:mb-12'>
             <Link href='/docs'>
               <Button
                 size='lg'
-                className='bg-zinc-100 px-8 text-base text-zinc-900 transition-colors hover:bg-white'
+                className='bg-zinc-100 px-6 text-sm text-zinc-900 transition-colors hover:bg-white sm:px-8 sm:text-base'
               >
                 View Documentation
               </Button>
             </Link>
           </div>
 
-          <div className='text-sm text-zinc-400'>
+          <div className='text-xs text-zinc-400 sm:text-sm'>
             <p>Open source • Built for DAOs</p>
           </div>
         </motion.div>
       </div>
 
       {/* Footer */}
-      <footer className='border-t border-zinc-800 px-4 py-8 sm:px-6 lg:px-8'>
+      <footer className='border-t border-zinc-800 px-4 py-6 sm:px-6 sm:py-8 lg:px-8'>
         <div className='mx-auto max-w-7xl'>
-          <div className='mb-8 grid grid-cols-2 gap-8 md:grid-cols-4'>
+          <div className='mb-6 grid grid-cols-2 gap-6 sm:mb-8 sm:gap-8 md:grid-cols-4'>
             <div>
-              <h4 className='mb-3 text-sm font-semibold text-zinc-100'>
+              <h4 className='mb-2 text-xs font-semibold text-zinc-100 sm:mb-3 sm:text-sm'>
                 Product
               </h4>
               <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
@@ -64,7 +64,7 @@ export function FinalSection() {
               </ul>
             </div>
             <div>
-              <h4 className='mb-3 text-sm font-semibold text-zinc-100'>
+              <h4 className='mb-2 text-xs font-semibold text-zinc-100 sm:mb-3 sm:text-sm'>
                 Resources
               </h4>
               <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
@@ -87,7 +87,7 @@ export function FinalSection() {
               </ul>
             </div>
             <div>
-              <h4 className='mb-3 text-sm font-semibold text-zinc-100'>
+              <h4 className='mb-2 text-xs font-semibold text-zinc-100 sm:mb-3 sm:text-sm'>
                 Community
               </h4>
               <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
@@ -110,7 +110,7 @@ export function FinalSection() {
               </ul>
             </div>
             <div>
-              <h4 className='mb-3 text-sm font-semibold text-zinc-100'>
+              <h4 className='mb-2 text-xs font-semibold text-zinc-100 sm:mb-3 sm:text-sm'>
                 Legal
               </h4>
               <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
@@ -128,7 +128,7 @@ export function FinalSection() {
             </div>
           </div>
 
-          <div className='border-t border-zinc-800 pt-6 text-center text-sm text-zinc-400'>
+          <div className='border-t border-zinc-800 pt-4 text-center text-xs text-zinc-400 sm:pt-6 sm:text-sm'>
             <p>
               © {new Date().getFullYear()} ProposalsApp. The unified platform
               for DAO governance.

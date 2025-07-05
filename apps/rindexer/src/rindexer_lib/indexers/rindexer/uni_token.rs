@@ -98,7 +98,9 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                     .await;
 
                 if !delegations.is_empty() {
-                    store_delegations(delegations).await;
+                    if let Err(e) = store_delegations(delegations).await {
+                        error!(error = %e, "Failed to store delegations");
+                    }
                 }
 
                 info!(
@@ -181,7 +183,9 @@ async fn delegate_votes_changed_handler(
                     .await;
 
                 if !vps.is_empty() {
-                    store_voting_powers(vps).await;
+                    if let Err(e) = store_voting_powers(vps).await {
+                        error!(error = %e, "Failed to store voting powers");
+                    }
                 }
 
                 info!(

@@ -574,9 +574,7 @@ mod request_tests {
             );
         }
 
-        println!(
-            "Estimated time for {network} block {target_block_number}: {estimated_time:?}"
-        );
+        println!("Estimated time for {network} block {target_block_number}: {estimated_time:?}");
         Ok(())
     }
 
@@ -780,9 +778,7 @@ mod request_tests {
             println!(
                 "Total duration for {num_tasks_per_network} tasks on network {network}: {network_duration:?}"
             );
-            println!(
-                "Number of failed tasks for network {network}: {error_count}"
-            );
+            println!("Number of failed tasks for network {network}: {error_count}");
             assert_eq!(
                 error_count, 0,
                 "There were failing concurrent tasks for network {network}."

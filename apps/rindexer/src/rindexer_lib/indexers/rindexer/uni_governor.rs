@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
-use super::super::super::typings::rindexer::events::arbitrum_treasury_governor::{
-    ArbitrumTreasuryGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent,
-    ProposalExtendedEvent, VoteCastEvent, no_extensions,
+use super::super::super::typings::rindexer::events::uni_governor::{
+    ProposalCreatedEvent, ProposalExecutedEvent, UniGovernorEventType, VoteCastEvent, no_extensions,
 };
 use crate::{
     extensions::{
@@ -10,7 +9,7 @@ use crate::{
             DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_proposal, store_votes,
         },
     },
-    rindexer_lib::typings::rindexer::events::arbitrum_treasury_governor::arbitrum_treasury_governor_contract,
+    rindexer_lib::typings::rindexer::events::uni_governor::uni_governor_contract,
 };
 use alloy::{hex::ToHexExt, primitives::U256};
 use anyhow::{Context, Result};
@@ -18,7 +17,7 @@ use chrono::NaiveDateTime;
 use futures::{StreamExt, stream};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use rindexer::{
-    EthereumSqlTypeWrapper, PgType, RindexerColorize,
+    EthereumSqlTypeWrapper, PgType, PostgresClient, RindexerColorize,
     event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus,
     rindexer_error,
 };
@@ -38,9 +37,9 @@ fn get_governor_id() -> Option<Uuid> {
         .unwrap()
         .lock()
         .unwrap()
-        .get("arbitrum")
+        .get("uniswap")
         .unwrap()
-        .get("ARBITRUM_TREASURY")
+        .get("UNISWAP_GOVERNOR")
         .copied()
 }
 
@@ -50,37 +49,39 @@ fn get_dao_id() -> Option<Uuid> {
         .unwrap()
         .lock()
         .unwrap()
-        .get("arbitrum")
+        .get("uniswap")
         .copied()
 }
 
 const CONCURRENCY_LIMIT: usize = 100;
 
 #[instrument(
-    name = "arbitrum_treasury_governor_proposal_created_handler",
+    name = "uni_governor_proposal_created_handler",
     skip(manifest_path, registry)
 )]
 async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumTreasuryGovernorEventType::ProposalCreated(
+    UniGovernorEventType::ProposalCreated(
         ProposalCreatedEvent::handler(
             |results, context| async move {
                 if results.is_empty() {
-                    debug!("No ArbitrumTreasuryGovernor ProposalCreated events to process in this batch.");
+                    debug!("No ProposalCreated events to process in this batch.");
                     return Ok(());
                 }
+
                 info!(
-                    event_name = "ArbitrumTreasuryGovernor::ProposalCreated",
+                    event_name = "UniGovernor::ProposalCreated",
                     event_count = results.len(),
                     status = "INDEXING",
-                    "Processing ArbitrumTreasuryGovernor::ProposalCreated events"
+                    "Processing ProposalCreated events"
                 );
 
                 for result in results.clone() {
-                    let proposal_id = result.event_data.proposalId;
+                    let proposal_id = result.event_data.id;
                     let block_number = result.tx_information.block_number.to::<u64>();
-                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum").await;
 
-                    let created_at = match estimate_timestamp("arbitrum", block_number).await {
+                    let uni_governor = uni_governor_contract("ethereum").await;
+
+                    let created_at = match estimate_timestamp("ethereum", block_number).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, "Failed to estimate created_at timestamp");
@@ -91,7 +92,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     let start_at = match estimate_timestamp("ethereum", result.event_data.startBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
-                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e, start_block = %result.event_data.startBlock, "Failed to estimate start_at timestamp");
+                            error!(proposal_id = %proposal_id, block_number = block_number, error = %e,  start_block = %result.event_data.startBlock, "Failed to estimate start_at timestamp");
                             continue;
                         }
                     };
@@ -106,11 +107,11 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     let title = extract_title(&result.event_data.description);
                     let proposal_url = format!(
-                        "https://www.tally.xyz/gov/arbitrum/proposal/{proposal_id}"
+                        "https://www.tally.xyz/gov/uniswap/proposal/{proposal_id}"
                     );
                     let choices = vec!["For", "Against", "Abstain"];
 
-                    let proposal_state_result = arbitrum_treasury_governor.state(proposal_id).call().await;
+                    let proposal_state_result = uni_governor.state(proposal_id).call().await;
                     let proposal_state = match proposal_state_result {
                         Ok(state_enum) => match state_enum {
                             0 => ProposalState::Pending,
@@ -129,27 +130,8 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
-                    let proposal_snapshot_block_result = arbitrum_treasury_governor
-                        .proposalSnapshot(proposal_id)
-                        .call()
-                        .await;
-                    let quorum_result = match proposal_snapshot_block_result {
-                        Ok(snapshot_block) => {
-                            arbitrum_treasury_governor
-                                .quorum(snapshot_block)
-                                .call()
-                                .await
-                        }
-                        Err(e) => {
-                            error!(proposal_id = %proposal_id, error = %e, "Failed to fetch proposal snapshot block, defaulting quorum to 0");
-                            Err(e)
-                        }
-                    };
-
-                    let quorum = match quorum_result {
-                        Ok(r) => r.to::<u128>() as f64 / (10.0f64.powi(18)),
-                        Err(_) => U256::from(0).to::<u128>() as f64 / (10.0f64.powi(18)),
-                    };
+                    // For Uniswap, the quorum is a fixed value of 4M UNI tokens
+                    let quorum = 4_000_000.0; // 4M UNI tokens
 
                     let total_delegated_vp = match calculate_total_delegated_vp(created_at).await {
                         Ok(vp) => vp,
@@ -176,7 +158,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         block_created_at: Set(Some(block_number as i32)),
                         block_start_at: Set(Some(result.event_data.startBlock.to::<u64>() as i32)),
                         block_end_at: Set(Some(result.event_data.endBlock.to::<u64>() as i32)),
-                        metadata: Set(json!({"vote_type":"basic", "quorum_choices":[0,2], "total_delegated_vp":total_delegated_vp, "targets":result.event_data.targets, "values":result.event_data.values, "calldatas":result.event_data.calldatas, "signatures":result.event_data.signatures}).into()),
+                        metadata: Set(json!({"vote_type":"basic", "quorum_choices":[0,1],"total_delegated_vp":total_delegated_vp, "targets":result.event_data.targets, "values":result.event_data.values, "calldatas":result.event_data.calldatas, "signatures":result.event_data.signatures}).into()),
                         txid: Set(Some(result.tx_information.transaction_hash.to_string())),
                         governor_id: Set(get_governor_id().unwrap()),
                         dao_id: Set(get_dao_id().unwrap()),
@@ -186,15 +168,16 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     if let Err(e) = store_proposal(proposal).await {
                         error!(proposal_id = %proposal_id, error = %e, "Failed to store proposal");
                     } else {
-                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumTreasuryGovernor Proposal stored");
+                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.id, "Proposal stored");
                     }
                 }
 
+
                 info!(
-                    event_name = "ArbitrumTreasuryGovernor::ProposalCreated",
+                    event_name = "UniGovernor::ProposalCreated",
                     event_count = results.len(),
                     status = "INDEXED",
-                    "ArbitrumTreasuryGovernor::ProposalCreated events processed and indexed"
+                    "ProposalCreated events processed and indexed"
                 );
 
                 Ok(())
@@ -208,26 +191,26 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 }
 
 #[instrument(
-    name = "arbitrum_treasury_governor_proposal_executed_handler",
+    name = "uni_governor_proposal_executed_handler",
     skip(manifest_path, registry)
 )]
 async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumTreasuryGovernorEventType::ProposalExecuted(
+    UniGovernorEventType::ProposalExecuted(
         ProposalExecutedEvent::handler(
             |results, context| async move {
                 if results.is_empty() {
-                    debug!("No ArbitrumTreasuryGovernor ProposalExecuted events to process in this batch.");
+                    debug!("No ProposalExecuted events to process in this batch.");
                     return Ok(());
                 }
                 info!(
-                    event_name = "ArbitrumTreasuryGovernor::ProposalExecuted",
+                    event_name = "UniGovernor::ProposalExecuted",
                     event_count = results.len(),
                     status = "INDEXING",
-                    "Processing ArbitrumTreasuryGovernor::ProposalExecuted events"
+                    "Processing ProposalExecuted events"
                 );
 
                 for result in results.clone() {
-                    let proposal_id = result.event_data.proposalId;
+                    let proposal_id = result.event_data.id;
                     let proposal = proposal::ActiveModel {
                         id: NotSet,
                         external_id: Set(proposal_id.to_string()),
@@ -255,15 +238,14 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
                     if let Err(e) = store_proposal(proposal).await {
                         error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal state to Executed");
                     } else {
-                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumTreasuryGovernor Proposal state updated to Executed");
+                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.id, "Proposal state updated to Executed");
                     }
                 }
-
                 info!(
-                    event_name = "ArbitrumTreasuryGovernor::ProposalExecuted",
+                    event_name = "UniGovernor::ProposalExecuted",
                     event_count = results.len(),
                     status = "INDEXED",
-                    "ArbitrumTreasuryGovernor::ProposalExecuted events processed and indexed"
+                    "ProposalExecuted events processed and indexed"
                 );
 
                 Ok(())
@@ -276,104 +258,23 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
     .await;
 }
 
-#[instrument(
-    name = "arbitrum_treasury_governor_proposal_extended_handler",
-    skip(manifest_path, registry)
-)]
-async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumTreasuryGovernorEventType::ProposalExtended(
-        ProposalExtendedEvent::handler(
-            |results, context| async move {
-                if results.is_empty() {
-                    debug!("No ArbitrumTreasuryGovernor ProposalExtended events to process in this batch.");
-                    return Ok(());
-                }
-                info!(
-                    event_name = "ArbitrumTreasuryGovernor::ProposalExtended",
-                    event_count = results.len(),
-                    status = "INDEXING",
-                    "Processing ArbitrumTreasuryGovernor::ProposalExtended events"
-                );
-
-                for result in results.clone() {
-                    let proposal_id = result.event_data.proposalId;
-                    let extended_deadline = result.event_data.extendedDeadline;
-
-                    let end_at = match estimate_timestamp("ethereum", extended_deadline).await {
-                        Ok(ts) => ts,
-                        Err(e) => {
-                            error!(proposal_id = %proposal_id, error = %e, extended_deadline = %extended_deadline, "Failed to estimate end_at timestamp for ProposalExtended event");
-                            continue; // Skip proposal update if timestamp estimation fails
-                        }
-                    };
-
-                    let proposal = proposal::ActiveModel {
-                        id: NotSet,
-                        external_id: Set(proposal_id.to_string()),
-                        name: NotSet,
-                        body: NotSet,
-                        url: NotSet,
-                        discussion_url: NotSet,
-                        choices: NotSet,
-                        quorum: NotSet,
-                        proposal_state: NotSet,
-                        marked_spam: NotSet,
-                        created_at: NotSet,
-                        start_at: NotSet,
-                        end_at: Set(end_at),
-                        block_created_at: NotSet,
-                        block_start_at: NotSet,
-                        block_end_at: NotSet,
-                        metadata: NotSet,
-                        txid: NotSet,
-                        governor_id: Set(get_governor_id().unwrap()),
-                        dao_id: Set(get_dao_id().unwrap()),
-                        author: NotSet,
-                    };
-
-                    if let Err(e) = store_proposal(proposal).await {
-                        error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal end_at for ProposalExtended event");
-                    } else {
-                        debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, end_at = ?end_at, "ArbitrumTreasuryGovernor Proposal end_at updated for ProposalExtended event");
-                    }
-                }
-                info!(
-                    event_name = "ArbitrumTreasuryGovernor::ProposalExtended",
-                    event_count = results.len(),
-                    status = "INDEXED",
-                    "ArbitrumTreasuryGovernor::ProposalExtended events processed and indexed"
-                );
-                Ok(())
-            },
-            no_extensions(),
-        )
-        .await,
-    )
-    .register(manifest_path, registry)
-    .await;
-}
-
-#[instrument(
-    name = "arbitrum_treasury_governor_vote_cast_handler",
-    skip(manifest_path, registry)
-)]
+#[instrument(name = "uni_governor_vote_cast_handler", skip(manifest_path, registry))]
 async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
-    ArbitrumTreasuryGovernorEventType::VoteCast(
+    UniGovernorEventType::VoteCast(
         VoteCastEvent::handler(
             |results, context| async move {
                 if results.is_empty() {
-                    debug!("No ArbitrumTreasuryGovernor VoteCast events to process in this batch.");
+                    debug!("No VoteCast events to process in this batch.");
                     return Ok(());
                 }
 
                 let results_len = results.len();
                 info!(
-                    event_name = "ArbitrumTreasuryGovernor::VoteCast",
+                    event_name = "UniGovernor::VoteCast",
                     event_count = results_len,
                     status = "INDEXING",
-                    "Processing ArbitrumTreasuryGovernor::VoteCast events"
+                    "Processing VoteCast events"
                 );
-
                 let governor_id_for_votes = get_governor_id().unwrap();
 
                 let votes: Vec<vote::ActiveModel> = stream::iter(results)
@@ -381,7 +282,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         let block_number = result.tx_information.block_number.to::<u64>();
                         let proposal_id = result.event_data.proposalId.to_string();
 
-                        let created_at = match estimate_timestamp("arbitrum", block_number).await {
+                        let created_at = match estimate_timestamp("ethereum", block_number).await {
                             Ok(ts) => ts,
                             Err(e) => {
                                 error!(proposal_id = %proposal_id, block_number = block_number, error = %e, "Failed to estimate created_at timestamp for VoteCast event");
@@ -398,8 +299,8 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                                 2 => 2.into(),
                                 _ => 2.into(),
                             }),
-                            voting_power: Set((result.event_data.weight.to::<u128>() as f64) / (10.0f64.powi(18))),
-                            reason: Set(Some(result.event_data.reason.clone())),
+                            voting_power: Set((result.event_data.votes.to::<u128>() as f64) / (10.0f64.powi(18))),
+                            reason: Set(if result.event_data.reason.is_empty() { None } else { Some(result.event_data.reason.clone()) }),
                             created_at: Set(created_at),
                             block_created_at: Set(Some(block_number as i32)),
                             txid: Set(Some(result.tx_information.transaction_hash.to_string())),
@@ -419,11 +320,12 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                 }
 
                 info!(
-                    event_name = "ArbitrumTreasuryGovernor::VoteCast",
+                    event_name = "UniGovernor::VoteCast",
                     event_count = results_len,
                     status = "INDEXED",
-                    "ArbitrumTreasuryGovernor::VoteCast events processed and indexed"
+                    "VoteCast events processed and indexed"
                 );
+
                 Ok(())
             },
             no_extensions(),
@@ -434,23 +336,15 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
     .await;
 }
 
-#[instrument(
-    name = "arbitrum_treasury_governor_handlers",
-    skip(manifest_path, registry)
-)]
-pub async fn arbitrum_treasury_governor_handlers(
-    manifest_path: &PathBuf,
-    registry: &mut EventCallbackRegistry,
-) {
+#[instrument(name = "uni_governor_handlers", skip(manifest_path, registry))]
+pub async fn uni_governor_handlers(manifest_path: &PathBuf, registry: &mut EventCallbackRegistry) {
     proposal_created_handler(manifest_path, registry).await;
     proposal_executed_handler(manifest_path, registry).await;
-    proposal_extended_handler(manifest_path, registry).await;
     vote_cast_handler(manifest_path, registry).await;
-    info!("Arbitrum Treasury Governor handlers registered.");
+    info!("Uniswap Governor handlers registered.");
 }
 
 fn extract_title(description: &str) -> String {
-    // ... (same as in arbitrum_core_governor.rs)
     let mut lines = description
         .split('\n')
         .filter(|line| !line.trim().is_empty());
@@ -474,10 +368,7 @@ fn extract_title(description: &str) -> String {
     }
 }
 
-#[instrument(
-    name = "arbitrum_treasury_governor_update_active_proposals_end_time",
-    skip_all
-)]
+#[instrument(name = "uni_governor_update_active_proposals_end_time", skip_all)]
 pub async fn update_active_proposals_end_time() -> Result<()> {
     let db = DB.get().unwrap();
 
@@ -497,7 +388,7 @@ pub async fn update_active_proposals_end_time() -> Result<()> {
     }
 
     info!(
-        governor = "ARBITRUM_TREASURY",
+        governor = "UNISWAP_GOVERNOR",
         active_proposals_count = active_proposals.len(),
         "Updating end times for active proposals"
     );
@@ -560,20 +451,17 @@ pub async fn update_active_proposals_end_time() -> Result<()> {
     }
 
     info!(
-        governor = "ARBITRUM_TREASURY",
+        governor = "UNISWAP_GOVERNOR",
         "Successfully updated end times for active proposals"
     );
 
     Ok(())
 }
 
-#[instrument(
-    name = "arbitrum_treasury_governor_update_ended_proposals_state",
-    skip_all
-)]
+#[instrument(name = "uni_governor_update_ended_proposals_state", skip_all)]
 pub async fn update_ended_proposals_state() -> Result<()> {
     info!(
-        governor = "ARBITRUM_TREASURY",
+        governor = "UNISWAP_GOVERNOR",
         "Running task to update ended proposal states"
     );
     let db = DB.get().context("DB not initialized")?;
@@ -591,21 +479,21 @@ pub async fn update_ended_proposals_state() -> Result<()> {
 
     if active_proposals.is_empty() {
         info!(
-            governor = "ARBITRUM_TREASURY",
+            governor = "UNISWAP_GOVERNOR",
             "No active proposals have ended"
         );
         return Ok(());
     }
 
     info!(
-        governor = "ARBITRUM_TREASURY",
+        governor = "UNISWAP_GOVERNOR",
         proposal_count = active_proposals.len(),
         "Processing ended proposals"
     );
 
     for proposal in active_proposals {
         info!(
-            governor = "ARBITRUM_TREASURY",
+            governor = "UNISWAP_GOVERNOR",
             proposal_id = proposal.external_id,
             proposal_name = proposal.name,
             proposal_end_at = ?proposal.end_at,
@@ -628,7 +516,7 @@ pub async fn update_ended_proposals_state() -> Result<()> {
             .context("Failed to update proposal state")?;
 
         info!(
-            governor = "ARBITRUM_TREASURY",
+            governor = "UNISWAP_GOVERNOR",
             proposal_id = proposal.external_id,
             proposal_name = proposal.name,
             final_state = ?final_state,
@@ -637,13 +525,13 @@ pub async fn update_ended_proposals_state() -> Result<()> {
     }
 
     info!(
-        governor = "ARBITRUM_TREASURY",
+        governor = "UNISWAP_GOVERNOR",
         "Task to update ended proposals state completed."
     );
     Ok(())
 }
 
-#[instrument(name = "arbitrum_treasury_governor_calculate_final_proposal_state", skip(proposal, votes), fields(proposal_id = proposal.external_id))]
+#[instrument(name = "uni_governor_calculate_final_proposal_state", skip(proposal, votes), fields(proposal_id = proposal.external_id))]
 async fn calculate_final_proposal_state(
     proposal: &proposal::Model,
     votes: &Vec<vote::Model>,
@@ -757,14 +645,13 @@ async fn calculate_final_proposal_state(
     }
 }
 
-#[instrument(name = "arbitrum_treasury_governor_calculate_total_delegated_vp", skip(timestamp), fields(timestamp = ?timestamp))]
+#[instrument(name = "uni_governor_calculate_total_delegated_vp", skip(timestamp), fields(timestamp = ?timestamp))]
 async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
-    // ... (same as in arbitrum_core_governor.rs)
     use sea_orm::{DbBackend, Statement};
 
     let db = DB.get().unwrap();
 
-    // Construct the raw SQL query
+    // Construct the raw SQL query - for Uniswap, we need to exclude the Uniswap timelock
     let sql = r#"
         WITH latest_voting_power AS (
             SELECT
@@ -776,7 +663,7 @@ async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
                 ) AS rn
             FROM voting_power
             WHERE
-                voter != '0x00000000000000000000000000000000000A4B86'
+                voter != '0x1a9C8182C09F50C8318d769245beA52c32BE35BC'
                 AND timestamp <= $1
         )
         SELECT COALESCE(SUM(voting_power), 0.0) as total_voting_power
@@ -800,103 +687,7 @@ async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
         .transpose()
         .context("Failed to get total_voting_power from query result")?
         .unwrap_or(0.0);
-
     debug!(total_voting_power = total_vp, timestamp = ?timestamp, "Total delegated voting power calculated");
+
     Ok(total_vp)
-}
-
-#[instrument(
-    name = "arbitrum_treasury_governor_update_active_proposals_quorum",
-    skip_all
-)]
-pub async fn update_active_proposals_quorum() -> Result<()> {
-    let db = DB.get().unwrap();
-
-    // Get all active proposals that have started for this governor
-    let active_proposals = proposal::Entity::find()
-        .filter(
-            proposal::Column::GovernorId
-                .eq(get_governor_id().context("Failed to get governor ID")?),
-        )
-        .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
-        .filter(proposal::Column::StartAt.lte(chrono::Utc::now().naive_utc()))
-        .all(db)
-        .await
-        .context("Failed to fetch active and started proposals")?;
-
-    if active_proposals.is_empty() {
-        return Ok(());
-    }
-
-    info!(
-        governor = "ARBITRUM_TREASURY",
-        active_proposals_count = active_proposals.len(),
-        "Updating quorum for active and started proposals"
-    );
-
-    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum").await;
-
-    for proposal in active_proposals {
-        let proposal_id = proposal.external_id.clone();
-        let proposal_id_u256: U256 = match proposal_id.parse() {
-            Ok(id) => id,
-            Err(e) => {
-                error!(proposal_id = %proposal_id, error = %e, "Failed to parse proposal ID");
-                continue;
-            }
-        };
-
-        // Get the current quorum value from the contract
-        let proposal_snapshot_block_result = arbitrum_treasury_governor
-            .proposalSnapshot(proposal_id_u256)
-            .call()
-            .await;
-
-        let current_quorum = match proposal_snapshot_block_result {
-            Ok(snapshot_block) => {
-                match arbitrum_treasury_governor
-                    .quorum(snapshot_block)
-                    .call()
-                    .await
-                {
-                    Ok(quorum_value) => quorum_value.to::<u128>() as f64 / (10.0f64.powi(18)),
-                    Err(e) => {
-                        error!(proposal_id = %proposal_id, error = %e, "Failed to fetch current quorum from contract");
-                        continue;
-                    }
-                }
-            }
-            Err(e) => {
-                error!(proposal_id = %proposal_id, error = %e, "Failed to fetch proposal snapshot block");
-                continue;
-            }
-        };
-
-        // Only update if the quorum has changed
-        if (current_quorum - proposal.quorum).abs() > f64::EPSILON {
-            debug!(
-                proposal_id = %proposal_id,
-                old_quorum = proposal.quorum,
-                new_quorum = current_quorum,
-                "Updating proposal quorum"
-            );
-
-            // Update the proposal with the new quorum
-            let mut proposal_active_model: proposal::ActiveModel = proposal.clone().into();
-            proposal_active_model.quorum = Set(current_quorum);
-
-            if let Err(e) = proposal_active_model.update(db).await {
-                error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal quorum");
-            } else {
-                debug!(proposal_id = %proposal_id, new_quorum = current_quorum, "Successfully updated proposal quorum");
-            }
-        }
-    }
-
-    info!(
-        governor = "ARBITRUM_TREASURY",
-        "Successfully updated quorum for active and started proposals"
-    );
-
-    Ok(())
 }
