@@ -80,8 +80,8 @@ pub async fn get_ethereum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
     ETHEREUM_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://eth.llamarpc.com")
-                    .unwrap_or("https://eth.llamarpc.com".to_string()),
+                &public_read_env_value("https://ethereum-rpc.publicnode.com")
+                    .unwrap_or("https://ethereum-rpc.publicnode.com".to_string()),
                 1,
                 None,
                 None,
@@ -130,8 +130,8 @@ pub async fn get_arbitrum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
     ARBITRUM_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://arbitrum.llamarpc.com")
-                    .unwrap_or("https://arbitrum.llamarpc.com".to_string()),
+                &public_read_env_value("https://arbitrum-one-rpc.publicnode.com")
+                    .unwrap_or("https://arbitrum-one-rpc.publicnode.com".to_string()),
                 42161,
                 None,
                 None,
@@ -180,8 +180,8 @@ pub async fn get_optimism_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
     OPTIMISM_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://optimism.llamarpc.com")
-                    .unwrap_or("https://optimism.llamarpc.com".to_string()),
+                &public_read_env_value("https://optimism-rpc.publicnode.com")
+                    .unwrap_or("https://optimism-rpc.publicnode.com".to_string()),
                 10,
                 None,
                 None,
@@ -230,8 +230,8 @@ pub async fn get_polygon_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> 
     POLYGON_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://polygon.llamarpc.com")
-                    .unwrap_or("https://polygon.llamarpc.com".to_string()),
+                &public_read_env_value("https://polygon-bor-rpc.publicnode.com")
+                    .unwrap_or("https://polygon-bor-rpc.publicnode.com".to_string()),
                 137,
                 None,
                 None,
@@ -280,8 +280,8 @@ pub async fn get_avalanche_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider
     AVALANCHE_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://avalanche.llamarpc.com")
-                    .unwrap_or("https://avalanche.llamarpc.com".to_string()),
+                &public_read_env_value("https://avalanche-c-chain-rpc.publicnode.com")
+                    .unwrap_or("https://avalanche-c-chain-rpc.publicnode.com".to_string()),
                 43114,
                 None,
                 None,
@@ -310,7 +310,7 @@ pub async fn get_provider_cache_for_network(network: &str) -> Arc<JsonRpcCachedP
     if network == "ethereum" {
         return get_ethereum_provider_cache().await;
     }
-    
+
     if network == "ethereum-ethcall" {
         return get_ethereum_provider_ethcall_cache().await;
     }
@@ -318,7 +318,7 @@ pub async fn get_provider_cache_for_network(network: &str) -> Arc<JsonRpcCachedP
     if network == "arbitrum" {
         return get_arbitrum_provider_cache().await;
     }
-    
+
     if network == "arbitrum-ethcall" {
         return get_arbitrum_provider_ethcall_cache().await;
     }
@@ -326,7 +326,7 @@ pub async fn get_provider_cache_for_network(network: &str) -> Arc<JsonRpcCachedP
     if network == "optimism" {
         return get_optimism_provider_cache().await;
     }
-    
+
     if network == "optimism-ethcall" {
         return get_optimism_provider_ethcall_cache().await;
     }
@@ -334,7 +334,7 @@ pub async fn get_provider_cache_for_network(network: &str) -> Arc<JsonRpcCachedP
     if network == "polygon" {
         return get_polygon_provider_cache().await;
     }
-    
+
     if network == "polygon-ethcall" {
         return get_polygon_provider_ethcall_cache().await;
     }
@@ -342,7 +342,7 @@ pub async fn get_provider_cache_for_network(network: &str) -> Arc<JsonRpcCachedP
     if network == "avalanche" {
         return get_avalanche_provider_cache().await;
     }
-    
+
     if network == "avalanche-ethcall" {
         return get_avalanche_provider_ethcall_cache().await;
     }
