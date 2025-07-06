@@ -34,9 +34,9 @@ impl EmbeddingCache {
     pub async fn new(similarity_threshold: f32) -> Result<Self> {
         info!("Initializing embedding model...");
 
-        // Initialize the embedding model - BGELargeENV15 for best accuracy
+        // Initialize the embedding model - BGEBaseENV15 for balanced accuracy and memory usage
         let model = TextEmbedding::try_new(
-            InitOptions::new(EmbeddingModel::BGELargeENV15).with_show_download_progress(true),
+            InitOptions::new(EmbeddingModel::BGEBaseENV15).with_show_download_progress(true),
         )
         .context("Failed to initialize embedding model")?;
 
@@ -300,7 +300,7 @@ impl EmbeddingCache {
     pub async fn cache_stats(&self) -> (usize, usize) {
         let cache = self.cache.read().await;
         let entries = cache.len();
-        let memory_estimate = entries * 1024 * 4; // BGELargeENV15 has 1024 dimensions * 4 bytes per float
+        let memory_estimate = entries * 768 * 4; // BGEBaseENV15 has 768 dimensions * 4 bytes per float
         (entries, memory_estimate)
     }
 }
