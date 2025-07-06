@@ -31,6 +31,10 @@ pub static DAO_SLUG_GOVERNOR_SPACE_MAP: Lazy<Mutex<HashMap<(String, String), Str
             ("arbitrum".to_string(), "ARBITRUM_SNAPSHOT".to_string()),
             "arbitrumfoundation.eth".to_string(),
         );
+        map.insert(
+            ("uniswap".to_string(), "UNISWAP_SNAPSHOT".to_string()),
+            "uniswapgovernance.eth".to_string(),
+        );
         // Add more mappings as needed
         Mutex::new(map)
     });
