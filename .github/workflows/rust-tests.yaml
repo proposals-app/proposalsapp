@@ -35,7 +35,7 @@ jobs:
     permissions:
       checks: write
       contents: read
-    runs-on: [self-hosted, linux, sibiu]  # Use Sibiu runners with 16 cores/32GB RAM
+    runs-on: [self-hosted, linux, sibiu] # Use Sibiu runners with 16 cores/32GB RAM
     steps:
       - uses: actions/checkout@v4
 
@@ -83,13 +83,18 @@ jobs:
         env:
           ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
           ARBITRUM_NODE_URL: ${{ secrets.ARBITRUM_NODE_URL }}
+          ARBITRUM_HYPERSYNC_NODE_URL: ${{ secrets.ARBITRUM_HYPERSYNC_NODE_URL }}
           AVALANCHE_NODE_URL: ${{ secrets.AVALANCHE_NODE_URL }}
+          AVALANCHE_HYPERSYNC_NODE_URL: ${{ secrets.AVALANCHE_HYPERSYNC_NODE_URL }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           ETHEREUM_NODE_URL: ${{ secrets.ETHEREUM_NODE_URL }}
+          ETHEREUM_HYPERSYNC_NODE_URL: ${{ secrets.ETHEREUM_HYPERSYNC_NODE_URL }}
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           OPTIMISM_NODE_URL: ${{ secrets.OPTIMISM_NODE_URL }}
+          OPTIMISM_HYPERSYNC_NODE_URL: ${{ secrets.OPTIMISM_HYPERSYNC_NODE_URL }}
           OPTIMISTIC_SCAN_API_KEY: ${{ secrets.OPTIMISTIC_SCAN_API_KEY }}
           POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+          POLYGON_HYPERSYNC_NODE_URL: ${{ secrets.POLYGON_HYPERSYNC_NODE_URL }}
           # Build optimization environment variables
           CARGO_NET_GIT_FETCH_WITH_CLI: true
           CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
