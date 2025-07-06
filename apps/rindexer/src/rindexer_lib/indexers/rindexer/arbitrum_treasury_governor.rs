@@ -78,7 +78,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 for result in results.clone() {
                     let proposal_id = result.event_data.proposalId;
                     let block_number = result.tx_information.block_number.to::<u64>();
-                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum-ethcall").await;
+                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum").await;
 
                     let created_at = match estimate_timestamp("arbitrum", block_number).await {
                         Ok(ts) => ts,
