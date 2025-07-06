@@ -60,8 +60,7 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ETHEREUM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://eth.rpc.hypersync.xyz")
-                    .unwrap_or("https://eth.rpc.hypersync.xyz".to_string()),
+                "https://eth.rpc.hypersync.xyz",
                 1,
                 None,
                 None,
@@ -80,8 +79,7 @@ pub async fn get_ethereum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
     ETHEREUM_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://ethereum-rpc.publicnode.com")
-                    .unwrap_or("https://ethereum-rpc.publicnode.com".to_string()),
+                "https://ethereum-rpc.publicnode.com",
                 1,
                 None,
                 None,
@@ -110,8 +108,7 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ARBITRUM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://arbitrum.rpc.hypersync.xyz")
-                    .unwrap_or("https://arbitrum.rpc.hypersync.xyz".to_string()),
+                "https://arbitrum.rpc.hypersync.xyz",
                 42161,
                 None,
                 None,
@@ -130,8 +127,7 @@ pub async fn get_arbitrum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
     ARBITRUM_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://arbitrum-one-rpc.publicnode.com")
-                    .unwrap_or("https://arbitrum-one-rpc.publicnode.com".to_string()),
+                "https://arbitrum-one-rpc.publicnode.com",
                 42161,
                 None,
                 None,
@@ -160,8 +156,7 @@ pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
     OPTIMISM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://optimism.rpc.hypersync.xyz")
-                    .unwrap_or("https://optimism.rpc.hypersync.xyz".to_string()),
+                "https://optimism.rpc.hypersync.xyz",
                 10,
                 None,
                 None,
@@ -180,8 +175,7 @@ pub async fn get_optimism_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
     OPTIMISM_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://optimism-rpc.publicnode.com")
-                    .unwrap_or("https://optimism-rpc.publicnode.com".to_string()),
+                "https://optimism-rpc.publicnode.com",
                 10,
                 None,
                 None,
@@ -210,8 +204,7 @@ pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
     POLYGON_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://polygon.rpc.hypersync.xyz/")
-                    .unwrap_or("https://polygon.rpc.hypersync.xyz/".to_string()),
+                "https://polygon.rpc.hypersync.xyz/",
                 137,
                 None,
                 None,
@@ -230,8 +223,7 @@ pub async fn get_polygon_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> 
     POLYGON_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://polygon-bor-rpc.publicnode.com")
-                    .unwrap_or("https://polygon-bor-rpc.publicnode.com".to_string()),
+                "https://polygon-bor-rpc.publicnode.com",
                 137,
                 None,
                 None,
@@ -260,8 +252,7 @@ pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
     AVALANCHE_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://avalanche.rpc.hypersync.xyz/")
-                    .unwrap_or("https://avalanche.rpc.hypersync.xyz/".to_string()),
+                "https://avalanche.rpc.hypersync.xyz/",
                 43114,
                 None,
                 None,
@@ -280,8 +271,7 @@ pub async fn get_avalanche_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider
     AVALANCHE_PROVIDER_ETHCALL
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("https://avalanche-c-chain-rpc.publicnode.com")
-                    .unwrap_or("https://avalanche-c-chain-rpc.publicnode.com".to_string()),
+                "https://avalanche-c-chain-rpc.publicnode.com",
                 43114,
                 None,
                 None,
