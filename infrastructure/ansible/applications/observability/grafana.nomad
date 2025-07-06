@@ -127,7 +127,7 @@ datasources:
   - name: Loki
     type: loki
     access: proxy
-    url: http://{{ range service "loki@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ end }}
+    url: http://{{ range service "loki@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:3100{{ end }}
     jsonData:
       maxLines: 10000
       timeout: 300

@@ -119,7 +119,6 @@ loki.source.file "logs" {
 
 // Process logs
 loki.process "json" {
-  // Try to parse as JSON
   stage.json {
     expressions = {
       timestamp = "timestamp",
@@ -132,14 +131,12 @@ loki.process "json" {
     }
   }
 
-  // Set timestamp if found
   stage.timestamp {
     source = "timestamp"
     format = "RFC3339"
     action_on_failure = "fudge"
   }
 
-  // Add level label if found and stream label
   stage.labels {
     values = {
       level = "",
@@ -147,7 +144,6 @@ loki.process "json" {
     }
   }
 
-  // Add high cardinality fields as metadata
   stage.structured_metadata {
     values = {
       service = "",
@@ -157,7 +153,6 @@ loki.process "json" {
     }
   }
 
-  // Output the message or original line
   stage.output {
     source = "message"
   }
@@ -169,8 +164,8 @@ loki.process "json" {
 loki.write "loki" {
   endpoint {
     url = "http://{{ range service "loki@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:3100{{ end }}/loki/api/v1/push"
-    batch_size = "1MiB"
-    batch_wait = "1s"
+    batch_size = "4MiB"
+    batch_wait = "2s"
   }
   
   external_labels = {
@@ -199,8 +194,8 @@ EOF
       }
 
       resources {
-        cpu    = 200
-        memory = 256
+        cpu    = 400
+        memory = 512
       }
 
       service {
