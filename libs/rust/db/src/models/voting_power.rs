@@ -61,7 +61,7 @@ impl ColumnTrait for Column {
             Self::DaoId => ColumnType::Uuid.def(),
             Self::Timestamp => ColumnType::DateTime.def(),
             Self::Block => ColumnType::Integer.def(),
-            Self::Txid => ColumnType::Text.def().null().unique(),
+            Self::Txid => ColumnType::Text.def().null(),
         }
     }
 }

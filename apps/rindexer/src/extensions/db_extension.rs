@@ -440,9 +440,8 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
                     delegation::Column::Delegator,
                     delegation::Column::DaoId,
                     delegation::Column::Block,
-                    delegation::Column::Txid,
                 ])
-                .update_columns([delegation::Column::Delegate, delegation::Column::Timestamp])
+                .update_columns([delegation::Column::Delegate, delegation::Column::Timestamp, delegation::Column::Txid])
                 .to_owned(),
             )
             .exec(db)
@@ -482,11 +481,11 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
                     voting_power::Column::Voter,
                     voting_power::Column::DaoId,
                     voting_power::Column::Block,
-                    voting_power::Column::Txid,
                 ])
                 .update_columns([
                     voting_power::Column::VotingPower,
                     voting_power::Column::Timestamp,
+                    voting_power::Column::Txid,
                 ])
                 .to_owned(),
             )

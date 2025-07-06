@@ -21,6 +21,7 @@ pub mod kysely_migration_lock;
 pub mod proposal;
 pub mod proposal_group;
 pub mod sea_orm_active_enums;
+pub mod test_verification;
 pub mod vote;
 pub mod voter;
 pub mod voting_power;

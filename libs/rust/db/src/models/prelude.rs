@@ -18,6 +18,7 @@ pub use super::kysely_migration::Entity as KyselyMigration;
 pub use super::kysely_migration_lock::Entity as KyselyMigrationLock;
 pub use super::proposal::Entity as Proposal;
 pub use super::proposal_group::Entity as ProposalGroup;
+pub use super::test_verification::Entity as TestVerification;
 pub use super::vote::Entity as Vote;
 pub use super::voter::Entity as Voter;
 pub use super::voting_power::Entity as VotingPower;
