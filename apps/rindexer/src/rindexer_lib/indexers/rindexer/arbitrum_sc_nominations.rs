@@ -73,9 +73,9 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     let proposal_id = result.event_data.proposalId;
                     let block_number = result.tx_information.block_number.to::<u64>();
 
-                    let arbitrum_sc_nominations_governor = arbitrum_sc_nominations_contract("arbitrum-full").await;
+                    let arbitrum_sc_nominations_governor = arbitrum_sc_nominations_contract("arbitrum").await;
 
-                    let created_at = match estimate_timestamp("arbitrum-full", block_number).await {
+                    let created_at = match estimate_timestamp("arbitrum", block_number).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, "Failed to estimate created_at timestamp");
@@ -83,7 +83,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
-                    let start_at = match estimate_timestamp("ethereum-full", result.event_data.startBlock.to::<u64>()).await {
+                    let start_at = match estimate_timestamp("ethereum", result.event_data.startBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, start_block = %result.event_data.startBlock, "Failed to estimate start_at timestamp");
@@ -91,7 +91,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
-                    let end_at = match estimate_timestamp("ethereum-full", result.event_data.endBlock.to::<u64>()).await {
+                    let end_at = match estimate_timestamp("ethereum", result.event_data.endBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, end_block = %result.event_data.endBlock, "Failed to estimate end_at timestamp");

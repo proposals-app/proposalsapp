@@ -3,28 +3,33 @@ project_type: rust
 networks:
   - name: ethereum
     chain_id: 1
-    rpc: ${ETHEREUM_HYPERSYNC_NODE_URL}
-    block_poll_frequency: optimized
+    rpc: ${ETHEREUM_NODE_URL}
+    max_block_range: 1000
+    compute_units_per_second: 660
 
   - name: arbitrum
     chain_id: 42161
-    rpc: ${ARBITRUM_HYPERSYNC_NODE_URL}
-    block_poll_frequency: optimized
+    rpc: ${ARBITRUM_NODE_URL}
+    max_block_range: 1000
+    compute_units_per_second: 660
 
   - name: optimism
     chain_id: 10
-    rpc: ${OPTIMISM_HYPERSYNC_NODE_URL}
-    block_poll_frequency: optimized
+    rpc: ${OPTIMISM_NODE_URL}
+    max_block_range: 1000
+    compute_units_per_second: 660
 
   - name: polygon
     chain_id: 137
-    rpc: ${POLYGON_HYPERSYNC_NODE_URL}
-    block_poll_frequency: optimized
+    rpc: ${POLYGON_NODE_URL}
+    max_block_range: 1000
+    compute_units_per_second: 660
 
   - name: avalanche
     chain_id: 43114
-    rpc: ${AVALANCHE_HYPERSYNC_NODE_URL}
-    block_poll_frequency: optimized
+    rpc: ${AVALANCHE_NODE_URL}
+    max_block_range: 1000
+    compute_units_per_second: 660
 
 storage:
   postgres:
@@ -32,6 +37,7 @@ storage:
     disable_create_tables: true
 native_transfers:
   enabled: false
+
 contracts:
   - name: ARBToken
     details:
@@ -46,6 +52,7 @@ contracts:
       - DelegateVotesChanged
       - DelegateChanged
     reorg_safe_distance: true
+
   - name: ArbitrumCoreGovernor
     details:
       - network: arbitrum
@@ -75,6 +82,7 @@ contracts:
             events:
               - ProposalExecuted
     reorg_safe_distance: true
+
   - name: ArbitrumTreasuryGovernor
     details:
       - network: arbitrum
@@ -105,6 +113,7 @@ contracts:
             events:
               - ProposalExecuted
     reorg_safe_distance: true
+
   - name: ArbitrumSCNominations
     details:
       - network: arbitrum
@@ -124,6 +133,7 @@ contracts:
         events:
           - ProposalExecuted
     reorg_safe_distance: true
+
   - name: UNIToken
     details:
       - network: ethereum

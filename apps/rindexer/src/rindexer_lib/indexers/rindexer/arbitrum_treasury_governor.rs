@@ -78,9 +78,9 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 for result in results.clone() {
                     let proposal_id = result.event_data.proposalId;
                     let block_number = result.tx_information.block_number.to::<u64>();
-                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum-full").await;
+                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum").await;
 
-                    let created_at = match estimate_timestamp("arbitrum-full", block_number).await {
+                    let created_at = match estimate_timestamp("arbitrum", block_number).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, "Failed to estimate created_at timestamp");
@@ -88,7 +88,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
-                    let start_at = match estimate_timestamp("ethereum-full", result.event_data.startBlock.to::<u64>()).await {
+                    let start_at = match estimate_timestamp("ethereum", result.event_data.startBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, start_block = %result.event_data.startBlock, "Failed to estimate start_at timestamp");
@@ -96,7 +96,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
-                    let end_at = match estimate_timestamp("ethereum-full", result.event_data.endBlock.to::<u64>()).await {
+                    let end_at = match estimate_timestamp("ethereum", result.event_data.endBlock.to::<u64>()).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, end_block = %result.event_data.endBlock, "Failed to estimate end_at timestamp");
@@ -299,7 +299,7 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                     let proposal_id = result.event_data.proposalId;
                     let extended_deadline = result.event_data.extendedDeadline;
 
-                    let end_at = match estimate_timestamp("ethereum-full", extended_deadline).await {
+                    let end_at = match estimate_timestamp("ethereum", extended_deadline).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, error = %e, extended_deadline = %extended_deadline, "Failed to estimate end_at timestamp for ProposalExtended event");
@@ -381,7 +381,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         let block_number = result.tx_information.block_number.to::<u64>();
                         let proposal_id = result.event_data.proposalId.to_string();
 
-                        let created_at = match estimate_timestamp("arbitrum-full", block_number).await {
+                        let created_at = match estimate_timestamp("arbitrum", block_number).await {
                             Ok(ts) => ts,
                             Err(e) => {
                                 error!(proposal_id = %proposal_id, block_number = block_number, error = %e, "Failed to estimate created_at timestamp for VoteCast event");
@@ -522,14 +522,14 @@ pub async fn update_active_proposals_end_time() -> Result<()> {
         };
 
         // Re-fetch the times on the block
-        let new_start_at = match estimate_timestamp("ethereum-full", block_start_at).await {
+        let new_start_at = match estimate_timestamp("ethereum", block_start_at).await {
             Ok(ts) => ts,
             Err(e) => {
                 error!(proposal_id = %proposal_id, block_number = block_start_at, error = %e, "Failed to estimate new start_at timestamp");
                 continue;
             }
         };
-        let new_end_at = match estimate_timestamp("ethereum-full", block_end_at).await {
+        let new_end_at = match estimate_timestamp("ethereum", block_end_at).await {
             Ok(ts) => ts,
             Err(e) => {
                 error!(proposal_id = %proposal_id, block_number = block_end_at, error = %e, "Failed to estimate new end_at timestamp");
@@ -834,7 +834,7 @@ pub async fn update_active_proposals_quorum() -> Result<()> {
         "Updating quorum for active and started proposals"
     );
 
-    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum-full").await;
+    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum").await;
 
     for proposal in active_proposals {
         let proposal_id = proposal.external_id.clone();

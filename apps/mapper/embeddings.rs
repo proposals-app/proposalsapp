@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use fastembed::{
     EmbeddingModel, InitOptions, RerankInitOptions, RerankerModel, TextEmbedding, TextRerank,
 };
-use regex::Regex;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

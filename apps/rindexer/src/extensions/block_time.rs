@@ -25,41 +25,41 @@ lazy_static! {
     static ref CHAIN_CONFIG_MAP: HashMap<&'static str, ChainConfig> = {
         let mut map = HashMap::new();
         map.insert(
-            "ethereum-full",
+            "ethereum",
             ChainConfig {
-                network: "ethereum-full",
+                network: "ethereum",
                 scan_api_url: Some("https://api.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("ETHERSCAN_API_KEY").ok(),
             },
         );
         map.insert(
-            "arbitrum-full",
+            "arbitrum",
             ChainConfig {
-                network: "arbitrum-full",
+                network: "arbitrum",
                 scan_api_url: Some("https://api.arbiscan.io/api".to_string()),
                 scan_api_key: std::env::var("ARBISCAN_API_KEY").ok(),
             },
         );
         map.insert(
-            "optimism-full",
+            "optimism",
             ChainConfig {
-                network: "optimism-full",
+                network: "optimism",
                 scan_api_url: Some("https://api-optimistic.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("OPTIMISTIC_SCAN_API_KEY").ok(),
             },
         );
         map.insert(
-            "polygon-full",
+            "polygon",
             ChainConfig {
-                network: "polygon-full",
+                network: "polygon",
                 scan_api_url: Some("https://api.polygonscan.com/api".to_string()),
                 scan_api_key: std::env::var("POLYGONSCAN_API_KEY").ok(),
             },
         );
         map.insert(
-            "avalanche-full",
+            "avalanche",
             ChainConfig {
-                network: "avalanche-full",
+                network: "avalanche",
                 scan_api_url: None,
                 scan_api_key: None,
             },

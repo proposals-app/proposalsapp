@@ -25,14 +25,6 @@ html-escape = "0.2.13"
 lazy_static = "1.5.0"
 once_cell = "1.21.3"
 oneshot = "0.1.11"
-# OpenTelemetry dependencies removed - using stdout JSON logging instead
-# opentelemetry = "0.27.1"
-# opentelemetry-appender-tracing = "0.27.0"
-# opentelemetry-http = "0.27.0"
-# opentelemetry-otlp = "0.27.0"
-# opentelemetry-proto = "0.27.0"
-# opentelemetry-semantic-conventions = "0.27.0"
-# opentelemetry_sdk = "0.27.1"
 rand = "0.9.1"
 regex = "1.11.1"
 reqwest = { version = "0.12.22", default-features = false }
@@ -45,12 +37,8 @@ serde_json = "1.0.140"
 thiserror = "2.0.12"
 tokio = "1.46.1"
 tracing = "0.1.41"
-# tracing-opentelemetry = "0.28.0"  # Removed - using stdout logging
 tracing-subscriber = "0.3.19"
-# pyroscope = "0.5.8"  # Removed - using stdout logging
-# pyroscope_pprofrs = "0.2.10"  # Removed - using stdout logging
-# rindexer = { path = "../rindexer/core", package = "rindexer" }
-rindexer = { git = "https://github.com/proposals-app/rindexer", branch = "proposalsapp", package = "rindexer" }
+rindexer = { git = "https://github.com/joshstevens19/rindexer", branch = "master", package = "rindexer" }
 tokio-retry = "0.3.0"
 serial_test = "3.2.0"
 proposalsapp-db = { path = "libs/rust/db" }
