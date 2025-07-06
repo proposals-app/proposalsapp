@@ -2,15 +2,18 @@ use anyhow::{Context, Result};
 use fastembed::{
     EmbeddingModel, InitOptions, RerankInitOptions, RerankerModel, TextEmbedding, TextRerank,
 };
-use std::collections::HashMap;
+use redis::aio::ConnectionManager;
+use redis::{AsyncCommands, Client};
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
+const EMBEDDING_KEY_PREFIX: &str = "mapper:embeddings:";
+const EMBEDDING_TTL_SECONDS: i64 = 24 * 60 * 60; // 24 hours
+
 #[derive(Clone)]
-pub struct EmbeddingCache {
-    /// Map from text to its embedding vector
-    cache: Arc<RwLock<HashMap<String, Vec<f32>>>>,
+pub struct RedisEmbeddingCache {
+    /// Redis connection manager for async operations
+    redis: ConnectionManager,
     /// The embedding model
     model: Arc<TextEmbedding>,
     /// The reranking model for cross-encoder scoring
@@ -30,13 +33,25 @@ pub struct SimilarityScore {
     pub rerank_score: Option<f32>, // Cross-encoder score if available
 }
 
-impl EmbeddingCache {
+impl RedisEmbeddingCache {
     pub async fn new(similarity_threshold: f32) -> Result<Self> {
-        info!("Initializing embedding model...");
+        info!("Initializing Redis-backed embedding cache...");
 
-        // Initialize the embedding model - BGEBaseENV15 for balanced accuracy and memory usage
+        // Connect to Redis
+        let redis_url =
+            std::env::var("REDIS_URL").context("REDIS_URL environment variable not set")?;
+
+        let client = Client::open(redis_url).context("Failed to create Redis client")?;
+
+        let redis = ConnectionManager::new(client)
+            .await
+            .context("Failed to connect to Redis")?;
+
+        info!("Connected to Redis successfully");
+
+        // Initialize the embedding model - BGELargeENV15 for best accuracy
         let model = TextEmbedding::try_new(
-            InitOptions::new(EmbeddingModel::BGEBaseENV15).with_show_download_progress(true),
+            InitOptions::new(EmbeddingModel::BGELargeENV15).with_show_download_progress(true),
         )
         .context("Failed to initialize embedding model")?;
 
@@ -53,7 +68,7 @@ impl EmbeddingCache {
         let body_similarity_threshold = 0.65f32;
 
         Ok(Self {
-            cache: Arc::new(RwLock::new(HashMap::new())),
+            redis,
             model: Arc::new(model),
             reranker: Arc::new(reranker),
             similarity_threshold,
@@ -67,14 +82,24 @@ impl EmbeddingCache {
             return Ok(vec![]);
         }
 
-        let mut cache = self.cache.write().await;
         let mut to_embed = Vec::new();
         let mut results = vec![None; texts.len()];
 
-        // Check cache first
+        // Check Redis cache first
         for (i, text) in texts.iter().enumerate() {
-            if let Some(embedding) = cache.get(text) {
-                results[i] = Some(embedding.clone());
+            let key = format!("{}{}", EMBEDDING_KEY_PREFIX, text);
+            let cached: Option<Vec<u8>> = self
+                .redis
+                .clone()
+                .get(&key)
+                .await
+                .context("Failed to query Redis cache")?;
+
+            if let Some(bytes) = cached {
+                // Deserialize the embedding from bytes
+                let embedding: Vec<f32> = bincode::deserialize(&bytes)
+                    .context("Failed to deserialize embedding from Redis")?;
+                results[i] = Some(embedding);
             } else {
                 to_embed.push((i, text.clone()));
             }
@@ -90,9 +115,20 @@ impl EmbeddingCache {
                 .embed(texts_to_embed, None)
                 .context("Failed to generate embeddings")?;
 
-            // Store in cache and results
+            // Store in Redis cache and results
             for ((idx, text), embedding) in to_embed.into_iter().zip(embeddings.into_iter()) {
-                cache.insert(text, embedding.clone());
+                let key = format!("{}{}", EMBEDDING_KEY_PREFIX, text);
+                let bytes =
+                    bincode::serialize(&embedding).context("Failed to serialize embedding")?;
+
+                // Store with TTL
+                let _: () = self
+                    .redis
+                    .clone()
+                    .set_ex(&key, bytes, EMBEDDING_TTL_SECONDS as u64)
+                    .await
+                    .context("Failed to store embedding in Redis")?;
+
                 results[idx] = Some(embedding);
             }
         }
@@ -288,19 +324,40 @@ impl EmbeddingCache {
         }
     }
 
-    /// Clear the cache
-    pub async fn clear_cache(&self) {
-        let mut cache = self.cache.write().await;
-        let size = cache.len();
-        cache.clear();
-        info!("Cleared embedding cache ({} entries)", size);
+    /// Get cache statistics
+    pub async fn cache_stats(&self) -> Result<(usize, usize)> {
+        // Count keys in Redis
+        let keys: Vec<String> = self
+            .redis
+            .clone()
+            .keys(format!("{}*", EMBEDDING_KEY_PREFIX))
+            .await
+            .context("Failed to query Redis keys")?;
+
+        let entries = keys.len();
+        let memory_estimate = entries * 1024 * 4; // BGELargeENV15 has 1024 dimensions * 4 bytes per float
+        Ok((entries, memory_estimate))
     }
 
-    /// Get cache statistics
-    pub async fn cache_stats(&self) -> (usize, usize) {
-        let cache = self.cache.read().await;
-        let entries = cache.len();
-        let memory_estimate = entries * 768 * 4; // BGEBaseENV15 has 768 dimensions * 4 bytes per float
-        (entries, memory_estimate)
+    /// Clear the cache
+    pub async fn clear_cache(&self) -> Result<()> {
+        let keys: Vec<String> = self
+            .redis
+            .clone()
+            .keys(format!("{}*", EMBEDDING_KEY_PREFIX))
+            .await
+            .context("Failed to query Redis keys")?;
+
+        if !keys.is_empty() {
+            let _: () = self
+                .redis
+                .clone()
+                .del(keys)
+                .await
+                .context("Failed to delete keys from Redis")?;
+        }
+
+        info!("Cleared Redis embedding cache");
+        Ok(())
     }
 }

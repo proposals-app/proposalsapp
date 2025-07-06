@@ -7,6 +7,7 @@ edition = "2024"
 alloy = { workspace = true, features = ["full"] }
 anyhow = { workspace = true, features = ["backtrace"] }
 axum = { workspace = true }
+bincode = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
 fastembed = { workspace = true }
@@ -14,6 +15,7 @@ lazy_static = { workspace = true }
 once_cell = { workspace = true }
 proposalsapp-db = { workspace = true }
 rand = { workspace = true }
+redis = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 sea-orm = { workspace = true, features = [

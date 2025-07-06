@@ -140,6 +140,26 @@ DATABASE_URL=
 {{ end }}
 {{ end }}
 
+# Redis connection - use Nomad service discovery to find haproxy-redis
+# This will resolve to the haproxy-redis service running on the same node
+{{ $redisFound := false }}
+{{ range service "haproxy-redis" }}
+{{ $redisFound = true }}
+# Get connection string and replace localhost with discovered address
+{{ $redisConnStr := keyOrDefault "redis/connection_string/haproxy" "redis://:password@localhost:6380" }}
+REDIS_URL={{ $redisConnStr | regexReplaceAll "@localhost:" (printf "@%s:" .Address) }}
+{{ end }}
+{{ if not $redisFound }}
+# Fallback: Use connection string from Consul KV directly when haproxy-redis service is not yet discovered
+{{ $redisConnStr := keyOrDefault "redis/connection_string/haproxy" "" }}
+{{ if $redisConnStr }}
+REDIS_URL={{ $redisConnStr }}
+{{ else }}
+# Emergency fallback - this will cause the service to fail and retry
+REDIS_URL=
+{{ end }}
+{{ end }}
+
 # BetterStack monitoring
 BETTERSTACK_KEY={{ keyOrDefault "mapper/betterstack_key" "" }}
 

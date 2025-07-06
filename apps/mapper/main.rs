@@ -9,17 +9,17 @@ use tokio::time::Duration;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
-mod embeddings;
 mod grouper;
 mod karma;
+mod redis_embeddings;
 
 #[cfg(test)]
 mod test_group_backtest;
 
-use embeddings::EmbeddingCache;
+use redis_embeddings::RedisEmbeddingCache;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
-pub static EMBEDDINGS: OnceCell<EmbeddingCache> = OnceCell::new();
+pub static EMBEDDINGS: OnceCell<RedisEmbeddingCache> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
     let database_url =
@@ -66,21 +66,34 @@ async fn main() -> Result<()> {
     info!("Application starting up");
     initialize_db().await?;
 
-    // Initialize embedding cache with optimized similarity threshold
+    // Initialize Redis-backed embedding cache with optimized similarity threshold
     let similarity_threshold = 0.70f32; // Conservative threshold for higher precision
 
-    let embedding_cache = EmbeddingCache::new(similarity_threshold).await?;
+    let embedding_cache = RedisEmbeddingCache::new(similarity_threshold).await?;
     EMBEDDINGS
         .set(embedding_cache)
-        .map_err(|_| anyhow::anyhow!("Failed to set embedding cache"))?;
+        .map_err(|_| anyhow::anyhow!("Failed to set Redis embedding cache"))?;
 
     info!(
         "Embedding cache initialized with similarity threshold: {}",
         similarity_threshold
     );
 
-    // Start health check server
-    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
+    // Start health check server with memory stats
+    let app = Router::new().route(
+        "/health",
+        axum::routing::get(|| async {
+            if let Ok((entries, memory_bytes)) = EMBEDDINGS.get().unwrap().cache_stats().await {
+                let memory_mb = memory_bytes as f64 / 1_048_576.0;
+                format!(
+                    "OK - Cache entries: {}, Est. memory: {:.2} MB",
+                    entries, memory_mb
+                )
+            } else {
+                "OK - Unable to fetch cache stats".to_string()
+            }
+        }),
+    );
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
@@ -96,6 +109,17 @@ async fn main() -> Result<()> {
         let interval = Duration::from_secs(60);
         loop {
             info!("Running grouper task");
+
+            // Log cache statistics before task
+            if let Ok((entries, memory_bytes)) = EMBEDDINGS.get().unwrap().cache_stats().await {
+                let memory_mb = memory_bytes as f64 / 1_048_576.0;
+                info!(
+                    cache_entries = entries,
+                    cache_memory_mb = memory_mb,
+                    "Cache statistics before grouper task"
+                );
+            }
+
             if let Err(e) = grouper::run_group_task().await {
                 error!(error = %e, "Grouper task runtime error");
             }
