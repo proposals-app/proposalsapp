@@ -142,20 +142,24 @@ async fn job_processor() {
 
 #[instrument(name = "block_time_process_request_inner", skip_all, fields(block_number = block_number))]
 async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result<NaiveDateTime> {
+    // First, get the current block number to determine if we're dealing with a past or future block
+    let provider = get_provider_cache_for_network(config.network).await;
+    let current_block = provider
+        .get_block_number()
+        .await
+        .context("Failed to get current block number from provider")?
+        .to::<u64>();
+
+    debug!(
+        current_block = current_block,
+        block_number = block_number,
+        is_past_block = block_number <= current_block,
+        "Determining block time estimation strategy"
+    );
+
+    // Try provider first (works for both past and future blocks if available)
     let provider_result = async {
-        let provider = get_provider_cache_for_network(config.network).await;
         let inner_provider = provider.get_inner_provider();
-
-        let current_block = provider
-            .get_block_number()
-            .await
-            .context("Failed to get current block number from provider")?
-            .to::<u64>();
-
-        debug!(
-            current_block = current_block,
-            "Current block number from provider"
-        );
 
         if block_number <= current_block {
             let block = inner_provider
@@ -187,58 +191,68 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
         warn!(error = ?provider_result.as_ref().err(), "Failed to get timestamp from provider, trying scan API");
     }
 
-    let past_scan_api_result = async {
-        if let (Some(scan_api_url), Some(scan_api_key)) = (config.scan_api_url.clone(), config.scan_api_key.clone()) {
-            let response = past_scan_api_request(&scan_api_url, &scan_api_key, block_number)
-                .await
-                .context("Past scan API request failed")?;
-            if let Some(response) = response {
-                if response.status == "1" {
-                    if let Some(BlockRewardResult::Success(result)) = response.result {
-                        let timestamp: i64 = result
-                            .timestamp
-                            .parse()
-                            .context("Failed to parse timestamp from past scan API response")?;
-                        debug!(scan_api = %scan_api_url, block_number = block_number, timestamp = timestamp, "Timestamp obtained from past scan API");
-                        return DateTime::<Utc>::from_timestamp(timestamp, 0)
-                            .map(|dt| dt.naive_utc())
-                            .context("Timestamp from past scan api out of range");
-                    } else if let Some(BlockRewardResult::Error(err_msg)) = response.result {
-                        error!(scan_api = %scan_api_url, block_number = block_number, error_message = err_msg, "Past scan API returned an error");
-                        return Err(anyhow::anyhow!("Past scan API error: {}", err_msg));
+    // For past blocks, use getblockreward API
+    if block_number <= current_block {
+        let past_scan_api_result = async {
+            if let (Some(scan_api_url), Some(scan_api_key)) = (config.scan_api_url.clone(), config.scan_api_key.clone()) {
+                let response = past_scan_api_request(&scan_api_url, &scan_api_key, block_number)
+                    .await
+                    .context("Past scan API request failed")?;
+                if let Some(response) = response {
+                    if response.status == "1" {
+                        if let Some(BlockRewardResult::Success(result)) = response.result {
+                            let timestamp: i64 = result
+                                .timestamp
+                                .parse()
+                                .context("Failed to parse timestamp from past scan API response")?;
+                            debug!(scan_api = %scan_api_url, block_number = block_number, timestamp = timestamp, "Timestamp obtained from past scan API");
+                            return DateTime::<Utc>::from_timestamp(timestamp, 0)
+                                .map(|dt| dt.naive_utc())
+                                .context("Timestamp from past scan api out of range");
+                        } else if let Some(BlockRewardResult::Error(err_msg)) = response.result {
+                            error!(scan_api = %scan_api_url, block_number = block_number, error_message = err_msg, "Past scan API returned an error");
+                            return Err(anyhow::anyhow!("Past scan API error: {}", err_msg));
+                        } else {
+                            error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, "Past scan API response result is None but status is success");
+                            return Err(anyhow::anyhow!(
+                                "Past scan API response result is None but status is success"
+                            ));
+                        }
                     } else {
-                        error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, "Past scan API response result is None but status is success");
+                        error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, response_message = response.message, "Past scan API request failed with status");
                         return Err(anyhow::anyhow!(
-                            "Past scan API response result is None but status is success"
+                            "Past scan API request failed with status: {}, message: {}",
+                            response.status,
+                            response.message
                         ));
                     }
                 } else {
-                    error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, response_message = response.message, "Past scan API request failed with status");
-                    return Err(anyhow::anyhow!(
-                        "Past scan API request failed with status: {}, message: {}",
-                        response.status,
-                        response.message
-                    ));
+                    error!(scan_api = %scan_api_url, block_number = block_number, "Past scan API request returned None");
+                    return Err(anyhow::anyhow!("Past scan API request returned None"));
                 }
-            } else {
-                error!(scan_api = %scan_api_url, block_number = block_number, "Past scan API request returned None");
-                return Err(anyhow::anyhow!("Past scan API request returned None"));
             }
+            warn!("Past scan API not configured for this chain");
+            Err(anyhow::anyhow!(
+                "Past scan API not configured for this chain"
+            ))
         }
-        warn!("Past scan API not configured for this chain");
-        Err(anyhow::anyhow!(
-            "Past scan API not configured for this chain"
-        ))
-    }
-    .await;
+        .await;
 
-    if let Ok(timestamp) = past_scan_api_result {
-        debug!("Timestamp obtained from past scan API");
-        return Ok(timestamp);
-    } else {
-        warn!(error = ?past_scan_api_result.as_ref().err(), "Failed to get timestamp from past scan API, trying future scan API");
+        if let Ok(timestamp) = past_scan_api_result {
+            debug!("Timestamp obtained from past scan API");
+            return Ok(timestamp);
+        } else {
+            error!(error = ?past_scan_api_result.as_ref().err(), "Failed to get timestamp from past scan API for past block");
+            return Err(anyhow::anyhow!(
+                "Failed to estimate timestamp for past block {}. Provider error: {:?}, Past scan API error: {:?}",
+                block_number,
+                provider_result.err(),
+                past_scan_api_result.err()
+            ));
+        }
     }
 
+    // For future blocks, use getblockcountdown API
     let future_scan_api_result = async {
         if let (Some(scan_api_url), Some(scan_api_key)) = (config.scan_api_url.clone(), config.scan_api_key.clone()) {
             let response = future_scan_api_request(&scan_api_url, &scan_api_key, block_number)
@@ -289,22 +303,14 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
         debug!("Timestamp obtained from future scan API");
         return Ok(timestamp);
     } else {
-        warn!(error = ?future_scan_api_result.as_ref().err(), "Failed to get timestamp from future scan API");
+        error!(error = ?future_scan_api_result.as_ref().err(), "Failed to get timestamp from future scan API for future block");
+        return Err(anyhow::anyhow!(
+            "Failed to estimate timestamp for future block {}. Provider error: {:?}, Future scan API error: {:?}",
+            block_number,
+            provider_result.err(),
+            future_scan_api_result.err()
+        ));
     }
-
-    error!(
-        provider_error = ?provider_result.as_ref().err(),
-        past_scan_api_error = ?past_scan_api_result.as_ref().err(),
-        future_scan_api_error = ?future_scan_api_result.as_ref().err(),
-        block_number = block_number,
-        "All methods failed to estimate timestamp."
-    );
-    Err(anyhow::anyhow!(
-        "All methods failed to estimate timestamp. \nProvider error: {:?}\nPast scan API error: {:?}\nFuture scan API error: {:?}",
-        provider_result.err(),
-        past_scan_api_result.err(),
-        future_scan_api_result.err()
-    ))
 }
 
 #[instrument(name = "block_time_get_chain_config", skip_all, fields(network = network))]
