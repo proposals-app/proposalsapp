@@ -212,11 +212,47 @@
             "features": {
               "buildkit": true
             },
-            "experimental": true
+            "experimental": true,
+            "builder": {
+              "gc": {
+                "enabled": true,
+                "defaultKeepStorage": "10GB"
+              }
+            }
           }
         dest: /etc/docker/daemon.json
         mode: '0644'
       notify: restart docker
+
+    - name: Create buildx config directory
+      file:
+        path: "{{ runner_home }}/.docker/buildx"
+        state: directory
+        owner: "{{ runner_user }}"
+        group: "{{ runner_group }}"
+        mode: '0755'
+
+    - name: Configure buildx with cache limits
+      become: true
+      become_user: "{{ runner_user }}"
+      copy:
+        content: |
+          [worker.oci]
+            max-parallelism = 4
+            gc = true
+            gckeepstorage = 5000
+            
+          [[worker.oci.gcpolicy]]
+            keepBytes = 5368709120
+            keepDuration = 604800
+            
+          [[worker.oci.gcpolicy]]
+            all = true
+            keepBytes = 10737418240
+        dest: "{{ runner_home }}/.docker/buildx/buildkitd.toml"
+        owner: "{{ runner_user }}"
+        group: "{{ runner_group }}"
+        mode: '0644'
 
     - name: Create runner healthcheck script
       copy:
@@ -227,6 +263,50 @@
           exit $?
         dest: /usr/local/bin/runner-healthcheck
         mode: '0755'
+
+    - name: Copy GitHub runner cleanup script
+      copy:
+        src: files/github-runner-cleanup.sh
+        dest: /usr/local/bin/github-runner-cleanup.sh
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Copy GitHub runner cleanup service
+      copy:
+        src: files/github-runner-cleanup.service
+        dest: /etc/systemd/system/github-runner-cleanup.service
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Copy GitHub runner cleanup timer
+      copy:
+        src: files/github-runner-cleanup.timer
+        dest: /etc/systemd/system/github-runner-cleanup.timer
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start GitHub runner cleanup timer
+      systemd:
+        name: github-runner-cleanup.timer
+        enabled: yes
+        state: started
+
+    - name: Run initial cleanup
+      command: /usr/local/bin/github-runner-cleanup.sh
+      register: initial_cleanup
+      ignore_errors: yes
+
+    - name: Display initial cleanup results
+      debug:
+        msg: "Initial cleanup completed. Check logs at /var/log/github-runner-cleanup.log"
+      when: initial_cleanup is defined
 
     - name: Display setup summary
       debug:
