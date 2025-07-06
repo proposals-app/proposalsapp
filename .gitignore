@@ -27,3 +27,10 @@ infrastructure/ansible/vault-password.txt
 infrastructure/ansible/vault-password.txt.*
 infrastructure/ansible/.vault_pass
 *.vault_pass
+
+# ML model caches
+.fastembed_cache/
+**/.fastembed_cache/
+*.onnx
+models/
+__pycache__/

@@ -151,11 +151,11 @@ EOF
       }
 
       resources {
-        cpu    = 500   # 0.5 CPU core
-        memory = 512   # 512MB RAM
+        cpu    = 2000   # 2 CPU core
+        memory = 2048   # 2GB RAM
 
         # Reserve additional resources for peak loads
-        memory_max = 1024  # Allow bursting to 1GB
+        memory_max = 4096  # Allow bursting to 4GB
       }
 
       service {

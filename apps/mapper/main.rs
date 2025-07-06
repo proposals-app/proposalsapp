@@ -9,10 +9,17 @@ use tokio::time::Duration;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
+mod embeddings;
 mod grouper;
 mod karma;
 
+#[cfg(test)]
+mod test_group_backtest;
+
+use embeddings::EmbeddingCache;
+
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
+pub static EMBEDDINGS: OnceCell<EmbeddingCache> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
     let database_url =
@@ -58,6 +65,19 @@ async fn main() -> Result<()> {
 
     info!("Application starting up");
     initialize_db().await?;
+
+    // Initialize embedding cache with optimized similarity threshold
+    let similarity_threshold = 0.70f32; // Conservative threshold for higher precision
+
+    let embedding_cache = EmbeddingCache::new(similarity_threshold).await?;
+    EMBEDDINGS
+        .set(embedding_cache)
+        .map_err(|_| anyhow::anyhow!("Failed to set embedding cache"))?;
+
+    info!(
+        "Embedding cache initialized with similarity threshold: {}",
+        similarity_threshold
+    );
 
     // Start health check server
     let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
