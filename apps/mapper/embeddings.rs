@@ -134,43 +134,6 @@ impl EmbeddingCache {
         dot_product / (norm_a * norm_b)
     }
 
-    /// Find the most similar text from a list of candidates (backward compatibility)
-    pub async fn find_most_similar(
-        &self,
-        query: &str,
-        candidates: Vec<(String, String)>, // (id, text)
-    ) -> Result<Option<(String, f32)>> {
-        if candidates.is_empty() {
-            return Ok(None);
-        }
-
-        // Generate embeddings for query and all candidates
-        let mut texts = vec![query.to_string()];
-        texts.extend(candidates.iter().map(|(_, text)| text.clone()));
-
-        let embeddings = self.embed_batch(texts).await?;
-        let query_embedding = &embeddings[0];
-
-        // Find most similar using angular similarity
-        let mut best_match = None;
-        let mut best_similarity = 0.0;
-
-        for (i, (id, _)) in candidates.iter().enumerate() {
-            let similarity = Self::angular_similarity(query_embedding, &embeddings[i + 1]);
-
-            if similarity > best_similarity && similarity >= self.similarity_threshold {
-                best_similarity = similarity;
-                best_match = Some((id.clone(), similarity));
-            }
-        }
-
-        if let Some((id, score)) = &best_match {
-            info!("Found similar match: {} with score {:.3}", id, score);
-        }
-
-        Ok(best_match)
-    }
-
     /// Enhanced similarity calculation with separate title and body scoring
     pub async fn find_most_similar_enhanced(
         &self,
@@ -182,8 +145,8 @@ impl EmbeddingCache {
             return Ok(None);
         }
 
-        // Normalize query title
-        let norm_query_title = Self::normalize_proposal_text(query_title);
+        // Use query title directly
+        let norm_query_title = query_title.to_string();
 
         // Stage 1: Calculate embeddings for all titles and bodies
         let mut title_texts = vec![norm_query_title.clone()];
@@ -191,7 +154,7 @@ impl EmbeddingCache {
         let mut has_bodies = Vec::new();
 
         for (_, title, body) in &candidates {
-            title_texts.push(Self::normalize_proposal_text(title));
+            title_texts.push(title.clone());
             if let Some(body_text) = body {
                 body_texts.push(body_text.clone());
                 has_bodies.push(true);
@@ -228,7 +191,8 @@ impl EmbeddingCache {
 
         for (i, (id, title, body)) in candidates.iter().enumerate() {
             // Title similarity
-            let title_sim = Self::angular_similarity(query_title_embedding, &title_embeddings[i + 1]);
+            let title_sim =
+                Self::angular_similarity(query_title_embedding, &title_embeddings[i + 1]);
 
             // Body similarity (if both have bodies)
             let body_sim = if body.is_some() && query_body_embedding.is_some() && has_bodies[i] {
@@ -325,103 +289,6 @@ impl EmbeddingCache {
         }
     }
 
-    /// Calculate enhanced similarity between two items
-    pub async fn calculate_enhanced_similarity(
-        &self,
-        item1_title: &str,
-        item1_body: Option<&str>,
-        item2_title: &str,
-        item2_body: Option<&str>,
-    ) -> Result<SimilarityScore> {
-        // Normalize titles
-        let norm_title1 = Self::normalize_proposal_text(item1_title);
-        let norm_title2 = Self::normalize_proposal_text(item2_title);
-
-        // Check for exact match
-        if norm_title1 == norm_title2 {
-            return Ok(SimilarityScore {
-                title_similarity: 1.0,
-                body_similarity: Some(1.0),
-                combined_score: 1.0,
-                passes_threshold: true,
-                rerank_score: Some(1.0),
-            });
-        }
-
-        // Calculate title similarity
-        let title1_embedding = self.embed(&norm_title1).await?;
-        let title2_embedding = self.embed(&norm_title2).await?;
-        let title_similarity = Self::angular_similarity(&title1_embedding, &title2_embedding);
-
-        // Calculate body similarity if both bodies are provided
-        let body_similarity = if let (Some(body1), Some(body2)) = (item1_body, item2_body) {
-            let body1_embedding = self.embed(body1).await?;
-            let body2_embedding = self.embed(body2).await?;
-            Some(Self::angular_similarity(&body1_embedding, &body2_embedding))
-        } else {
-            None
-        };
-
-        // Calculate combined score
-        let combined_score = if let Some(body_sim) = body_similarity {
-            // If we have both, weight them equally
-            0.5 * title_similarity + 0.5 * body_sim
-        } else {
-            // Title only
-            title_similarity
-        };
-
-        // Use cross-encoder for final verification if score is close to threshold
-        let rerank_score = if combined_score >= 0.5 && combined_score <= 0.8 {
-            let full1 = if let Some(body) = item1_body {
-                format!("{}\n\n{}", item1_title, body)
-            } else {
-                item1_title.to_string()
-            };
-
-            let full2 = if let Some(body) = item2_body {
-                format!("{}\n\n{}", item2_title, body)
-            } else {
-                item2_title.to_string()
-            };
-
-            match self.reranker.rerank(&full1, vec![&full2], false, None) {
-                Ok(results) => results.first().map(|r| r.score as f32),
-                Err(e) => {
-                    warn!("Reranking failed: {}", e);
-                    None
-                }
-            }
-        } else {
-            None
-        };
-
-        // Use rerank score if available and significantly different
-        let final_score = if let Some(rs) = rerank_score {
-            if (rs - combined_score).abs() > 0.1 {
-                rs
-            } else {
-                combined_score
-            }
-        } else {
-            combined_score
-        };
-
-        let threshold = if body_similarity.is_some() {
-            self.body_similarity_threshold
-        } else {
-            self.similarity_threshold
-        };
-
-        Ok(SimilarityScore {
-            title_similarity,
-            body_similarity,
-            combined_score: final_score,
-            passes_threshold: final_score >= threshold,
-            rerank_score,
-        })
-    }
-
     /// Clear the cache
     pub async fn clear_cache(&self) {
         let mut cache = self.cache.write().await;
@@ -436,100 +303,5 @@ impl EmbeddingCache {
         let entries = cache.len();
         let memory_estimate = entries * 1024 * 4; // BGELargeENV15 has 1024 dimensions * 4 bytes per float
         (entries, memory_estimate)
-    }
-
-    /// Get the body similarity threshold
-    pub fn get_body_similarity_threshold(&self) -> f32 {
-        self.body_similarity_threshold
-    }
-
-    /// Normalize proposal text by removing common prefixes and variations
-    pub fn normalize_proposal_text(text: &str) -> String {
-        let mut normalized = text.to_string();
-
-        // Remove common prefixes
-        let prefixes = [
-            r"^\[UPDATED\]\s*",
-            r"^\[Updated\]\s*",
-            r"^\[DRAFT\]\s*",
-            r"^\[RFC-\d+\]\s*",
-            r"^Proposal:\s*",
-            r"^AIP:\s*",
-            r"^AIP-\d+:\s*",
-            r"^\[AIP-\d+\]\s*",
-            r"^Non-Constitutional:\s*",
-            r"^Constitutional:\s*",
-            r"^Temperature Check:\s*",
-            r"^\[Temperature Check\]\s*",
-            r"^FINAL:\s*",
-            r"^\[FINAL\]\s*",
-            r"^ARDC:\s*",
-            r"^RFC:\s*",
-            r"^Proposal to\s+",
-            r"^Motion to\s+",
-        ];
-
-        for prefix in &prefixes {
-            let re = Regex::new(prefix).unwrap();
-            normalized = re.replace(&normalized, "").to_string();
-        }
-
-        normalized.trim().to_string()
-    }
-
-    /// Pre-compute embeddings for a batch of items (for optimization)
-    pub async fn precompute_embeddings(
-        &self,
-        items: Vec<(String, String, Option<String>)>, // (id, title, body)
-    ) -> Result<HashMap<String, (Vec<f32>, Option<Vec<f32>>)>> {
-        let mut result = HashMap::new();
-
-        // Prepare all titles
-        let titles: Vec<String> = items
-            .iter()
-            .map(|(_, title, _)| Self::normalize_proposal_text(title))
-            .collect();
-
-        // Prepare all bodies
-        let bodies: Vec<Option<String>> = items
-            .iter()
-            .map(|(_, _, body)| body.clone())
-            .collect();
-
-        // Batch embed titles
-        let title_embeddings = self.embed_batch(titles).await?;
-
-        // Batch embed bodies (only non-None ones)
-        let mut body_texts = Vec::new();
-        let mut body_indices = Vec::new();
-        for (i, body) in bodies.iter().enumerate() {
-            if let Some(b) = body {
-                body_texts.push(b.clone());
-                body_indices.push(i);
-            }
-        }
-
-        let body_embeddings = if !body_texts.is_empty() {
-            Some(self.embed_batch(body_texts).await?)
-        } else {
-            None
-        };
-
-        // Store results
-        let mut body_embed_idx = 0;
-        for (i, (id, _, _)) in items.into_iter().enumerate() {
-            let title_embedding = title_embeddings[i].clone();
-            let body_embedding = if bodies[i].is_some() {
-                let embed = body_embeddings.as_ref().unwrap()[body_embed_idx].clone();
-                body_embed_idx += 1;
-                Some(embed)
-            } else {
-                None
-            };
-
-            result.insert(id, (title_embedding, body_embedding));
-        }
-
-        Ok(result)
     }
 }

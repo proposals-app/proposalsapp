@@ -162,11 +162,6 @@ mod group_backtest_tests {
             ));
         }
 
-        let _precomputed_embeddings = embedding_cache
-            .precompute_embeddings(items_to_embed)
-            .await?;
-        println!("Pre-computed embeddings for all items");
-
         // Simulate the mapper algorithm
         let mut simulated_groups: Vec<SimulatedGroup> = Vec::new();
         let mut topic_to_group: HashMap<i32, usize> = HashMap::new();
