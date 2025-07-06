@@ -44,7 +44,7 @@ job "loki" {
       driver = "docker"
 
       config {
-        image        = "grafana/loki:3.5.0"
+        image        = "grafana/loki:3.5.1"
         network_mode = "host"
         
         args = [

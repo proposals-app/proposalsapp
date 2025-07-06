@@ -375,7 +375,7 @@ async fn try_semantic_matching(
             group_id = %group_id,
             combined_score = score.combined_score,
             title_similarity = score.title_similarity,
-            keyword_boost = score.keyword_boost,
+            body_similarity = ?score.body_similarity,
             "Found similar group via enhanced semantic matching"
         );
 
@@ -523,7 +523,7 @@ async fn get_configured_category_ids(dao_discourse_id: &Uuid, dao_slug: &str) ->
         .unwrap_or_default())
 }
 
-fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
+pub fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
     // Remove query parameters and fragments
     let url_without_query = url.split('?').next().unwrap_or("");
     let url_clean = url_without_query.split('#').next().unwrap_or("");

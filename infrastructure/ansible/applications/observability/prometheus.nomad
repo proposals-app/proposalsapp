@@ -40,7 +40,7 @@ job "prometheus" {
       driver = "docker"
 
       config {
-        image        = "prom/prometheus:v3.0.1"
+        image        = "prom/prometheus:v3.4.2"
         network_mode = "host"
         
         args = [

@@ -1,5 +1,5 @@
-use crate::{
-    models::{categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User},
+use crate::models::{
+    categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User,
 };
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -9,8 +9,8 @@ use proposalsapp_db::models::{
     discourse_topic, discourse_user,
 };
 use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait,
-    PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict,
+    ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, Set, prelude::Uuid, sea_query::OnConflict,
 };
 use std::time::Duration;
 use tracing::{debug, info, instrument};
@@ -184,7 +184,6 @@ pub async fn upsert_category(category: &Category, dao_discourse_id: Uuid) -> Res
 /// Inserts or updates a topic record.
 #[instrument(skip(topic), fields(topic_id = topic.id, topic_title = %topic.title, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
-
     let topic_model = discourse_topic::ActiveModel {
         external_id: Set(topic.id),
         title: Set(topic.title.clone()),

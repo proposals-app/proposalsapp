@@ -21,7 +21,7 @@ job "alloy" {
       driver = "docker"
 
       config {
-        image        = "grafana/alloy:v1.5.0"
+        image        = "grafana/alloy:v1.9.2"
         network_mode = "host"
         
         args = [
