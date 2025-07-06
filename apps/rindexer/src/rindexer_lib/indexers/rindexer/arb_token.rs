@@ -69,20 +69,21 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                         let delegate_addr = result.event_data.toDelegate;
                         let tx_hash = result.tx_information.transaction_hash;
 
-                        let created_at = match estimate_timestamp("arbitrum", block_number).await {
-                            Ok(ts) => ts,
-                            Err(e) => {
-                                error!(
-                                    block_number = block_number,
-                                    error = %e,
-                                    "Failed to estimate timestamp for DelegateChanged event"
-                                );
-                                // Returning `Err` here will stop processing the batch.
-                                // Depending on your error handling strategy, you might want to handle this differently,
-                                // e.g., skip this event and continue with others, or retry.
-                                return None; // Skip this delegation if timestamp estimation fails
-                            }
-                        };
+                        let created_at =
+                            match estimate_timestamp("arbitrum-full", block_number).await {
+                                Ok(ts) => ts,
+                                Err(e) => {
+                                    error!(
+                                        block_number = block_number,
+                                        error = %e,
+                                        "Failed to estimate timestamp for DelegateChanged event"
+                                    );
+                                    // Returning `Err` here will stop processing the batch.
+                                    // Depending on your error handling strategy, you might want to handle this differently,
+                                    // e.g., skip this event and continue with others, or retry.
+                                    return None; // Skip this delegation if timestamp estimation fails
+                                }
+                            };
 
                         debug!(
                             event_name = "ARBToken::DelegateChanged",
@@ -107,19 +108,23 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 if !delegations.is_empty() {
                     // Deduplicate delegations by keeping only the last one for each (delegator, dao_id, block) combination
-                    let mut deduped_delegations: HashMap<(String, Uuid, i32), delegation::ActiveModel> = HashMap::new();
-                    
+                    let mut deduped_delegations: HashMap<
+                        (String, Uuid, i32),
+                        delegation::ActiveModel,
+                    > = HashMap::new();
+
                     for delegation in delegations {
                         let delegator = delegation.delegator.clone().unwrap();
                         let dao_id = delegation.dao_id.clone().unwrap();
                         let block = delegation.block.clone().unwrap();
-                        
+
                         let key = (delegator, dao_id, block);
                         deduped_delegations.insert(key, delegation);
                     }
-                    
-                    let final_delegations: Vec<delegation::ActiveModel> = deduped_delegations.into_values().collect();
-                    
+
+                    let final_delegations: Vec<delegation::ActiveModel> =
+                        deduped_delegations.into_values().collect();
+
                     if let Err(e) = store_delegations(final_delegations).await {
                         error!(error = %e, "Failed to store delegations");
                     }
@@ -176,7 +181,9 @@ async fn delegate_votes_changed_handler(
                         let new_balance = result.event_data.newBalance;
                         let tx_hash = result.tx_information.transaction_hash;
 
-                        let created_at = match estimate_timestamp("arbitrum", block_number).await {
+                        let created_at = match estimate_timestamp("arbitrum-full", block_number)
+                            .await
+                        {
                             Ok(ts) => ts,
                             Err(e) => {
                                 error!(
@@ -211,19 +218,21 @@ async fn delegate_votes_changed_handler(
 
                 if !vps.is_empty() {
                     // Deduplicate voting powers by keeping only the last one for each (voter, dao_id, block) combination
-                    let mut deduped_vps: HashMap<(String, Uuid, i32), voting_power::ActiveModel> = HashMap::new();
-                    
+                    let mut deduped_vps: HashMap<(String, Uuid, i32), voting_power::ActiveModel> =
+                        HashMap::new();
+
                     for vp in vps {
                         let voter = vp.voter.clone().unwrap();
                         let dao_id = vp.dao_id.clone().unwrap();
                         let block = vp.block.clone().unwrap();
-                        
+
                         let key = (voter, dao_id, block);
                         deduped_vps.insert(key, vp);
                     }
-                    
-                    let final_vps: Vec<voting_power::ActiveModel> = deduped_vps.into_values().collect();
-                    
+
+                    let final_vps: Vec<voting_power::ActiveModel> =
+                        deduped_vps.into_values().collect();
+
                     if let Err(e) = store_voting_powers(final_vps).await {
                         error!(error = %e, "Failed to store voting powers");
                     }

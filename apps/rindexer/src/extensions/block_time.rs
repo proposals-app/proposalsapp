@@ -27,7 +27,7 @@ lazy_static! {
         map.insert(
             "ethereum",
             ChainConfig {
-                network: "ethereum",
+                network: "ethereum-full",
                 scan_api_url: Some("https://api.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("ETHERSCAN_API_KEY").ok(),
             },
@@ -35,7 +35,7 @@ lazy_static! {
         map.insert(
             "arbitrum",
             ChainConfig {
-                network: "arbitrum",
+                network: "arbitrum-full",
                 scan_api_url: Some("https://api.arbiscan.io/api".to_string()),
                 scan_api_key: std::env::var("ARBISCAN_API_KEY").ok(),
             },
@@ -43,7 +43,7 @@ lazy_static! {
         map.insert(
             "optimism",
             ChainConfig {
-                network: "optimism",
+                network: "optimism-full",
                 scan_api_url: Some("https://api-optimistic.etherscan.io/api".to_string()),
                 scan_api_key: std::env::var("OPTIMISTIC_SCAN_API_KEY").ok(),
             },
@@ -51,7 +51,7 @@ lazy_static! {
         map.insert(
             "polygon",
             ChainConfig {
-                network: "polygon",
+                network: "polygon-full",
                 scan_api_url: Some("https://api.polygonscan.com/api".to_string()),
                 scan_api_key: std::env::var("POLYGONSCAN_API_KEY").ok(),
             },
@@ -59,7 +59,7 @@ lazy_static! {
         map.insert(
             "avalanche",
             ChainConfig {
-                network: "avalanche",
+                network: "avalanche-full",
                 scan_api_url: None,
                 scan_api_key: None,
             },
