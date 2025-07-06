@@ -38,7 +38,7 @@ job "email-service" {
       attempts = 5
       interval = "10m"
       delay    = "60s"
-      mode     = "exponential"
+      mode     = "delay"
     }
 
     ephemeral_disk {

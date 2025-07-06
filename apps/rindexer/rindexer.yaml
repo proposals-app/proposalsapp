@@ -13,7 +13,7 @@ networks:
 
   - name: optimism
     chain_id: 10
-    rpc: ${OPTIMIS_HYPERSYNCM_NODE_URL}
+    rpc: ${OPTIMISM_HYPERSYNC_NODE_URL}
     block_poll_frequency: optimized
 
   - name: polygon
