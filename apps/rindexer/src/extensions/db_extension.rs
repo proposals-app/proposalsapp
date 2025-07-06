@@ -4,9 +4,7 @@ use alloy_ens::ProviderEnsExt;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::{Lazy, OnceCell};
-use proposalsapp_db::models::{
-    dao, dao_governor, delegation, job_queue, proposal, vote, voter, voting_power,
-};
+use proposalsapp_db::models::{dao, dao_governor, delegation, proposal, vote, voter, voting_power};
 use rindexer::provider::RindexerProvider;
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult,
@@ -18,7 +16,6 @@ use std::{
     time::Duration,
 };
 use tracing::{debug, error, info, instrument, warn};
-use utils::types::{JobData, ProposalJobData};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 pub static DAO_SLUG_ID_MAP: OnceCell<Mutex<HashMap<String, Uuid>>> = OnceCell::new();
@@ -257,62 +254,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
         let inserted_proposal = proposal::Entity::insert(proposal.clone()).exec(db).await?;
         info!(proposal_id = %inserted_proposal.last_insert_id, external_id = %external_id, "Proposal inserted successfully");
 
-        // Fetch governor to check its type
-        let governor_id_to_find = proposal
-            .governor_id
-            .clone()
-            .take()
-            .ok_or_else(|| anyhow::anyhow!("Missing governor_id for governor lookup"))?;
-        let governor = dao_governor::Entity::find()
-            .filter(dao_governor::Column::Id.eq(governor_id_to_find))
-            .one(db)
-            .await?;
-        let governor_model = governor.ok_or_else(|| {
-            anyhow::anyhow!("Governor not found with id: {}", governor_id_to_find)
-        })?;
-
-        debug!(
-            governor_type = %governor_model.r#type,
-            is_snapshot = governor_model.r#type.contains("SNAPSHOT"),
-            "Checking governor type for job creation"
-        );
-
-        if governor_model.r#type.contains("SNAPSHOT") {
-            // Check if discussion_url is set and not empty
-            if let Some(discussion_url) = proposal.discussion_url.clone().take().flatten() {
-                if !discussion_url.is_empty() {
-                    let job_data = ProposalJobData {
-                        proposal_id: inserted_proposal.last_insert_id,
-                    };
-
-                    // Enqueue job to fetch snapshot discussion details
-                    job_queue::Entity::insert(job_queue::ActiveModel {
-                        id: NotSet,
-                        r#type: Set(ProposalJobData::job_type().to_string()),
-                        data: Set(serde_json::to_value(job_data)?),
-                        status: Set("PENDING".into()),
-                        created_at: NotSet,
-                    })
-                    .exec(db)
-                    .await?;
-                    info!(
-                        proposal_id = %inserted_proposal.last_insert_id,
-                        discussion_url = %discussion_url,
-                        "Snapshot discussion details job enqueued"
-                    );
-                } else {
-                    debug!(
-                        proposal_id = %inserted_proposal.last_insert_id,
-                        "Snapshot proposal has empty discussion_url, skipping job creation"
-                    );
-                }
-            } else {
-                debug!(
-                    proposal_id = %inserted_proposal.last_insert_id,
-                    "Snapshot proposal has no discussion_url, skipping job creation"
-                );
-            }
-        }
+        // No longer creating jobs for new proposals - the mapper handles all grouping now
     }
 
     Ok(())
@@ -441,7 +383,11 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
                     delegation::Column::DaoId,
                     delegation::Column::Block,
                 ])
-                .update_columns([delegation::Column::Delegate, delegation::Column::Timestamp, delegation::Column::Txid])
+                .update_columns([
+                    delegation::Column::Delegate,
+                    delegation::Column::Timestamp,
+                    delegation::Column::Txid,
+                ])
                 .to_owned(),
             )
             .exec(db)

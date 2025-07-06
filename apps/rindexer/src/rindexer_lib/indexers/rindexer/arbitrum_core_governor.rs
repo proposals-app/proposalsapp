@@ -823,7 +823,7 @@ pub async fn update_active_proposals_quorum() -> Result<()> {
         "Updating quorum for active and started proposals"
     );
 
-    let arbitrum_core_governor = arbitrum_core_governor_contract("arbitrum").await;
+    let arbitrum_core_governor = arbitrum_core_governor_contract("arbitrum-ethcall").await;
 
     for proposal in active_proposals {
         let proposal_id = proposal.external_id.clone();

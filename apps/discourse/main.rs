@@ -13,9 +13,8 @@ use axum::Router;
 use dotenv::dotenv;
 use proposalsapp_db::models::dao_discourse;
 use reqwest::Client;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, prelude::Uuid};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use std::{
-    collections::HashMap,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -38,13 +37,6 @@ const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
 pub const MAX_PAGES_PER_RUN: u32 = 1000; // Safety break for pagination loops
 pub const RECENT_LOOKBACK_HOURS: i64 = 2; // How far back to look for "recent" items
 
-lazy_static::lazy_static! {
-    static ref DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS: HashMap<Uuid, Vec<i32>> = {
-        let mut m = HashMap::new();
-        m.insert(Uuid::parse_str("099352eb-b859-44ff-acbc-76806d304086").unwrap(), vec![7, 8, 9]);
-        m
-    };
-}
 
 #[tokio::main]
 #[instrument]

@@ -60,7 +60,8 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ETHEREUM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                "https://eth.rpc.hypersync.xyz",
+                &public_read_env_value("ETHEREUM_NODE_URL")
+                    .unwrap_or("ETHEREUM_NODE_URL".to_string()),
                 1,
                 None,
                 None,
@@ -73,6 +74,10 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
         })
         .await
         .clone()
+}
+
+pub async fn get_ethereum_provider() -> Arc<RindexerProvider> {
+    get_ethereum_provider_cache().await.get_inner_provider()
 }
 
 pub async fn get_ethereum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
@@ -94,10 +99,6 @@ pub async fn get_ethereum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
         .clone()
 }
 
-pub async fn get_ethereum_provider() -> Arc<RindexerProvider> {
-    get_ethereum_provider_cache().await.get_inner_provider()
-}
-
 pub async fn get_ethereum_provider_ethcall() -> Arc<RindexerProvider> {
     get_ethereum_provider_ethcall_cache()
         .await
@@ -108,7 +109,8 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ARBITRUM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                "https://arbitrum.rpc.hypersync.xyz",
+                &public_read_env_value("ARBITRUM_NODE_URL")
+                    .unwrap_or("ARBITRUM_NODE_URL".to_string()),
                 42161,
                 None,
                 None,
@@ -121,6 +123,10 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
         })
         .await
         .clone()
+}
+
+pub async fn get_arbitrum_provider() -> Arc<RindexerProvider> {
+    get_arbitrum_provider_cache().await.get_inner_provider()
 }
 
 pub async fn get_arbitrum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
@@ -142,10 +148,6 @@ pub async fn get_arbitrum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
         .clone()
 }
 
-pub async fn get_arbitrum_provider() -> Arc<RindexerProvider> {
-    get_arbitrum_provider_cache().await.get_inner_provider()
-}
-
 pub async fn get_arbitrum_provider_ethcall() -> Arc<RindexerProvider> {
     get_arbitrum_provider_ethcall_cache()
         .await
@@ -156,7 +158,8 @@ pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
     OPTIMISM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                "https://optimism.rpc.hypersync.xyz",
+                &public_read_env_value("OPTIMISM_NODE_URL")
+                    .unwrap_or("OPTIMISM_NODE_URL".to_string()),
                 10,
                 None,
                 None,
@@ -169,6 +172,10 @@ pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
         })
         .await
         .clone()
+}
+
+pub async fn get_optimism_provider() -> Arc<RindexerProvider> {
+    get_optimism_provider_cache().await.get_inner_provider()
 }
 
 pub async fn get_optimism_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
@@ -190,10 +197,6 @@ pub async fn get_optimism_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider>
         .clone()
 }
 
-pub async fn get_optimism_provider() -> Arc<RindexerProvider> {
-    get_optimism_provider_cache().await.get_inner_provider()
-}
-
 pub async fn get_optimism_provider_ethcall() -> Arc<RindexerProvider> {
     get_optimism_provider_ethcall_cache()
         .await
@@ -204,7 +207,8 @@ pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
     POLYGON_PROVIDER
         .get_or_init(|| async {
             create_client(
-                "https://polygon.rpc.hypersync.xyz/",
+                &public_read_env_value("POLYGON_NODE_URL")
+                    .unwrap_or("POLYGON_NODE_URL".to_string()),
                 137,
                 None,
                 None,
@@ -217,6 +221,10 @@ pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
         })
         .await
         .clone()
+}
+
+pub async fn get_polygon_provider() -> Arc<RindexerProvider> {
+    get_polygon_provider_cache().await.get_inner_provider()
 }
 
 pub async fn get_polygon_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
@@ -238,10 +246,6 @@ pub async fn get_polygon_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> 
         .clone()
 }
 
-pub async fn get_polygon_provider() -> Arc<RindexerProvider> {
-    get_polygon_provider_cache().await.get_inner_provider()
-}
-
 pub async fn get_polygon_provider_ethcall() -> Arc<RindexerProvider> {
     get_polygon_provider_ethcall_cache()
         .await
@@ -252,7 +256,8 @@ pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
     AVALANCHE_PROVIDER
         .get_or_init(|| async {
             create_client(
-                "https://avalanche.rpc.hypersync.xyz/",
+                &public_read_env_value("AVALANCHE_NODE_URL")
+                    .unwrap_or("AVALANCHE_NODE_URL".to_string()),
                 43114,
                 None,
                 None,
@@ -265,6 +270,10 @@ pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
         })
         .await
         .clone()
+}
+
+pub async fn get_avalanche_provider() -> Arc<RindexerProvider> {
+    get_avalanche_provider_cache().await.get_inner_provider()
 }
 
 pub async fn get_avalanche_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
@@ -284,10 +293,6 @@ pub async fn get_avalanche_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider
         })
         .await
         .clone()
-}
-
-pub async fn get_avalanche_provider() -> Arc<RindexerProvider> {
-    get_avalanche_provider_cache().await.get_inner_provider()
 }
 
 pub async fn get_avalanche_provider_ethcall() -> Arc<RindexerProvider> {

@@ -1,440 +1,335 @@
 use crate::DB;
 use anyhow::{Context, Result};
-use proposalsapp_db::models::{
-    dao_discourse, discourse_topic, job_queue, proposal, proposal_group,
-};
+use proposalsapp_db::models::{dao, dao_discourse, discourse_topic, proposal, proposal_group};
 use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, prelude::Uuid,
+    ActiveValue::NotSet, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set, prelude::Uuid,
 };
-use tracing::{Span, error, info, instrument, warn};
-use utils::types::{
-    DiscussionJobData, JobType, ProposalGroupItem, ProposalItem, ProposalJobData, TopicItem,
-};
+use std::collections::HashMap;
+use tracing::{info, instrument, warn};
+use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
+
+lazy_static::lazy_static! {
+    /// Mapping of DAO slugs to the Discourse category IDs that should be included
+    /// in proposal grouping. Topics in other categories will be ignored.
+    static ref DAO_DISCOURSE_CATEGORY_FILTERS: HashMap<&'static str, Vec<i32>> = {
+        let mut m = HashMap::new();
+
+        m.insert("arbitrum", vec![7, 8, 9]);
+        m.insert("uniswap", vec![5, 9, 10]);
+
+        m
+    };
+}
 
 #[instrument()]
 pub async fn run_group_task() -> Result<()> {
-    let pending_jobs = job_queue::Entity::find()
-        .filter(
-            job_queue::Column::Status
-                .eq("PENDING")
-                .and(job_queue::Column::Type.is_in(vec![
-                    JobType::MapperNewProposalDiscussion.to_string(),
-                    JobType::MapperNewSnapshotProposal.to_string(),
-                ])),
-        )
-        .order_by_asc(job_queue::Column::CreatedAt)
-        .all(DB.get().unwrap())
-        .await
-        .context("Failed to fetch pending jobs")?;
+    info!("Starting continuous grouping task");
 
-    Span::current().record("job_count", pending_jobs.len());
+    // Process ungrouped discourse topics
+    process_ungrouped_topics().await?;
 
-    for job in pending_jobs {
-        let span = Span::current();
-        span.record("job_id", job.id);
-        span.record("job_type", &job.r#type);
-
-        info!(job_id = job.id, job_type = %job.r#type, "Processing job");
-
-        let job_type: JobType = job.r#type.parse().context("Failed to parse job type")?;
-
-        let job_result = match job_type {
-            JobType::MapperNewProposalDiscussion => {
-                let data: DiscussionJobData = serde_json::from_value(job.data.clone())
-                    .context("Failed to deserialize discussion job data")?;
-                process_new_discussion_job(job.id, data.discourse_topic_id).await
-            }
-            JobType::MapperNewSnapshotProposal => {
-                let data: ProposalJobData = serde_json::from_value(job.data.clone())
-                    .context("Failed to deserialize proposal job data")?;
-                process_snapshot_proposal_job(job.id, data.proposal_id).await
-            }
-        };
-
-        match job_result {
-            Ok(_) => {
-                // Update job status to COMPLETED only if processing was successful
-                let job_id = job.id;
-                let mut job: job_queue::ActiveModel = job.into();
-                job.status = Set("COMPLETED".to_string());
-                job_queue::Entity::update(job)
-                    .exec(DB.get().unwrap())
-                    .await
-                    .context("Failed to update job status for job")?;
-
-                info!(job_id = job_id, "Job completed successfully");
-            }
-            Err(e) => {
-                error!(
-                    error = %e,
-                    job_id = job.id,
-                    "Job processing failed"
-                );
-            }
-        }
-    }
+    // Process ungrouped proposals
+    process_ungrouped_proposals().await?;
 
     Ok(())
 }
 
-#[instrument(fields(job_id = job_id, discourse_topic_id = %discourse_topic_id))]
-async fn process_new_discussion_job(job_id: i32, discourse_topic_id: Uuid) -> Result<()> {
-    info!(
-        job_id = job_id,
-        discourse_topic_id = %discourse_topic_id,
-        "Starting to process new discussion job"
-    );
+#[instrument()]
+async fn process_ungrouped_topics() -> Result<()> {
+    info!("Looking for ungrouped discourse topics");
 
-    // Find the discourse topic
-    let topic = match discourse_topic::Entity::find_by_id(discourse_topic_id)
-        .one(DB.get().unwrap())
+    // Get all DAOs with discourse enabled, including related DAO info
+    let dao_discourses = dao_discourse::Entity::find()
+        .filter(dao_discourse::Column::Enabled.eq(true))
+        .find_with_related(dao::Entity)
+        .all(DB.get().unwrap())
         .await
-        .context("Failed to find discourse topic")?
-    {
-        Some(topic) => {
+        .context("Failed to fetch enabled DAO discourse configurations with DAO info")?;
+
+    for (dao_discourse, dao_vec) in dao_discourses {
+        // Get the DAO slug
+        let dao_slug = dao_vec.first().map(|d| d.slug.as_str()).unwrap_or_else(|| {
+            warn!(dao_discourse_id = %dao_discourse.id, "Missing DAO info for discourse config");
+            ""
+        });
+
+        // Get category IDs to filter (if configured)
+        let category_ids = get_configured_category_ids(&dao_discourse.id, dao_slug).await?;
+
+        // Get all topics for this DAO
+        let mut query = discourse_topic::Entity::find()
+            .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id));
+
+        // Apply category filter if configured
+        if !category_ids.is_empty() {
             info!(
-                job_id = job_id,
-                discourse_topic_id = %discourse_topic_id,
-                "Discourse topic found"
+                dao_discourse_id = %dao_discourse.id,
+                category_ids = ?category_ids,
+                "Filtering topics to specific categories for grouping"
             );
-            topic
+            query = query.filter(discourse_topic::Column::CategoryId.is_in(category_ids.clone()));
         }
-        None => {
-            error!(
-                job_id = job_id,
-                discourse_topic_id = %discourse_topic_id,
-                "Discourse topic not found"
-            );
-            return Ok(());
-        }
-    };
 
-    // Check if topic is already part of a proposal group
-    info!(
-        job_id = job_id,
-        discourse_topic_id = %discourse_topic_id,
-        "Checking if topic is already part of a proposal group"
-    );
-
-    let topic_already_mapped = check_topic_already_mapped(topic.clone()).await?;
-
-    if topic_already_mapped {
-        info!(
-            job_id = job_id,
-            discourse_topic_id = %discourse_topic_id,
-            "Topic is already part of a proposal group"
-        );
-    } else {
-        info!(
-            job_id = job_id,
-            discourse_topic_id = %discourse_topic_id,
-            "Topic is not part of any proposal group, creating a new group"
-        );
-
-        let discourse_indexer = dao_discourse::Entity::find_by_id(topic.dao_discourse_id)
-            .one(DB.get().unwrap())
+        let topics = query
+            .all(DB.get().unwrap())
             .await
-            .context("Failed to find discourse indexer")?;
+            .context("Failed to fetch discourse topics")?;
 
-        if let Some(discourse_indexer) = discourse_indexer {
-            info!(
-                job_id = job_id,
-                discourse_topic_id = %discourse_topic_id,
-                dao_discourse_id = %discourse_indexer.id,
-                "Found discourse indexer for the topic"
-            );
-
-            // Create new proposal group
-            let new_group = proposal_group::ActiveModel {
-                id: NotSet,
-                dao_id: Set(discourse_indexer.dao_id),
-                name: Set(topic.title.clone()),
-                items: Set(
-                    serde_json::to_value(vec![ProposalGroupItem::Topic(TopicItem {
-                        name: topic.title.clone(),
-                        external_id: topic.external_id.to_string(),
-                        dao_discourse_id: topic.dao_discourse_id,
-                    })])
-                    .context("Failed to serialize proposal group items")?,
-                ),
-                created_at: NotSet,
-            };
-
-            proposal_group::Entity::insert(new_group)
-                .exec(DB.get().unwrap())
+        if !category_ids.is_empty() {
+            // Also count topics that would be excluded
+            let total_topics = discourse_topic::Entity::find()
+                .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id))
+                .count(DB.get().unwrap())
                 .await
-                .context("Failed to create proposal group")?;
+                .context("Failed to count total topics")?;
 
             info!(
-                job_id = job_id,
-                discourse_topic_id = %discourse_topic_id,
-                "Created new proposal group"
-            );
-        } else {
-            error!(
-                job_id = job_id,
-                discourse_topic_id = %discourse_topic_id,
-                dao_discourse_id = %topic.dao_discourse_id,
-                "No discourse indexer found for the topic"
+                included_topics = topics.len(),
+                total_topics = total_topics,
+                excluded_topics = total_topics as usize - topics.len(),
+                "Topic filtering results"
             );
         }
-    }
 
-    info!(
-        job_id = job_id,
-        discourse_topic_id = %discourse_topic_id,
-        "Finished processing new discussion job"
-    );
+        // Get all proposal groups to check which topics are already grouped
+        let groups = proposal_group::Entity::find()
+            .filter(proposal_group::Column::DaoId.eq(dao_discourse.dao_id))
+            .all(DB.get().unwrap())
+            .await
+            .context("Failed to fetch proposal groups")?;
 
-    Ok(())
-}
-
-async fn check_topic_already_mapped(topic: discourse_topic::Model) -> Result<bool> {
-    let proposal_groups = proposal_group::Entity::find()
-        .all(DB.get().unwrap())
-        .await
-        .context("Failed to fetch proposal groups")?;
-
-    for group in proposal_groups {
-        if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items) {
-            for item in items {
-                if let ProposalGroupItem::Topic(topic_item) = item {
-                    if topic_item.external_id == topic.external_id.to_string()
-                        && topic_item.dao_discourse_id == topic.dao_discourse_id
-                    {
-                        return Ok(true);
+        // Build set of grouped topic external IDs
+        let mut grouped_topic_ids = std::collections::HashSet::new();
+        for group in groups {
+            if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items) {
+                for item in items {
+                    if let ProposalGroupItem::Topic(topic_item) = item {
+                        if topic_item.dao_discourse_id == dao_discourse.id {
+                            grouped_topic_ids.insert(topic_item.external_id);
+                        }
                     }
                 }
             }
         }
-    }
-    Ok(false)
-}
 
-#[instrument(fields(job_id = job_id, proposal_id = %proposal_id))]
-async fn process_snapshot_proposal_job(job_id: i32, proposal_id: Uuid) -> Result<()> {
-    info!(
-        job_id = job_id,
-        proposal_id = %proposal_id,
-        "Starting to process snapshot proposal job"
-    );
-
-    // Find the snapshot proposal
-    let proposal = match proposal::Entity::find_by_id(proposal_id)
-        .one(DB.get().unwrap())
-        .await
-    {
-        Ok(Some(proposal)) => {
-            info!(
-                job_id = job_id,
-                proposal_id = %proposal_id,
-                "Snapshot proposal found"
-            );
-            proposal
-        }
-        Ok(None) => {
-            error!(
-                job_id = job_id,
-                proposal_id = %proposal_id,
-                "Snapshot proposal not found"
-            );
-            return Ok(());
-        }
-        Err(e) => {
-            error!(
-                job_id = job_id,
-                proposal_id = %proposal_id,
-                error = %e,
-                "Failed to find snapshot proposal"
-            );
-            return Err(e).context("Failed to find snapshot proposal")?;
-        }
-    };
-
-    // Extract discussion_id or slug from discussion_url if it exists
-    if let Some(ref discussion_url) = proposal.discussion_url {
-        info!(
-            job_id = job_id,
-            proposal_id = %proposal_id,
-            discussion_url = %discussion_url,
-            "Found discussion URL in proposal"
-        );
-
-        let (topic_id, topic_slug) = extract_discourse_id_or_slug(discussion_url);
-
-        let Some(dao_discourse) = dao_discourse::Entity::find()
-            .filter(dao_discourse::Column::DaoId.eq(proposal.dao_id))
-            .one(DB.get().unwrap())
-            .await
-            .context("Failed to find DAO discourse configuration")?
-        else {
-            error!(
-                job_id = job_id,
-                proposal_id = %proposal_id,
-                dao_id = %proposal.dao_id,
-                "No DAO discourse configuration found for proposal's DAO"
-            );
-            return Ok(());
-        };
-
-        info!(
-            job_id = job_id,
-            proposal_id = %proposal_id,
-            dao_discourse_id = %dao_discourse.id,
-            "Found DAO discourse configuration"
-        );
-
-        // Find the discourse topic by ID or slug
-        let discourse_topic = if let Some(topic_id) = topic_id {
-            discourse_topic::Entity::find()
-                .filter(
-                    discourse_topic::Column::ExternalId
-                        .eq(topic_id)
-                        .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
-                )
-                .one(DB.get().unwrap())
-                .await
-                .context("Failed to find discourse topic by ID")?
-        } else if let Some(topic_slug) = topic_slug {
-            discourse_topic::Entity::find()
-                .filter(
-                    discourse_topic::Column::Slug
-                        .eq(topic_slug)
-                        .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
-                )
-                .one(DB.get().unwrap())
-                .await
-                .context("Failed to find discourse topic by slug")?
-        } else {
-            None
-        };
-
-        if let Some(topic) = discourse_topic {
-            info!(
-                job_id = job_id,
-                proposal_id = %proposal_id,
-                discourse_topic_id = %topic.id,
-                "Found discourse topic"
-            );
-
-            // Find the proposal group containing this topic directly
-            let group = find_group_by_topic(topic.clone()).await?;
-
-            if let Some(group) = group {
+        // Process ungrouped topics
+        for topic in topics {
+            if !grouped_topic_ids.contains(&topic.external_id.to_string()) {
                 info!(
-                    job_id = job_id,
-                    proposal_id = %proposal_id,
-                    group_id = %group.id,
-                    "Found proposal group containing the discourse topic"
+                    discourse_topic_id = %topic.id,
+                    external_id = topic.external_id,
+                    title = %topic.title,
+                    "Found ungrouped topic, creating new group"
                 );
 
-                if let Ok(mut items) =
-                    serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
-                {
-                    // Check if proposal is not already in the group
-                    let proposal_already_in_group = items.iter().any(|item| match item {
-                        ProposalGroupItem::Proposal(prop_item) => {
-                            prop_item.external_id == proposal.id.to_string()
+                // Create new proposal group
+                let new_group = proposal_group::ActiveModel {
+                    id: NotSet,
+                    dao_id: Set(dao_discourse.dao_id),
+                    name: Set(topic.title.clone()),
+                    items: Set(
+                        serde_json::to_value(vec![ProposalGroupItem::Topic(TopicItem {
+                            name: topic.title.clone(),
+                            external_id: topic.external_id.to_string(),
+                            dao_discourse_id: topic.dao_discourse_id,
+                        })])
+                        .context("Failed to serialize proposal group items")?,
+                    ),
+                    created_at: NotSet,
+                };
+
+                proposal_group::Entity::insert(new_group)
+                    .exec(DB.get().unwrap())
+                    .await
+                    .context("Failed to create proposal group")?;
+
+                info!(
+                    discourse_topic_id = %topic.id,
+                    "Created new proposal group for ungrouped topic"
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[instrument()]
+async fn process_ungrouped_proposals() -> Result<()> {
+    info!("Looking for ungrouped proposals with discussion URLs");
+
+    // Get all DAOs
+    let daos = dao::Entity::find()
+        .all(DB.get().unwrap())
+        .await
+        .context("Failed to fetch DAOs")?;
+
+    for dao in daos {
+        // Get DAO discourse configuration
+        let dao_discourse = dao_discourse::Entity::find()
+            .filter(dao_discourse::Column::DaoId.eq(dao.id))
+            .one(DB.get().unwrap())
+            .await
+            .context("Failed to fetch DAO discourse configuration")?;
+
+        if dao_discourse.is_none() {
+            continue; // Skip DAOs without discourse configuration
+        }
+
+        let dao_discourse = dao_discourse.unwrap();
+
+        // Get all proposals with discussion URLs for this DAO
+        let proposals = proposal::Entity::find()
+            .filter(proposal::Column::DaoId.eq(dao.id))
+            .filter(proposal::Column::DiscussionUrl.is_not_null())
+            .filter(proposal::Column::MarkedSpam.eq(false))
+            .all(DB.get().unwrap())
+            .await
+            .context("Failed to fetch proposals")?;
+
+        // Get all proposal groups to check which proposals are already grouped
+        let groups = proposal_group::Entity::find()
+            .filter(proposal_group::Column::DaoId.eq(dao.id))
+            .all(DB.get().unwrap())
+            .await
+            .context("Failed to fetch proposal groups")?;
+
+        // Build set of grouped proposal IDs
+        let mut grouped_proposal_ids = std::collections::HashSet::new();
+        for group in &groups {
+            if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+            {
+                for item in items {
+                    if let ProposalGroupItem::Proposal(proposal_item) = item {
+                        grouped_proposal_ids.insert(proposal_item.external_id);
+                    }
+                }
+            }
+        }
+
+        // Process ungrouped proposals
+        for proposal in proposals {
+            if grouped_proposal_ids.contains(&proposal.external_id) {
+                continue; // Already grouped
+            }
+
+            if let Some(ref discussion_url) = proposal.discussion_url {
+                info!(
+                    proposal_id = %proposal.id,
+                    external_id = %proposal.external_id,
+                    discussion_url = %discussion_url,
+                    "Found ungrouped proposal with discussion URL"
+                );
+
+                // Extract topic ID or slug from discussion URL
+                let (topic_id, topic_slug) = extract_discourse_id_or_slug(discussion_url);
+
+                // Find the discourse topic
+                let discourse_topic = if let Some(topic_id) = topic_id {
+                    discourse_topic::Entity::find()
+                        .filter(
+                            discourse_topic::Column::ExternalId
+                                .eq(topic_id)
+                                .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
+                        )
+                        .one(DB.get().unwrap())
+                        .await
+                        .context("Failed to find discourse topic by ID")?
+                } else if let Some(topic_slug) = topic_slug {
+                    discourse_topic::Entity::find()
+                        .filter(
+                            discourse_topic::Column::Slug
+                                .eq(topic_slug)
+                                .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
+                        )
+                        .one(DB.get().unwrap())
+                        .await
+                        .context("Failed to find discourse topic by slug")?
+                } else {
+                    None
+                };
+
+                if let Some(topic) = discourse_topic {
+                    // Find the proposal group containing this topic
+                    let mut target_group = None;
+                    for group in &groups {
+                        if let Ok(items) =
+                            serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+                        {
+                            for item in items {
+                                if let ProposalGroupItem::Topic(topic_item) = item {
+                                    if topic_item.external_id == topic.external_id.to_string()
+                                        && topic_item.dao_discourse_id == topic.dao_discourse_id
+                                    {
+                                        target_group = Some(group.clone());
+                                        break;
+                                    }
+                                }
+                            }
                         }
-                        _ => false,
-                    });
+                        if target_group.is_some() {
+                            break;
+                        }
+                    }
 
-                    if !proposal_already_in_group {
-                        info!(
-                            job_id = job_id,
-                            proposal_id = %proposal_id,
-                            "Proposal is not in the group, adding it"
-                        );
+                    if let Some(group) = target_group {
+                        // Add proposal to existing group
+                        if let Ok(mut items) =
+                            serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+                        {
+                            info!(
+                                proposal_id = %proposal.id,
+                                group_id = %group.id,
+                                "Adding proposal to existing group"
+                            );
 
-                        items.push(ProposalGroupItem::Proposal(ProposalItem {
-                            name: proposal.name.clone(),
-                            governor_id: proposal.governor_id,
-                            external_id: proposal.external_id.to_string(),
-                        }));
+                            items.push(ProposalGroupItem::Proposal(ProposalItem {
+                                name: proposal.name.clone(),
+                                governor_id: proposal.governor_id,
+                                external_id: proposal.external_id.clone(),
+                            }));
 
-                        // Update the group
-                        let mut group: proposal_group::ActiveModel = group.into();
-                        group.items = Set(serde_json::to_value(items)
-                            .context("Failed to serialize proposal group items")?);
-                        proposal_group::Entity::update(group)
-                            .exec(DB.get().unwrap())
-                            .await
-                            .context("Failed to update proposal group")?;
+                            let mut group: proposal_group::ActiveModel = group.into();
+                            group.items = Set(serde_json::to_value(items)
+                                .context("Failed to serialize proposal group items")?);
+                            proposal_group::Entity::update(group)
+                                .exec(DB.get().unwrap())
+                                .await
+                                .context("Failed to update proposal group")?;
 
-                        info!(
-                            job_id = job_id,
-                            proposal_id = %proposal_id,
-                            discourse_topic_id = %topic.id,
-                            "Added snapshot proposal to existing group"
-                        );
+                            info!(
+                                proposal_id = %proposal.id,
+                                "Successfully added proposal to group"
+                            );
+                        }
                     } else {
-                        info!(
-                            job_id = job_id,
-                            proposal_id = %proposal_id,
-                            "Proposal is already in the group"
+                        warn!(
+                            proposal_id = %proposal.id,
+                            discourse_topic_id = %topic.id,
+                            "Found matching topic but it's not in any group"
                         );
                     }
                 } else {
-                    error!(
-                        job_id = job_id,
-                        proposal_id = %proposal_id,
-                        group_id = %group.id,
-                        "Failed to deserialize proposal group items"
+                    warn!(
+                        proposal_id = %proposal.id,
+                        discussion_url = %discussion_url,
+                        "Could not find discourse topic for discussion URL"
                     );
                 }
-            } else {
-                warn!(
-                    job_id = job_id,
-                    proposal_id = %proposal_id,
-                    "No proposal group found for the discourse topic"
-                );
             }
-        } else {
-            warn!(
-                job_id = job_id,
-                proposal_id = %proposal_id,
-                "No discourse topic found for the extracted topic ID or slug"
-            );
         }
-    } else {
-        warn!(
-            job_id = job_id,
-            proposal_id = %proposal_id,
-            "No discussion_url provided in the proposal"
-        );
     }
-
-    info!(
-        job_id = job_id,
-        proposal_id = %proposal_id,
-        "Finished processing snapshot proposal job"
-    );
 
     Ok(())
 }
 
-async fn find_group_by_topic(
-    topic: discourse_topic::Model,
-) -> Result<Option<proposal_group::Model>> {
-    let proposal_groups = proposal_group::Entity::find()
-        .all(DB.get().unwrap())
-        .await
-        .context("Failed to fetch proposal groups")?;
-
-    for group in proposal_groups {
-        if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
-            for item in items {
-                if let ProposalGroupItem::Topic(topic_item) = item {
-                    if topic_item.external_id == topic.external_id.to_string()
-                        && topic_item.dao_discourse_id == topic.dao_discourse_id
-                    {
-                        return Ok(Some(group));
-                    }
-                }
-            }
-        }
-    }
-    Ok(None)
+#[instrument(skip_all, fields(dao_discourse_id = %dao_discourse_id, dao_slug = dao_slug))]
+async fn get_configured_category_ids(dao_discourse_id: &Uuid, dao_slug: &str) -> Result<Vec<i32>> {
+    // Get category IDs from the static mapping
+    Ok(DAO_DISCOURSE_CATEGORY_FILTERS
+        .get(dao_slug)
+        .cloned()
+        .unwrap_or_default())
 }
 
 fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {

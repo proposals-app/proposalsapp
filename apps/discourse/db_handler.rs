@@ -1,5 +1,4 @@
 use crate::{
-    DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS,
     models::{categories::Category, posts::Post, revisions::Revision, topics::Topic, users::User},
 };
 use anyhow::{Context, Result};
@@ -7,15 +6,14 @@ use chrono::Utc;
 use once_cell::sync::OnceCell;
 use proposalsapp_db::models::{
     discourse_category, discourse_post, discourse_post_like, discourse_post_revision,
-    discourse_topic, discourse_user, job_queue,
+    discourse_topic, discourse_user,
 };
 use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult,
+    ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait,
     PaginatorTrait, QueryFilter, Set, prelude::Uuid, sea_query::OnConflict,
 };
 use std::time::Duration;
-use tracing::{debug, info, instrument, warn};
-use utils::types::{DiscussionJobData, JobData};
+use tracing::{debug, info, instrument};
 
 // Use a OnceCell for safe, one-time initialization.
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
@@ -183,20 +181,9 @@ pub async fn upsert_category(category: &Category, dao_discourse_id: Uuid) -> Res
     Ok(())
 }
 
-/// Inserts or updates a topic record. If it's a new topic within a monitored category, creates a
-/// job queue entry.
+/// Inserts or updates a topic record.
 #[instrument(skip(topic), fields(topic_id = topic.id, topic_title = %topic.title, dao_discourse_id = %dao_discourse_id))]
 pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
-    // Check if the topic already exists. This helps determine if we need to create a job.
-    let existing_topic = discourse_topic::Entity::find()
-        .filter(
-            Condition::all()
-                .add(discourse_topic::Column::ExternalId.eq(topic.id))
-                .add(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
-        )
-        .one(db())
-        .await
-        .context("Failed to query existing topic")?;
 
     let topic_model = discourse_topic::ActiveModel {
         external_id: Set(topic.id),
@@ -245,67 +232,13 @@ pub async fn upsert_topic(topic: &Topic, dao_discourse_id: Uuid) -> Result<()> {
     ])
     .to_owned();
 
-    let insert_result: InsertResult<discourse_topic::ActiveModel> =
-        discourse_topic::Entity::insert(topic_model)
-            .on_conflict(on_conflict)
-            .exec(db())
-            .await
-            .with_context(|| format!("Failed to upsert topic with external_id {}", topic.id))?;
+    discourse_topic::Entity::insert(topic_model)
+        .on_conflict(on_conflict)
+        .exec(db())
+        .await
+        .with_context(|| format!("Failed to upsert topic with external_id {}", topic.id))?;
 
-    // If the topic was newly inserted (not updated) and belongs to a monitored category, create a job.
-    if existing_topic.is_none() {
-        debug!(topic_id = topic.id, "Topic was newly inserted.");
-        if let Some(monitored_category_ids) =
-            DAO_DISCOURSE_ID_TO_CATEGORY_IDS_PROPOSALS.get(&dao_discourse_id)
-        {
-            if monitored_category_ids.contains(&topic.category_id) {
-                let internal_topic_id = insert_result.last_insert_id; // This is the internal UUID primary key
-                debug!(
-                    internal_topic_id = %internal_topic_id,
-                    external_topic_id = topic.id,
-                    "Topic is in a monitored category, creating job."
-                );
-
-                let job_data = DiscussionJobData {
-                    discourse_topic_id: internal_topic_id,
-                };
-
-                let job_model = job_queue::ActiveModel {
-                    id: NotSet, // Let the database generate the UUID
-                    r#type: Set(DiscussionJobData::job_type().to_string()),
-                    data: Set(
-                        serde_json::to_value(job_data).context("Failed to serialize job data")?
-                    ),
-                    status: Set("PENDING".to_string()), // Use enum or const later if needed
-                    created_at: NotSet,                 // Let the database set the timestamp
-                };
-
-                job_queue::Entity::insert(job_model)
-                    .exec(db())
-                    .await
-                    .context("Failed to insert discussion job into queue")?;
-                info!(
-                    internal_topic_id = %internal_topic_id,
-                    external_topic_id = topic.id,
-                    "Created job for new monitored topic."
-                );
-            } else {
-                debug!(
-                    external_topic_id = topic.id,
-                    category_id = topic.category_id,
-                    "Topic not in monitored categories, skipping job creation."
-                );
-            }
-        } else {
-            warn!(
-                dao_discourse_id = %dao_discourse_id,
-                "No monitored category IDs found for this DAO discourse instance."
-            );
-        }
-    } else {
-        debug!(topic_id = topic.id, "Topic was updated.");
-    }
-
+    debug!(topic_id = topic.id, "Topic upserted successfully.");
     Ok(())
 }
 

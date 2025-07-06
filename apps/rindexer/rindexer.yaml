@@ -3,27 +3,27 @@ project_type: rust
 networks:
   - name: ethereum
     chain_id: 1
-    rpc: https://eth.rpc.hypersync.xyz
+    rpc: ${ETHEREUM_NODE_URL}
     block_poll_frequency: optimized
 
   - name: arbitrum
     chain_id: 42161
-    rpc: https://arbitrum.rpc.hypersync.xyz
+    rpc: ${ARBITRUM_NODE_URL}
     block_poll_frequency: optimized
 
   - name: optimism
     chain_id: 10
-    rpc: https://optimism.rpc.hypersync.xyz
+    rpc: ${OPTIMISM_NODE_URL}
     block_poll_frequency: optimized
 
   - name: polygon
     chain_id: 137
-    rpc: https://polygon.rpc.hypersync.xyz/
+    rpc: ${POLYGON_NODE_URL}
     block_poll_frequency: optimized
 
   - name: avalanche
     chain_id: 43114
-    rpc: https://avalanche.rpc.hypersync.xyz/
+    rpc: ${AVALANCHE_NODE_URL}
     block_poll_frequency: optimized
 
 storage:
