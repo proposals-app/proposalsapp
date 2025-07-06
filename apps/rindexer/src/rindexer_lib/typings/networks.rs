@@ -42,21 +42,46 @@ async fn create_shadow_client(
 }
 
 static ETHEREUM_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
+static ETHEREUM_PROVIDER_ETHCALL: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
 
 static ARBITRUM_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
+static ARBITRUM_PROVIDER_ETHCALL: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
 
 static OPTIMISM_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
+static OPTIMISM_PROVIDER_ETHCALL: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
 
 static POLYGON_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
+static POLYGON_PROVIDER_ETHCALL: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
 
 static AVALANCHE_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
+static AVALANCHE_PROVIDER_ETHCALL: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
 
 pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ETHEREUM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("ETHEREUM_NODE_URL")
-                    .unwrap_or("ETHEREUM_NODE_URL".to_string()),
+                &public_read_env_value("https://eth.rpc.hypersync.xyz")
+                    .unwrap_or("https://eth.rpc.hypersync.xyz".to_string()),
+                1,
+                None,
+                None,
+                Some(BlockPollFrequency::RpcOptimized),
+                HeaderMap::new(),
+                None,
+            )
+            .await
+            .expect("Error creating provider")
+        })
+        .await
+        .clone()
+}
+
+pub async fn get_ethereum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
+    ETHEREUM_PROVIDER_ETHCALL
+        .get_or_init(|| async {
+            create_client(
+                &public_read_env_value("https://eth.llamarpc.com")
+                    .unwrap_or("https://eth.llamarpc.com".to_string()),
                 1,
                 None,
                 None,
@@ -75,12 +100,38 @@ pub async fn get_ethereum_provider() -> Arc<RindexerProvider> {
     get_ethereum_provider_cache().await.get_inner_provider()
 }
 
+pub async fn get_ethereum_provider_ethcall() -> Arc<RindexerProvider> {
+    get_ethereum_provider_ethcall_cache()
+        .await
+        .get_inner_provider()
+}
+
 pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ARBITRUM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("ARBITRUM_NODE_URL")
-                    .unwrap_or("ARBITRUM_NODE_URL".to_string()),
+                &public_read_env_value("https://arbitrum.rpc.hypersync.xyz")
+                    .unwrap_or("https://arbitrum.rpc.hypersync.xyz".to_string()),
+                42161,
+                None,
+                None,
+                Some(BlockPollFrequency::RpcOptimized),
+                HeaderMap::new(),
+                None,
+            )
+            .await
+            .expect("Error creating provider")
+        })
+        .await
+        .clone()
+}
+
+pub async fn get_arbitrum_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
+    ARBITRUM_PROVIDER_ETHCALL
+        .get_or_init(|| async {
+            create_client(
+                &public_read_env_value("https://arbitrum.llamarpc.com")
+                    .unwrap_or("https://arbitrum.llamarpc.com".to_string()),
                 42161,
                 None,
                 None,
@@ -99,12 +150,38 @@ pub async fn get_arbitrum_provider() -> Arc<RindexerProvider> {
     get_arbitrum_provider_cache().await.get_inner_provider()
 }
 
+pub async fn get_arbitrum_provider_ethcall() -> Arc<RindexerProvider> {
+    get_arbitrum_provider_ethcall_cache()
+        .await
+        .get_inner_provider()
+}
+
 pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
     OPTIMISM_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("OPTIMISM_NODE_URL")
-                    .unwrap_or("OPTIMISM_NODE_URL".to_string()),
+                &public_read_env_value("https://optimism.rpc.hypersync.xyz")
+                    .unwrap_or("https://optimism.rpc.hypersync.xyz".to_string()),
+                10,
+                None,
+                None,
+                Some(BlockPollFrequency::RpcOptimized),
+                HeaderMap::new(),
+                None,
+            )
+            .await
+            .expect("Error creating provider")
+        })
+        .await
+        .clone()
+}
+
+pub async fn get_optimism_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
+    OPTIMISM_PROVIDER_ETHCALL
+        .get_or_init(|| async {
+            create_client(
+                &public_read_env_value("https://optimism.llamarpc.com")
+                    .unwrap_or("https://optimism.llamarpc.com".to_string()),
                 10,
                 None,
                 None,
@@ -123,12 +200,38 @@ pub async fn get_optimism_provider() -> Arc<RindexerProvider> {
     get_optimism_provider_cache().await.get_inner_provider()
 }
 
+pub async fn get_optimism_provider_ethcall() -> Arc<RindexerProvider> {
+    get_optimism_provider_ethcall_cache()
+        .await
+        .get_inner_provider()
+}
+
 pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
     POLYGON_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("POLYGON_NODE_URL")
-                    .unwrap_or("POLYGON_NODE_URL".to_string()),
+                &public_read_env_value("https://polygon.rpc.hypersync.xyz/")
+                    .unwrap_or("https://polygon.rpc.hypersync.xyz/".to_string()),
+                137,
+                None,
+                None,
+                Some(BlockPollFrequency::RpcOptimized),
+                HeaderMap::new(),
+                None,
+            )
+            .await
+            .expect("Error creating provider")
+        })
+        .await
+        .clone()
+}
+
+pub async fn get_polygon_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
+    POLYGON_PROVIDER_ETHCALL
+        .get_or_init(|| async {
+            create_client(
+                &public_read_env_value("https://polygon.llamarpc.com")
+                    .unwrap_or("https://polygon.llamarpc.com".to_string()),
                 137,
                 None,
                 None,
@@ -147,12 +250,38 @@ pub async fn get_polygon_provider() -> Arc<RindexerProvider> {
     get_polygon_provider_cache().await.get_inner_provider()
 }
 
+pub async fn get_polygon_provider_ethcall() -> Arc<RindexerProvider> {
+    get_polygon_provider_ethcall_cache()
+        .await
+        .get_inner_provider()
+}
+
 pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
     AVALANCHE_PROVIDER
         .get_or_init(|| async {
             create_client(
-                &public_read_env_value("AVALANCHE_NODE_URL")
-                    .unwrap_or("AVALANCHE_NODE_URL".to_string()),
+                &public_read_env_value("https://avalanche.rpc.hypersync.xyz/")
+                    .unwrap_or("https://avalanche.rpc.hypersync.xyz/".to_string()),
+                43114,
+                None,
+                None,
+                Some(BlockPollFrequency::RpcOptimized),
+                HeaderMap::new(),
+                None,
+            )
+            .await
+            .expect("Error creating provider")
+        })
+        .await
+        .clone()
+}
+
+pub async fn get_avalanche_provider_ethcall_cache() -> Arc<JsonRpcCachedProvider> {
+    AVALANCHE_PROVIDER_ETHCALL
+        .get_or_init(|| async {
+            create_client(
+                &public_read_env_value("https://avalanche.llamarpc.com")
+                    .unwrap_or("https://avalanche.llamarpc.com".to_string()),
                 43114,
                 None,
                 None,
@@ -171,25 +300,51 @@ pub async fn get_avalanche_provider() -> Arc<RindexerProvider> {
     get_avalanche_provider_cache().await.get_inner_provider()
 }
 
+pub async fn get_avalanche_provider_ethcall() -> Arc<RindexerProvider> {
+    get_avalanche_provider_ethcall_cache()
+        .await
+        .get_inner_provider()
+}
+
 pub async fn get_provider_cache_for_network(network: &str) -> Arc<JsonRpcCachedProvider> {
     if network == "ethereum" {
         return get_ethereum_provider_cache().await;
+    }
+    
+    if network == "ethereum-ethcall" {
+        return get_ethereum_provider_ethcall_cache().await;
     }
 
     if network == "arbitrum" {
         return get_arbitrum_provider_cache().await;
     }
+    
+    if network == "arbitrum-ethcall" {
+        return get_arbitrum_provider_ethcall_cache().await;
+    }
 
     if network == "optimism" {
         return get_optimism_provider_cache().await;
+    }
+    
+    if network == "optimism-ethcall" {
+        return get_optimism_provider_ethcall_cache().await;
     }
 
     if network == "polygon" {
         return get_polygon_provider_cache().await;
     }
+    
+    if network == "polygon-ethcall" {
+        return get_polygon_provider_ethcall_cache().await;
+    }
 
     if network == "avalanche" {
         return get_avalanche_provider_cache().await;
+    }
+    
+    if network == "avalanche-ethcall" {
+        return get_avalanche_provider_ethcall_cache().await;
     }
     panic!("Network not supported")
 }
