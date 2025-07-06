@@ -13,6 +13,7 @@ mod group_backtest_tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore = "Backtest that requires full database - skip in CI/CD"]
     async fn test_arbitrum_groups_semantic_matching() -> Result<()> {
         dotenv::dotenv().ok();
 
