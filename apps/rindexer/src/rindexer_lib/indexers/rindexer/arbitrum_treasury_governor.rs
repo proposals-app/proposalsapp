@@ -78,7 +78,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                 for result in results.clone() {
                     let proposal_id = result.event_data.proposalId;
                     let block_number = result.tx_information.block_number.to::<u64>();
-                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum-ethcall").await;
+                    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum-full").await;
 
                     let created_at = match estimate_timestamp("arbitrum", block_number).await {
                         Ok(ts) => ts,
@@ -834,7 +834,7 @@ pub async fn update_active_proposals_quorum() -> Result<()> {
         "Updating quorum for active and started proposals"
     );
 
-    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum-ethcall").await;
+    let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum-full").await;
 
     for proposal in active_proposals {
         let proposal_id = proposal.external_id.clone();

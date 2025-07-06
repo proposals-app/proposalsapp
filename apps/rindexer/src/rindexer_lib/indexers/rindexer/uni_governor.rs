@@ -79,7 +79,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     let proposal_id = result.event_data.id;
                     let block_number = result.tx_information.block_number.to::<u64>();
 
-                    let uni_governor = uni_governor_contract("ethereum-ethcall").await;
+                    let uni_governor = uni_governor_contract("ethereum-full").await;
 
                     let created_at = match estimate_timestamp("ethereum", block_number).await {
                         Ok(ts) => ts,
