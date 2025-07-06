@@ -16,6 +16,17 @@
       - key: "rindexer/polygon_node_url"
         value: "{{ vault_rindexer_polygon_node_url }}"
 
+      - key: "rindexer/ethereum_hypersync_node_url"
+        value: "{{ vault_rindexer_ethereum_hypersync_node_url }}"
+      - key: "rindexer/arbitrum_hypersync_node_url"
+        value: "{{ vault_rindexer_arbitrum_hypersync_node_url }}"
+      - key: "rindexer/optimism_hypersync_node_url"
+        value: "{{ vault_rindexer_optimism_hypersync_node_url }}"
+      - key: "rindexer/avalanche_hypersync_node_url"
+        value: "{{ vault_rindexer_avalanche_hypersync_node_url }}"
+      - key: "rindexer/polygon_hypersync_node_url"
+        value: "{{ vault_rindexer_polygon_hypersync_node_url }}"
+
       # Block explorer API keys
       - key: "rindexer/etherscan_api_key"
         value: "{{ vault_rindexer_etherscan_api_key }}"

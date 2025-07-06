@@ -90,6 +90,12 @@ job "rindexer" {
         DATABASE_URL = "${DATABASE_URL}"
 
         # Chain RPC endpoints
+        ETHEREUM_HYPERSYNC_NODE_URL = "${ETHEREUM_HYPERSYNC_NODE_URL}"
+        ARBITRUM_HYPERSYNC_NODE_URL = "${ARBITRUM_HYPERSYNC_NODE_URL}"
+        AVALANCHE_HYPERSYNC_NODE_URL = "${AVALANCHE_HYPERSYNC_NODE_URL}"
+        POLYGON_HYPERSYNC_NODE_URL = "${POLYGON_HYPERSYNC_NODE_URL}"
+        OPTIMISM_HYPERSYNC_NODE_URL = "${OPTIMISM_HYPERSYNC_NODE_URL}"
+
         ETHEREUM_NODE_URL = "${ETHEREUM_NODE_URL}"
         ARBITRUM_NODE_URL = "${ARBITRUM_NODE_URL}"
         AVALANCHE_NODE_URL = "${AVALANCHE_NODE_URL}"
@@ -182,6 +188,12 @@ ARBITRUM_NODE_URL={{ keyOrDefault "rindexer/arbitrum_node_url" "" }}
 AVALANCHE_NODE_URL={{ keyOrDefault "rindexer/avalanche_node_url" "" }}
 POLYGON_NODE_URL={{ keyOrDefault "rindexer/polygon_node_url" "" }}
 OPTIMISM_NODE_URL={{ keyOrDefault "rindexer/optimism_node_url" "" }}
+
+ETHEREUM_HYPERSYNC_NODE_URL={{ keyOrDefault "rindexer/ethereum_hypersync_node_url" "" }}
+ARBITRUM_HYPERSYNC_NODE_URL={{ keyOrDefault "rindexer/arbitrum_hypersync_node_url" "" }}
+AVALANCHE_HYPERSYNC_NODE_URL={{ keyOrDefault "rindexer/avalanche_hypersync_node_url" "" }}
+POLYGON_HYPERSYNC_NODE_URL={{ keyOrDefault "rindexer/polygon_hypersync_node_url" "" }}
+OPTIMISM_HYPERSYNC_NODE_URL={{ keyOrDefault "rindexer/optimism_hypersync_node_url" "" }}
 
 # Block explorer API keys from Consul KV
 ARBISCAN_API_KEY={{ keyOrDefault "rindexer/arbiscan_api_key" "" }}
