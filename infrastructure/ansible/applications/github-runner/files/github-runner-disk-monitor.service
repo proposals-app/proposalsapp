@@ -1,0 +1,27 @@
+[Unit]
+Description=GitHub Runner Disk Space Monitor
+After=network.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/github-runner-disk-monitor.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=github-runner-disk-monitor
+User=root
+Group=root
+
+# Resource limits
+TimeoutStartSec=5m
+CPUQuota=20%
+MemoryMax=512M
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log /var/run
+
+[Install]
+WantedBy=multi-user.target

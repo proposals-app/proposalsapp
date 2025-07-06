@@ -280,10 +280,26 @@
         owner: root
         group: root
 
-    - name: Copy GitHub runner cleanup timer
+    - name: Copy GitHub runner disk monitor script
       copy:
-        src: files/github-runner-cleanup.timer
-        dest: /etc/systemd/system/github-runner-cleanup.timer
+        src: files/github-runner-disk-monitor.sh
+        dest: /usr/local/bin/github-runner-disk-monitor.sh
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Copy GitHub runner disk monitor service
+      copy:
+        src: files/github-runner-disk-monitor.service
+        dest: /etc/systemd/system/github-runner-disk-monitor.service
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Copy GitHub runner disk monitor timer
+      copy:
+        src: files/github-runner-disk-monitor.timer
+        dest: /etc/systemd/system/github-runner-disk-monitor.timer
         mode: '0644'
         owner: root
         group: root
@@ -292,9 +308,9 @@
       systemd:
         daemon_reload: yes
 
-    - name: Enable and start GitHub runner cleanup timer
+    - name: Enable and start GitHub runner disk monitor timer
       systemd:
-        name: github-runner-cleanup.timer
+        name: github-runner-disk-monitor.timer
         enabled: yes
         state: started
 
@@ -320,6 +336,8 @@
           - Labels: linux,self-hosted,{{ datacenter }},tailscale
           - Docker and buildx configured
           - Rust toolchain installed
+          - Automatic disk space monitoring (checks every 15 minutes)
+          - Cleanup runs automatically when disk usage exceeds 80%
           {% else %}
           WARNING: GitHub PAT not configured!
           

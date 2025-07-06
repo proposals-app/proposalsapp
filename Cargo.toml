@@ -46,6 +46,7 @@ utils = { path = "libs/rust/utils" }
 mockito = "1.7"
 proptest = "1.7"
 fastembed = "4"
+indicatif = "0.17"
 
 [profile.release]
 opt-level = 3

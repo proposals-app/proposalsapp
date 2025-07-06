@@ -128,6 +128,7 @@ mod group_backtest_tests {
         // Pre-fetch all discourse posts for topics (optimization)
         println!("\nPre-fetching discourse post content...");
         let mut topic_bodies: HashMap<i32, Option<String>> = HashMap::new();
+        let mut fetched = 0;
         for topic in &topics {
             let first_post = discourse_post::Entity::find()
                 .filter(discourse_post::Column::TopicId.eq(topic.external_id))
@@ -137,10 +138,15 @@ mod group_backtest_tests {
                 .await?;
 
             topic_bodies.insert(topic.external_id, first_post.and_then(|p| p.cooked));
+            fetched += 1;
+            if fetched % 50 == 0 || fetched == topics.len() {
+                println!("  Fetched content for {}/{} topics", fetched, topics.len());
+            }
         }
 
         // Pre-compute embeddings for all items (major optimization)
         println!("\nPre-computing embeddings for all items...");
+        let total_items = topics.len() + proposals.len();
         let mut items_to_embed = Vec::new();
 
         // Add all topics
@@ -162,12 +168,21 @@ mod group_backtest_tests {
             ));
         }
 
+        println!(
+            "  Prepared {} items ({} topics + {} proposals) for embedding",
+            total_items,
+            topics.len(),
+            proposals.len()
+        );
+
         // Simulate the mapper algorithm
         let mut simulated_groups: Vec<SimulatedGroup> = Vec::new();
         let mut topic_to_group: HashMap<i32, usize> = HashMap::new();
 
         // Phase 1: Process all topics (they always create new groups)
         println!("\n--- Phase 1: Processing Topics ---");
+        let mut processed_topics = 0;
+
         for topic in &topics {
             let group = SimulatedGroup {
                 name: topic.title.clone(),
@@ -177,19 +192,28 @@ mod group_backtest_tests {
 
             topic_to_group.insert(topic.external_id, simulated_groups.len());
             simulated_groups.push(group);
+            processed_topics += 1;
 
-            println!(
-                "Created group #{} from topic: {}",
-                simulated_groups.len(),
-                topic.title
-            );
+            if processed_topics % 50 == 0 || processed_topics == topics.len() {
+                println!(
+                    "  Created {}/{} groups from topics",
+                    processed_topics,
+                    topics.len()
+                );
+            }
         }
+        println!("  Completed: Created {} groups from topics", topics.len());
 
         // Phase 2: Process all proposals with 3-tier system
         println!("\n--- Phase 2: Processing Proposals (with optimized matching) ---");
 
+        let mut url_matches = 0;
+        let mut semantic_matches = 0;
+        let mut new_groups = 0;
+        let mut processed_proposals = 0;
+
         for proposal in &proposals {
-            println!("\nProcessing proposal: {}", proposal.name);
+            processed_proposals += 1;
             let mut matched = false;
 
             // Tier 1: URL-based matching
@@ -203,6 +227,13 @@ mod group_backtest_tests {
                             proposal.governor_id, proposal.external_id
                         ));
                         matched = true;
+                        url_matches += 1;
+                        println!(
+                            "\n[{}/{}] Processing: {}",
+                            processed_proposals,
+                            proposals.len(),
+                            proposal.name
+                        );
                         println!(
                             "  ✓ Matched via URL to group #{} (topic ID: {})",
                             group_idx + 1,
@@ -265,6 +296,13 @@ mod group_backtest_tests {
                             proposal.governor_id, proposal.external_id
                         ));
                         matched = true;
+                        semantic_matches += 1;
+                        println!(
+                            "\n[{}/{}] Processing: {}",
+                            processed_proposals,
+                            proposals.len(),
+                            proposal.name
+                        );
                         println!(
                             "  ✓ Matched via enhanced similarity to group #{}",
                             group_idx + 1
@@ -292,15 +330,44 @@ mod group_backtest_tests {
                     created_from: "proposal".to_string(),
                 };
                 simulated_groups.push(group);
+                new_groups += 1;
+                println!(
+                    "\n[{}/{}] Processing: {}",
+                    processed_proposals,
+                    proposals.len(),
+                    proposal.name
+                );
                 println!("  ✓ Created new group #{}", simulated_groups.len());
             }
+
+            // Show progress summary after every proposal
+            println!(
+                "  Progress: {}/{} proposals | URL matches: {}, Semantic matches: {}, New groups: {}",
+                processed_proposals,
+                proposals.len(),
+                url_matches,
+                semantic_matches,
+                new_groups
+            );
         }
+
+        println!("\n--- Completed Phase 2 ---");
+        println!("  Processed {} proposals total", proposals.len());
+        println!("  URL matches: {}", url_matches);
+        println!("  Semantic matches: {}", semantic_matches);
+        println!("  New groups created: {}", new_groups);
 
         // Clear cache to free memory
         embedding_cache.clear_cache().await;
 
         // Compare simulated groups with manual groups
         println!("\n=== Comparing Simulated vs Manual Groups ===");
+
+        // First, let's create a map to get names for manual groups
+        let mut manual_group_names: HashMap<String, String> = HashMap::new();
+        for group in &manual_groups {
+            manual_group_names.insert(group.id.to_string(), group.name.clone());
+        }
 
         // Convert simulated groups to comparable format
         let mut simulated_group_map: HashMap<String, HashSet<String>> = HashMap::new();
@@ -331,37 +398,68 @@ mod group_backtest_tests {
                 let (_, intersection, sim_size) = &matching_sim_groups[0];
                 if *intersection == manual_items.len() && *intersection == *sim_size {
                     exact_matches += 1;
+                    let group_name = manual_group_names
+                        .get(manual_id)
+                        .map(|n| n.as_str())
+                        .unwrap_or("Unknown");
                     println!(
-                        "✅ Exact match: Manual group {} perfectly recreated",
-                        manual_id
+                        "✅ Exact match: '{}' perfectly recreated ({} items)",
+                        if group_name.len() > 60 {
+                            format!("{}...", &group_name[..60])
+                        } else {
+                            group_name.to_string()
+                        },
+                        intersection
                     );
                 } else {
                     partial_matches += 1;
+                    let group_name = manual_group_names
+                        .get(manual_id)
+                        .map(|n| n.as_str())
+                        .unwrap_or("Unknown");
                     println!(
-                        "⚠️  Partial match: Manual group {} has {}/{} items matched",
-                        manual_id,
+                        "⚠️  Partial match: '{}' has {}/{} items matched",
+                        if group_name.len() > 60 {
+                            format!("{}...", &group_name[..60])
+                        } else {
+                            group_name.to_string()
+                        },
                         intersection,
                         manual_items.len()
                     );
                 }
             } else if matching_sim_groups.len() > 1 {
                 split_groups += 1;
+                let group_name = manual_group_names
+                    .get(manual_id)
+                    .map(|n| n.as_str())
+                    .unwrap_or("Unknown");
                 println!(
-                    "🔀 Split: Manual group {} split across {} simulated groups",
-                    manual_id,
+                    "🔀 Split: '{}' split across {} simulated groups",
+                    if group_name.len() > 60 {
+                        format!("{}...", &group_name[..60])
+                    } else {
+                        group_name.to_string()
+                    },
                     matching_sim_groups.len()
                 );
             }
         }
 
         // Check for merged groups
-        for (sim_id, sim_items) in &simulated_group_map {
+        for (_sim_idx, group) in simulated_groups.iter().enumerate() {
+            let sim_items: HashSet<String> = group.items.iter().cloned().collect();
             let mut source_manual_groups = HashSet::new();
+            let mut source_names = Vec::new();
 
-            for item in sim_items {
+            for item in &sim_items {
                 for (manual_id, manual_items) in &manual_group_map {
                     if manual_items.contains(item) {
-                        source_manual_groups.insert(manual_id);
+                        if source_manual_groups.insert(manual_id) {
+                            if let Some(name) = manual_group_names.get(manual_id) {
+                                source_names.push(name.clone());
+                            }
+                        }
                     }
                 }
             }
@@ -369,9 +467,23 @@ mod group_backtest_tests {
             if source_manual_groups.len() > 1 {
                 merged_groups += 1;
                 println!(
-                    "🔗 Merged: Simulated group {} contains items from {} manual groups",
-                    sim_id,
-                    source_manual_groups.len()
+                    "🔗 Merged: '{}' contains items from {} manual groups: [{}]",
+                    if group.name.len() > 40 {
+                        format!("{}...", &group.name[..40])
+                    } else {
+                        group.name.clone()
+                    },
+                    source_manual_groups.len(),
+                    source_names
+                        .iter()
+                        .take(3)
+                        .map(|n| if n.len() > 30 {
+                            format!("{}...", &n[..30])
+                        } else {
+                            n.clone()
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 );
             }
         }
@@ -444,6 +556,64 @@ mod group_backtest_tests {
             "\nOverall group recreation rate: {:.1}%",
             group_recreation_rate * 100.0
         );
+
+        // Show some examples of well-grouped and poorly-grouped items
+        println!("\n=== Group Quality Examples ===");
+
+        // Find some perfect matches to show
+        let mut perfect_examples = Vec::new();
+        for (manual_id, manual_items) in &manual_group_map {
+            for (_sim_idx, group) in simulated_groups.iter().enumerate() {
+                let sim_items: HashSet<String> = group.items.iter().cloned().collect();
+                if manual_items == &sim_items && manual_items.len() > 1 {
+                    if let Some(name) = manual_group_names.get(manual_id) {
+                        perfect_examples.push((name.clone(), manual_items.len()));
+                        if perfect_examples.len() >= 3 {
+                            break;
+                        }
+                    }
+                }
+            }
+            if perfect_examples.len() >= 3 {
+                break;
+            }
+        }
+
+        if !perfect_examples.is_empty() {
+            println!("\nPerfectly recreated groups (examples):");
+            for (name, size) in perfect_examples.iter().take(3) {
+                println!(
+                    "  • '{}' ({} items)",
+                    if name.len() > 70 {
+                        format!("{}...", &name[..70])
+                    } else {
+                        name.clone()
+                    },
+                    size
+                );
+            }
+        }
+
+        // Find largest simulated groups
+        let mut largest_groups: Vec<_> = simulated_groups
+            .iter()
+            .enumerate()
+            .map(|(idx, g)| (idx, &g.name, g.items.len()))
+            .collect();
+        largest_groups.sort_by_key(|&(_, _, size)| std::cmp::Reverse(size));
+
+        println!("\nLargest simulated groups:");
+        for (_, name, size) in largest_groups.iter().take(5) {
+            println!(
+                "  • '{}' ({} items)",
+                if name.len() > 70 {
+                    format!("{}...", &name[..70])
+                } else {
+                    name.to_string()
+                },
+                size
+            );
+        }
 
         // Show details of simulated groups
         if std::env::var("SHOW_GROUP_DETAILS").is_ok() {

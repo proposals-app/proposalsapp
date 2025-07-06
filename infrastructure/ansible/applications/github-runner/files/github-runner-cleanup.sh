@@ -1,6 +1,7 @@
 #!/bin/bash
 # GitHub Runner Cleanup Script
-# This script performs comprehensive cleanup to prevent disk space issues
+# This script performs comprehensive cleanup when triggered by disk monitor
+# Runs automatically when disk usage exceeds 80% threshold
 
 set -euo pipefail
 
