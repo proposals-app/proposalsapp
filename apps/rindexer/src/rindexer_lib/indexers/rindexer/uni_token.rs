@@ -62,20 +62,21 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                         let delegate_addr = result.event_data.toDelegate;
                         let tx_hash = result.tx_information.transaction_hash;
 
-                        let created_at = match estimate_timestamp("ethereum", block_number).await {
-                            Ok(ts) => ts,
-                            Err(e) => {
-                                error!(
-                                    block_number = block_number,
-                                    error = %e,
-                                    "Failed to estimate timestamp for DelegateChanged event"
-                                );
-                                // Returning `Err` here will stop processing the batch.
-                                // Depending on your error handling strategy, you might want to handle this differently,
-                                // e.g., skip this event and continue with others, or retry.
-                                return None; // Skip this delegation if timestamp estimation fails
-                            }
-                        };
+                        let created_at =
+                            match estimate_timestamp("ethereum-full", block_number).await {
+                                Ok(ts) => ts,
+                                Err(e) => {
+                                    error!(
+                                        block_number = block_number,
+                                        error = %e,
+                                        "Failed to estimate timestamp for DelegateChanged event"
+                                    );
+                                    // Returning `Err` here will stop processing the batch.
+                                    // Depending on your error handling strategy, you might want to handle this differently,
+                                    // e.g., skip this event and continue with others, or retry.
+                                    return None; // Skip this delegation if timestamp estimation fails
+                                }
+                            };
 
                         debug!(
                             event_name = "UNIToken::DelegateChanged",
@@ -168,7 +169,9 @@ async fn delegate_votes_changed_handler(
                         let delegate_addr = result.event_data.delegate;
                         let new_balance = result.event_data.newBalance;
 
-                        let created_at = match estimate_timestamp("ethereum", block_number).await {
+                        let created_at = match estimate_timestamp("ethereum-full", block_number)
+                            .await
+                        {
                             Ok(ts) => ts,
                             Err(e) => {
                                 error!(

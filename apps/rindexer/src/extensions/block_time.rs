@@ -25,7 +25,7 @@ lazy_static! {
     static ref CHAIN_CONFIG_MAP: HashMap<&'static str, ChainConfig> = {
         let mut map = HashMap::new();
         map.insert(
-            "ethereum",
+            "ethereum-full",
             ChainConfig {
                 network: "ethereum-full",
                 scan_api_url: Some("https://api.etherscan.io/api".to_string()),
@@ -33,7 +33,7 @@ lazy_static! {
             },
         );
         map.insert(
-            "arbitrum",
+            "arbitrum-full",
             ChainConfig {
                 network: "arbitrum-full",
                 scan_api_url: Some("https://api.arbiscan.io/api".to_string()),
@@ -41,7 +41,7 @@ lazy_static! {
             },
         );
         map.insert(
-            "optimism",
+            "optimism-full",
             ChainConfig {
                 network: "optimism-full",
                 scan_api_url: Some("https://api-optimistic.etherscan.io/api".to_string()),
@@ -49,7 +49,7 @@ lazy_static! {
             },
         );
         map.insert(
-            "polygon",
+            "polygon-full",
             ChainConfig {
                 network: "polygon-full",
                 scan_api_url: Some("https://api.polygonscan.com/api".to_string()),
@@ -57,7 +57,7 @@ lazy_static! {
             },
         );
         map.insert(
-            "avalanche",
+            "avalanche-full",
             ChainConfig {
                 network: "avalanche-full",
                 scan_api_url: None,
