@@ -4,11 +4,14 @@ use proposalsapp_db::models::{
     dao, dao_discourse, discourse_post, discourse_topic, proposal, proposal_group,
 };
 use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set, prelude::Uuid,
+    ActiveValue::NotSet, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, prelude::Uuid,
 };
 use std::collections::HashMap;
 use tracing::{info, instrument, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
+
+const BATCH_SIZE: u64 = 100; // Process 100 items at a time
+const MAX_GROUPS_IN_MEMORY: u64 = 500; // Keep only 500 most recent groups in memory for matching
 
 lazy_static::lazy_static! {
     /// Mapping of DAO slugs to the Discourse category IDs that should be included
@@ -58,40 +61,24 @@ async fn process_ungrouped_topics() -> Result<()> {
         // Get category IDs to filter (if configured)
         let category_ids = get_configured_category_ids(&dao_discourse.id, dao_slug).await?;
 
-        // Get all topics for this DAO
-        let mut query = discourse_topic::Entity::find()
+        // Count total topics first
+        let mut count_query = discourse_topic::Entity::find()
             .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id));
-
-        // Apply category filter if configured
+        
         if !category_ids.is_empty() {
-            info!(
-                dao_discourse_id = %dao_discourse.id,
-                category_ids = ?category_ids,
-                "Filtering topics to specific categories for grouping"
-            );
-            query = query.filter(discourse_topic::Column::CategoryId.is_in(category_ids.clone()));
+            count_query = count_query.filter(discourse_topic::Column::CategoryId.is_in(category_ids.clone()));
         }
-
-        let topics = query
-            .all(DB.get().unwrap())
+        
+        let total_topics = count_query
+            .count(DB.get().unwrap())
             .await
-            .context("Failed to fetch discourse topics")?;
+            .context("Failed to count topics")?;
 
-        if !category_ids.is_empty() {
-            // Also count topics that would be excluded
-            let total_topics = discourse_topic::Entity::find()
-                .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id))
-                .count(DB.get().unwrap())
-                .await
-                .context("Failed to count total topics")?;
-
-            info!(
-                included_topics = topics.len(),
-                total_topics = total_topics,
-                excluded_topics = total_topics as usize - topics.len(),
-                "Topic filtering results"
-            );
-        }
+        info!(
+            dao_discourse_id = %dao_discourse.id,
+            total_topics = total_topics,
+            "Processing topics in batches"
+        );
 
         // Get all proposal groups to check which topics are already grouped
         let groups = proposal_group::Entity::find()
@@ -114,9 +101,34 @@ async fn process_ungrouped_topics() -> Result<()> {
             }
         }
 
-        // Process ungrouped topics
-        for topic in topics {
-            if !grouped_topic_ids.contains(&topic.external_id.to_string()) {
+        // Process topics in batches
+        let pages = (total_topics as f64 / BATCH_SIZE as f64).ceil() as u64;
+        
+        for page in 0..pages {
+            let mut query = discourse_topic::Entity::find()
+                .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id))
+                .order_by_asc(discourse_topic::Column::Id);
+            
+            if !category_ids.is_empty() {
+                query = query.filter(discourse_topic::Column::CategoryId.is_in(category_ids.clone()));
+            }
+
+            let topics = query
+                .paginate(DB.get().unwrap(), BATCH_SIZE)
+                .fetch_page(page)
+                .await
+                .context("Failed to fetch topic batch")?;
+
+            info!(
+                page = page + 1,
+                total_pages = pages,
+                batch_size = topics.len(),
+                "Processing topic batch"
+            );
+
+            // Process ungrouped topics in this batch
+            for topic in topics {
+                if !grouped_topic_ids.contains(&topic.external_id.to_string()) {
                 info!(
                     discourse_topic_id = %topic.id,
                     external_id = topic.external_id,
@@ -149,6 +161,7 @@ async fn process_ungrouped_topics() -> Result<()> {
                     discourse_topic_id = %topic.id,
                     "Created new proposal group for ungrouped topic"
                 );
+                }
             }
         }
     }
@@ -174,16 +187,22 @@ async fn process_ungrouped_proposals_with_tiers() -> Result<()> {
             .await
             .context("Failed to fetch DAO discourse configuration")?;
 
-        // Get all proposals for this DAO that are not spam
-        let proposals = proposal::Entity::find()
+        // Count total proposals first
+        let total_proposals = proposal::Entity::find()
             .filter(proposal::Column::DaoId.eq(dao.id))
             .filter(proposal::Column::MarkedSpam.eq(false))
-            .all(DB.get().unwrap())
+            .count(DB.get().unwrap())
             .await
-            .context("Failed to fetch proposals")?;
+            .context("Failed to count proposals")?;
 
-        // Get all proposal groups
-        let mut groups = proposal_group::Entity::find()
+        info!(
+            dao_id = %dao.id,
+            total_proposals = total_proposals,
+            "Processing proposals in batches"
+        );
+
+        // Get all groups once to build the set of grouped proposals
+        let all_groups = proposal_group::Entity::find()
             .filter(proposal_group::Column::DaoId.eq(dao.id))
             .all(DB.get().unwrap())
             .await
@@ -191,7 +210,7 @@ async fn process_ungrouped_proposals_with_tiers() -> Result<()> {
 
         // Build set of grouped proposal IDs
         let mut grouped_proposal_ids = std::collections::HashSet::new();
-        for group in &groups {
+        for group in &all_groups {
             if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
             {
                 for item in items {
@@ -202,43 +221,67 @@ async fn process_ungrouped_proposals_with_tiers() -> Result<()> {
             }
         }
 
-        // Process ungrouped proposals
-        for proposal in proposals {
-            if grouped_proposal_ids.contains(&proposal.external_id) {
-                continue; // Already grouped
-            }
+        // Process proposals in batches
+        let pages = (total_proposals as f64 / BATCH_SIZE as f64).ceil() as u64;
+        
+        for page in 0..pages {
+            let proposals = proposal::Entity::find()
+                .filter(proposal::Column::DaoId.eq(dao.id))
+                .filter(proposal::Column::MarkedSpam.eq(false))
+                .order_by_asc(proposal::Column::Id)
+                .paginate(DB.get().unwrap(), BATCH_SIZE)
+                .fetch_page(page)
+                .await
+                .context("Failed to fetch proposal batch")?;
 
             info!(
-                proposal_id = %proposal.id,
-                external_id = %proposal.external_id,
-                name = %proposal.name,
-                "Processing ungrouped proposal"
+                page = page + 1,
+                total_pages = pages,
+                batch_size = proposals.len(),
+                "Processing proposal batch"
             );
 
-            // Tier 1: Try URL-based matching first
-            let mut matched = false;
-            if let Some(ref discussion_url) = proposal.discussion_url {
-                if let Some(dao_discourse) = &dao_discourse {
-                    matched =
-                        try_url_based_matching(&proposal, discussion_url, dao_discourse, &groups)
-                            .await?;
+            // Load only recent groups for semantic matching (not all groups)
+            let groups = proposal_group::Entity::find()
+                .filter(proposal_group::Column::DaoId.eq(dao.id))
+                .order_by_desc(proposal_group::Column::CreatedAt)
+                .limit(MAX_GROUPS_IN_MEMORY)
+                .all(DB.get().unwrap())
+                .await
+                .context("Failed to fetch recent proposal groups for matching")?;
+
+            // Process ungrouped proposals in this batch
+            for proposal in proposals {
+                if grouped_proposal_ids.contains(&proposal.external_id) {
+                    continue; // Already grouped
                 }
-            }
 
-            // Tier 2: Try semantic similarity matching
-            if !matched && proposal.name.len() >= 20 {
-                matched = try_semantic_matching(&proposal, &groups, &dao).await?;
-            }
+                info!(
+                    proposal_id = %proposal.id,
+                    external_id = %proposal.external_id,
+                    name = %proposal.name,
+                    "Processing ungrouped proposal"
+                );
 
-            // Tier 3: Create new group
-            if !matched {
-                create_new_group_from_proposal(&proposal, &dao).await?;
-                // Reload groups for next iteration
-                groups = proposal_group::Entity::find()
-                    .filter(proposal_group::Column::DaoId.eq(dao.id))
-                    .all(DB.get().unwrap())
-                    .await
-                    .context("Failed to fetch proposal groups after creating new group")?;
+                // Tier 1: Try URL-based matching first
+                let mut matched = false;
+                if let Some(ref discussion_url) = proposal.discussion_url {
+                    if let Some(dao_discourse) = &dao_discourse {
+                        matched =
+                            try_url_based_matching(&proposal, discussion_url, dao_discourse, &groups)
+                                .await?;
+                    }
+                }
+
+                // Tier 2: Try semantic similarity matching
+                if !matched && proposal.name.len() >= 20 {
+                    matched = try_semantic_matching(&proposal, &groups, &dao).await?;
+                }
+
+                // Tier 3: Create new group
+                if !matched {
+                    create_new_group_from_proposal(&proposal, &dao).await?;
+                }
             }
         }
     }

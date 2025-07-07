@@ -82,12 +82,13 @@ impl RedisEmbeddingCache {
             return Ok(vec![]);
         }
 
-        let mut to_embed = Vec::new();
-        let mut results = vec![None; texts.len()];
+        let mut results = Vec::with_capacity(texts.len());
 
-        // Check Redis cache first
-        for (i, text) in texts.iter().enumerate() {
+        // Process each text one by one to avoid memory spikes
+        for text in texts {
             let key = format!("{}{}", EMBEDDING_KEY_PREFIX, text);
+            
+            // Check Redis cache first
             let cached: Option<Vec<u8>> = self
                 .redis
                 .clone()
@@ -95,45 +96,58 @@ impl RedisEmbeddingCache {
                 .await
                 .context("Failed to query Redis cache")?;
 
-            if let Some(bytes) = cached {
-                // Deserialize the embedding from bytes
-                let embedding: Vec<f32> = bincode::deserialize(&bytes)
-                    .context("Failed to deserialize embedding from Redis")?;
-                results[i] = Some(embedding);
+            let embedding = if let Some(bytes) = cached {
+                // Deserialize from JSON
+                let json_str = std::str::from_utf8(&bytes)
+                    .context("Failed to parse bytes as UTF-8")?;
+                serde_json::from_str(json_str)
+                    .context("Failed to deserialize embedding from JSON")?
             } else {
-                to_embed.push((i, text.clone()));
-            }
-        }
+                // Generate embedding for single text
+                debug!("Generating embedding for text");
+                
+                let embeddings = self
+                    .model
+                    .embed(vec![text.as_str()], None)
+                    .context("Failed to generate embedding")?;
+                
+                let embedding = embeddings.into_iter().next()
+                    .context("Failed to get embedding from result")?;
+                
+                // Serialize as JSON for better debugging visibility
+                let json_str = serde_json::to_string(&embedding)
+                    .context("Failed to serialize embedding to JSON")?;
+                
+                debug!(
+                    "Storing embedding in Redis - key: {}, value_len: {}, ttl: {}s", 
+                    &key, 
+                    json_str.len(),
+                    EMBEDDING_TTL_SECONDS
+                );
 
-        // Generate embeddings for uncached texts
-        if !to_embed.is_empty() {
-            let texts_to_embed: Vec<_> = to_embed.iter().map(|(_, text)| text.as_str()).collect();
-            debug!("Generating embeddings for {} texts", texts_to_embed.len());
-
-            let embeddings = self
-                .model
-                .embed(texts_to_embed, None)
-                .context("Failed to generate embeddings")?;
-
-            // Store in Redis cache and results
-            for ((idx, text), embedding) in to_embed.into_iter().zip(embeddings.into_iter()) {
-                let key = format!("{}{}", EMBEDDING_KEY_PREFIX, text);
-                let bytes =
-                    bincode::serialize(&embedding).context("Failed to serialize embedding")?;
-
-                // Store with TTL
                 let _: () = self
                     .redis
                     .clone()
-                    .set_ex(&key, bytes, EMBEDDING_TTL_SECONDS as u64)
+                    .set_ex(&key, json_str.as_bytes(), EMBEDDING_TTL_SECONDS as u64)
                     .await
                     .context("Failed to store embedding in Redis")?;
-
-                results[idx] = Some(embedding);
-            }
+                
+                // Verify the data was stored correctly
+                if cfg!(debug_assertions) {
+                    let verify: Option<Vec<u8>> = self.redis.clone().get(&key).await
+                        .context("Failed to verify Redis storage")?;
+                    if verify.is_none() {
+                        warn!("Failed to verify embedding was stored in Redis for key: {}", &key);
+                    }
+                }
+                
+                embedding
+            };
+            
+            results.push(embedding);
         }
 
-        Ok(results.into_iter().map(|r| r.unwrap()).collect())
+        Ok(results)
     }
 
     /// Generate embedding for a single text
@@ -183,88 +197,85 @@ impl RedisEmbeddingCache {
         // Use query title directly
         let norm_query_title = query_title.to_string();
 
-        // Stage 1: Calculate embeddings for all titles and bodies
-        let mut title_texts = vec![norm_query_title.clone()];
-        let mut body_texts = Vec::new();
-        let mut has_bodies = Vec::new();
+        // Get query embeddings first
+        let query_title_embedding = self.embed(&norm_query_title).await?;
+        let query_body_embedding = if let Some(qb) = query_body {
+            Some(self.embed(qb).await?)
+        } else {
+            None
+        };
 
-        for (_, title, body) in &candidates {
-            title_texts.push(title.clone());
-            if let Some(body_text) = body {
-                body_texts.push(body_text.clone());
-                has_bodies.push(true);
-            } else {
-                has_bodies.push(false);
+        // Process candidates in chunks to avoid memory spikes
+        const CHUNK_SIZE: usize = 20;
+        let mut all_scored_candidates = Vec::new();
+
+        for chunk in candidates.chunks(CHUNK_SIZE) {
+            // Prepare texts for this chunk
+            let mut title_texts = Vec::new();
+            let mut body_texts = Vec::new();
+            let mut chunk_has_bodies = Vec::new();
+
+            for (_, title, body) in chunk {
+                title_texts.push(title.clone());
+                if let Some(body_text) = body {
+                    body_texts.push(body_text.clone());
+                    chunk_has_bodies.push(true);
+                } else {
+                    chunk_has_bodies.push(false);
+                }
             }
-        }
 
-        // Add query body if present
-        if let Some(qb) = query_body {
-            body_texts.insert(0, qb.to_string());
-        }
-
-        // Batch embed all titles
-        let title_embeddings = self.embed_batch(title_texts).await?;
-        let query_title_embedding = &title_embeddings[0];
-
-        // Batch embed all bodies (if any)
-        let body_embeddings = if !body_texts.is_empty() {
-            Some(self.embed_batch(body_texts).await?)
-        } else {
-            None
-        };
-
-        let query_body_embedding = if query_body.is_some() && body_embeddings.is_some() {
-            body_embeddings.as_ref().map(|be| &be[0])
-        } else {
-            None
-        };
-
-        // Calculate similarities for all candidates
-        let mut scored_candidates = Vec::new();
-        let mut body_idx = if query_body.is_some() { 1 } else { 0 };
-
-        for (i, (id, title, body)) in candidates.iter().enumerate() {
-            // Title similarity
-            let title_sim =
-                Self::angular_similarity(query_title_embedding, &title_embeddings[i + 1]);
-
-            // Body similarity (if both have bodies)
-            let body_sim = if body.is_some() && query_body_embedding.is_some() && has_bodies[i] {
-                let sim = Self::angular_similarity(
-                    query_body_embedding.unwrap(),
-                    &body_embeddings.as_ref().unwrap()[body_idx],
-                );
-                body_idx += 1;
-                Some(sim)
+            // Get embeddings for this chunk
+            let title_embeddings = self.embed_batch(title_texts).await?;
+            let body_embeddings = if !body_texts.is_empty() {
+                Some(self.embed_batch(body_texts).await?)
             } else {
                 None
             };
 
-            // Calculate combined score
-            let combined_score = if let Some(bs) = body_sim {
-                // If we have both, weight them equally
-                0.5 * title_sim + 0.5 * bs
-            } else {
-                // Title only
-                title_sim
-            };
+            // Score candidates in this chunk
+            let mut body_idx = 0;
+            for (i, (id, title, body)) in chunk.iter().enumerate() {
+                // Title similarity
+                let title_sim =
+                    Self::angular_similarity(&query_title_embedding, &title_embeddings[i]);
 
-            scored_candidates.push((
-                i,
-                id.clone(),
-                title_sim,
-                body_sim,
-                combined_score,
-                title.clone(),
-                body.clone(),
-            ));
+                // Body similarity (if both have bodies)
+                let body_sim = if body.is_some() && query_body_embedding.is_some() && chunk_has_bodies[i] {
+                    let sim = Self::angular_similarity(
+                        query_body_embedding.as_ref().unwrap(),
+                        &body_embeddings.as_ref().unwrap()[body_idx],
+                    );
+                    body_idx += 1;
+                    Some(sim)
+                } else {
+                    None
+                };
+
+                // Calculate combined score
+                let combined_score = if let Some(bs) = body_sim {
+                    // If we have both, weight them equally
+                    0.5 * title_sim + 0.5 * bs
+                } else {
+                    // Title only
+                    title_sim
+                };
+
+                all_scored_candidates.push((
+                    id.clone(),
+                    title_sim,
+                    body_sim,
+                    combined_score,
+                    title.clone(),
+                    body.clone(),
+                ));
+            }
         }
 
         // Sort by combined score and take top candidates for reranking
-        scored_candidates.sort_by(|a, b| b.4.partial_cmp(&a.4).unwrap());
-        let top_k = 20.min(candidates.len());
-        let rerank_candidates = scored_candidates.iter().take(top_k).collect::<Vec<_>>();
+        all_scored_candidates.sort_by(|a, b| b.3.partial_cmp(&a.3).unwrap());
+        let top_k = 20.min(all_scored_candidates.len());
+        let rerank_candidates = all_scored_candidates.iter().take(top_k).collect::<Vec<_>>();
 
         if rerank_candidates.is_empty() {
             return Ok(None);
@@ -272,7 +283,7 @@ impl RedisEmbeddingCache {
 
         // Stage 2: Rerank top candidates with cross-encoder
         let mut documents = Vec::new();
-        for (_, _, _, _, _, title, body) in &rerank_candidates {
+        for (_, _, _, _, title, body) in &rerank_candidates {
             let doc = if let Some(b) = body {
                 format!("{}\n\n{}", title, b)
             } else {
@@ -297,7 +308,7 @@ impl RedisEmbeddingCache {
 
         if let Some(best_result) = rerank_results.first() {
             let best_idx = best_result.index;
-            let (_, id, title_sim, body_sim, _, _, _) = &rerank_candidates[best_idx];
+            let (id, title_sim, body_sim, _, _, _) = &rerank_candidates[best_idx];
 
             let threshold = if body_sim.is_some() {
                 self.body_similarity_threshold

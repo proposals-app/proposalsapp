@@ -171,11 +171,11 @@ EOF
       }
 
       resources {
-        cpu    = 8000   # 6 CPU core
-        memory = 16384   # 16GB RAM
+        cpu    = 8000   # 8 CPU cores
+        memory = 6144   # 6GB RAM
 
         # Reserve additional resources for peak loads
-        memory_max = 16384  # Allow bursting to 16GB
+        memory_max = 8192  # Allow bursting to 8GB
       }
 
       service {

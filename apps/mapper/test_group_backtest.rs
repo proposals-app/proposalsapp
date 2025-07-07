@@ -1,5 +1,5 @@
-use crate::embeddings::EmbeddingCache;
 use crate::grouper::extract_discourse_id_or_slug;
+use crate::redis_embeddings::RedisEmbeddingCache;
 use crate::{DB, initialize_db};
 use anyhow::{Context, Result};
 use proposalsapp_db::models::{
@@ -21,13 +21,13 @@ mod group_backtest_tests {
         // Initialize database
         initialize_db().await?;
 
-        // Initialize embeddings with the same threshold as production
+        // Initialize Redis-backed embeddings with the same threshold as production
         let similarity_threshold = std::env::var("EMBEDDING_SIMILARITY_THRESHOLD")
             .unwrap_or_else(|_| "0.70".to_string())
             .parse::<f32>()
             .context("Invalid EMBEDDING_SIMILARITY_THRESHOLD")?;
 
-        let embedding_cache = EmbeddingCache::new(similarity_threshold).await?;
+        let embedding_cache = RedisEmbeddingCache::new(similarity_threshold).await?;
 
         println!("\n=== Simulating Mapper Algorithm for Arbitrum DAO (Optimized) ===");
 
@@ -358,7 +358,7 @@ mod group_backtest_tests {
         println!("  New groups created: {}", new_groups);
 
         // Clear cache to free memory
-        embedding_cache.clear_cache().await;
+        embedding_cache.clear_cache().await?;
 
         // Compare simulated groups with manual groups
         println!("\n=== Comparing Simulated vs Manual Groups ===");
@@ -527,7 +527,7 @@ mod group_backtest_tests {
         };
 
         // Get final cache stats
-        let (cache_entries, cache_memory) = embedding_cache.cache_stats().await;
+        let (cache_entries, cache_memory) = embedding_cache.cache_stats().await?;
 
         // Summary
         println!("\n=== Summary ===");
