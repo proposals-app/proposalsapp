@@ -101,7 +101,7 @@ jobs:
           cache-from: type=local,src=/var/cache/buildx/mapper
           cache-to: type=local,dest=/var/cache/buildx/mapper,mode=max
           build-args: |
-            RUST_VERSION=1.87
+            RUST_VERSION=1.88
             BUILD_DATE=${{ github.event.repository.updated_at }}
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.ref_name }}-${{ github.sha }}

@@ -4738,7 +4738,7 @@ __metadata:
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.6"
     posthog-js: "npm:^1.256.2"
-    posthog-node: "npm:^5.1.1"
+    posthog-node: "npm:^5.2.1"
     prettier: "npm:^3.6.2"
     prettier-plugin-classnames: "npm:^0.8.1"
     prettier-plugin-merge: "npm:^0.8.0"
@@ -20975,10 +20975,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-node@npm:^5.1.1":
-  version: 5.1.1
-  resolution: "posthog-node@npm:5.1.1"
-  checksum: 10c0/f4cf3ac616ba6259f349ebca7686627353b604e3e0cf8007cb741500c23d5703bc0598ee85b57fa07ecc88a897b48fdd6b35b157a4cb31bbc8647e0126acffb1
+"posthog-node@npm:^5.2.1":
+  version: 5.2.1
+  resolution: "posthog-node@npm:5.2.1"
+  checksum: 10c0/7625b00624d9bd5418ba436e0e9bd56607d9fa767f85565ac28bb23398261c68b53c6faffb56abc320fdbabaec59658a87a3ee8dc8a54f6a4860ff0f90162959
   languageName: node
   linkType: hard
 

@@ -1,5 +1,7 @@
 ARG APP_NAME=discourse
-ARG RUST_VERSION=1.87
+# Default to latest stable Rust version - update this when Rust releases new stable versions
+# Can be overridden in build command with --build-arg RUST_VERSION=1.XX
+ARG RUST_VERSION=1.88
 
 # Stage 1: Planner
 FROM rust:${RUST_VERSION}-slim-bookworm AS planner
