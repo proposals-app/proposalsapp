@@ -52,6 +52,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang lld git
 
+      - name: Install ONNX Runtime
+        run: |
+          # Download and install ONNX Runtime
+          wget https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-linux-x64-1.22.0.tgz
+          sudo tar -xzf onnxruntime-linux-x64-1.22.0.tgz -C /usr/local
+          sudo ln -sf /usr/local/onnxruntime-linux-x64-1.22.0/lib/* /usr/local/lib/
+          sudo ldconfig
+          rm onnxruntime-linux-x64-1.22.0.tgz
+
       - name: Clean up existing Rust installation
         run: |
           # Remove any existing rustup settings that might be corrupted
