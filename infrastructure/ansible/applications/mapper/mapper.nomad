@@ -39,8 +39,8 @@ job "mapper" {
     }
 
     ephemeral_disk {
-      size    = 500
-      sticky  = false
+      size    = 6000  # Increased to 6GB for model storage (5GB cache + overhead)
+      sticky  = true   # Keep models between restarts
       migrate = true
     }
 
