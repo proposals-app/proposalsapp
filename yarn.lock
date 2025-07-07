@@ -4565,7 +4565,7 @@ __metadata:
   dependencies:
     "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/emails": "npm:1.0.0"
-    "@testcontainers/postgresql": "npm:^11.1.0"
+    "@testcontainers/postgresql": "npm:^11.2.0"
     "@tsconfig/recommended": "npm:^1.0.10"
     "@types/dotenv": "npm:^8.2.3"
     "@types/express": "npm:^5.0.3"
@@ -4578,7 +4578,7 @@ __metadata:
     express: "npm:^5.1.0"
     node-cron: "npm:^4.2.0"
     supertest: "npm:^7.1.1"
-    testcontainers: "npm:^11.1.0"
+    testcontainers: "npm:^11.2.0"
     tsx: "npm:^4.20.3"
     typescript: "npm:^5.8.3"
     vitest: "npm:^3.2.4"
@@ -4776,7 +4776,7 @@ __metadata:
     wagmi: "npm:^2.15.6"
     web-push: "npm:^3.6.7"
     webpack: "npm:^5.99.9"
-    zod: "npm:^3.25.74"
+    zod: "npm:^3.25.75"
   languageName: unknown
   linkType: soft
 
@@ -6992,12 +6992,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@testcontainers/postgresql@npm:^11.1.0":
-  version: 11.1.0
-  resolution: "@testcontainers/postgresql@npm:11.1.0"
+"@testcontainers/postgresql@npm:^11.2.0":
+  version: 11.2.0
+  resolution: "@testcontainers/postgresql@npm:11.2.0"
   dependencies:
-    testcontainers: "npm:^11.1.0"
-  checksum: 10c0/50a414d68f89a486015fcab79e811004c6282bb91394e81c97c5b31290fbfb59d893a59a47bd3d45e3ba9335af5bf338972136d8619f9bc4b8ab914cc55de605
+    testcontainers: "npm:^11.2.0"
+  checksum: 10c0/632957992c29d991c52518a820d9618fde7718a3e25c6e4c736094d81db27149a47f56d625934dd0499ecde7b67c6410afc79f7c6569ee9b2dd7de545ec80348
   languageName: node
   linkType: hard
 
@@ -7202,7 +7202,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/dockerode@npm:^3.3.39":
+"@types/dockerode@npm:^3.3.42":
   version: 3.3.42
   resolution: "@types/dockerode@npm:3.3.42"
   dependencies:
@@ -24292,7 +24292,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tar-fs@npm:^3.0.9":
+"tar-fs@npm:^3.1.0":
   version: 3.1.0
   resolution: "tar-fs@npm:3.1.0"
   dependencies:
@@ -24440,12 +24440,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"testcontainers@npm:^11.1.0":
-  version: 11.1.0
-  resolution: "testcontainers@npm:11.1.0"
+"testcontainers@npm:^11.2.0":
+  version: 11.2.0
+  resolution: "testcontainers@npm:11.2.0"
   dependencies:
     "@balena/dockerignore": "npm:^1.0.2"
-    "@types/dockerode": "npm:^3.3.39"
+    "@types/dockerode": "npm:^3.3.42"
     archiver: "npm:^7.0.1"
     async-lock: "npm:^1.4.1"
     byline: "npm:^5.0.0"
@@ -24456,10 +24456,10 @@ __metadata:
     proper-lockfile: "npm:^4.1.2"
     properties-reader: "npm:^2.3.0"
     ssh-remote-port-forward: "npm:^1.0.4"
-    tar-fs: "npm:^3.0.9"
+    tar-fs: "npm:^3.1.0"
     tmp: "npm:^0.2.3"
-    undici: "npm:^7.10.0"
-  checksum: 10c0/6df64e00a43fd37b7effddb583131cb99ef5095837763088035c405c593bb5607de737c32156264f14703694ef7a30e42f1082a5597a7c3fcc85e6d8a907ca46
+    undici: "npm:^7.11.0"
+  checksum: 10c0/224d7166781062b4b481643c4301d64a47489bc5b508782f9a26c77d323e72ce914c254e5edaa7a4d539253492d4d92d3dd61670cacf914977ca9c0b074b5320
   languageName: node
   linkType: hard
 
@@ -25249,7 +25249,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^7.10.0":
+"undici@npm:^7.11.0":
   version: 7.11.0
   resolution: "undici@npm:7.11.0"
   checksum: 10c0/e5dd3cc2acae9c8333f97a78d4e91108957367fa7e69918e3a5cbd84702cb453cf7de3f8c2a33bcf808850d78ead70f3bd62900a70d969912e9fed8842bbfc11
@@ -26919,10 +26919,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.24.1, zod@npm:^3.24.4, zod@npm:^3.25.74":
+"zod@npm:^3.24.1, zod@npm:^3.24.4":
   version: 3.25.74
   resolution: "zod@npm:3.25.74"
   checksum: 10c0/59e38b046ac333b5bd1ba325a83b6798721227cbfb1e69dfc7159bd7824b904241ab923026edb714fafefec3624265ae374a70aee9a5a45b365bd31781ffa105
+  languageName: node
+  linkType: hard
+
+"zod@npm:^3.25.75":
+  version: 3.25.75
+  resolution: "zod@npm:3.25.75"
+  checksum: 10c0/e11c83dcd1437401c1edf4f0448bd13b9133e83196385d0ee5407662bef6c08099cb511b5e65f11f2feba244b6709bcd34077c9450c9f3064f75df51b362b5f2
   languageName: node
   linkType: hard
 
