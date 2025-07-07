@@ -92,7 +92,6 @@ contracts:
     include_events:
       - ProposalCreated
       - VoteCast
-      - VoteCastWithParams
       - ProposalExtended
       - ProposalExecuted
     index_event_in_order:
@@ -157,7 +156,6 @@ contracts:
     include_events:
       - ProposalCreated
       - VoteCast
-
       - ProposalExecuted
     index_event_in_order:
       - ProposalCreated
