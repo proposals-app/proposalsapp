@@ -88,9 +88,12 @@ jobs:
           CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
           CARGO_PROFILE_DEV_INCREMENTAL: true
           CARGO_PROFILE_DEV_CODEGEN_UNITS: 256
+          LD_LIBRARY_PATH: /usr/local/onnxruntime-linux-x64-1.22.0/lib:$LD_LIBRARY_PATH
+          ORT_DYLIB_PATH: /usr/local/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so
         run: |
           # Use faster linker and parallel jobs
-          export RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+          export RUSTFLAGS="-C link-arg=-fuse-ld=lld -L /usr/local/onnxruntime-linux-x64-1.22.0/lib"
+          export LD_LIBRARY_PATH="/usr/local/onnxruntime-linux-x64-1.22.0/lib:$LD_LIBRARY_PATH"
           cargo build --verbose --jobs $(nproc)
           # Clean up unnecessary build artifacts to save space
           rm -rf target/debug/deps/*.d
@@ -117,9 +120,12 @@ jobs:
           CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
           CARGO_PROFILE_DEV_INCREMENTAL: true
           CARGO_PROFILE_DEV_CODEGEN_UNITS: 256
-          RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
+          RUSTFLAGS: "-C link-arg=-fuse-ld=lld -L /usr/local/onnxruntime-linux-x64-1.22.0/lib"
+          LD_LIBRARY_PATH: /usr/local/onnxruntime-linux-x64-1.22.0/lib:$LD_LIBRARY_PATH
+          ORT_DYLIB_PATH: /usr/local/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so
         run: |
           # Run tests with parallel execution using all available cores
+          export LD_LIBRARY_PATH="/usr/local/onnxruntime-linux-x64-1.22.0/lib:$LD_LIBRARY_PATH"
           cargo llvm-cov nextest --all-features --workspace --lcov --output-path lcov.info --jobs $(nproc)
 
       - name: Upload coverage to Codecov
