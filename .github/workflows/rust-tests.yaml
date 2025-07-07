@@ -52,10 +52,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang lld git
 
+      - name: Clean up existing Rust installation
+        run: |
+          # Remove any existing rustup settings that might be corrupted
+          rm -f ~/.rustup/settings.toml || true
+          # Ensure rustup is available in PATH
+          export PATH="$HOME/.cargo/bin:$PATH"
+          # Uninstall existing toolchains if rustup is available
+          if command -v rustup &> /dev/null; then
+            rustup toolchain uninstall stable || true
+          fi
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: llvm-tools-preview
+          components: rustc,cargo,llvm-tools-preview
 
       - name: Install latest cargo-llvm-cov
         uses: taiki-e/install-action@v2
