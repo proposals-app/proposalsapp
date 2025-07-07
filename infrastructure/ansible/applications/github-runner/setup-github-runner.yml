@@ -264,65 +264,8 @@
         dest: /usr/local/bin/runner-healthcheck
         mode: '0755'
 
-    - name: Copy GitHub runner cleanup script
-      copy:
-        src: files/github-runner-cleanup.sh
-        dest: /usr/local/bin/github-runner-cleanup.sh
-        mode: '0755'
-        owner: root
-        group: root
-
-    - name: Copy GitHub runner cleanup service
-      copy:
-        src: files/github-runner-cleanup.service
-        dest: /etc/systemd/system/github-runner-cleanup.service
-        mode: '0644'
-        owner: root
-        group: root
-
-    - name: Copy GitHub runner disk monitor script
-      copy:
-        src: files/github-runner-disk-monitor.sh
-        dest: /usr/local/bin/github-runner-disk-monitor.sh
-        mode: '0755'
-        owner: root
-        group: root
-
-    - name: Copy GitHub runner disk monitor service
-      copy:
-        src: files/github-runner-disk-monitor.service
-        dest: /etc/systemd/system/github-runner-disk-monitor.service
-        mode: '0644'
-        owner: root
-        group: root
-
-    - name: Copy GitHub runner disk monitor timer
-      copy:
-        src: files/github-runner-disk-monitor.timer
-        dest: /etc/systemd/system/github-runner-disk-monitor.timer
-        mode: '0644'
-        owner: root
-        group: root
-
-    - name: Reload systemd daemon
-      systemd:
-        daemon_reload: yes
-
-    - name: Enable and start GitHub runner disk monitor timer
-      systemd:
-        name: github-runner-disk-monitor.timer
-        enabled: yes
-        state: started
-
-    - name: Run initial cleanup
-      command: /usr/local/bin/github-runner-cleanup.sh
-      register: initial_cleanup
-      ignore_errors: yes
-
-    - name: Display initial cleanup results
-      debug:
-        msg: "Initial cleanup completed. Check logs at /var/log/github-runner-cleanup.log"
-      when: initial_cleanup is defined
+    # Cleanup system is deployed separately via:
+    # ansible-playbook -i inventory.yml applications/github-runner/deploy-cleanup-system.yml
 
     - name: Display setup summary
       debug:

@@ -1,12 +1,15 @@
 #!/bin/bash
-# GitHub Runner Disk Space Monitor
-# This script monitors disk usage and triggers cleanup when threshold is reached
+# GitHub Runner Disk Space Monitor - Consolidated Version
+# This script monitors disk usage and triggers cleanup at different thresholds
+# with special focus on buildx cache issues
 
 set -euo pipefail
 
 # Configuration
-DISK_THRESHOLD=80  # Trigger cleanup when disk usage reaches this percentage
-CHECK_PATH="/"     # Path to monitor
+SOFT_THRESHOLD=70    # Proactive cleanup when no jobs running
+HARD_THRESHOLD=80    # Force cleanup even if jobs running (with safety checks)
+CRITICAL_THRESHOLD=90 # Emergency cleanup - stop jobs if needed
+CHECK_PATH="/"
 LOGFILE="/var/log/github-runner-disk-monitor.log"
 MAX_LOG_SIZE=10485760  # 10MB
 CLEANUP_SCRIPT="/usr/local/bin/github-runner-cleanup.sh"
@@ -27,7 +30,6 @@ is_runner_active() {
     
     # Check for active docker containers from runner
     if [ -d "$RUNNER_HOME" ]; then
-        # Count containers created by the runner user
         local container_count=$(docker ps -q --filter "label=com.github.actions.workflow" 2>/dev/null | wc -l || echo "0")
         if [ "$container_count" -gt 0 ]; then
             return 0  # Active
@@ -39,20 +41,37 @@ is_runner_active() {
         return 0  # Active
     fi
     
-    # Check if runner service is in "Listening" state (idle) vs "Running" state (active)
-    local runner_status=$(systemctl show -p SubState --value actions.runner.* 2>/dev/null || echo "unknown")
-    if [ "$runner_status" = "running" ]; then
-        # Additional check: look for runner process with active child processes
-        local runner_pid=$(pgrep -f "Runner.Listener" 2>/dev/null | head -1)
-        if [ -n "$runner_pid" ]; then
-            local child_count=$(pgrep -P "$runner_pid" 2>/dev/null | wc -l || echo "0")
-            if [ "$child_count" -gt 1 ]; then
-                return 0  # Active (has child processes beyond normal)
-            fi
-        fi
+    return 1  # Not active
+}
+
+# Function to check buildx cache sizes
+check_buildx_usage() {
+    local total_size=0
+    
+    # Check /var/cache/buildx
+    if [ -d "/var/cache/buildx" ]; then
+        local cache_size=$(du -sb /var/cache/buildx 2>/dev/null | awk '{print $1}' || echo "0")
+        total_size=$((total_size + cache_size))
+        log "Buildx cache: $(du -sh /var/cache/buildx 2>/dev/null | awk '{print $1}' || echo '0')"
     fi
     
-    return 1  # Not active
+    # Check buildx volumes
+    local volume_size=$(docker volume ls -q | grep -E "buildx_buildkit_.*" | xargs -I {} docker volume inspect {} 2>/dev/null | jq -r '.[0].Mountpoint' | xargs -I {} du -sb {} 2>/dev/null | awk '{sum+=$1} END {print sum}' || echo "0")
+    if [ -n "$volume_size" ] && [ "$volume_size" != "" ]; then
+        total_size=$((total_size + volume_size))
+        log "Buildx volumes: $(echo $volume_size | numfmt --to=iec-i --suffix=B)"
+    fi
+    
+    # Convert to GB for easier comparison
+    local total_gb=$((total_size / 1073741824))
+    
+    # If buildx is using more than 20GB, it's a problem
+    if [ "$total_gb" -gt 20 ]; then
+        log "WARNING: Buildx cache using ${total_gb}GB - cleanup recommended"
+        return 0  # Indicates cleanup needed
+    fi
+    
+    return 1  # No cleanup needed
 }
 
 # Rotate log if it's too large
@@ -64,7 +83,8 @@ fi
 # Get current disk usage percentage
 CURRENT_USAGE=$(df -h "$CHECK_PATH" | awk 'NR==2 {print $5}' | sed 's/%//')
 
-log "Disk usage check: ${CURRENT_USAGE}% (threshold: ${DISK_THRESHOLD}%)"
+log "========================================="
+log "Disk usage check: ${CURRENT_USAGE}% (soft: ${SOFT_THRESHOLD}%, hard: ${HARD_THRESHOLD}%, critical: ${CRITICAL_THRESHOLD}%)"
 
 # Check if cleanup is already running
 if [ -f "$LOCKFILE" ]; then
@@ -78,17 +98,60 @@ if [ -f "$LOCKFILE" ]; then
     fi
 fi
 
-# Check if we need to run cleanup
-if [ "$CURRENT_USAGE" -ge "$DISK_THRESHOLD" ]; then
-    log "ALERT: Disk usage (${CURRENT_USAGE}%) exceeds threshold (${DISK_THRESHOLD}%)"
+# Determine if we need cleanup
+NEEDS_CLEANUP=false
+CLEANUP_REASON=""
+FORCE_CLEANUP=false
+
+# Check disk usage thresholds
+if [ "$CURRENT_USAGE" -ge "$CRITICAL_THRESHOLD" ]; then
+    NEEDS_CLEANUP=true
+    FORCE_CLEANUP=true
+    CLEANUP_REASON="CRITICAL disk usage (${CURRENT_USAGE}%)"
+elif [ "$CURRENT_USAGE" -ge "$HARD_THRESHOLD" ]; then
+    NEEDS_CLEANUP=true
+    CLEANUP_REASON="High disk usage (${CURRENT_USAGE}%)"
+elif [ "$CURRENT_USAGE" -ge "$SOFT_THRESHOLD" ]; then
+    # Only cleanup at soft threshold if no jobs are running
+    if ! is_runner_active; then
+        NEEDS_CLEANUP=true
+        CLEANUP_REASON="Proactive cleanup at ${CURRENT_USAGE}%"
+    else
+        log "Disk usage at ${CURRENT_USAGE}% but jobs are running, deferring cleanup"
+    fi
+fi
+
+# Always check buildx cache size regardless of disk usage
+if check_buildx_usage; then
+    if [ "$NEEDS_CLEANUP" = false ] && ! is_runner_active; then
+        NEEDS_CLEANUP=true
+        CLEANUP_REASON="Large buildx cache detected"
+    fi
+fi
+
+# Perform cleanup if needed
+if [ "$NEEDS_CLEANUP" = true ]; then
+    log "ALERT: Cleanup needed - $CLEANUP_REASON"
     
-    # Check if runner is active
-    if is_runner_active; then
-        log "GitHub Actions job is currently running, deferring cleanup"
-        exit 0
+    # Check if runner is active (unless forced)
+    if [ "$FORCE_CLEANUP" = false ] && is_runner_active; then
+        log "GitHub Actions job is currently running, checking if we can defer..."
+        
+        # If we're above hard threshold but below critical, defer
+        if [ "$CURRENT_USAGE" -lt "$CRITICAL_THRESHOLD" ]; then
+            log "Deferring cleanup until job completes"
+            exit 0
+        else
+            log "CRITICAL: Cannot defer cleanup at ${CURRENT_USAGE}% usage"
+        fi
     fi
     
-    log "No active GitHub Actions jobs detected, proceeding with cleanup"
+    if [ "$FORCE_CLEANUP" = true ] && is_runner_active; then
+        log "WARNING: Critical disk usage - cleanup will proceed despite active jobs"
+        # Note: The cleanup script will handle stopping containers gracefully
+    fi
+    
+    log "Proceeding with cleanup"
     
     # Create lock file
     touch "$LOCKFILE"
@@ -106,11 +169,14 @@ if [ "$CURRENT_USAGE" -ge "$DISK_THRESHOLD" ]; then
             # Get new disk usage
             NEW_USAGE=$(df -h "$CHECK_PATH" | awk 'NR==2 {print $5}' | sed 's/%//')
             SPACE_FREED=$((CURRENT_USAGE - NEW_USAGE))
-            log "Cleanup completed successfully. New disk usage: ${NEW_USAGE}% (freed ${SPACE_FREED}%)"
+            log "Cleanup completed. New disk usage: ${NEW_USAGE}% (freed ${SPACE_FREED}%)"
             
-            # If still above threshold, log a warning
-            if [ "$NEW_USAGE" -ge "$DISK_THRESHOLD" ]; then
-                log "WARNING: Disk usage still above threshold after cleanup!"
+            # If still above hard threshold, log a warning
+            if [ "$NEW_USAGE" -ge "$HARD_THRESHOLD" ]; then
+                log "⚠️  WARNING: Disk usage still above ${HARD_THRESHOLD}% after cleanup!"
+                
+                # Send alert or notification here if configured
+                # For example: echo "Disk usage critical on $(hostname)" | mail -s "Runner Disk Alert" admin@example.com
             fi
         else
             log "ERROR: Cleanup script failed with exit code $CLEANUP_EXIT"
@@ -121,7 +187,8 @@ if [ "$CURRENT_USAGE" -ge "$DISK_THRESHOLD" ]; then
         exit 1
     fi
 else
-    log "Disk usage is below threshold, no cleanup needed"
+    log "Disk usage is acceptable, no cleanup needed"
 fi
 
+log "Monitor check complete"
 exit 0

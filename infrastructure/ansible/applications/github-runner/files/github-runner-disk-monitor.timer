@@ -3,11 +3,11 @@ Description=GitHub Runner Disk Space Monitor Timer
 Requires=github-runner-disk-monitor.service
 
 [Timer]
-# Run every 15 minutes
-OnBootSec=5min
-OnUnitActiveSec=15min
+# Run every 10 minutes (more frequent than before)
+OnBootSec=2min
+OnUnitActiveSec=10min
 # Add some randomization to prevent all runners from checking at once
-RandomizedDelaySec=5min
+RandomizedDelaySec=2min
 # Run immediately if system was powered down during scheduled time
 Persistent=true
 AccuracySec=1min

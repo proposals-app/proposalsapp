@@ -1,0 +1,42 @@
+---
+- name: Deploy GitHub Runner Cleanup System
+  hosts: github_runners
+  gather_facts: no
+  become: yes
+  
+  tasks:
+    - name: Stop existing cleanup timer
+      systemd:
+        name: github-runner-disk-monitor.timer
+        state: stopped
+      ignore_errors: yes
+      
+    - name: Deploy cleanup scripts
+      copy:
+        src: "files/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        mode: '0755'
+        owner: root
+        group: root
+      loop:
+        - github-runner-cleanup.sh
+        - github-runner-disk-monitor.sh
+        
+    - name: Deploy systemd units
+      copy:
+        src: "files/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        mode: '0644'
+        owner: root
+        group: root
+      loop:
+        - github-runner-cleanup.service
+        - github-runner-disk-monitor.service
+        - github-runner-disk-monitor.timer
+        
+    - name: Reload systemd and start timer
+      systemd:
+        name: github-runner-disk-monitor.timer
+        daemon_reload: yes
+        enabled: yes
+        state: started
