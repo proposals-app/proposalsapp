@@ -45,7 +45,15 @@ job "alloy" {
         }
       }
 
+
       template {
+        # Don't block on missing services
+        wait {
+          min = "2s"
+          max = "10s"
+        }
+        error_on_missing_key = false
+        
         data = <<EOF
 // Simple Alloy configuration for ProposalsApp logs
 
@@ -163,7 +171,23 @@ loki.process "json" {
 // Send to Loki
 loki.write "loki" {
   endpoint {
-    url = "http://{{ range service "loki@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:3100{{ end }}/loki/api/v1/push"
+    {{ $lokiFound := false }}
+    {{- range service "loki" }}
+    {{- $lokiFound = true }}
+    url = "http://{{ .Address }}:{{ .Port }}/loki/api/v1/push"
+    {{- end }}
+    {{- if not $lokiFound }}
+    {{- range datacenters }}
+    {{- $dc := . }}
+    {{- range service (printf "loki@%s" $dc) }}
+    {{- $lokiFound = true }}
+    url = "http://{{ .Address }}:{{ .Port }}/loki/api/v1/push"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if not $lokiFound }}
+    url = "http://localhost:3100/loki/api/v1/push"
+    {{- end }}
     batch_size = "4MiB"
     batch_wait = "2s"
   }
@@ -185,7 +209,23 @@ prometheus.scrape "alloy" {
 
 prometheus.remote_write "metrics" {
   endpoint {
-    url = "http://{{ range service "prometheus@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:9090{{ end }}/api/v1/write"
+    {{ $promFound := false }}
+    {{- range service "prometheus" }}
+    {{- $promFound = true }}
+    url = "http://{{ .Address }}:{{ .Port }}/api/v1/write"
+    {{- end }}
+    {{- if not $promFound }}
+    {{- range datacenters }}
+    {{- $dc := . }}
+    {{- range service (printf "prometheus@%s" $dc) }}
+    {{- $promFound = true }}
+    url = "http://{{ .Address }}:{{ .Port }}/api/v1/write"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if not $promFound }}
+    url = "http://localhost:9090/api/v1/write"
+    {{- end }}
   }
 }
 EOF

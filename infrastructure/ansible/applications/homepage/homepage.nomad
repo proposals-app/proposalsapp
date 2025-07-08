@@ -1,5 +1,5 @@
 job "homepage" {
-  datacenters = ["dc1"]
+  datacenters = ["dc1", "dc2", "dc3"]
   type        = "service"
 
   group "homepage" {
@@ -18,12 +18,8 @@ job "homepage" {
     service {
       name = "homepage"
       port = "http"
-      tags = [
-        "traefik.enable=true",
-        "traefik.http.routers.homepage.rule=Host(`dashboard.proposals.app`)",
-        "traefik.http.routers.homepage.entrypoints=web",
-        "traefik.http.services.homepage.loadbalancer.server.port=3200",
-      ]
+      address_mode = "host"
+      tags = ["dashboard", "ui"]
 
       check {
         name     = "homepage-health"
@@ -151,21 +147,21 @@ EOH
 - Monitoring & Observability:
     - Grafana:
         icon: grafana
-        href: http://apps-sib-01:3000
+        href: http://grafana.proposals.app
         description: Metrics visualization & dashboards
-        # Grafana widget - port 3000 confirmed
+        # Access via Traefik ingress
     
     - Prometheus:
         icon: prometheus
-        href: http://apps-sib-01:9090
+        href: http://prometheus.proposals.app
         description: Metrics collection & alerting
-        # Prometheus widget - port 9090 confirmed
+        # Access via Traefik ingress
     
     - Loki:
         icon: grafana
-        href: http://apps-sib-01:3000/explore?orgId=1&left=%7B%22datasource%22:%22loki%22%7D
+        href: http://grafana.proposals.app/explore?orgId=1&left=%7B%22datasource%22:%22loki%22%7D
         description: Log aggregation system
-        # Loki widget - port 3100 confirmed
+        # Access via Grafana UI
 
 - Data Layer:
     - PostgreSQL Cluster:

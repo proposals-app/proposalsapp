@@ -186,6 +186,7 @@ EOF
           "data-processing"
         ]
         port = "http"
+        address_mode = "host"
 
         check {
           type     = "http"

@@ -14,12 +14,6 @@ job "loki" {
     constraint {
       distinct_hosts = true
     }
-    
-    # Force deployment to dc1 for observability stack colocation
-    constraint {
-      attribute = "${node.datacenter}"
-      value     = "dc1"
-    }
 
     network {
       mode = "host"
@@ -199,6 +193,7 @@ EOF
         name = "loki"
         port = "http"
         tags = ["http", "logs", "urlprefix-/loki"]
+        address_mode = "host"
 
         check {
           type     = "http"
@@ -212,6 +207,7 @@ EOF
         name = "loki-grpc"
         port = "grpc"
         tags = ["grpc"]
+        address_mode = "host"
 
         check {
           type     = "tcp"

@@ -11,15 +11,8 @@ job "grafana" {
   group "grafana" {
     count = 1
 
-    constraint {
-      distinct_hosts = true
-    }
-    
-    # Force deployment to dc1 for observability stack colocation
-    constraint {
-      attribute = "${node.datacenter}"
-      value     = "dc1"
-    }
+    # No constraint - let Nomad place it optimally
+    # This allows Grafana to move to any available node
 
     network {
       mode = "host"
@@ -67,7 +60,9 @@ job "grafana" {
 [server]
 http_addr = 0.0.0.0
 http_port = 3000
-root_url = http://grafana.proposals.app
+root_url = https://grafana.proposals.app
+domain = grafana.proposals.app
+enforce_domain = false
 
 [database]
 type = sqlite3
@@ -127,7 +122,7 @@ datasources:
   - name: Loki
     type: loki
     access: proxy
-    url: http://{{ range service "loki@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:3100{{ end }}
+    url: http://{{ range service "loki" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:3100{{ end }}
     jsonData:
       maxLines: 10000
       timeout: 300
@@ -142,7 +137,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://{{ range service "prometheus@dc1" }}{{ .NodeAddress }}:{{ .Port }}{{ end }}
+    url: http://{{ range service "prometheus" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:9090{{ end }}
     jsonData:
       timeInterval: 15s
       queryTimeout: 60s
@@ -183,7 +178,12 @@ EOF
       service {
         name = "grafana"
         port = "http"
-        tags = ["http", "ui", "urlprefix-/grafana"]
+        address_mode = "host"
+        tags = [
+          "http",
+          "ui",
+          "monitoring"
+        ]
 
         check {
           type     = "http"

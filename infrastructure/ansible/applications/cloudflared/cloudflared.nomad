@@ -17,13 +17,17 @@ job "cloudflared" {
   }
   
   group "tunnel" {
-    count = 1  # Single instance that can migrate between datacenters
+    count = 3  # Run 3 replicas for high availability (same tunnel ID)
     
-    # Prefer dc1 but allow running anywhere
-    affinity {
+    # Spread replicas across datacenters for better availability
+    spread {
       attribute = "${node.datacenter}"
-      value     = "dc1"
-      weight    = 50
+      weight    = 100
+    }
+    
+    # Ensure replicas run on different hosts
+    constraint {
+      distinct_hosts = true
     }
     
     # Ensure automatic rescheduling on node failure
@@ -110,9 +114,7 @@ EOF
         tags = [
           "tunnel", 
           "cloudflare", 
-          "zero-trust",
-          "ingress.service=http://localhost:8080",
-          "ingress.originRequest.noTLSVerify=true"
+          "zero-trust"
         ]
         port = "metrics"
         
@@ -128,6 +130,13 @@ EOF
             ignore_warnings = false
           }
         }
+      }
+
+      # Separate service for Prometheus metrics discovery
+      service {
+        name = "cloudflared-metrics"
+        tags = ["metrics"]
+        port = "metrics"
       }
     }
   }

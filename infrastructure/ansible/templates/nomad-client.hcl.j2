@@ -52,6 +52,10 @@ server {
 client {
   enabled = true
   
+  # Network interface for service registration
+  # Force Nomad to use Tailscale interface for service addresses
+  network_interface = "tailscale0"
+  
   # Server discovery
   # Automatically find and connect to Nomad servers
   # Connects to all servers for redundancy

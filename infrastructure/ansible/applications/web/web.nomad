@@ -187,13 +187,7 @@ EOF
         name = "web"
         tags = [
           "frontend",
-          "nextjs",
-          "traefik.enable=true",
-          "traefik.http.routers.web.rule=Host(`proposals.app`) || HostRegexp(`[a-z]+\\.proposals\\.app`)",
-          "traefik.http.routers.web.entrypoints=web",
-          "traefik.http.services.web.loadbalancer.passhostheader=true",
-          "traefik.http.routers.web.priority=1",
-          "traefik.http.routers.web.middlewares=secure-headers@file,rate-limit@file,compress@file"
+          "nextjs"
         ]
         port = "http"
         address_mode = "host"
