@@ -13,9 +13,6 @@ mod grouper;
 mod karma;
 mod redis_embeddings;
 
-#[cfg(test)]
-mod test_group_backtest;
-
 use redis_embeddings::RedisEmbeddingCache;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();

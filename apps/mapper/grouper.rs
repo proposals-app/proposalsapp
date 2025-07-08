@@ -11,8 +11,6 @@ use std::collections::HashMap;
 use tracing::{info, instrument, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 
-const MAX_GROUPS_IN_MEMORY: u64 = 500; // Keep only 500 most recent groups in memory for matching
-
 lazy_static::lazy_static! {
     /// Mapping of DAO slugs to the Discourse category IDs that should be included
     /// in proposal grouping. Topics in other categories will be ignored.
@@ -178,11 +176,10 @@ async fn process_ungrouped_items_with_tiers() -> Result<()> {
             "Processing all proposals"
         );
 
-        // Load only recent groups for semantic matching (not all groups)
+        // Load groups
         let groups = proposal_group::Entity::find()
             .filter(proposal_group::Column::DaoId.eq(dao.id))
             .order_by_desc(proposal_group::Column::CreatedAt)
-            .limit(MAX_GROUPS_IN_MEMORY)
             .all(DB.get().unwrap())
             .await
             .context("Failed to fetch recent proposal groups for matching")?;
