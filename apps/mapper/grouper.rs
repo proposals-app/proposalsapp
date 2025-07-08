@@ -4,10 +4,9 @@ use proposalsapp_db::models::{
     dao, dao_discourse, discourse_post, discourse_topic, proposal, proposal_group,
 };
 use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
-    prelude::Uuid,
+    ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, prelude::Uuid,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tracing::{info, instrument, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 
@@ -24,19 +23,79 @@ lazy_static::lazy_static! {
     };
 }
 
-#[instrument()]
-pub async fn run_group_task() -> Result<()> {
-    info!("Starting continuous grouping task");
-
-    // Process ungrouped items with three-tier system for both proposals and topics
-    process_ungrouped_items_with_tiers().await?;
-
-    Ok(())
+/// Represents an item that can be grouped (either a proposal or a topic)
+#[derive(Clone)]
+enum GroupableItem {
+    Proposal {
+        _id: Uuid,
+        external_id: String,
+        governor_id: Uuid,
+        name: String,
+        body: String,
+        discussion_url: Option<String>,
+    },
+    Topic {
+        _id: Uuid,
+        external_id: String,
+        dao_discourse_id: Uuid,
+        title: String,
+        first_post_content: String,
+    },
 }
 
-#[instrument()]
-async fn process_ungrouped_items_with_tiers() -> Result<()> {
-    info!("Looking for ungrouped proposals and topics with three-tier system");
+impl GroupableItem {
+    fn id(&self) -> String {
+        match self {
+            GroupableItem::Proposal { external_id, .. } => format!("proposal_{}", external_id),
+            GroupableItem::Topic { external_id, .. } => format!("topic_{}", external_id),
+        }
+    }
+
+    fn title(&self) -> &str {
+        match self {
+            GroupableItem::Proposal { name, .. } => name,
+            GroupableItem::Topic { title, .. } => title,
+        }
+    }
+
+    fn body(&self) -> &str {
+        match self {
+            GroupableItem::Proposal { body, .. } => body,
+            GroupableItem::Topic {
+                first_post_content, ..
+            } => first_post_content,
+        }
+    }
+
+    fn to_group_item(&self) -> ProposalGroupItem {
+        match self {
+            GroupableItem::Proposal {
+                external_id,
+                governor_id,
+                name,
+                ..
+            } => ProposalGroupItem::Proposal(ProposalItem {
+                name: name.clone(),
+                governor_id: *governor_id,
+                external_id: external_id.clone(),
+            }),
+            GroupableItem::Topic {
+                external_id,
+                dao_discourse_id,
+                title,
+                ..
+            } => ProposalGroupItem::Topic(TopicItem {
+                name: title.clone(),
+                external_id: external_id.clone(),
+                dao_discourse_id: *dao_discourse_id,
+            }),
+        }
+    }
+}
+
+#[instrument]
+pub async fn run_group_task() -> Result<()> {
+    info!("Starting grouping task");
 
     // Get all DAOs
     let daos = dao::Entity::find()
@@ -45,826 +104,490 @@ async fn process_ungrouped_items_with_tiers() -> Result<()> {
         .context("Failed to fetch DAOs")?;
 
     for dao in daos {
-        // Get DAO discourse configuration
-        let dao_discourse = dao_discourse::Entity::find()
-            .filter(dao_discourse::Column::DaoId.eq(dao.id))
-            .filter(dao_discourse::Column::Enabled.eq(true))
-            .one(DB.get().unwrap())
-            .await
-            .context("Failed to fetch DAO discourse configuration")?;
+        process_dao_grouping(&dao).await?;
+    }
 
-        info!(
-            dao_id = %dao.id,
-            "Processing proposals and topics"
-        );
+    Ok(())
+}
 
-        // Get all groups once to build the set of grouped proposals
-        let all_groups = proposal_group::Entity::find()
-            .filter(proposal_group::Column::DaoId.eq(dao.id))
-            .all(DB.get().unwrap())
-            .await
-            .context("Failed to fetch proposal groups")?;
+#[instrument(skip(dao))]
+async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
+    info!(dao_id = %dao.id, dao_slug = %dao.slug, "Processing grouping for DAO");
 
-        // Build sets of grouped proposal and topic IDs
-        let mut grouped_proposal_ids = std::collections::HashSet::new();
-        let mut grouped_topic_ids = std::collections::HashSet::new();
-        let mut deserialization_errors = 0;
-        for group in &all_groups {
-            match serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
-                Ok(items) => {
-                    for item in items {
-                        match item {
-                            ProposalGroupItem::Proposal(proposal_item) => {
-                                grouped_proposal_ids.insert(proposal_item.external_id.clone());
+    // Get DAO discourse configuration
+    let dao_discourse = dao_discourse::Entity::find()
+        .filter(dao_discourse::Column::DaoId.eq(dao.id))
+        .filter(dao_discourse::Column::Enabled.eq(true))
+        .one(DB.get().unwrap())
+        .await
+        .context("Failed to fetch DAO discourse configuration")?;
+
+    // Load all existing groups for this DAO
+    let existing_groups = proposal_group::Entity::find()
+        .filter(proposal_group::Column::DaoId.eq(dao.id))
+        .all(DB.get().unwrap())
+        .await
+        .context("Failed to fetch proposal groups")?;
+
+    // Build a set of already grouped items
+    let mut grouped_items = HashSet::new();
+    for group in &existing_groups {
+        match serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
+            Ok(items) => {
+                for item in items {
+                    match item {
+                        ProposalGroupItem::Proposal(p) => {
+                            grouped_items.insert(format!("proposal_{}", p.external_id));
+                        }
+                        ProposalGroupItem::Topic(t) => {
+                            grouped_items.insert(format!("topic_{}", t.external_id));
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                warn!(group_id = %group.id, error = %e, "Failed to deserialize group items");
+            }
+        }
+    }
+
+    // Load all proposals for this DAO
+    let proposals = proposal::Entity::find()
+        .filter(proposal::Column::DaoId.eq(dao.id))
+        .order_by_asc(proposal::Column::CreatedAt)
+        .all(DB.get().unwrap())
+        .await
+        .context("Failed to fetch proposals")?;
+
+    // Load all topics if discourse is configured
+    let topics = if let Some(ref dao_disc) = dao_discourse {
+        // Get category filter for this DAO
+        let allowed_categories = DAO_DISCOURSE_CATEGORY_FILTERS
+            .get(dao.slug.as_str())
+            .cloned()
+            .unwrap_or_default();
+
+        if allowed_categories.is_empty() {
+            vec![]
+        } else {
+            let mut query = discourse_topic::Entity::find()
+                .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_disc.id));
+
+            // Add category filter
+            let category_conditions = allowed_categories
+                .into_iter()
+                .map(|cat_id| discourse_topic::Column::CategoryId.eq(cat_id))
+                .collect::<Vec<_>>();
+
+            if !category_conditions.is_empty() {
+                use sea_orm::Condition;
+                let mut condition = Condition::any();
+                for cond in category_conditions {
+                    condition = condition.add(cond);
+                }
+                query = query.filter(condition);
+            }
+
+            query
+                .order_by_asc(discourse_topic::Column::CreatedAt)
+                .all(DB.get().unwrap())
+                .await
+                .context("Failed to fetch discourse topics")?
+        }
+    } else {
+        vec![]
+    };
+
+    // Convert to GroupableItems and filter out already grouped items
+    let mut ungrouped_items = Vec::new();
+
+    for proposal in proposals {
+        let id = format!("proposal_{}", proposal.external_id);
+        if !grouped_items.contains(&id) {
+            ungrouped_items.push(GroupableItem::Proposal {
+                _id: proposal.id,
+                external_id: proposal.external_id.clone(),
+                governor_id: proposal.governor_id,
+                name: proposal.name.clone(),
+                body: proposal.body.clone(),
+                discussion_url: proposal.discussion_url.clone(),
+            });
+        }
+    }
+
+    for topic in topics {
+        let id = format!("topic_{}", topic.external_id);
+        if !grouped_items.contains(&id) {
+            // Get first post content - skip topic if we can't fetch it
+            match discourse_post::Entity::find()
+                .filter(discourse_post::Column::TopicId.eq(topic.external_id))
+                .filter(discourse_post::Column::PostNumber.eq(1))
+                .one(DB.get().unwrap())
+                .await
+            {
+                Ok(Some(post)) => {
+                    if let Some(content) = post.cooked {
+                        ungrouped_items.push(GroupableItem::Topic {
+                            _id: topic.id,
+                            external_id: topic.external_id.to_string(),
+                            dao_discourse_id: topic.dao_discourse_id,
+                            title: topic.title.clone(),
+                            first_post_content: content,
+                        });
+                    }
+                }
+                Ok(None) => {
+                    warn!(
+                        topic_id = %topic.id,
+                        topic_external_id = %topic.external_id,
+                        "No first post found for topic, skipping"
+                    );
+                }
+                Err(e) => {
+                    warn!(
+                        topic_id = %topic.id,
+                        topic_external_id = %topic.external_id,
+                        error = %e,
+                        "Failed to fetch first post for topic, skipping"
+                    );
+                }
+            }
+        }
+    }
+
+    info!(
+        ungrouped_count = ungrouped_items.len(),
+        existing_groups = existing_groups.len(),
+        "Starting to process ungrouped items"
+    );
+
+    // Process each ungrouped item
+    let mut newly_grouped = HashSet::new();
+
+    // First pass: Handle URL-based matching for proposals (certain matches)
+    for item in ungrouped_items.iter() {
+        if let GroupableItem::Proposal {
+            external_id,
+            discussion_url: Some(url),
+            ..
+        } = item
+        {
+            if newly_grouped.contains(&item.id()) {
+                continue;
+            }
+
+            // Try to extract topic ID from the URL
+            let (topic_id, _topic_slug) = extract_discourse_id_or_slug(url);
+            if let Some(tid) = topic_id {
+                let topic_external_id = tid.to_string();
+
+                // Find the topic in ungrouped items
+                let topic_item = ungrouped_items.iter().find(|i| {
+                    matches!(i, GroupableItem::Topic { external_id: tid, .. } if tid == &topic_external_id)
+                });
+
+                if let Some(topic) = topic_item {
+                    if !newly_grouped.contains(&topic.id()) {
+                        // Create new group with both proposal and topic
+                        create_new_group_with_items(vec![item, topic], dao).await?;
+                        newly_grouped.insert(item.id());
+                        newly_grouped.insert(topic.id());
+                        info!(
+                            proposal_id = %external_id,
+                            topic_id = %topic_external_id,
+                            "Created group via URL matching"
+                        );
+                    }
+                } else {
+                    // Check if the topic is already in an existing group
+                    for group in &existing_groups {
+                        if let Ok(items) =
+                            serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+                        {
+                            for group_item in &items {
+                                if let ProposalGroupItem::Topic(t) = group_item {
+                                    if t.external_id == topic_external_id {
+                                        // Add proposal to existing group
+                                        add_item_to_group(item, group.id, &existing_groups).await?;
+                                        newly_grouped.insert(item.id());
+                                        info!(
+                                            proposal_id = %external_id,
+                                            topic_id = %topic_external_id,
+                                            group_id = %group.id,
+                                            "Added proposal to existing group via URL matching"
+                                        );
+                                        break;
+                                    }
+                                }
                             }
-                            ProposalGroupItem::Topic(topic_item) => {
-                                if let Some(ref dao_discourse) = dao_discourse {
-                                    if topic_item.dao_discourse_id == dao_discourse.id {
-                                        grouped_topic_ids.insert(topic_item.external_id);
+                            if newly_grouped.contains(&item.id()) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Second pass: AI-based matching for remaining ungrouped items
+    for (idx, item) in ungrouped_items.iter().enumerate() {
+        // Skip if this item was grouped in this run
+        if newly_grouped.contains(&item.id()) {
+            continue;
+        }
+
+        // Build list of all candidates (existing group items + remaining ungrouped items)
+        let mut candidates = Vec::new();
+
+        // Add all items from existing groups
+        for group in &existing_groups {
+            if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+            {
+                for group_item in items {
+                    match group_item {
+                        ProposalGroupItem::Proposal(p) => {
+                            // Find the full proposal data
+                            if let Ok(Some(prop)) = proposal::Entity::find()
+                                .filter(proposal::Column::ExternalId.eq(&p.external_id))
+                                .one(DB.get().unwrap())
+                                .await
+                            {
+                                candidates.push((
+                                    format!(
+                                        "group_{}_{}",
+                                        group.id,
+                                        format!("proposal_{}", p.external_id)
+                                    ),
+                                    prop.name.clone(),
+                                    Some(prop.body.clone()),
+                                ));
+                            }
+                        }
+                        ProposalGroupItem::Topic(t) => {
+                            // Find the full topic data with first post
+                            if let Ok(Some(topic)) = discourse_topic::Entity::find()
+                                .filter(discourse_topic::Column::ExternalId.eq(&t.external_id))
+                                .one(DB.get().unwrap())
+                                .await
+                            {
+                                match discourse_post::Entity::find()
+                                    .filter(discourse_post::Column::TopicId.eq(topic.external_id))
+                                    .filter(discourse_post::Column::PostNumber.eq(1))
+                                    .one(DB.get().unwrap())
+                                    .await
+                                {
+                                    Ok(Some(post)) => {
+                                        candidates.push((
+                                            format!(
+                                                "group_{}_{}",
+                                                group.id,
+                                                format!("topic_{}", t.external_id)
+                                            ),
+                                            topic.title.clone(),
+                                            post.cooked.clone(),
+                                        ));
+                                    }
+                                    Ok(None) => {
+                                        warn!(
+                                            topic_id = %topic.id,
+                                            "No first post found for topic in group, using title only"
+                                        );
+                                        candidates.push((
+                                            format!(
+                                                "group_{}_{}",
+                                                group.id,
+                                                format!("topic_{}", t.external_id)
+                                            ),
+                                            topic.title.clone(),
+                                            None,
+                                        ));
+                                    }
+                                    Err(e) => {
+                                        warn!(
+                                            topic_id = %topic.id,
+                                            error = %e,
+                                            "Failed to fetch first post for topic in group, using title only"
+                                        );
+                                        candidates.push((
+                                            format!(
+                                                "group_{}_{}",
+                                                group.id,
+                                                format!("topic_{}", t.external_id)
+                                            ),
+                                            topic.title.clone(),
+                                            None,
+                                        ));
                                     }
                                 }
                             }
                         }
                     }
                 }
-                Err(e) => {
-                    warn!(
-                        group_id = %group.id,
-                        error = %e,
-                        "Failed to deserialize group items"
-                    );
-                    deserialization_errors += 1;
-                }
             }
         }
 
-        if deserialization_errors > 0 {
-            warn!(
-                count = deserialization_errors,
-                total_groups = all_groups.len(),
-                "Some groups failed to deserialize"
-            );
+        // Add remaining ungrouped items
+        for (other_idx, other_item) in ungrouped_items.iter().enumerate() {
+            if other_idx != idx && !newly_grouped.contains(&other_item.id()) {
+                candidates.push((
+                    other_item.id(),
+                    other_item.title().to_string(),
+                    Some(other_item.body().to_string()),
+                ));
+            }
         }
 
-        info!(
-            dao_id = %dao.id,
-            total_groups = all_groups.len(),
-            grouped_proposals_count = grouped_proposal_ids.len(),
-            grouped_topics_count = grouped_topic_ids.len(),
-            "Built grouped IDs sets"
-        );
+        if candidates.is_empty() {
+            // No candidates, create a single-item group
+            create_single_item_group(item, dao).await?;
+            newly_grouped.insert(item.id());
+            continue;
+        }
 
-        // Get all proposals (no pagination)
-        let mut proposals = proposal::Entity::find()
-            .filter(proposal::Column::DaoId.eq(dao.id))
-            .filter(proposal::Column::MarkedSpam.eq(false))
-            .order_by_asc(proposal::Column::Id)
-            .all(DB.get().unwrap())
-            .await
-            .context("Failed to fetch proposals")?;
+        // Find top candidates using embeddings and reranking
+        let embeddings = EMBEDDINGS.get().unwrap();
+        let ranked_candidates = embeddings
+            .find_top_candidates(
+                item.title(),
+                Some(item.body()),
+                candidates,
+                1, // We only need the top match
+            )
+            .await?;
 
-        // Sort proposals to prioritize Discourse URLs (with /t/) first, then other URLs, then no URLs
-        proposals.sort_by(|a, b| {
-            let a_has_discourse = a
-                .discussion_url
-                .as_ref()
-                .map(|url| url.contains("/t/"))
-                .unwrap_or(false);
-            let b_has_discourse = b
-                .discussion_url
-                .as_ref()
-                .map(|url| url.contains("/t/"))
-                .unwrap_or(false);
-
-            // First compare by Discourse URL presence
-            match (a_has_discourse, b_has_discourse) {
-                (true, false) => std::cmp::Ordering::Less, // a comes first
-                (false, true) => std::cmp::Ordering::Greater, // b comes first
-                _ => {
-                    // Both have or both don't have Discourse URLs, compare by URL length
-                    let a_len = a.discussion_url.as_ref().map(|s| s.len()).unwrap_or(0);
-                    let b_len = b.discussion_url.as_ref().map(|s| s.len()).unwrap_or(0);
-                    b_len.cmp(&a_len) // Descending order (longer URLs first)
-                }
-            }
-        });
-
-        let discourse_url_count = proposals
-            .iter()
-            .filter(|p| {
-                p.discussion_url
-                    .as_ref()
-                    .map(|url| url.contains("/t/"))
-                    .unwrap_or(false)
-            })
-            .count();
-
-        info!(
-            total_proposals = proposals.len(),
-            proposals_with_discourse_urls = discourse_url_count,
-            proposals_with_other_urls = proposals
-                .iter()
-                .filter(|p| p.discussion_url.is_some()
-                    && !p.discussion_url.as_ref().unwrap().contains("/t/"))
-                .count(),
-            proposals_without_urls = proposals
-                .iter()
-                .filter(
-                    |p| p.discussion_url.is_none() || p.discussion_url.as_ref().unwrap().is_empty()
-                )
-                .count(),
-            "Processing all proposals"
-        );
-
-        // Load groups
-        let groups = proposal_group::Entity::find()
-            .filter(proposal_group::Column::DaoId.eq(dao.id))
-            .order_by_desc(proposal_group::Column::CreatedAt)
-            .all(DB.get().unwrap())
-            .await
-            .context("Failed to fetch recent proposal groups for matching")?;
-
-        // Process ungrouped proposals
-        let mut skipped_proposals = 0;
-        let mut processed_proposals = 0;
-        let mut url_matched_proposals = 0;
-        let mut semantic_matched_proposals = 0;
-        let mut new_groups_from_proposals = 0;
-
-        for proposal in proposals {
-            if grouped_proposal_ids.contains(&proposal.external_id) {
-                skipped_proposals += 1;
-                continue; // Already grouped
-            }
-
-            processed_proposals += 1;
-
+        if let Some(best_match) = ranked_candidates.first() {
             info!(
-                proposal_id = %proposal.id,
-                external_id = %proposal.external_id,
-                name = %proposal.name,
-                "Processing ungrouped proposal"
+                item_id = %item.id(),
+                best_match_id = %best_match.id,
+                angular_similarity = %best_match.angular_similarity,
+                rerank_score = %best_match.rerank_score,
+                "Found best match for item"
             );
 
-            // Tier 1: Try URL-based matching first
-            let mut matched = false;
-            if let Some(ref discussion_url) = proposal.discussion_url {
-                if let Some(dao_discourse) = &dao_discourse {
-                    matched =
-                        try_url_based_matching(&proposal, discussion_url, dao_discourse).await?;
-                    if matched {
-                        url_matched_proposals += 1;
+            // Check if the best match meets the minimum similarity threshold
+            const SIMILARITY_THRESHOLD: f32 = 0.7;
+            
+            if best_match.angular_similarity >= SIMILARITY_THRESHOLD {
+                // Good match - proceed with grouping
+                if best_match.id.starts_with("group_") {
+                    // Extract group ID from the candidate ID
+                    let parts: Vec<&str> = best_match.id.split('_').collect();
+                    if let Ok(group_id) = Uuid::parse_str(parts[1]) {
+                        // Add item to existing group
+                        add_item_to_group(item, group_id, &existing_groups).await?;
+                        newly_grouped.insert(item.id());
                     }
+                } else {
+                    // Best match is another ungrouped item - create a new group with both
+                    let other_item = ungrouped_items
+                        .iter()
+                        .find(|i| i.id() == best_match.id)
+                        .unwrap();
+
+                    create_new_group_with_items(vec![item, other_item], dao).await?;
+                    newly_grouped.insert(item.id());
+                    newly_grouped.insert(other_item.id());
                 }
-            }
-
-            // Tier 2: Try semantic similarity matching
-            if !matched && proposal.name.len() >= 25 {
-                matched = try_semantic_matching(&proposal, &groups, &dao).await?;
-                if matched {
-                    semantic_matched_proposals += 1;
-                }
-            }
-
-            // Tier 3: Create new group
-            if !matched {
-                create_new_group_from_proposal(&proposal, &dao).await?;
-                new_groups_from_proposals += 1;
-            }
-        }
-
-        // Process ungrouped topics if discourse is enabled
-        let mut skipped_topics = 0;
-        let mut processed_topics = 0;
-        let mut semantic_matched_topics = 0;
-        let mut new_groups_from_topics = 0;
-
-        if let Some(ref dao_discourse) = dao_discourse {
-            // Get category IDs to filter (if configured)
-            let category_ids = get_configured_category_ids(&dao_discourse.id, &dao.slug).await?;
-
-            // Get all topics
-            let mut query = discourse_topic::Entity::find()
-                .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id))
-                .order_by_asc(discourse_topic::Column::Id);
-
-            if !category_ids.is_empty() {
-                query =
-                    query.filter(discourse_topic::Column::CategoryId.is_in(category_ids.clone()));
-            }
-
-            let topics = query
-                .all(DB.get().unwrap())
-                .await
-                .context("Failed to fetch topics")?;
-
-            info!(total_topics = topics.len(), "Processing all topics");
-
-            // Process ungrouped topics with three-tier system
-            for topic in topics {
-                if grouped_topic_ids.contains(&topic.external_id.to_string()) {
-                    skipped_topics += 1;
-                    continue; // Already grouped
-                }
-
-                processed_topics += 1;
-
+            } else {
+                // Best match doesn't meet threshold - create single-item group
                 info!(
-                    discourse_topic_id = %topic.id,
-                    external_id = topic.external_id,
-                    title = %topic.title,
-                    "Processing ungrouped topic"
+                    item_id = %item.id(),
+                    best_match_id = %best_match.id,
+                    angular_similarity = %best_match.angular_similarity,
+                    threshold = %SIMILARITY_THRESHOLD,
+                    "Best match below threshold, creating single-item group"
                 );
-
-                // Tier 1: URL-based matching is not applicable for topics
-                // (topics don't have discussion URLs pointing to other topics)
-
-                // Tier 2: Try semantic similarity matching
-                let mut matched = false;
-                if topic.title.len() >= 25 {
-                    matched = try_semantic_matching_for_topic(&topic, &groups, &dao, dao_discourse)
-                        .await?;
-                    if matched {
-                        semantic_matched_topics += 1;
-                    }
-                }
-
-                // Tier 3: Create new group
-                if !matched {
-                    create_new_group_from_topic(&topic, &dao).await?;
-                    new_groups_from_topics += 1;
-                }
+                create_single_item_group(item, dao).await?;
+                newly_grouped.insert(item.id());
             }
+        } else {
+            // No candidates at all, create single-item group
+            create_single_item_group(item, dao).await?;
+            newly_grouped.insert(item.id());
         }
-
-        info!(
-            dao_id = %dao.id,
-            skipped_proposals,
-            processed_proposals,
-            url_matched_proposals,
-            semantic_matched_proposals,
-            new_groups_from_proposals,
-            total_proposals = skipped_proposals + processed_proposals,
-            skipped_topics,
-            processed_topics,
-            semantic_matched_topics,
-            new_groups_from_topics,
-            total_topics = skipped_topics + processed_topics,
-            "Finished processing items for DAO"
-        );
     }
+
+    info!(
+        newly_grouped_count = newly_grouped.len(),
+        "Completed grouping for DAO"
+    );
 
     Ok(())
 }
 
-async fn try_url_based_matching(
-    proposal: &proposal::Model,
-    discussion_url: &str,
-    dao_discourse: &dao_discourse::Model,
-) -> Result<bool> {
-    info!(
-        proposal_id = %proposal.id,
-        discussion_url = %discussion_url,
-        "Attempting URL-based matching"
-    );
-
-    // Extract topic ID or slug from discussion URL
-    let (topic_id, topic_slug) = extract_discourse_id_or_slug(discussion_url);
-
-    info!(
-        proposal_id = %proposal.id,
-        extracted_topic_id = ?topic_id,
-        extracted_topic_slug = ?topic_slug,
-        "Extracted topic info from URL"
-    );
-
-    // Find the discourse topic
-    let discourse_topic = if let Some(topic_id) = topic_id {
-        discourse_topic::Entity::find()
-            .filter(
-                discourse_topic::Column::ExternalId
-                    .eq(topic_id)
-                    .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
-            )
-            .one(DB.get().unwrap())
-            .await
-            .context("Failed to find discourse topic by ID")?
-    } else if let Some(ref topic_slug) = topic_slug {
-        // For slug-only matching, get the most recent topic with this slug
-        // (in case there are duplicates, though there shouldn't be)
-        discourse_topic::Entity::find()
-            .filter(
-                discourse_topic::Column::Slug
-                    .eq(topic_slug.clone())
-                    .and(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id)),
-            )
-            .order_by_desc(discourse_topic::Column::CreatedAt)
-            .one(DB.get().unwrap())
-            .await
-            .context("Failed to find discourse topic by slug")?
-    } else {
-        warn!(
-            proposal_id = %proposal.id,
-            discussion_url = %discussion_url,
-            "Could not extract topic ID or slug from URL"
-        );
-        None
-    };
-
-    if let Some(topic) = discourse_topic {
-        info!(
-            proposal_id = %proposal.id,
-            topic_id = %topic.id,
-            topic_external_id = %topic.external_id,
-            topic_slug = %topic.slug,
-            "Found discourse topic for URL"
-        );
-
-        // Find the proposal group containing this topic by searching all groups
-        // (not just the recent ones passed in)
-        let all_groups = proposal_group::Entity::find()
-            .filter(proposal_group::Column::DaoId.eq(proposal.dao_id))
-            .all(DB.get().unwrap())
-            .await
-            .context("Failed to fetch all proposal groups for URL matching")?;
-
-        for group in all_groups {
-            if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
-            {
-                for item in &items {
-                    if let ProposalGroupItem::Topic(topic_item) = item {
-                        if topic_item.external_id == topic.external_id.to_string()
-                            && topic_item.dao_discourse_id == topic.dao_discourse_id
-                        {
-                            // Add proposal to this group
-                            info!(
-                                proposal_id = %proposal.id,
-                                group_id = %group.id,
-                                "Adding proposal to existing group via URL matching"
-                            );
-
-                            let mut updated_items = items.clone();
-                            updated_items.push(ProposalGroupItem::Proposal(ProposalItem {
-                                name: proposal.name.clone(),
-                                governor_id: proposal.governor_id,
-                                external_id: proposal.external_id.clone(),
-                            }));
-
-                            let mut group_active: proposal_group::ActiveModel =
-                                group.clone().into();
-                            group_active.items = Set(serde_json::to_value(updated_items)
-                                .context("Failed to serialize proposal group items")?);
-
-                            proposal_group::Entity::update(group_active)
-                                .exec(DB.get().unwrap())
-                                .await
-                                .context("Failed to update proposal group")?;
-
-                            info!(
-                                proposal_id = %proposal.id,
-                                "Successfully added proposal to group via URL matching"
-                            );
-                            return Ok(true);
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        info!(
-            proposal_id = %proposal.id,
-            discussion_url = %discussion_url,
-            topic_id = ?topic_id,
-            topic_slug = ?topic_slug,
-            "No discourse topic found for URL"
-        );
-    }
-
-    Ok(false)
-}
-
-async fn try_semantic_matching(
-    proposal: &proposal::Model,
-    groups: &[proposal_group::Model],
-    dao: &dao::Model,
-) -> Result<bool> {
-    let embeddings = EMBEDDINGS.get().context("Embeddings not initialized")?;
-
-    info!(
-        proposal_id = %proposal.id,
-        "Attempting semantic similarity matching with enhanced scoring"
-    );
-
-    // For each group, get ALL items and test against each one
-    let mut best_match: Option<(String, crate::redis_embeddings::SimilarityScore)> = None;
-
-    for group in groups {
-        if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
-            // Prepare candidates from ALL items in this group
-            let mut group_candidates = Vec::new();
-
-            for item in &items {
-                match item {
-                    ProposalGroupItem::Topic(topic_item) => {
-                        // Get the discourse topic content
-                        if let Some(dao_discourse) = dao_discourse::Entity::find()
-                            .filter(dao_discourse::Column::DaoId.eq(dao.id))
-                            .one(DB.get().unwrap())
-                            .await?
-                        {
-                            if let Some(topic) = discourse_topic::Entity::find()
-                                .filter(
-                                    discourse_topic::Column::ExternalId
-                                        .eq(topic_item.external_id.parse::<i32>().unwrap_or(0)),
-                                )
-                                .filter(
-                                    discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id),
-                                )
-                                .one(DB.get().unwrap())
-                                .await?
-                            {
-                                // Get the first post for body content
-                                let body = if let Some(first_post) = discourse_post::Entity::find()
-                                    .filter(discourse_post::Column::TopicId.eq(topic.external_id))
-                                    .filter(discourse_post::Column::PostNumber.eq(1))
-                                    .filter(
-                                        discourse_post::Column::DaoDiscourseId.eq(dao_discourse.id),
-                                    )
-                                    .one(DB.get().unwrap())
-                                    .await?
-                                {
-                                    first_post.cooked
-                                } else {
-                                    None
-                                };
-
-                                group_candidates.push((
-                                    format!("{}_topic_{}", group.id, topic_item.external_id),
-                                    topic.title.clone(),
-                                    body,
-                                ));
-                            }
-                        }
-                    }
-                    ProposalGroupItem::Proposal(proposal_item) => {
-                        // Get the proposal content
-                        if let Some(group_proposal) = proposal::Entity::find()
-                            .filter(proposal::Column::ExternalId.eq(&proposal_item.external_id))
-                            .filter(proposal::Column::GovernorId.eq(proposal_item.governor_id))
-                            .one(DB.get().unwrap())
-                            .await?
-                        {
-                            group_candidates.push((
-                                format!("{}_proposal_{}", group.id, proposal_item.external_id),
-                                group_proposal.name.clone(),
-                                Some(group_proposal.body.clone()),
-                            ));
-                        }
-                    }
-                }
-            }
-
-            // Test against all candidates in this group
-            if !group_candidates.is_empty() {
-                if let Some((item_id, score)) = embeddings
-                    .find_most_similar_enhanced(
-                        &proposal.name,
-                        Some(&proposal.body),
-                        group_candidates,
-                        true, // is_proposal = true
-                    )
-                    .await?
-                {
-                    // Check if this is the best match so far
-                    if best_match.is_none()
-                        || best_match.as_ref().unwrap().1.combined_score < score.combined_score
-                    {
-                        info!(
-                            proposal_id = %proposal.id,
-                            group_id = %group.id,
-                            matched_item_id = %item_id,
-                            score = score.combined_score,
-                            items_in_group = items.len(),
-                            "Found better match in group"
-                        );
-                        best_match = Some((group.id.to_string(), score));
-                    }
-                }
-            }
-        }
-    }
-
-    // If we found a good match, add the proposal to that group
-    if let Some((group_id, score)) = best_match {
-        info!(
-            proposal_id = %proposal.id,
-            group_id = %group_id,
-            combined_score = score.combined_score,
-            title_similarity = score.title_similarity,
-            body_similarity = ?score.body_similarity,
-            passes_threshold = score.passes_threshold,
-            "Found similar group via enhanced semantic matching"
-        );
-
-        // Only add to group if it passes the threshold
-        if !score.passes_threshold {
-            info!(
-                proposal_id = %proposal.id,
-                "Match found but below threshold, not grouping"
-            );
-            return Ok(false);
-        }
-
-        // Find the group and add the proposal
-        let group_uuid = Uuid::parse_str(&group_id)?;
-        if let Some(group) = groups.iter().find(|g| g.id == group_uuid) {
-            if let Ok(mut items) =
-                serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
-            {
-                items.push(ProposalGroupItem::Proposal(ProposalItem {
-                    name: proposal.name.clone(),
-                    governor_id: proposal.governor_id,
-                    external_id: proposal.external_id.clone(),
-                }));
-
-                let mut group_active: proposal_group::ActiveModel = group.clone().into();
-                group_active.items = Set(serde_json::to_value(items)
-                    .context("Failed to serialize proposal group items")?);
-
-                proposal_group::Entity::update(group_active)
-                    .exec(DB.get().unwrap())
-                    .await
-                    .context("Failed to update proposal group")?;
-
-                info!(
-                    proposal_id = %proposal.id,
-                    "Successfully added proposal to group via semantic matching"
-                );
-                return Ok(true);
-            }
-        }
-    }
-
-    Ok(false)
-}
-
-async fn create_new_group_from_proposal(
-    proposal: &proposal::Model,
-    dao: &dao::Model,
+async fn add_item_to_group(
+    item: &GroupableItem,
+    group_id: Uuid,
+    existing_groups: &[proposal_group::Model],
 ) -> Result<()> {
+    // Find the group
+    let group = existing_groups
+        .iter()
+        .find(|g| g.id == group_id)
+        .context("Group not found")?;
+
+    // Deserialize existing items
+    let mut items = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
+        .context("Failed to deserialize group items")?;
+
+    // Add new item
+    items.push(item.to_group_item());
+
+    // Update group
+    let mut active_group: proposal_group::ActiveModel = group.clone().into();
+    active_group.items = Set(serde_json::to_value(&items)?);
+
+    proposal_group::Entity::update(active_group)
+        .exec(DB.get().unwrap())
+        .await
+        .context("Failed to update group")?;
+
     info!(
-        proposal_id = %proposal.id,
-        "Creating new group from proposal (no matching group found)"
+        group_id = %group_id,
+        item_id = %item.id(),
+        new_size = items.len(),
+        "Added item to existing group"
     );
+
+    Ok(())
+}
+
+async fn create_new_group_with_items(items: Vec<&GroupableItem>, dao: &dao::Model) -> Result<()> {
+    let group_items: Vec<ProposalGroupItem> =
+        items.iter().map(|item| item.to_group_item()).collect();
+
+    // Use the first item's title as the group name
+    let group_name = items[0].title().to_string();
 
     let new_group = proposal_group::ActiveModel {
         id: NotSet,
-        dao_id: Set(dao.id),
-        name: Set(proposal.name.clone()),
-        items: Set(
-            serde_json::to_value(vec![ProposalGroupItem::Proposal(ProposalItem {
-                name: proposal.name.clone(),
-                governor_id: proposal.governor_id,
-                external_id: proposal.external_id.clone(),
-            })])
-            .context("Failed to serialize proposal group items")?,
-        ),
+        name: Set(group_name.clone()),
+        items: Set(serde_json::to_value(&group_items)?),
         created_at: NotSet,
+        dao_id: Set(dao.id),
     };
 
-    proposal_group::Entity::insert(new_group)
+    let created_group = proposal_group::Entity::insert(new_group)
         .exec(DB.get().unwrap())
         .await
         .context("Failed to create proposal group")?;
 
     info!(
-        proposal_id = %proposal.id,
-        "Created new proposal group from ungrouped proposal"
+        group_id = %created_group.last_insert_id,
+        group_name = %group_name,
+        item_count = items.len(),
+        "Created new group with multiple items"
     );
 
     Ok(())
 }
 
-async fn try_semantic_matching_for_topic(
-    topic: &discourse_topic::Model,
-    groups: &[proposal_group::Model],
-    _dao: &dao::Model,
-    dao_discourse: &dao_discourse::Model,
-) -> Result<bool> {
-    let embeddings = EMBEDDINGS.get().context("Embeddings not initialized")?;
-
-    info!(
-        topic_id = %topic.id,
-        "Attempting semantic similarity matching for topic"
-    );
-
-    // Get the first post for body content
-    let body = if let Some(first_post) = discourse_post::Entity::find()
-        .filter(discourse_post::Column::TopicId.eq(topic.external_id))
-        .filter(discourse_post::Column::PostNumber.eq(1))
-        .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse.id))
-        .one(DB.get().unwrap())
-        .await?
-    {
-        first_post.cooked
-    } else {
-        None
-    };
-
-    // For each group, get ALL items and test against each one
-    let mut best_match: Option<(String, crate::redis_embeddings::SimilarityScore)> = None;
-
-    for group in groups {
-        if let Ok(items) = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone()) {
-            // Prepare candidates from ALL items in this group
-            let mut group_candidates = Vec::new();
-
-            for item in &items {
-                match item {
-                    ProposalGroupItem::Topic(topic_item) => {
-                        // Get the discourse topic content
-                        if let Some(other_topic) = discourse_topic::Entity::find()
-                            .filter(
-                                discourse_topic::Column::ExternalId
-                                    .eq(topic_item.external_id.parse::<i32>().unwrap_or(0)),
-                            )
-                            .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id))
-                            .one(DB.get().unwrap())
-                            .await?
-                        {
-                            // Get the first post for body content
-                            let other_body = if let Some(first_post) =
-                                discourse_post::Entity::find()
-                                    .filter(
-                                        discourse_post::Column::TopicId.eq(other_topic.external_id),
-                                    )
-                                    .filter(discourse_post::Column::PostNumber.eq(1))
-                                    .filter(
-                                        discourse_post::Column::DaoDiscourseId.eq(dao_discourse.id),
-                                    )
-                                    .one(DB.get().unwrap())
-                                    .await?
-                            {
-                                first_post.cooked
-                            } else {
-                                None
-                            };
-
-                            group_candidates.push((
-                                format!("{}_topic_{}", group.id, topic_item.external_id),
-                                other_topic.title.clone(),
-                                other_body,
-                            ));
-                        }
-                    }
-                    ProposalGroupItem::Proposal(proposal_item) => {
-                        // Get the proposal content
-                        if let Some(group_proposal) = proposal::Entity::find()
-                            .filter(proposal::Column::ExternalId.eq(&proposal_item.external_id))
-                            .filter(proposal::Column::GovernorId.eq(proposal_item.governor_id))
-                            .one(DB.get().unwrap())
-                            .await?
-                        {
-                            group_candidates.push((
-                                format!("{}_proposal_{}", group.id, proposal_item.external_id),
-                                group_proposal.name.clone(),
-                                Some(group_proposal.body.clone()),
-                            ));
-                        }
-                    }
-                }
-            }
-
-            // Test against all candidates in this group
-            if !group_candidates.is_empty() {
-                if let Some((item_id, score)) = embeddings
-                    .find_most_similar_enhanced(
-                        &topic.title,
-                        body.as_deref(),
-                        group_candidates,
-                        false,
-                    ) // is_proposal = false
-                    .await?
-                {
-                    // Check if this is the best match so far
-                    if best_match.is_none()
-                        || best_match.as_ref().unwrap().1.combined_score < score.combined_score
-                    {
-                        info!(
-                            topic_id = %topic.id,
-                            group_id = %group.id,
-                            matched_item_id = %item_id,
-                            score = score.combined_score,
-                            items_in_group = items.len(),
-                            "Found better match in group"
-                        );
-                        best_match = Some((group.id.to_string(), score));
-                    }
-                }
-            }
-        }
-    }
-
-    // If we found a good match, add the topic to that group
-    if let Some((group_id, score)) = best_match {
-        info!(
-            topic_id = %topic.id,
-            group_id = %group_id,
-            combined_score = score.combined_score,
-            title_similarity = score.title_similarity,
-            body_similarity = ?score.body_similarity,
-            passes_threshold = score.passes_threshold,
-            "Found similar group via enhanced semantic matching"
-        );
-
-        // Only add to group if it passes the threshold
-        if !score.passes_threshold {
-            info!(
-                topic_id = %topic.id,
-                "Match found but below threshold, not grouping"
-            );
-            return Ok(false);
-        }
-
-        // Find the group and add the topic
-        let group_uuid = Uuid::parse_str(&group_id)?;
-        if let Some(group) = groups.iter().find(|g| g.id == group_uuid) {
-            if let Ok(mut items) =
-                serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
-            {
-                items.push(ProposalGroupItem::Topic(TopicItem {
-                    name: topic.title.clone(),
-                    external_id: topic.external_id.to_string(),
-                    dao_discourse_id: topic.dao_discourse_id,
-                }));
-
-                let mut group_active: proposal_group::ActiveModel = group.clone().into();
-                group_active.items = Set(serde_json::to_value(items)
-                    .context("Failed to serialize proposal group items")?);
-
-                proposal_group::Entity::update(group_active)
-                    .exec(DB.get().unwrap())
-                    .await
-                    .context("Failed to update proposal group")?;
-
-                info!(
-                    topic_id = %topic.id,
-                    "Successfully added topic to group via semantic matching"
-                );
-                return Ok(true);
-            }
-        }
-    }
-
-    Ok(false)
+async fn create_single_item_group(item: &GroupableItem, dao: &dao::Model) -> Result<()> {
+    create_new_group_with_items(vec![item], dao).await
 }
 
-async fn create_new_group_from_topic(
-    topic: &discourse_topic::Model,
-    dao: &dao::Model,
-) -> Result<()> {
-    info!(
-        topic_id = %topic.id,
-        "Creating new group from topic (no matching group found)"
-    );
-
-    let new_group = proposal_group::ActiveModel {
-        id: NotSet,
-        dao_id: Set(dao.id),
-        name: Set(topic.title.clone()),
-        items: Set(
-            serde_json::to_value(vec![ProposalGroupItem::Topic(TopicItem {
-                name: topic.title.clone(),
-                external_id: topic.external_id.to_string(),
-                dao_discourse_id: topic.dao_discourse_id,
-            })])
-            .context("Failed to serialize proposal group items")?,
-        ),
-        created_at: NotSet,
-    };
-
-    proposal_group::Entity::insert(new_group)
-        .exec(DB.get().unwrap())
-        .await
-        .context("Failed to create proposal group")?;
-
-    info!(
-        topic_id = %topic.id,
-        "Created new proposal group from ungrouped topic"
-    );
-
-    Ok(())
-}
-
-#[instrument(skip_all, fields(dao_discourse_id = %dao_discourse_id, dao_slug = dao_slug))]
-async fn get_configured_category_ids(dao_discourse_id: &Uuid, dao_slug: &str) -> Result<Vec<i32>> {
-    // Get category IDs from the static mapping
-    Ok(DAO_DISCOURSE_CATEGORY_FILTERS
-        .get(dao_slug)
-        .cloned()
-        .unwrap_or_default())
-}
-
+/// Extract topic ID and/or slug from a Discourse URL
 pub fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
     // Remove query parameters and fragments
     let url_without_query = url.split('?').next().unwrap_or("");

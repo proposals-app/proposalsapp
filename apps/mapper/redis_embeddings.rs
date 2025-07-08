@@ -5,7 +5,7 @@ use fastembed::{
 use redis::aio::ConnectionManager;
 use redis::{AsyncCommands, Client};
 use std::sync::Arc;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 const EMBEDDING_KEY_PREFIX: &str = "mapper:embeddings:";
 const EMBEDDING_TTL_SECONDS: i64 = 24 * 60 * 60; // 24 hours
@@ -18,25 +18,18 @@ pub struct RedisEmbeddingCache {
     model: Arc<TextEmbedding>,
     /// The reranking model for cross-encoder scoring
     reranker: Arc<TextRerank>,
-    /// Angular similarity threshold for matching proposals (title-only)
-    proposal_similarity_threshold: f32,
-    /// Angular similarity threshold for matching topics (title-only)
-    topic_similarity_threshold: f32,
-    /// Lower threshold for title+body matching
-    body_similarity_threshold: f32,
 }
 
 #[derive(Debug, Clone)]
-pub struct SimilarityScore {
-    pub title_similarity: f32,
-    pub body_similarity: Option<f32>,
-    pub combined_score: f32,
-    pub passes_threshold: bool,
-    pub rerank_score: Option<f32>, // Cross-encoder score if available
+pub struct RankedCandidate {
+    pub id: String,
+    pub angular_similarity: f32,
+    pub rerank_score: f32,
+    pub rank: usize,
 }
 
 impl RedisEmbeddingCache {
-    pub async fn new(proposal_threshold: f32, topic_threshold: f32) -> Result<Self> {
+    pub async fn new() -> Result<Self> {
         info!("Initializing Redis-backed embedding cache...");
 
         // Connect to Redis
@@ -66,16 +59,10 @@ impl RedisEmbeddingCache {
 
         info!("Embedding and reranking models initialized successfully");
 
-        // Set body threshold lower than title threshold
-        let body_similarity_threshold = 0.65f32;
-
         Ok(Self {
             redis,
             model: Arc::new(model),
             reranker: Arc::new(reranker),
-            proposal_similarity_threshold: proposal_threshold,
-            topic_similarity_threshold: topic_threshold,
-            body_similarity_threshold,
         })
     }
 
@@ -137,22 +124,6 @@ impl RedisEmbeddingCache {
                     .await
                     .context("Failed to store embedding in Redis")?;
 
-                // Verify the data was stored correctly
-                if cfg!(debug_assertions) {
-                    let verify: Option<Vec<u8>> = self
-                        .redis
-                        .clone()
-                        .get(&key)
-                        .await
-                        .context("Failed to verify Redis storage")?;
-                    if verify.is_none() {
-                        warn!(
-                            "Failed to verify embedding was stored in Redis for key: {}",
-                            &key
-                        );
-                    }
-                }
-
                 embedding
             };
 
@@ -180,7 +151,6 @@ impl RedisEmbeddingCache {
     /// Calculate cosine similarity between two vectors
     pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
         if a.len() != b.len() {
-            warn!("Vector dimensions don't match: {} vs {}", a.len(), b.len());
             return 0.0;
         }
 
@@ -195,23 +165,21 @@ impl RedisEmbeddingCache {
         dot_product / (norm_a * norm_b)
     }
 
-    /// Enhanced similarity calculation with separate title and body scoring
-    pub async fn find_most_similar_enhanced(
+    /// Find top N candidates using embeddings and reranking
+    /// Returns the ranked candidates in order of relevance (best first)
+    pub async fn find_top_candidates(
         &self,
         query_title: &str,
         query_body: Option<&str>,
         candidates: Vec<(String, String, Option<String>)>, // (id, title, body)
-        is_proposal: bool,                                 // true for proposals, false for topics
-    ) -> Result<Option<(String, SimilarityScore)>> {
+        top_n: usize,
+    ) -> Result<Vec<RankedCandidate>> {
         if candidates.is_empty() {
-            return Ok(None);
+            return Ok(vec![]);
         }
 
-        // Use query title directly
-        let norm_query_title = query_title.to_string();
-
-        // Get query embeddings first
-        let query_title_embedding = self.embed(&norm_query_title).await?;
+        // Get query embeddings
+        let query_title_embedding = self.embed(query_title).await?;
         let query_body_embedding = if let Some(qb) = query_body {
             Some(self.embed(qb).await?)
         } else {
@@ -219,7 +187,7 @@ impl RedisEmbeddingCache {
         };
 
         // Process candidates in chunks to avoid memory spikes
-        const CHUNK_SIZE: usize = 20;
+        const CHUNK_SIZE: usize = 50;
         let mut all_scored_candidates = Vec::new();
 
         for chunk in candidates.chunks(CHUNK_SIZE) {
@@ -248,7 +216,7 @@ impl RedisEmbeddingCache {
 
             // Score candidates in this chunk
             let mut body_idx = 0;
-            for (i, (id, title, body)) in chunk.iter().enumerate() {
+            for (i, (id, _title, body)) in chunk.iter().enumerate() {
                 // Title similarity
                 let title_sim =
                     Self::angular_similarity(&query_title_embedding, &title_embeddings[i]);
@@ -275,35 +243,36 @@ impl RedisEmbeddingCache {
                     title_sim
                 };
 
-                all_scored_candidates.push((
-                    id.clone(),
-                    title_sim,
-                    body_sim,
-                    combined_score,
-                    title.clone(),
-                    body.clone(),
-                ));
+                all_scored_candidates.push((id.clone(), combined_score));
             }
         }
 
         // Sort by combined score and take top candidates for reranking
-        all_scored_candidates.sort_by(|a, b| b.3.partial_cmp(&a.3).unwrap());
-        let top_k = 20.min(all_scored_candidates.len());
-        let rerank_candidates = all_scored_candidates.iter().take(top_k).collect::<Vec<_>>();
+        all_scored_candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        let rerank_count = top_n.max(20).min(all_scored_candidates.len());
+        let rerank_candidates = all_scored_candidates
+            .iter()
+            .take(rerank_count)
+            .collect::<Vec<_>>();
 
         if rerank_candidates.is_empty() {
-            return Ok(None);
+            return Ok(vec![]);
         }
 
-        // Stage 2: Rerank top candidates with cross-encoder
+        // Prepare documents for reranking
         let mut documents = Vec::new();
-        for (_, _, _, _, title, body) in &rerank_candidates {
-            let doc = if let Some(b) = body {
-                format!("{}\n\n{}", title, b)
+        let mut candidate_map = std::collections::HashMap::new();
+        
+        for (id, angular_score) in &rerank_candidates {
+            // Find the original candidate data
+            let original = candidates.iter().find(|(cid, _, _)| cid == id).unwrap();
+            let doc = if let Some(b) = &original.2 {
+                format!("{}\n\n{}", original.1, b)
             } else {
-                title.to_string()
+                original.1.clone()
             };
             documents.push(doc);
+            candidate_map.insert(id.clone(), *angular_score);
         }
 
         let query_full = if let Some(qb) = query_body {
@@ -314,41 +283,34 @@ impl RedisEmbeddingCache {
 
         let document_refs: Vec<&String> = documents.iter().collect();
 
-        // Rerank and get scores
+        // Rerank and get scores for all candidates
         let rerank_results = self
             .reranker
-            .rerank(&query_full, document_refs, false, Some(1))
+            .rerank(&query_full, document_refs, true, None) // Return all with scores
             .context("Failed to rerank candidates")?;
 
-        if let Some(best_result) = rerank_results.first() {
-            let best_idx = best_result.index;
-            let (id, title_sim, body_sim, _, _, _) = &rerank_candidates[best_idx];
+        // Build final ranked list
+        let mut ranked_candidates = Vec::new();
+        for (rank, result) in rerank_results.iter().take(top_n).enumerate() {
+            let idx = result.index;
+            let (id, _) = &rerank_candidates[idx];
+            let angular_score = candidate_map[id];
 
-            let threshold = if body_sim.is_some() {
-                self.body_similarity_threshold
-            } else if is_proposal {
-                self.proposal_similarity_threshold
-            } else {
-                self.topic_similarity_threshold
-            };
-
-            let score = SimilarityScore {
-                title_similarity: *title_sim,
-                body_similarity: *body_sim,
-                combined_score: best_result.score as f32,
-                passes_threshold: best_result.score as f32 >= threshold,
-                rerank_score: Some(best_result.score as f32),
-            };
-
-            info!(
-                "Found best match via reranking: {} (title: {:.3}, body: {:?}, rerank: {:.3})",
-                id, title_sim, body_sim, best_result.score
-            );
-
-            Ok(Some((id.clone(), score)))
-        } else {
-            Ok(None)
+            ranked_candidates.push(RankedCandidate {
+                id: id.clone(),
+                angular_similarity: angular_score,
+                rerank_score: result.score as f32,
+                rank: rank + 1,
+            });
         }
+
+        info!(
+            "Reranked {} candidates, returning top {}",
+            rerank_candidates.len(),
+            ranked_candidates.len()
+        );
+
+        Ok(ranked_candidates)
     }
 
     /// Get cache statistics
