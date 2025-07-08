@@ -32,7 +32,7 @@ job "grafana" {
       mode = "host"
       
       port "http" {
-        static = 3000
+        static = 3300
         host_network = "tailscale"
       }
     }
@@ -74,7 +74,7 @@ job "grafana" {
         data = <<EOF
 [server]
 http_addr = 0.0.0.0
-http_port = 3000
+http_port = 3300
 root_url = https://grafana.proposals.app
 domain = grafana.proposals.app
 enforce_domain = false

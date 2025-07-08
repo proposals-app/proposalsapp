@@ -51,9 +51,9 @@ job "web" {
     }
 
     network {
-      mode = "host"
       port "http" {
         static = 3000
+        to = 3000
         host_network = "tailscale"
       }
     }
@@ -64,7 +64,7 @@ job "web" {
       config {
         # Image will be replaced during deployment
         image = "ghcr.io/proposals-app/proposalsapp/web:latest"
-        network_mode = "host"
+        ports = ["http"]
         force_pull = true
 
         # Add logging configuration

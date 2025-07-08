@@ -57,7 +57,7 @@ job "homepage" {
 
       config {
         image = "ghcr.io/gethomepage/homepage:latest"
-        network_mode = "host"
+        ports = ["http"]
         
         volumes = [
           "local/config:/app/config"
@@ -67,6 +67,7 @@ job "homepage" {
       env {
         PUID = "1000"
         PGID = "1000"
+        PORT = "3000"
         HOMEPAGE_ALLOWED_HOSTS = "dashboard.proposals.app"
       }
 
