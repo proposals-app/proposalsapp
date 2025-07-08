@@ -102,7 +102,7 @@
     "@types/diff-match-patch": "^1.0.36",
     "@types/eslint": "^9.6.1",
     "@types/jsdom": "^21.1.7",
-    "@types/node": "24.0.10",
+    "@types/node": "24.0.11",
     "@types/path-browserify": "^1",
     "@types/postcss-load-config": "^3.0.1",
     "@types/prettier": "^3.0.0",
