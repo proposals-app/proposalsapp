@@ -49,7 +49,8 @@ job "email-service" {
 
     network {
       port "http" {
-        to = 3001
+        static = 3001
+        to = 3000
         host_network = "tailscale"
       }
     }
@@ -76,7 +77,6 @@ job "email-service" {
       env {
         # Node.js settings
         NODE_ENV = "production"
-        PORT = "3001"
       }
 
       # Deployment metadata template for visibility

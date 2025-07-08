@@ -52,9 +52,9 @@ job "discourse" {
     }
 
     network {
-      mode = "host"
       port "health" {
         static = 3003
+        to = 3000
         host_network = "tailscale"
       }
     }
@@ -65,7 +65,6 @@ job "discourse" {
       config {
         # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/discourse:latest"
-        network_mode = "host"
         ports = ["health"]
         force_pull = true
 

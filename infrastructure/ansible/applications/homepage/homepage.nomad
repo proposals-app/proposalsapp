@@ -26,6 +26,7 @@ job "homepage" {
       
       port "http" {
         static = 3200
+        to = 3000
         host_network = "tailscale"
       }
     }
@@ -66,7 +67,6 @@ job "homepage" {
       env {
         PUID = "1000"
         PGID = "1000"
-        PORT = "3200"
         HOMEPAGE_ALLOWED_HOSTS = "dashboard.proposals.app"
       }
 

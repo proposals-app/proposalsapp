@@ -46,6 +46,7 @@ job "mapper" {
 
     network {
       port "http" {
+        static = 3002
         to = 3000
         host_network = "tailscale"
       }

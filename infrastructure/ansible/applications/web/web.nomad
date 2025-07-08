@@ -53,7 +53,7 @@ job "web" {
     network {
       mode = "host"
       port "http" {
-        static = 3002
+        static = 3000
         host_network = "tailscale"
       }
     }
@@ -80,7 +80,7 @@ job "web" {
       env {
         # Node.js settings
         NODE_ENV = "production"
-        PORT = "3002"
+        PORT = "3000"
         
         # Bind to all interfaces so health checks can reach the app
         HOSTNAME = "0.0.0.0"

@@ -52,7 +52,7 @@ export const config: Config = {
     'FROM_EMAIL',
     'Proposals.app <no-reply@proposals.app>'
   ),
-  port: getOptionalNumberEnv('PORT', 8080),
+  port: 3000,
   betterstackKey: process.env.BETTERSTACK_KEY,
   notifications: {
     newProposalTimeframeMinutes: getOptionalNumberEnv(
