@@ -137,7 +137,7 @@ datasources:
   - name: Loki
     type: loki
     access: proxy
-    url: http://{{ range service "loki" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:3100{{ end }}
+    url: http://{{ range service "loki" }}{{ .Address }}:{{ .Port }}{{ else }}{{ range service "loki@dc1" }}{{ .Address }}:{{ .Port }}{{ else }}{{ range service "loki@dc2" }}{{ .Address }}:{{ .Port }}{{ else }}{{ range service "loki@dc3" }}{{ .Address }}:{{ .Port }}{{ else }}localhost:3100{{ end }}{{ end }}{{ end }}{{ end }}
     jsonData:
       maxLines: 10000
       timeout: 300
@@ -152,7 +152,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://{{ range service "prometheus" }}{{ .NodeAddress }}:{{ .Port }}{{ else }}localhost:9090{{ end }}
+    url: http://{{ range service "prometheus" }}{{ .Address }}:{{ .Port }}{{ else }}{{ range service "prometheus@dc1" }}{{ .Address }}:{{ .Port }}{{ else }}{{ range service "prometheus@dc2" }}{{ .Address }}:{{ .Port }}{{ else }}{{ range service "prometheus@dc3" }}{{ .Address }}:{{ .Port }}{{ else }}localhost:9090{{ end }}{{ end }}{{ end }}{{ end }}
     jsonData:
       timeInterval: 15s
       queryTimeout: 60s
