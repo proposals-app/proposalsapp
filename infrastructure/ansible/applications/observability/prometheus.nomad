@@ -3,10 +3,6 @@ job "prometheus" {
   datacenters = ["dc1", "dc2", "dc3"]
   type        = "service"
 
-  constraint {
-    attribute = "${attr.kernel.name}"
-    value     = "linux"
-  }
 
   group "prometheus" {
     count = 1
@@ -20,6 +16,7 @@ job "prometheus" {
       
       port "http" {
         static = 9090
+        host_network = "tailscale"
       }
     }
     
@@ -28,6 +25,23 @@ job "prometheus" {
       size = 10000  # 10GB
       migrate = true
       sticky = true
+    }
+
+    service {
+      name = "prometheus"
+      port = "http"
+      address_mode = "host"
+      tags = [
+        "http",
+        "metrics"
+      ]
+
+      check {
+        type     = "http"
+        path     = "/-/ready"
+        interval = "10s"
+        timeout  = "2s"
+      }
     }
 
     task "prometheus" {
@@ -286,27 +300,6 @@ EOF
       resources {
         cpu    = 1000
         memory = 2048
-      }
-
-      service {
-        name = "prometheus"
-        port = "http"
-        tags = [
-          "http",
-          "metrics"
-        ]
-
-        # Enable Consul Connect
-        connect {
-          sidecar_service {}
-        }
-
-        check {
-          type     = "http"
-          path     = "/-/ready"
-          interval = "10s"
-          timeout  = "2s"
-        }
       }
     }
   }

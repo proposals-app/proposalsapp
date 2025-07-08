@@ -260,6 +260,20 @@
             echo 'Tailscale already installed'
           fi
 
+          # Ensure Tailscale uses standard mode (not userspace)
+          echo 'Configuring Tailscale for standard mode...'
+          if [ -f /etc/default/tailscaled ]; then
+            # Remove any userspace mode flags
+            sed -i 's/FLAGS=".*--tun=userspace-networking.*"/FLAGS=""/' /etc/default/tailscaled
+            # Ensure FLAGS is empty or doesn't contain userspace flag
+            if ! grep -q '^FLAGS=""' /etc/default/tailscaled; then
+              echo 'FLAGS=""' >> /etc/default/tailscaled
+            fi
+          else
+            # Create the file with empty FLAGS
+            echo 'FLAGS=""' > /etc/default/tailscaled
+          fi
+
           # Enable IP forwarding
           if ! grep -q 'net.ipv4.ip_forward=1' /etc/sysctl.conf; then
             echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
@@ -342,6 +356,32 @@
         - vault_tailscale_auth_key is defined
         - tailscale_setup is defined
         - tailscale_setup.changed
+
+    - name: Verify tailscale0 interface exists
+      shell: |
+        pct exec {{ item.id }} -- bash -c "
+          echo '=== Verifying tailscale0 interface for {{ item.name }} ==='
+          
+          # Wait for interface to come up
+          for i in {1..10}; do
+            if ip link show tailscale0 &>/dev/null; then
+              echo 'tailscale0 interface exists!'
+              ip addr show tailscale0
+              exit 0
+            fi
+            echo 'Waiting for tailscale0 interface... (attempt $i/10)'
+            sleep 2
+          done
+          
+          echo 'ERROR: tailscale0 interface not created!'
+          echo 'This may indicate Tailscale is running in userspace mode.'
+          echo 'Checking tailscaled process flags...'
+          ps aux | grep tailscaled | grep -v grep || echo 'tailscaled not running'
+          exit 1
+        "
+      loop: "{{ my_containers }}"
+      when: vault_tailscale_auth_key is defined
+      register: tailscale_interface_check
 
     - name: Check Tailscale status in all containers
       shell: |

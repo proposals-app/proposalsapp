@@ -57,6 +57,7 @@ job "cloudflared" {
       mode = "host"
       port "metrics" {
         static = 2000
+        host_network = "tailscale"
       }
     }
     
@@ -117,6 +118,7 @@ EOF
           "zero-trust"
         ]
         port = "metrics"
+        address_mode = "host"
         
         check {
           type     = "http"
@@ -137,6 +139,7 @@ EOF
         name = "cloudflared-metrics"
         tags = ["metrics"]
         port = "metrics"
+        address_mode = "host"
       }
     }
   }

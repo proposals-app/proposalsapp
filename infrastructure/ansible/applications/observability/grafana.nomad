@@ -13,12 +13,27 @@ job "grafana" {
 
     # No constraint - let Nomad place it optimally
     # This allows Grafana to move to any available node
+    
+    reschedule {
+      delay          = "5s"      # Fast recovery
+      delay_function = "constant"
+      max_delay      = "30s"
+      unlimited      = true
+    }
+
+    restart {
+      attempts = 10
+      interval = "10m"
+      delay    = "10s"
+      mode     = "delay"
+    }
 
     network {
       mode = "host"
       
       port "http" {
         static = 3000
+        host_network = "tailscale"
       }
     }
     
@@ -188,8 +203,14 @@ EOF
         check {
           type     = "http"
           path     = "/api/health"
-          interval = "10s"
+          interval = "5s"    # Reduced from 10s
           timeout  = "2s"
+          
+          check_restart {
+            limit = 3
+            grace = "30s"
+            ignore_warnings = false
+          }
         }
       }
     }

@@ -14,16 +14,32 @@ job "loki" {
     constraint {
       distinct_hosts = true
     }
+    
+    reschedule {
+      delay          = "5s"      # Fast recovery
+      delay_function = "constant"
+      max_delay      = "30s"
+      unlimited      = true
+    }
+
+    restart {
+      attempts = 10
+      interval = "10m"
+      delay    = "10s"
+      mode     = "delay"
+    }
 
     network {
       mode = "host"
       
       port "http" {
         static = 3100
+        host_network = "tailscale"
       }
       
       port "grpc" {
         static = 9095
+        host_network = "tailscale"
       }
     }
     
@@ -198,8 +214,14 @@ EOF
         check {
           type     = "http"
           path     = "/ready"
-          interval = "10s"
+          interval = "5s"    # Reduced from 10s
           timeout  = "2s"
+          
+          check_restart {
+            limit = 3
+            grace = "60s"     # Longer grace for Loki startup
+            ignore_warnings = false
+          }
         }
       }
 
@@ -211,7 +233,7 @@ EOF
 
         check {
           type     = "tcp"
-          interval = "10s"
+          interval = "5s"    # Reduced from 10s
           timeout  = "2s"
         }
       }

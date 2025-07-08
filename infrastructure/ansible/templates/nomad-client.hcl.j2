@@ -51,11 +51,36 @@ server {
 # Enables workload execution on this node
 client {
   enabled = true
-  
-  # Network interface for service registration
-  # Force Nomad to use Tailscale interface for service addresses
+
+  # Network Interface Configuration
+  # Forces Nomad to use Tailscale interface for network fingerprinting and service registration
+  # This ensures services register with Tailscale IPs (100.x.x.x) for cross-datacenter routing
+  {% if tailscale_ip is defined %}
   network_interface = "tailscale0"
+  {% endif %}
+
+  # Host Network Definitions
+  # Named networks that jobs can target for specific interface binding
+  {% if tailscale_ip is defined %}
+  # Primary Tailscale network for cross-datacenter communication
+  host_network "tailscale" {
+    cidr = "{{ tailscale_ip }}/32"
+    interface = "tailscale0"
+  }
   
+  # Local container network for internal-only services
+  host_network "local" {
+    cidr = "{{ ansible_default_ipv4.address }}/32"
+    interface = "{{ ansible_default_ipv4.interface }}"
+  }
+  {% else %}
+  # Fallback when Tailscale is not available
+  host_network "default" {
+    cidr = "{{ ansible_default_ipv4.address }}/32"
+    interface = "{{ ansible_default_ipv4.interface }}"
+  }
+  {% endif %}
+
   # Server discovery
   # Automatically find and connect to Nomad servers
   # Connects to all servers for redundancy
@@ -74,6 +99,7 @@ client {
     "datacenter" = "{{ datacenter }}"     # Physical datacenter (dc1, dc2, dc3)
     "location" = "{{ hostvars[proxmox_node].location | default(datacenter) }}"  # Geographic location
   }
+
 
   # Host Volumes
   # Makes host paths available to jobs that request them
@@ -105,11 +131,11 @@ client {
 consul {
   # Connect to local Consul agent
   address = "127.0.0.1:{{ consul_client_port }}"
-  
+
   # Service names for Consul registration
   server_service_name = "nomad"         # How servers appear
   client_service_name = "nomad-client"  # How this client appears
-  
+
   # Automatic features
   auto_advertise = true      # Register client in Consul
   server_auto_join = true    # Discover servers via Consul
@@ -139,7 +165,7 @@ plugin "docker" {
   config {
     # Docker daemon endpoint
     endpoint = "unix:///var/run/docker.sock"
-    
+
     # Garbage Collection
     # Cleans up resources after jobs complete
     gc {
@@ -147,16 +173,16 @@ plugin "docker" {
       image_delay = "3m"    # Keep images 3 min after last use
       container = true      # Remove stopped containers
     }
-    
+
     # Volume Support
     # Allows jobs to mount host volumes
     volumes {
       enabled = true
     }
-    
+
     # Security Settings
     allow_privileged = false    # No privileged containers
-    
+
     # Registry Authentication
     # Uses Docker config for private registries
     auth {

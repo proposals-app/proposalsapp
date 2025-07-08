@@ -28,16 +28,16 @@ job "email-service" {
     }
 
     reschedule {
-      delay          = "30s"
-      delay_function = "exponential"
-      max_delay      = "1h"
+      delay          = "5s"      # Reduced from 30s for faster recovery
+      delay_function = "constant" # Use constant delay for predictable recovery
+      max_delay      = "30s"     # Reduced from 1h
       unlimited      = true
     }
 
     restart {
-      attempts = 5
+      attempts = 10      # Increased from 5 for more resilience
       interval = "10m"
-      delay    = "60s"
+      delay    = "10s"  # Reduced from 60s
       mode     = "delay"
     }
 
@@ -50,6 +50,7 @@ job "email-service" {
     network {
       port "http" {
         to = 3001
+        host_network = "tailscale"
       }
     }
 
@@ -186,8 +187,15 @@ EOF
         check {
           type     = "http"
           path     = "/health"
-          interval = "10s"
+          interval = "5s"    # Reduced from 10s for faster detection
           timeout  = "2s"
+          
+          # Additional health check configuration
+          check_restart {
+            limit = 3          # Restart after 3 consecutive failures
+            grace = "30s"     # Grace period before health checks start
+            ignore_warnings = false
+          }
         }
       }
     }

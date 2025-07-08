@@ -6,12 +6,27 @@ job "homepage" {
     count = 1
 
     # No constraint needed - deploy to any available node
+    
+    reschedule {
+      delay          = "5s"      # Fast recovery
+      delay_function = "constant"
+      max_delay      = "30s"
+      unlimited      = true
+    }
+
+    restart {
+      attempts = 10
+      interval = "10m"
+      delay    = "10s"
+      mode     = "delay"
+    }
 
     network {
       mode = "host"
       
       port "http" {
         static = 3200
+        host_network = "tailscale"
       }
     }
 
@@ -25,8 +40,14 @@ job "homepage" {
         name     = "homepage-health"
         type     = "http"
         path     = "/"
-        interval = "10s"
+        interval = "5s"    # Reduced from 10s
         timeout  = "2s"
+        
+        check_restart {
+          limit = 3
+          grace = "30s"
+          ignore_warnings = false
+        }
       }
     }
 

@@ -31,16 +31,16 @@ job "web" {
     }
 
     reschedule {
-      delay          = "30s"
-      delay_function = "exponential"
-      max_delay      = "1h"
+      delay          = "5s"      # Reduced from 30s for faster recovery
+      delay_function = "constant" # Use constant delay for predictable recovery
+      max_delay      = "30s"     # Reduced from 1h
       unlimited      = true
     }
 
     restart {
-      attempts = 3
+      attempts = 5       # Increased from 3
       interval = "5m"
-      delay    = "30s"
+      delay    = "10s"  # Reduced from 30s
       mode     = "delay"
     }
 
@@ -51,8 +51,10 @@ job "web" {
     }
 
     network {
+      mode = "host"
       port "http" {
-        to = 3002
+        static = 3002
+        host_network = "tailscale"
       }
     }
 
@@ -62,7 +64,7 @@ job "web" {
       config {
         # Image will be replaced during deployment
         image = "ghcr.io/proposals-app/proposalsapp/web:latest"
-        ports = ["http"]
+        network_mode = "host"
         force_pull = true
 
         # Add logging configuration
@@ -79,7 +81,9 @@ job "web" {
         # Node.js settings
         NODE_ENV = "production"
         PORT = "3002"
-
+        
+        # Bind to all interfaces so health checks can reach the app
+        HOSTNAME = "0.0.0.0"
       }
 
       # Deployment metadata template for visibility
@@ -197,6 +201,13 @@ EOF
           path     = "/api/health"
           interval = "5s"
           timeout  = "2s"
+          
+          # Additional health check configuration
+          check_restart {
+            limit = 3          # Restart after 3 consecutive failures
+            grace = "30s"     # Grace period before health checks start
+            ignore_warnings = false
+          }
         }
       }
     }

@@ -87,6 +87,10 @@ server {
       {% endfor %}
     ]
   }
+  
+  # Heartbeat configuration
+  # Controls how quickly Nomad detects node failures
+  heartbeat_grace = "60s"  # Reduced from default 5m to 1m for faster failure detection
 }
 
 # Client Configuration

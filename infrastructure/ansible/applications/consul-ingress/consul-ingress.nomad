@@ -7,9 +7,11 @@ job "consul-ingress" {
       mode = "host"
       port "http" {
         static = 8080
+        host_network = "tailscale"
       }
       port "admin" {
         static = 19000
+        host_network = "tailscale"
       }
     }
 

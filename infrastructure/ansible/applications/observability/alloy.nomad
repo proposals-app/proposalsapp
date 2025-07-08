@@ -14,6 +14,7 @@ job "alloy" {
       
       port "http" {
         static = 12345
+        host_network = "tailscale"
       }
     }
 
@@ -241,9 +242,8 @@ EOF
       service {
         name = "alloy"
         port = "http"
+        address_mode = "host"
         tags = ["metrics", "ui", "urlprefix-/alloy"]
-        
-        # Let Consul determine the address
 
         check {
           type     = "http"

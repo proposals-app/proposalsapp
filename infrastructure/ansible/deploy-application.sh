@@ -46,16 +46,7 @@ if [ "$APP_NAME" = "all" ]; then
     echo "Deploying all applications in order"
     echo "=========================================="
 
-    # Define deployment order based on dependencies:
-    # 1. cloudflared     - Tunnel for external access (needed for HAProxy)
-    # 2. consul-ingress  - Consul mesh gateway for ingress routing
-    # 3. rindexer        - Blockchain indexer (populates database)
-    # 4. discourse       - Forum indexer (populates database)
-    # 5. mapper          - Data processor (needs data from rindexer/discourse)
-    # 6. web             - Frontend (needs all backend services)
-    # 7. email-service   - Email notifications (needs database and web)
-    # 8. homepage        - Infrastructure dashboard (optional, displays all services)
-    DEPLOYMENT_ORDER="cloudflared consul-ingress rindexer discourse mapper web email-service homepage"
+    DEPLOYMENT_ORDER="cloudflared consul-ingress homepage web rindexer discourse mapper email-service"
 
     # Check if we should continue on error
     CONTINUE_ON_ERROR=false
@@ -133,32 +124,53 @@ run_setup() {
 
     # Track if any playbook succeeded
     SETUP_SUCCESS=false
-    
+
     for playbook in "$APP_DIR"/*.yml; do
         if [ -f "$playbook" ]; then
             echo "Executing: ansible-playbook -i inventory.yml $playbook"
-            
+
             # First check which hosts are reachable
             echo "Checking host connectivity..."
             REACHABLE_HOSTS=""
-            ALL_HOSTS=$(ansible-inventory -i inventory.yml --list | jq -r '.all.hosts[]' 2>/dev/null || echo "")
             
-            for host in $ALL_HOSTS; do
+            # Determine which hosts to check based on the playbook
+            if [[ "$playbook" =~ "setup-consul-kv" ]]; then
+                # For Consul KV setup, only check consul servers
+                TARGET_HOSTS=$(ansible-inventory -i inventory.yml --list | jq -r '.consul_servers.hosts[]' 2>/dev/null || echo "")
+            else
+                # For other playbooks, check all hosts
+                TARGET_HOSTS=$(ansible-inventory -i inventory.yml --list | jq -r '.all.hosts[]' 2>/dev/null || echo "")
+            fi
+
+            for host in $TARGET_HOSTS; do
                 if ansible $host -i inventory.yml -m ping --vault-password-file .vault_pass -o >/dev/null 2>&1; then
                     REACHABLE_HOSTS="$REACHABLE_HOSTS,$host"
                 fi
             done
-            
+
             # Remove leading comma
             REACHABLE_HOSTS=${REACHABLE_HOSTS#,}
-            
+
             if [ -z "$REACHABLE_HOSTS" ]; then
                 echo "WARNING: No hosts are reachable for playbook $playbook"
+                
+                # Special handling for cloudflared - it requires Consul KV setup
+                if [ "$APP_NAME" = "cloudflared" ] && [[ "$playbook" =~ "setup-consul-kv" ]]; then
+                    echo "ERROR: Cannot deploy cloudflared without setting up Consul KV values!"
+                    echo "Consul servers must be reachable to store the tunnel token."
+                    echo ""
+                    echo "To fix this:"
+                    echo "1. Ensure Consul servers are running"
+                    echo "2. Run: ansible-playbook -i inventory.yml $playbook --vault-password-file .vault_pass"
+                    echo "3. Or set NOMAD_ADDR and run the job manually after setting up Consul KV"
+                    return 1
+                fi
+                
                 continue
             fi
-            
+
             echo "Running playbook on reachable hosts: $REACHABLE_HOSTS"
-            
+
             # Run playbook only on reachable hosts
             if ansible-playbook -i inventory.yml "$playbook" --vault-password-file .vault_pass --limit "$REACHABLE_HOSTS"; then
                 echo "✓ Playbook $playbook completed successfully on reachable hosts"
@@ -170,7 +182,7 @@ run_setup() {
             fi
         fi
     done
-    
+
     if [ "$SETUP_SUCCESS" = false ]; then
         echo "ERROR: All setup playbooks failed"
         return 1
@@ -187,12 +199,43 @@ run_deploy() {
         return
     fi
 
+    # Special check for cloudflared - verify Consul KV is set up
+    if [ "$APP_NAME" = "cloudflared" ]; then
+        echo "Checking if Cloudflare tunnel token is in Consul KV..."
+        
+        # Try to check via any reachable Consul server
+        CONSUL_CHECK_PASSED=false
+        CONSUL_SERVERS=$(ansible-inventory -i inventory.yml --list | jq -r '.consul_servers.hosts[]' 2>/dev/null || echo "")
+        
+        for server in $CONSUL_SERVERS; do
+            if ansible $server -i inventory.yml -m uri -a \
+                "url=http://localhost:8500/v1/kv/cloudflared/tunnel_token method=GET" \
+                --vault-password-file .vault_pass 2>/dev/null | grep -q "200"; then
+                echo "✓ Cloudflare tunnel token found in Consul KV"
+                CONSUL_CHECK_PASSED=true
+                break
+            fi
+        done
+        
+        if [ "$CONSUL_CHECK_PASSED" = false ]; then
+            echo "ERROR: Cloudflare tunnel token not found in Consul KV!"
+            echo "The cloudflared job will fail without this token."
+            echo ""
+            echo "To fix this:"
+            echo "1. Ensure Consul servers are reachable"
+            echo "2. Run: ansible-playbook -i inventory.yml applications/cloudflared/setup-consul-kv.yml --vault-password-file .vault_pass"
+            echo ""
+            echo "Aborting deployment to prevent job failures."
+            return 1
+        fi
+    fi
+
     # Initialize FULL_IMAGE variable
     FULL_IMAGE=""
 
     # Check for existing deployment and stop it
     echo "Checking for existing $APP_NAME deployment..."
-    
+
     # Special handling for consul-ingress to stop old ingress systems
     if [ "$APP_NAME" = "consul-ingress" ]; then
         echo "Checking for legacy ingress deployments..."
@@ -217,7 +260,7 @@ run_deploy() {
             done
         fi
     fi
-    
+
     if [ -n "$NOMAD_ADDR" ]; then
         # Use direct Nomad connection
         if nomad job status "$APP_NAME" >/dev/null 2>&1; then
@@ -233,7 +276,7 @@ run_deploy() {
         # Use Ansible to check via remote Nomad server
         # Try all Nomad servers until we find one that's reachable
         NOMAD_SERVERS=$(ansible-inventory -i inventory.yml --list | jq -r '.nomad_servers.hosts[]' 2>/dev/null || echo "")
-        
+
         FOUND_AND_STOPPED=false
         for server in $NOMAD_SERVERS; do
             if ansible $server -i inventory.yml -m ping --vault-password-file .vault_pass -o >/dev/null 2>&1; then
@@ -255,7 +298,7 @@ run_deploy() {
                 fi
             fi
         done
-        
+
         if [ "$FOUND_AND_STOPPED" = false ] && [ -n "$NOMAD_SERVERS" ]; then
             echo "WARNING: Could not verify/stop existing deployment (servers may be unreachable)"
             echo "Proceeding with deployment anyway..."
@@ -349,7 +392,7 @@ EOF
         # Update Consul KV with retry logic
         CONSUL_UPDATED=false
         REACHABLE_CONSUL_SERVERS=()
-        
+
         # First, check which Consul servers are reachable
         echo "Checking Consul server connectivity..."
         for server in "${CONSUL_SERVERS[@]}"; do
@@ -360,7 +403,7 @@ EOF
                 echo "✗ $server is not reachable"
             fi
         done
-        
+
         if [ ${#REACHABLE_CONSUL_SERVERS[@]} -eq 0 ]; then
             echo "WARNING: No Consul servers are reachable!"
             echo "Proceeding with manual deployment without Consul KV update..."

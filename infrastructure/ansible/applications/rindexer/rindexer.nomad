@@ -32,16 +32,16 @@ job "rindexer" {
     }
 
     reschedule {
-      delay          = "30s"
-      delay_function = "exponential"
-      max_delay      = "1h"
+      delay          = "5s"      # Reduced from 30s for faster recovery
+      delay_function = "constant" # Use constant delay for predictable recovery
+      max_delay      = "30s"     # Reduced from 1h
       unlimited      = true
     }
 
     restart {
-      attempts = 5
+      attempts = 10      # Increased from 5 for more resilience
       interval = "10m"
-      delay    = "60s"
+      delay    = "10s"  # Reduced from 60s
       mode     = "delay"
     }
 
@@ -52,8 +52,10 @@ job "rindexer" {
     }
 
     network {
+      mode = "host"
       port "health" {
-        to = 3000
+        static = 3004
+        host_network = "tailscale"
       }
     }
 
@@ -63,6 +65,7 @@ job "rindexer" {
       config {
         # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/rindexer:latest"
+        network_mode = "host"
         ports = ["health"]
         force_pull = true
 
@@ -211,12 +214,20 @@ EOF
         name = "rindexer"
         tags = ["indexer", "blockchain"]
         port = "health"
+        address_mode = "host"
 
         check {
           type     = "http"
           path     = "/health"
           interval = "5s"
           timeout  = "2s"
+          
+          # Additional health check configuration
+          check_restart {
+            limit = 3          # Restart after 3 consecutive failures
+            grace = "60s"     # Grace period before health checks start
+            ignore_warnings = false
+          }
         }
       }
     }
