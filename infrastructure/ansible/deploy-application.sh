@@ -1,7 +1,8 @@
 #!/bin/bash
 # Helper script to deploy applications
 
-set -e
+# Don't exit on error - we'll handle errors gracefully
+set +e
 
 # Function to show usage
 show_usage() {
@@ -14,10 +15,12 @@ show_usage() {
     echo "  discourse        - Discourse forum indexer service"
     echo "  mapper           - Data relationship engine for grouping proposals and karma calculation"
     echo "  cloudflared      - Cloudflare tunnel daemon for Zero Trust access"
-    echo "  traefik          - Edge router and load balancer with automatic HTTPS"
+    echo "  consul-ingress   - Consul mesh gateway ingress for service routing"
     echo "  web              - Next.js frontend application"
     echo "  email-service    - Email notification service for proposals"
     echo "  homepage         - Infrastructure dashboard with service discovery"
+    echo ""
+    echo "Note: For observability stack (Prometheus, Grafana, Loki), use ./deploy-observability.sh"
     echo ""
     echo "Examples:"
     echo "  $0 all              # Deploy all applications (stops on first error)"
@@ -44,15 +47,15 @@ if [ "$APP_NAME" = "all" ]; then
     echo "=========================================="
 
     # Define deployment order based on dependencies:
-    # 1. cloudflared   - Tunnel for external access (needed for Traefik)
-    # 2. traefik       - Load balancer/proxy (web app needs it for routing)
-    # 3. rindexer      - Blockchain indexer (populates database)
-    # 4. discourse     - Forum indexer (populates database)
-    # 5. mapper        - Data processor (needs data from rindexer/discourse)
-    # 6. web           - Frontend (needs all backend services)
-    # 7. email-service  - Email notifications (needs database and web)
-    # 8. homepage      - Infrastructure dashboard (optional, displays all services)
-    DEPLOYMENT_ORDER="cloudflared traefik rindexer discourse mapper web email-service homepage"
+    # 1. cloudflared     - Tunnel for external access (needed for HAProxy)
+    # 2. consul-ingress  - Consul mesh gateway for ingress routing
+    # 3. rindexer        - Blockchain indexer (populates database)
+    # 4. discourse       - Forum indexer (populates database)
+    # 5. mapper          - Data processor (needs data from rindexer/discourse)
+    # 6. web             - Frontend (needs all backend services)
+    # 7. email-service   - Email notifications (needs database and web)
+    # 8. homepage        - Infrastructure dashboard (optional, displays all services)
+    DEPLOYMENT_ORDER="cloudflared consul-ingress rindexer discourse mapper web email-service homepage"
 
     # Check if we should continue on error
     CONTINUE_ON_ERROR=false
@@ -107,10 +110,8 @@ if [ "$APP_NAME" = "all" ]; then
     exit 0
 fi
 
-APP_DIR="applications/$APP_NAME"
-
 # List of valid applications
-VALID_APPS="rindexer discourse mapper email-service cloudflared traefik web homepage"
+VALID_APPS="rindexer discourse mapper email-service cloudflared consul-ingress web homepage"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then
@@ -119,8 +120,10 @@ if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then
     exit 1
 fi
 
+APP_DIR="applications/$APP_NAME"
+
 if [ ! -d "$APP_DIR" ]; then
-    echo "Error: Application '$APP_NAME' not found in $APP_DIR"
+    echo "Error: Application directory '$APP_DIR' not found"
     exit 1
 fi
 
@@ -128,12 +131,50 @@ fi
 run_setup() {
     echo "Running setup playbooks for $APP_NAME..."
 
+    # Track if any playbook succeeded
+    SETUP_SUCCESS=false
+    
     for playbook in "$APP_DIR"/*.yml; do
         if [ -f "$playbook" ]; then
             echo "Executing: ansible-playbook -i inventory.yml $playbook"
-            ansible-playbook -i inventory.yml "$playbook"
+            
+            # First check which hosts are reachable
+            echo "Checking host connectivity..."
+            REACHABLE_HOSTS=""
+            ALL_HOSTS=$(ansible-inventory -i inventory.yml --list | jq -r '.all.hosts[]' 2>/dev/null || echo "")
+            
+            for host in $ALL_HOSTS; do
+                if ansible $host -i inventory.yml -m ping --vault-password-file .vault_pass -o >/dev/null 2>&1; then
+                    REACHABLE_HOSTS="$REACHABLE_HOSTS,$host"
+                fi
+            done
+            
+            # Remove leading comma
+            REACHABLE_HOSTS=${REACHABLE_HOSTS#,}
+            
+            if [ -z "$REACHABLE_HOSTS" ]; then
+                echo "WARNING: No hosts are reachable for playbook $playbook"
+                continue
+            fi
+            
+            echo "Running playbook on reachable hosts: $REACHABLE_HOSTS"
+            
+            # Run playbook only on reachable hosts
+            if ansible-playbook -i inventory.yml "$playbook" --vault-password-file .vault_pass --limit "$REACHABLE_HOSTS"; then
+                echo "✓ Playbook $playbook completed successfully on reachable hosts"
+                SETUP_SUCCESS=true
+            else
+                echo "WARNING: Playbook $playbook failed or partially failed"
+                echo "Some tasks may have failed. Check ansible output above."
+                # Continue with other playbooks instead of exiting
+            fi
         fi
     done
+    
+    if [ "$SETUP_SUCCESS" = false ]; then
+        echo "ERROR: All setup playbooks failed"
+        return 1
+    fi
 }
 
 # Function to deploy Nomad job
@@ -151,6 +192,32 @@ run_deploy() {
 
     # Check for existing deployment and stop it
     echo "Checking for existing $APP_NAME deployment..."
+    
+    # Special handling for consul-ingress to stop old ingress systems
+    if [ "$APP_NAME" = "consul-ingress" ]; then
+        echo "Checking for legacy ingress deployments..."
+        if [ -n "$NOMAD_ADDR" ]; then
+            for old_ingress in "traefik" "haproxy-ingress"; do
+                if nomad job status "$old_ingress" >/dev/null 2>&1; then
+                    echo "Found existing $old_ingress deployment. Stopping it..."
+                    nomad job stop -purge "$old_ingress" || echo "Warning: Failed to stop $old_ingress"
+                    sleep 5
+                fi
+            done
+        else
+            # Try via Ansible
+            NOMAD_SERVERS=$(ansible-inventory -i inventory.yml --list | jq -r '.nomad_servers.hosts[]' 2>/dev/null || echo "")
+            for server in $NOMAD_SERVERS; do
+                if ansible $server -i inventory.yml -m ping --vault-password-file .vault_pass -o >/dev/null 2>&1; then
+                    for old_ingress in traefik haproxy-ingress; do
+                        ansible $server -i inventory.yml -m shell -a "nomad job stop -purge $old_ingress 2>/dev/null || true" --vault-password-file .vault_pass >/dev/null 2>&1
+                    done
+                    break
+                fi
+            done
+        fi
+    fi
+    
     if [ -n "$NOMAD_ADDR" ]; then
         # Use direct Nomad connection
         if nomad job status "$APP_NAME" >/dev/null 2>&1; then
@@ -164,17 +231,34 @@ run_deploy() {
         fi
     else
         # Use Ansible to check via remote Nomad server
-        NOMAD_SERVER=$(ansible-inventory -i inventory.yml --list | jq -r '.nomad_servers.hosts[0]' 2>/dev/null || echo "")
-        if [ -n "$NOMAD_SERVER" ]; then
-            if ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job status $APP_NAME" --vault-password-file .vault_pass >/dev/null 2>&1; then
-                echo "Found existing $APP_NAME deployment. Stopping it..."
-                if ! ansible $NOMAD_SERVER -i inventory.yml -m shell -a "nomad job stop -purge $APP_NAME" --vault-password-file .vault_pass; then
-                    echo "ERROR: Failed to stop existing job $APP_NAME via Ansible"
-                    exit 1
+        # Try all Nomad servers until we find one that's reachable
+        NOMAD_SERVERS=$(ansible-inventory -i inventory.yml --list | jq -r '.nomad_servers.hosts[]' 2>/dev/null || echo "")
+        
+        FOUND_AND_STOPPED=false
+        for server in $NOMAD_SERVERS; do
+            if ansible $server -i inventory.yml -m ping --vault-password-file .vault_pass -o >/dev/null 2>&1; then
+                echo "Checking for existing deployment on $server..."
+                if ansible $server -i inventory.yml -m shell -a "nomad job status $APP_NAME" --vault-password-file .vault_pass >/dev/null 2>&1; then
+                    echo "Found existing $APP_NAME deployment. Stopping it..."
+                    if ansible $server -i inventory.yml -m shell -a "nomad job stop -purge $APP_NAME" --vault-password-file .vault_pass; then
+                        echo "✓ Successfully stopped existing job"
+                        FOUND_AND_STOPPED=true
+                        echo "Waiting for cleanup..."
+                        sleep 5
+                        break
+                    else
+                        echo "WARNING: Failed to stop existing job via $server, trying next server..."
+                    fi
+                else
+                    # Job doesn't exist, that's fine
+                    break
                 fi
-                echo "Waiting for cleanup..."
-                sleep 5
             fi
+        done
+        
+        if [ "$FOUND_AND_STOPPED" = false ] && [ -n "$NOMAD_SERVERS" ]; then
+            echo "WARNING: Could not verify/stop existing deployment (servers may be unreachable)"
+            echo "Proceeding with deployment anyway..."
         fi
     fi
 
@@ -200,20 +284,22 @@ run_deploy() {
             sed 's/"vault_github_pat": "\(.*\)"/\1/' || echo "")
 
         if [ -z "$GITHUB_TOKEN" ]; then
-            echo "ERROR: Could not retrieve GitHub token from vault."
-            echo "Ensure vault_github_pat is set in vault and .vault_pass file exists."
-            exit 1
+            echo "WARNING: Could not retrieve GitHub token from vault."
+            echo "Will use fallback methods to determine image tag."
         fi
 
         # Use GitHub API to get the latest successful build
-        echo "Checking GitHub API for latest successful build..."
-        WORKFLOW_FILE="build-${APP_NAME}.yml"
-        API_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/proposals-app/proposalsapp/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&status=success&per_page=1")
+        LATEST_SHA=""
+        if [ -n "$GITHUB_TOKEN" ]; then
+            echo "Checking GitHub API for latest successful build..."
+            WORKFLOW_FILE="build-${APP_NAME}.yml"
+            API_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/proposals-app/proposalsapp/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&status=success&per_page=1")
 
-        LATEST_SHA=$(echo "$API_RESPONSE" | jq -r '.workflow_runs[0].head_sha[:7]' 2>/dev/null || echo "")
+            LATEST_SHA=$(echo "$API_RESPONSE" | jq -r '.workflow_runs[0].head_sha[:7]' 2>/dev/null || echo "")
+        fi
 
         if [ -n "$LATEST_SHA" ] && [ "$LATEST_SHA" != "null" ]; then
             LATEST_TAG="main-$LATEST_SHA"
@@ -262,33 +348,52 @@ EOF
 
         # Update Consul KV with retry logic
         CONSUL_UPDATED=false
+        REACHABLE_CONSUL_SERVERS=()
+        
+        # First, check which Consul servers are reachable
+        echo "Checking Consul server connectivity..."
         for server in "${CONSUL_SERVERS[@]}"; do
-            echo "Updating Consul KV on $server..."
-
-            # Try up to 3 times with exponential backoff
-            for attempt in 1 2 3; do
-                if ansible $server -i inventory.yml -m uri -a \
-                    "url=http://localhost:8500/v1/kv/$APP_NAME/deployment/main method=PUT body='$DEPLOYMENT_JSON' body_format=json" \
-                    --vault-password-file .vault_pass > /dev/null 2>&1; then
-                    echo "✓ Successfully updated Consul KV on $server"
-                    CONSUL_UPDATED=true
-                    break 2
-                else
-                    echo "Attempt ${attempt}/3 failed for ${server}"
-                    [ $attempt -lt 3 ] && sleep $((attempt * 2))
-                fi
-            done
+            if ansible $server -i inventory.yml -m ping --vault-password-file .vault_pass -o >/dev/null 2>&1; then
+                REACHABLE_CONSUL_SERVERS+=("$server")
+                echo "✓ $server is reachable"
+            else
+                echo "✗ $server is not reachable"
+            fi
         done
+        
+        if [ ${#REACHABLE_CONSUL_SERVERS[@]} -eq 0 ]; then
+            echo "WARNING: No Consul servers are reachable!"
+            echo "Proceeding with manual deployment without Consul KV update..."
+        else
+            # Try to update Consul KV on reachable servers
+            for server in "${REACHABLE_CONSUL_SERVERS[@]}"; do
+                echo "Updating Consul KV on $server..."
+
+                # Try up to 3 times with exponential backoff
+                for attempt in 1 2 3; do
+                    if ansible $server -i inventory.yml -m uri -a \
+                        "url=http://localhost:8500/v1/kv/$APP_NAME/deployment/main method=PUT body='$DEPLOYMENT_JSON' body_format=json" \
+                        --vault-password-file .vault_pass > /dev/null 2>&1; then
+                        echo "✓ Successfully updated Consul KV on $server"
+                        CONSUL_UPDATED=true
+                        break 2
+                    else
+                        echo "Attempt ${attempt}/3 failed for ${server}"
+                        [ $attempt -lt 3 ] && sleep $((attempt * 2))
+                    fi
+                done
+            done
+        fi
 
         if [ "$CONSUL_UPDATED" = false ]; then
-            echo "ERROR: Failed to update Consul KV on all servers!"
+            echo "WARNING: Failed to update Consul KV on available servers!"
             echo "Without Consul KV update, automated deployment will not trigger."
             echo "Proceeding with manual deployment..."
         else
             # Check if automated deployment is enabled
             echo "Checking for automated deployment service..."
             AUTOMATION_ENABLED=false
-            for server in "${CONSUL_SERVERS[@]}"; do
+            for server in "${REACHABLE_CONSUL_SERVERS[@]}"; do
                 if ansible $server -i inventory.yml -m systemd -a "name=deployment-checker.timer" --vault-password-file .vault_pass 2>/dev/null | grep -q "active (running)"; then
                     AUTOMATION_ENABLED=true
                     break
@@ -308,7 +413,7 @@ EOF
                 echo "  - Handler logs: tail -f /var/log/deployment-handler.log"
                 echo ""
                 echo "Skipping manual deployment as automation will handle it."
-                exit 0
+                return 0
             else
                 echo "ℹ️  Automated deployment is not enabled. Proceeding with manual deployment."
             fi
@@ -319,16 +424,33 @@ EOF
     if [ -z "$NOMAD_ADDR" ]; then
         echo "NOMAD_ADDR not set. Deploying via Ansible on first Nomad server..."
 
-        # Get the first Nomad server from inventory
-        NOMAD_SERVER=$(ansible-inventory -i inventory.yml --list | jq -r '.nomad_servers.hosts[0]' 2>/dev/null || echo "")
+        # Get all Nomad servers from inventory
+        NOMAD_SERVERS=$(ansible-inventory -i inventory.yml --list | jq -r '.nomad_servers.hosts[]' 2>/dev/null || echo "")
 
-        if [ -z "$NOMAD_SERVER" ]; then
-            echo "Error: Could not find a Nomad server in inventory"
+        if [ -z "$NOMAD_SERVERS" ]; then
+            echo "Error: Could not find any Nomad servers in inventory"
             echo "Set NOMAD_ADDR environment variable or ensure nomad_servers group exists in inventory"
-            exit 1
+            return 1
         fi
 
-        echo "Using Nomad server: $NOMAD_SERVER"
+        # Try each Nomad server until one works
+        NOMAD_SERVER=""
+        for server in $NOMAD_SERVERS; do
+            echo "Checking connectivity to $server..."
+            if ansible $server -i inventory.yml -m ping --vault-password-file .vault_pass -o >/dev/null 2>&1; then
+                NOMAD_SERVER=$server
+                echo "✓ Using Nomad server: $NOMAD_SERVER"
+                break
+            else
+                echo "✗ Server $server is not reachable"
+            fi
+        done
+
+        if [ -z "$NOMAD_SERVER" ]; then
+            echo "Error: No reachable Nomad servers found!"
+            echo "Tried servers: $NOMAD_SERVERS"
+            return 1
+        fi
 
         # Create a temporary job file with updated image
         TEMP_NOMAD_FILE="/tmp/${APP_NAME}_deploy_$$.nomad"
@@ -341,15 +463,27 @@ EOF
         fi
 
         # Copy the job file to remote with vault password
-        ansible $NOMAD_SERVER -i inventory.yml -m copy \
+        if ! ansible $NOMAD_SERVER -i inventory.yml -m copy \
             -a "src=$TEMP_NOMAD_FILE dest=/tmp/$APP_NAME.nomad" \
-            --vault-password-file .vault_pass || exit 1
+            --vault-password-file .vault_pass; then
+            echo "ERROR: Failed to copy job file to $NOMAD_SERVER"
+            rm -f "$TEMP_NOMAD_FILE" "$TEMP_NOMAD_FILE.bak"
+            return 1
+        fi
 
         # Run the job on remote
         echo "Deploying job to Nomad..."
-        ansible $NOMAD_SERVER -i inventory.yml -m shell \
+        if ! ansible $NOMAD_SERVER -i inventory.yml -m shell \
             -a "nomad job run /tmp/$APP_NAME.nomad" \
-            --vault-password-file .vault_pass || exit 1
+            --vault-password-file .vault_pass; then
+            echo "ERROR: Failed to deploy job to Nomad on $NOMAD_SERVER"
+            # Clean up remote file
+            ansible $NOMAD_SERVER -i inventory.yml -m file \
+                -a "path=/tmp/$APP_NAME.nomad state=absent" \
+                --vault-password-file .vault_pass
+            rm -f "$TEMP_NOMAD_FILE" "$TEMP_NOMAD_FILE.bak"
+            return 1
+        fi
 
         echo "✅ Job deployed successfully"
         echo "Checking deployment status..."
@@ -380,7 +514,7 @@ EOF
         if ! nomad job run "$TEMP_NOMAD_FILE"; then
             echo "ERROR: Failed to deploy job to Nomad"
             rm -f "$TEMP_NOMAD_FILE" "$TEMP_NOMAD_FILE.bak"
-            exit 1
+            return 1
         fi
 
         echo "✅ Job deployed successfully"

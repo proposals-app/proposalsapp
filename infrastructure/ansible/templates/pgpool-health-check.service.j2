@@ -12,11 +12,14 @@ Group=postgres
 StandardOutput=journal
 StandardError=journal
 
+# Enable automatic recovery of common pgpool issues
+Environment="PGPOOL_RECOVERY_MODE=auto"
+
 # Service hardening
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
-ReadWritePaths=/var/lib/postgresql
+ReadWritePaths=/var/lib/postgresql /var/lib/pgpool /var/run
 NoNewPrivileges=true
 ProtectKernelTunables=true
 ProtectKernelModules=true

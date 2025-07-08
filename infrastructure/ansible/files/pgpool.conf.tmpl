@@ -131,19 +131,23 @@ failover_on_backend_shutdown = off
 #------------------------------------------------------------------------------
 # BACKEND SERVERS - LOCAL FIRST CONFIGURATION
 #------------------------------------------------------------------------------
-# Strategy: 
+# Strategy: Weight-based load balancing with fallback capability
 # - Local database gets weight 100
-# - Remote databases get weight 0 (only used when local is down)
-# This ensures 100% of reads go to local database when healthy
+# - Remote databases get weight 1 (allows fallback when local is down)
+# This ensures 99% of reads go to local database when healthy
+# but allows automatic fallback to remote databases if local fails
 {{$local_dc := getenv "LOCAL_DATACENTER"}}
 
 # Backend 0 - db-sib-01
 backend_hostname0 = '{{getv "/local/ips/dc1" ""}}'
 backend_port0 = 5432
+# Weight strategy: Strong preference for local reads with fallback capability
+# Local backend gets weight 100, remote backends get weight 1 (not 0)
+# This ensures remote backends CAN be used if local is down
 {{if eq $local_dc "dc1"}}
 backend_weight0 = 100
 {{else}}
-backend_weight0 = 0
+backend_weight0 = 1
 {{end}}
 backend_data_directory0 = '/var/lib/postgresql/17/main'
 backend_flag0 = 'ALLOW_TO_FAILOVER'
@@ -155,7 +159,7 @@ backend_port1 = 5432
 {{if eq $local_dc "dc2"}}
 backend_weight1 = 100
 {{else}}
-backend_weight1 = 0
+backend_weight1 = 1
 {{end}}
 backend_data_directory1 = '/var/lib/postgresql/17/main'
 backend_flag1 = 'ALLOW_TO_FAILOVER'
@@ -167,7 +171,7 @@ backend_port2 = 5432
 {{if eq $local_dc "dc3"}}
 backend_weight2 = 100
 {{else}}
-backend_weight2 = 0
+backend_weight2 = 1
 {{end}}
 backend_data_directory2 = '/var/lib/postgresql/17/main'
 backend_flag2 = 'ALLOW_TO_FAILOVER'

@@ -8,5 +8,5 @@ echo "(These hosts have PostgreSQL client installed)"
 echo ""
 
 # Run only on nodes that have PostgreSQL client
-ansible-playbook -i inventory.yml playbooks/infrastructure/07-verify-database-connections.yml \
+ansible-playbook -i inventory.yml playbooks/infrastructure/06-verify-database-connections.yml \
   --limit "nomad_clients:postgres_nodes" "$@"

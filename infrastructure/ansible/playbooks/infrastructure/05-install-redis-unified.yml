@@ -193,8 +193,8 @@
           Description=Periodically register Redis in etcd
           
           [Timer]
-          OnBootSec=30s
-          OnUnitActiveSec=30s
+          OnBootSec=5s
+          OnUnitActiveSec=5s
           
           [Install]
           WantedBy=timers.target

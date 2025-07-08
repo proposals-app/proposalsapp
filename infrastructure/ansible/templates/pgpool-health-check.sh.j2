@@ -16,8 +16,14 @@
 # 5. Monitors connection pool utilization
 #
 # Exit codes:
-# - 0: Healthy
+# - 0: Healthy or successfully recovered
 # - 1: Critical failure requiring intervention
+#
+# Modes:
+# - check: Health check only (default)
+# - recover: Health check with automatic recovery
+# - status: Quick status check
+# - backends: Show backend status
 
 set -euo pipefail
 
@@ -27,6 +33,10 @@ PGPOOL_USER="postgres"
 PGPOOL_PASSWORD="{{ postgres_password }}"
 LOG_TAG="pgpool-health"
 TIMEOUT_SECONDS=10
+RECOVERY_MODE="${PGPOOL_RECOVERY_MODE:-manual}"  # Can be "auto" or "manual"
+RECOVERY_LOCKFILE="/var/run/pgpool-recovery.lock"
+RECOVERY_COOLDOWN=300  # 5 minutes between recovery attempts
+ETCD_ENDPOINTS="{{ groups['postgres_nodes'] | map('extract', hostvars, 'tailscale_ip') | map('regex_replace', '^(.*)$', 'http://\\1:2379') | join(',') }}"
 
 # Logging function
 log() {
@@ -204,26 +214,282 @@ check_config_freshness() {
     return 0
 }
 
-# Main health check function
+# Main health check function (legacy, kept for compatibility)
 perform_health_check() {
-    log "info" "Starting pgpool health check on {{ inventory_hostname }}"
+    # Just call the new function with recovery disabled
+    local saved_mode="$RECOVERY_MODE"
+    RECOVERY_MODE="manual"
+    perform_health_check_with_recovery
+    local result=$?
+    RECOVERY_MODE="$saved_mode"
+    return $result
+}
+
+# Lock management for preventing concurrent recoveries
+acquire_lock() {
+    local lockfile="$1"
+    local timeout=30
+    local elapsed=0
+    
+    while [ $elapsed -lt $timeout ]; do
+        if mkdir "$lockfile" 2>/dev/null; then
+            echo $$ > "$lockfile/pid"
+            return 0
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+    
+    log "warning" "Failed to acquire lock after ${timeout}s"
+    return 1
+}
+
+release_lock() {
+    local lockfile="$1"
+    rm -rf "$lockfile"
+}
+
+# Check if recovery was attempted recently
+check_recovery_cooldown() {
+    local last_recovery_file="/var/lib/pgpool/last_recovery_attempt"
+    
+    if [ -f "$last_recovery_file" ]; then
+        local last_recovery=$(cat "$last_recovery_file" 2>/dev/null || echo 0)
+        local current_time=$(date +%s)
+        local time_since_last=$((current_time - last_recovery))
+        
+        if [ $time_since_last -lt $RECOVERY_COOLDOWN ]; then
+            log "info" "Recovery attempted ${time_since_last}s ago, waiting for cooldown (${RECOVERY_COOLDOWN}s)"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
+# Update recovery timestamp
+update_recovery_timestamp() {
+    mkdir -p /var/lib/pgpool
+    date +%s > /var/lib/pgpool/last_recovery_attempt
+}
+
+# Recovery: No backends available
+recover_no_backends() {
+    log "warning" "Attempting recovery: No backends available"
+    
+    # Check if configuration file exists and has backends
+    if [ ! -f "/etc/pgpool2/pgpool.conf" ]; then
+        log "error" "pgpool configuration file missing"
+        return 1
+    fi
+    
+    local backend_count=$(grep -c "^backend_hostname[0-9]" /etc/pgpool2/pgpool.conf || echo 0)
+    if [ "$backend_count" -eq 0 ]; then
+        log "error" "No backends configured in pgpool.conf"
+        
+        # Trigger Confd to regenerate configuration
+        log "info" "Triggering Confd to regenerate pgpool configuration"
+        systemctl reload confd || true
+        
+        # Wait for configuration to be generated
+        sleep 10
+        
+        # Check again
+        backend_count=$(grep -c "^backend_hostname[0-9]" /etc/pgpool2/pgpool.conf || echo 0)
+        if [ "$backend_count" -eq 0 ]; then
+            log "error" "Confd failed to generate valid configuration"
+            return 1
+        fi
+    fi
+    
+    # Restart pgpool to pick up configuration
+    log "info" "Restarting pgpool to load backend configuration"
+    systemctl restart pgpool
+    
+    # Wait for pgpool to start
+    sleep 5
+    
+    # Verify backends are now available
+    if check_backend_status; then
+        log "info" "Recovery successful: Backends now available"
+        return 0
+    else
+        log "error" "Recovery failed: Still no active backends"
+        return 1
+    fi
+}
+
+# Recovery: All backends marked as down
+recover_all_backends_down() {
+    log "warning" "Attempting recovery: All backends marked as down"
+    
+    # Verify PostgreSQL instances are actually running
+    local pg_instances_up=0
+    for dc in dc1 dc2 dc3; do
+        local db_host=$(etcdctl --endpoints="${ETCD_ENDPOINTS}" get "/local/ips/${dc}" 2>/dev/null | tail -1)
+        
+        if [ -n "$db_host" ]; then
+            if timeout 5 psql -h "$db_host" -p 5432 -U ${PGPOOL_USER} -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+                log "info" "PostgreSQL at ${db_host} (${dc}) is accessible"
+                pg_instances_up=$((pg_instances_up + 1))
+            else
+                log "warning" "PostgreSQL at ${db_host} (${dc}) is not accessible"
+            fi
+        fi
+    done
+    
+    if [ $pg_instances_up -eq 0 ]; then
+        log "error" "No PostgreSQL instances are accessible - cannot recover"
+        return 1
+    fi
+    
+    # Force pgpool to re-check backends
+    log "info" "Forcing pgpool to re-check all backends"
+    
+    # Attach all backends
+    for i in 0 1 2; do
+        pgpool attach -n $i 2>&1 | log "info" || true
+    done
+    
+    # Reload pgpool
+    pgpool reload
+    
+    sleep 5
+    
+    # Verify recovery
+    if check_backend_status; then
+        log "info" "Recovery successful: Backends reattached"
+        return 0
+    else
+        log "error" "Recovery failed: Backends still marked as down"
+        return 1
+    fi
+}
+
+# Recovery: Service not running
+recover_service_not_running() {
+    log "warning" "Attempting recovery: pgpool service not running"
+    
+    # Clear any stale PID files
+    rm -f /run/pgpool/pgpool.pid
+    
+    # Start the service
+    if systemctl start pgpool; then
+        log "info" "Successfully started pgpool service"
+        return 0
+    else
+        log "error" "Failed to start pgpool service"
+        
+        # Check for common issues
+        if ! [ -f "/etc/pgpool2/pgpool.conf" ]; then
+            log "error" "Configuration file missing"
+            # Trigger configuration regeneration
+            systemctl reload confd || true
+            sleep 10
+        fi
+        
+        # Try once more
+        if systemctl start pgpool; then
+            log "info" "Successfully started pgpool service after configuration fix"
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+# Enhanced health check with optional recovery
+perform_health_check_with_recovery() {
+    log "info" "Starting pgpool health check on {{ inventory_hostname }} (recovery mode: ${RECOVERY_MODE})"
     
     local exit_code=0
+    local recovery_attempted=false
     
     # Check service status
     if ! check_service_running; then
         exit_code=1
+        if [ "$RECOVERY_MODE" = "auto" ] && check_recovery_cooldown; then
+            if acquire_lock "$RECOVERY_LOCKFILE"; then
+                trap "release_lock '$RECOVERY_LOCKFILE'" EXIT
+                update_recovery_timestamp
+                recovery_attempted=true
+                
+                if recover_service_not_running; then
+                    exit_code=0
+                fi
+                
+                release_lock "$RECOVERY_LOCKFILE"
+                trap - EXIT
+            fi
+        fi
     fi
     
     # Check connectivity
-    if ! check_pgpool_connectivity; then
+    if [ $exit_code -eq 0 ] && ! check_pgpool_connectivity; then
         exit_code=1
+        if [ "$RECOVERY_MODE" = "auto" ] && [ "$recovery_attempted" = false ] && check_recovery_cooldown; then
+            if acquire_lock "$RECOVERY_LOCKFILE"; then
+                trap "release_lock '$RECOVERY_LOCKFILE'" EXIT
+                update_recovery_timestamp
+                recovery_attempted=true
+                
+                if recover_service_not_running; then
+                    if check_pgpool_connectivity; then
+                        exit_code=0
+                    fi
+                fi
+                
+                release_lock "$RECOVERY_LOCKFILE"
+                trap - EXIT
+            fi
+        fi
     fi
     
     # If pgpool is accessible, check internals
     if [ $exit_code -eq 0 ]; then
         if ! check_backend_status; then
             exit_code=1
+            
+            # Determine recovery action needed
+            if [ "$RECOVERY_MODE" = "auto" ] && [ "$recovery_attempted" = false ] && check_recovery_cooldown; then
+                if acquire_lock "$RECOVERY_LOCKFILE"; then
+                    trap "release_lock '$RECOVERY_LOCKFILE'" EXIT
+                    update_recovery_timestamp
+                    recovery_attempted=true
+                    
+                    # Get backend counts
+                    local total_backends=0
+                    local active_backends=0
+                    
+                    local backend_status
+                    if backend_status=$(timeout ${TIMEOUT_SECONDS} psql -h localhost -p ${PGPOOL_PORT} -U ${PGPOOL_USER} -d postgres \
+                        -t -c "SHOW POOL_NODES;" 2>/dev/null); then
+                        
+                        while IFS='|' read -r node_id hostname port status role select_cnt load_balance_node rep_delay rep_state rep_sync_state last_status_change; do
+                            [[ "$node_id" =~ ^[[:space:]]*[0-9]+[[:space:]]*$ ]] || continue
+                            total_backends=$((total_backends + 1))
+                            status=$(echo "$status" | tr -d ' ')
+                            if [ "$status" = "up" ]; then
+                                active_backends=$((active_backends + 1))
+                            fi
+                        done <<< "$backend_status"
+                    fi
+                    
+                    # Attempt recovery based on situation
+                    if [ "$total_backends" -eq 0 ]; then
+                        if recover_no_backends; then
+                            exit_code=0
+                        fi
+                    elif [ "$active_backends" -eq 0 ] && [ "$total_backends" -gt 0 ]; then
+                        if recover_all_backends_down; then
+                            exit_code=0
+                        fi
+                    fi
+                    
+                    release_lock "$RECOVERY_LOCKFILE"
+                    trap - EXIT
+                fi
+            fi
         fi
         
         # Non-critical checks
@@ -247,7 +513,12 @@ main() {
     
     case "${mode}" in
         check)
-            perform_health_check
+            perform_health_check_with_recovery
+            ;;
+        recover)
+            # Force recovery mode
+            RECOVERY_MODE="auto"
+            perform_health_check_with_recovery
             ;;
         status)
             # Quick status check
@@ -264,7 +535,11 @@ main() {
             check_backend_status
             ;;
         *)
-            echo "Usage: $0 [check|status|backends]"
+            echo "Usage: $0 [check|recover|status|backends]"
+            echo "  check   - Health check with optional auto-recovery (based on PGPOOL_RECOVERY_MODE env var)"
+            echo "  recover - Health check with forced auto-recovery"
+            echo "  status  - Quick status check"
+            echo "  backends - Show backend status"
             exit 1
             ;;
     esac

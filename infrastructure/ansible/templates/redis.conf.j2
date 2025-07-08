@@ -44,6 +44,11 @@ repl-disable-tcp-nodelay no
 repl-backlog-size 1mb
 repl-backlog-ttl 3600
 
+# Replication safety - prevent split-brain writes
+# Master will stop accepting writes if it can't reach at least 1 replica
+min-replicas-to-write 1
+min-replicas-max-lag 10
+
 # Security
 requirepass {{ redis_password }}
 
@@ -52,7 +57,10 @@ maxmemory {{ redis_maxmemory }}
 maxmemory-policy {{ redis_maxmemory_policy }}
 maxmemory-samples 5
 
-# Persistence
+# Persistence - AOF enabled for better durability
+appendonly yes
+appendfilename "appendonly.aof"
+appendfsync everysec
 no-appendfsync-on-rewrite no
 auto-aof-rewrite-percentage 100
 auto-aof-rewrite-min-size 64mb

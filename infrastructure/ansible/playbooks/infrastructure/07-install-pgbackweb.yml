@@ -95,13 +95,17 @@
         host: localhost
         delay: 10
         timeout: 60
+    
+    - name: Wait for pgbackweb application to be fully ready
+      uri:
+        url: "http://localhost:{{ pgbackweb_port }}/auth/create-first-user"
+        method: GET
+        status_code: [200, 302]
+      register: result
+      until: result.status in [200, 302]
+      retries: 12
+      delay: 5
 
-    - name: Wait for pgbackweb database to be ready
-      wait_for:
-        port: 5433
-        host: localhost
-        delay: 5
-        timeout: 30
 
     - name: Create initial admin user in pgbackweb
       shell: |
@@ -140,13 +144,6 @@
         group: root
         mode: '0755'
 
-    - name: Copy recovery script
-      copy:
-        src: ../../scripts/fix-pgbackweb-login.sh
-        dest: /usr/local/bin/fix-pgbackweb-login.sh
-        owner: root
-        group: root
-        mode: '0755'
 
     - name: Display pgbackweb access information
       debug:
@@ -156,4 +153,3 @@
           - "Create an account on first access"
           - "Configure databases, destinations, and backup schedules through the web UI"
           - ""
-          - "If login fails after server restart, run: /usr/local/bin/fix-pgbackweb-login.sh"

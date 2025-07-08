@@ -138,14 +138,21 @@
       copy:
         content: |
           [Unit]
-          # Additional dependencies for Nomad clients
-          After=pgpool.service haproxy.service
+          # Additional dependencies for Nomad clients - made non-fatal to avoid circular dependencies
+          After=pgpool.service haproxy.service consul.service
           
           [Service]
-          # Extended startup checks for client nodes
-          ExecStartPre=/bin/bash -c 'for i in {1..30}; do consul catalog services | grep -q pgpool && echo "pgpool found in Consul" && break || (echo "Waiting for pgpool..." && sleep 2); done'
-          ExecStartPre=/bin/bash -c 'for i in {1..30}; do consul catalog services | grep -q haproxy-redis && echo "haproxy-redis found in Consul" && break || (echo "Waiting for haproxy-redis..." && sleep 2); done'
+          # Wait for Consul to be ready first (critical dependency)
+          ExecStartPre=/bin/bash -c 'for i in {1..30}; do consul members &>/dev/null && echo "Consul is ready" && exit 0 || echo "Waiting for Consul to be ready..."; sleep 2; done; exit 1'
+          
+          # Try to wait for pgpool, but don't block startup if it's not available
+          # This prevents circular dependency - Nomad can start and then schedule pgpool
+          ExecStartPre=-/bin/bash -c 'echo "[Nomad] Checking for pgpool service in Consul..."; for i in {1..10}; do consul catalog services 2>/dev/null | grep -q pgpool && echo "[Nomad] pgpool found in Consul" && exit 0; echo "[Nomad] Waiting for pgpool in Consul (non-fatal)..."; sleep 2; done; echo "[Nomad] pgpool not found in Consul after 20s, continuing anyway (will be scheduled by Nomad)"; exit 0'
+          
+          # Try to wait for haproxy-redis, but don't block startup if it's not available
+          ExecStartPre=-/bin/bash -c 'echo "[Nomad] Checking for haproxy-redis service in Consul..."; for i in {1..10}; do consul catalog services 2>/dev/null | grep -q haproxy-redis && echo "[Nomad] haproxy-redis found in Consul" && exit 0; echo "[Nomad] Waiting for haproxy-redis in Consul (non-fatal)..."; sleep 2; done; echo "[Nomad] haproxy-redis not found in Consul after 20s, continuing anyway (will be scheduled by Nomad)"; exit 0'
         dest: /etc/systemd/system/nomad.service.d/client-dependencies.conf
+      when: inventory_hostname in groups['nomad_clients']
       notify:
         - reload systemd
         - restart nomad

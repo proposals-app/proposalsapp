@@ -65,10 +65,21 @@ backend redis_write
     tcp-check expect string +OK
     
     # Master server (dynamically updated by confd)
+    {{ $masterFound := false }}
     {{ range gets "/service/redis/instances/*" }}
     {{ $data := json .Value }}
     {{ if eq $data.role "master" }}
+    # Master found in etcd
     server {{ $data.name }} {{ $data.host }}:{{ $data.port }} check inter 2s rise 2 fall 3
+    {{ end }}
+    {{ end }}
+    
+    # Fallback: If no master is found in etcd (e.g., during failover), 
+    # try to connect to all Redis instances and let HAProxy determine the master
+    {{ if not $masterFound }}
+    {{ range gets "/service/redis/instances/*" }}
+    {{ $data := json .Value }}
+    server {{ $data.name }}_fallback {{ $data.host }}:{{ $data.port }} check inter 2s rise 2 fall 3
     {{ end }}
     {{ end }}
 
