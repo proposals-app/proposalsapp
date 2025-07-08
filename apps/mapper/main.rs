@@ -66,17 +66,18 @@ async fn main() -> Result<()> {
     info!("Application starting up");
     initialize_db().await?;
 
-    // Initialize Redis-backed embedding cache with optimized similarity threshold
-    let similarity_threshold = 0.70f32; // Conservative threshold for higher precision
+    // Initialize Redis-backed embedding cache with separate thresholds for proposals and topics
+    let proposal_threshold = 0.75f32; // Stricter threshold for proposals
+    let topic_threshold = 0.70f32; // Slightly more lenient for topics
 
-    let embedding_cache = RedisEmbeddingCache::new(similarity_threshold).await?;
+    let embedding_cache = RedisEmbeddingCache::new(proposal_threshold, topic_threshold).await?;
     EMBEDDINGS
         .set(embedding_cache)
         .map_err(|_| anyhow::anyhow!("Failed to set Redis embedding cache"))?;
 
     info!(
-        "Embedding cache initialized with similarity threshold: {}",
-        similarity_threshold
+        "Embedding cache initialized with thresholds - proposals: {}, topics: {}",
+        proposal_threshold, topic_threshold
     );
 
     // Start health check server with memory stats

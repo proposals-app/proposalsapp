@@ -18,8 +18,10 @@ pub struct RedisEmbeddingCache {
     model: Arc<TextEmbedding>,
     /// The reranking model for cross-encoder scoring
     reranker: Arc<TextRerank>,
-    /// Angular similarity threshold for matching (title-only)
-    similarity_threshold: f32,
+    /// Angular similarity threshold for matching proposals (title-only)
+    proposal_similarity_threshold: f32,
+    /// Angular similarity threshold for matching topics (title-only)
+    topic_similarity_threshold: f32,
     /// Lower threshold for title+body matching
     body_similarity_threshold: f32,
 }
@@ -34,7 +36,7 @@ pub struct SimilarityScore {
 }
 
 impl RedisEmbeddingCache {
-    pub async fn new(similarity_threshold: f32) -> Result<Self> {
+    pub async fn new(proposal_threshold: f32, topic_threshold: f32) -> Result<Self> {
         info!("Initializing Redis-backed embedding cache...");
 
         // Connect to Redis
@@ -71,7 +73,8 @@ impl RedisEmbeddingCache {
             redis,
             model: Arc::new(model),
             reranker: Arc::new(reranker),
-            similarity_threshold,
+            proposal_similarity_threshold: proposal_threshold,
+            topic_similarity_threshold: topic_threshold,
             body_similarity_threshold,
         })
     }
@@ -87,7 +90,7 @@ impl RedisEmbeddingCache {
         // Process each text one by one to avoid memory spikes
         for text in texts {
             let key = format!("{}{}", EMBEDDING_KEY_PREFIX, text);
-            
+
             // Check Redis cache first
             let cached: Option<Vec<u8>> = self
                 .redis
@@ -98,29 +101,31 @@ impl RedisEmbeddingCache {
 
             let embedding = if let Some(bytes) = cached {
                 // Deserialize from JSON
-                let json_str = std::str::from_utf8(&bytes)
-                    .context("Failed to parse bytes as UTF-8")?;
+                let json_str =
+                    std::str::from_utf8(&bytes).context("Failed to parse bytes as UTF-8")?;
                 serde_json::from_str(json_str)
                     .context("Failed to deserialize embedding from JSON")?
             } else {
                 // Generate embedding for single text
                 debug!("Generating embedding for text");
-                
+
                 let embeddings = self
                     .model
                     .embed(vec![text.as_str()], None)
                     .context("Failed to generate embedding")?;
-                
-                let embedding = embeddings.into_iter().next()
+
+                let embedding = embeddings
+                    .into_iter()
+                    .next()
                     .context("Failed to get embedding from result")?;
-                
+
                 // Serialize as JSON for better debugging visibility
                 let json_str = serde_json::to_string(&embedding)
                     .context("Failed to serialize embedding to JSON")?;
-                
+
                 debug!(
-                    "Storing embedding in Redis - key: {}, value_len: {}, ttl: {}s", 
-                    &key, 
+                    "Storing embedding in Redis - key: {}, value_len: {}, ttl: {}s",
+                    &key,
                     json_str.len(),
                     EMBEDDING_TTL_SECONDS
                 );
@@ -131,19 +136,26 @@ impl RedisEmbeddingCache {
                     .set_ex(&key, json_str.as_bytes(), EMBEDDING_TTL_SECONDS as u64)
                     .await
                     .context("Failed to store embedding in Redis")?;
-                
+
                 // Verify the data was stored correctly
                 if cfg!(debug_assertions) {
-                    let verify: Option<Vec<u8>> = self.redis.clone().get(&key).await
+                    let verify: Option<Vec<u8>> = self
+                        .redis
+                        .clone()
+                        .get(&key)
+                        .await
                         .context("Failed to verify Redis storage")?;
                     if verify.is_none() {
-                        warn!("Failed to verify embedding was stored in Redis for key: {}", &key);
+                        warn!(
+                            "Failed to verify embedding was stored in Redis for key: {}",
+                            &key
+                        );
                     }
                 }
-                
+
                 embedding
             };
-            
+
             results.push(embedding);
         }
 
@@ -189,6 +201,7 @@ impl RedisEmbeddingCache {
         query_title: &str,
         query_body: Option<&str>,
         candidates: Vec<(String, String, Option<String>)>, // (id, title, body)
+        is_proposal: bool,                                 // true for proposals, false for topics
     ) -> Result<Option<(String, SimilarityScore)>> {
         if candidates.is_empty() {
             return Ok(None);
@@ -241,16 +254,17 @@ impl RedisEmbeddingCache {
                     Self::angular_similarity(&query_title_embedding, &title_embeddings[i]);
 
                 // Body similarity (if both have bodies)
-                let body_sim = if body.is_some() && query_body_embedding.is_some() && chunk_has_bodies[i] {
-                    let sim = Self::angular_similarity(
-                        query_body_embedding.as_ref().unwrap(),
-                        &body_embeddings.as_ref().unwrap()[body_idx],
-                    );
-                    body_idx += 1;
-                    Some(sim)
-                } else {
-                    None
-                };
+                let body_sim =
+                    if body.is_some() && query_body_embedding.is_some() && chunk_has_bodies[i] {
+                        let sim = Self::angular_similarity(
+                            query_body_embedding.as_ref().unwrap(),
+                            &body_embeddings.as_ref().unwrap()[body_idx],
+                        );
+                        body_idx += 1;
+                        Some(sim)
+                    } else {
+                        None
+                    };
 
                 // Calculate combined score
                 let combined_score = if let Some(bs) = body_sim {
@@ -312,8 +326,10 @@ impl RedisEmbeddingCache {
 
             let threshold = if body_sim.is_some() {
                 self.body_similarity_threshold
+            } else if is_proposal {
+                self.proposal_similarity_threshold
             } else {
-                self.similarity_threshold
+                self.topic_similarity_threshold
             };
 
             let score = SimilarityScore {

@@ -21,13 +21,11 @@ mod group_backtest_tests {
         // Initialize database
         initialize_db().await?;
 
-        // Initialize Redis-backed embeddings with the same threshold as production
-        let similarity_threshold = std::env::var("EMBEDDING_SIMILARITY_THRESHOLD")
-            .unwrap_or_else(|_| "0.70".to_string())
-            .parse::<f32>()
-            .context("Invalid EMBEDDING_SIMILARITY_THRESHOLD")?;
+        // Initialize Redis-backed embeddings with the same thresholds as production
+        let proposal_threshold = 0.75f32;
+        let topic_threshold = 0.70f32;
 
-        let embedding_cache = RedisEmbeddingCache::new(similarity_threshold).await?;
+        let embedding_cache = RedisEmbeddingCache::new(proposal_threshold, topic_threshold).await?;
 
         println!("\n=== Simulating Mapper Algorithm for Arbitrum DAO (Optimized) ===");
 
@@ -286,7 +284,12 @@ mod group_backtest_tests {
 
                 // Use the new enhanced similarity with reranking
                 if let Some((group_idx_str, score)) = embedding_cache
-                    .find_most_similar_enhanced(&proposal.name, Some(&proposal.body), candidates)
+                    .find_most_similar_enhanced(
+                        &proposal.name,
+                        Some(&proposal.body),
+                        candidates,
+                        true,
+                    ) // is_proposal = true
                     .await?
                 {
                     if score.passes_threshold {
