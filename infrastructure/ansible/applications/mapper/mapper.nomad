@@ -80,9 +80,11 @@ job "mapper" {
 
       env {
         # Rust settings
-        # Removed RUST_LOG to allow JSON formatting from code
+        RUST_LOG = "mapper=debug,llm_client=debug,llm_interface=debug,llm_models=debug,llm_devices=debug"
         RUST_BACKTRACE = "1"
-
+        
+        # Set target directory for llm_client to find llama-server
+        CARGO_TARGET_DIR = "/app/target"
       }
 
       # Deployment metadata template for visibility
