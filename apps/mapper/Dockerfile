@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Switch to nightly Rust for f16 feature support
+RUN rustup default nightly
+
 RUN cargo install cargo-chef --locked
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
@@ -36,6 +39,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Switch to nightly Rust for f16 feature support
+RUN rustup default nightly
 
 # Set environment variables for faster builds
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
@@ -66,6 +72,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Switch to nightly Rust for f16 feature support
+RUN rustup default nightly
 
 # Set environment variables for faster builds
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
