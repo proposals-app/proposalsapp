@@ -34,3 +34,5 @@ infrastructure/ansible/.vault_pass
 *.onnx
 models/
 __pycache__/
+
+llm_logs

@@ -113,6 +113,78 @@ impl Grouper {
         Ok(Self { db, llm_client })
     }
 
+    // Helper function to safely truncate text with middle ellipsis
+    fn truncate_text(text: &str, max_chars: usize) -> String {
+        const ELLIPSIS: &str = " [... TRUNCATED ...] ";
+        const ELLIPSIS_LEN: usize = 21; // " [... TRUNCATED ...] " is 21 chars
+
+        // Count actual characters, not bytes
+        let char_count = text.chars().count();
+
+        if char_count <= max_chars {
+            return text.to_string();
+        }
+
+        // If max_chars is too small, just truncate at the end
+        if max_chars <= ELLIPSIS_LEN + 20 {
+            let mut cutoff = max_chars.saturating_sub(4).min(text.len());
+            while cutoff > 0 && !text.is_char_boundary(cutoff) {
+                cutoff -= 1;
+            }
+            return format!("{}...", &text[..cutoff]);
+        }
+
+        // Calculate how many chars to keep from start and end
+        let available_chars = max_chars - ELLIPSIS_LEN;
+        // Keep 70% at the start, 30% at the end for better context
+        let start_chars = (available_chars * 7) / 10;
+        let end_chars = available_chars - start_chars;
+
+        // Find the byte positions for the character positions
+        let mut char_indices: Vec<(usize, char)> = text.char_indices().collect();
+
+        // Get start portion - try to break at a word boundary
+        let mut start_end_idx = if start_chars < char_indices.len() {
+            char_indices[start_chars].0
+        } else {
+            text.len()
+        };
+
+        // Look for a good break point (space or newline) near the cutoff
+        if let Some((idx, _)) = char_indices
+            .iter()
+            .take(start_chars)
+            .rev()
+            .take(50) // Look back up to 50 chars
+            .find(|(_, ch)| ch.is_whitespace())
+        {
+            start_end_idx = *idx;
+        }
+
+        // Get end portion - try to break at a word boundary
+        let end_start_char_pos = char_count.saturating_sub(end_chars);
+        let mut end_start_idx = if end_start_char_pos < char_indices.len() {
+            char_indices[end_start_char_pos].0
+        } else {
+            0
+        };
+
+        // Look for a good break point after the cutoff
+        if let Some((idx, _)) = char_indices
+            .iter()
+            .skip(end_start_char_pos)
+            .take(50) // Look forward up to 50 chars
+            .find(|(_, ch)| ch.is_whitespace())
+        {
+            end_start_idx = idx + 1; // Skip the whitespace
+        }
+
+        let start_text = &text[..start_end_idx].trim_end();
+        let end_text = &text[end_start_idx..].trim_start();
+
+        format!("{}{}{}", start_text, ELLIPSIS, end_text)
+    }
+
     // Keyword extraction using LLM with Redis caching
     async fn extract_keywords(&self, item: &NormalizedItem) -> Result<Vec<String>> {
         // Create a cache key based on item ID and a hash of title+body
@@ -131,16 +203,21 @@ impl Grouper {
             .prompt()
             .add_system_message()
             .unwrap()
-            .set_content("You are a DAO governance analyst. You specialty is tagging proposals with specific but descriptive keywords. Extract 10-15 key concepts from this governance item. Focus on: main topics of the proposal, specific proposal names, technical components, action items, important entities, proposal author.
+            .set_content("You are a DAO governance analyst. You specialty is tagging proposals with specific but descriptive keywords. Extract 10-15 key concepts from this governance item. Focus on: main topics of the proposal, differentiating factors, specific proposal names, technical components, action items, important entities, proposal author. Avoid too generic terms.
 
-IMPORTANT: Return ONLY a comma-separated list of keywords. Do not include any prefixes, explanations, or formatting. Do not start with 'Keywords:' or any other text. Just the keywords separated by commas.
+IMPORTANT: Return ONLY a comma-separated list of keywords. Do not include any prefixes, explanations, or formatting. Always use lowercase. Do not start with 'Keywords:' or any other text. Just the keywords separated by commas.
 
 Example response: governance, proposal, voting, treasury, delegation");
+
+        // Limit the body to prevent exceeding token limits
+        // Reserve ~1k chars for system prompt and formatting, leaving ~14k for content
+        let truncated_body = Self::truncate_text(&item.body, 12000);
+
         basic_completion
             .prompt()
             .add_user_message()
             .unwrap()
-            .set_content(&format!("Title: {}\nBody: {}", item.title, item.body));
+            .set_content(&format!("Title: {}\nBody: {}", item.title, truncated_body));
 
         let response = basic_completion
             .run()
@@ -172,6 +249,15 @@ Example response: governance, proposal, voting, treasury, delegation");
         let keywords_a = self.extract_keywords(item_a).await?;
         let keywords_b = self.extract_keywords(item_b).await?;
 
+        // Calculate available space for bodies
+        // Total limit: 15k chars
+        // Reserve space for: titles (2x200), keywords (2x500), dates (2x20), template (~400)
+        // Total reserved: ~2500 chars, leaving ~12500 for bodies
+        let max_body_chars_per_item = 6000; // Split evenly between two items
+
+        let body_a = Self::truncate_text(&item_a.body, max_body_chars_per_item);
+        let body_b = Self::truncate_text(&item_b.body, max_body_chars_per_item);
+
         // Create prompt with all relevant information
         let prompt = format!(
             r#"Item A:
@@ -192,22 +278,22 @@ Consider if they are:
 - A proposal and its implementation/review
 - Separate topics despite any similarities"#,
             item_a.title,
-            if item_a.body.len() > 1000 {
-                &item_a.body[..1000]
-            } else {
-                &item_a.body
-            },
+            body_a,
             keywords_a,
             item_a.created_at.format("%Y-%m-%d"),
             item_b.title,
-            if item_b.body.len() > 1000 {
-                &item_b.body[..1000]
-            } else {
-                &item_b.body
-            },
+            body_b,
             keywords_b,
             item_b.created_at.format("%Y-%m-%d")
         );
+
+        // Safety check to ensure we don't exceed limits
+        if prompt.len() > 15000 {
+            warn!(
+                "Prompt length {} exceeds 15k limit, further truncation needed",
+                prompt.len()
+            );
+        }
 
         // Get LLM score
         let mut score_request = self.llm_client.reason().integer();
