@@ -108,9 +108,9 @@
     "source.fixAll.eslint": true
   },
   "formatter": "prettier",
-  "wrap_guides": [80, 120],
+  "wrap_guides": [120, 200],
   "soft_wrap": "preferred_line_length",
-  "preferred_line_length": 80,
+  "preferred_line_length": 120,
   "tab_size": 2,
   "hard_tabs": false,
   "show_whitespaces": "selection",
