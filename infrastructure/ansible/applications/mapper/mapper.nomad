@@ -17,10 +17,10 @@ job "mapper" {
   group "mapper" {
     count = 1  # Single instance service
 
-    # Prefer to run in dc1 but can run anywhere if needed
+    # Prefer to run in dc2 but can run anywhere if needed
     affinity {
       attribute = "${node.datacenter}"
-      value     = "dc1"
+      value     = "dc2"
       weight    = 100
     }
 

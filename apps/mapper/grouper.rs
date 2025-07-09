@@ -123,7 +123,7 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
         .context("Failed to fetch DAO discourse configuration")?;
 
     // Load all existing groups for this DAO
-    let existing_groups = proposal_group::Entity::find()
+    let mut existing_groups = proposal_group::Entity::find()
         .filter(proposal_group::Column::DaoId.eq(dao.id))
         .all(DB.get().unwrap())
         .await
@@ -289,7 +289,8 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
                 if let Some(topic) = topic_item {
                     if !newly_grouped.contains(&topic.id()) {
                         // Create new group with both proposal and topic
-                        create_new_group_with_items(vec![item, topic], dao).await?;
+                        let new_group = create_new_group_with_items(vec![item, topic], dao).await?;
+                        existing_groups.push(new_group);
                         newly_grouped.insert(item.id());
                         newly_grouped.insert(topic.id());
                         info!(
@@ -300,6 +301,7 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
                     }
                 } else {
                     // Check if the topic is already in an existing group
+                    let mut group_to_update = None;
                     for group in &existing_groups {
                         if let Ok(items) =
                             serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
@@ -307,23 +309,27 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
                             for group_item in &items {
                                 if let ProposalGroupItem::Topic(t) = group_item {
                                     if t.external_id == topic_external_id {
-                                        // Add proposal to existing group
-                                        add_item_to_group(item, group.id, &existing_groups).await?;
-                                        newly_grouped.insert(item.id());
-                                        info!(
-                                            proposal_id = %external_id,
-                                            topic_id = %topic_external_id,
-                                            group_id = %group.id,
-                                            "Added proposal to existing group via URL matching"
-                                        );
+                                        group_to_update = Some(group.id);
                                         break;
                                     }
                                 }
                             }
-                            if newly_grouped.contains(&item.id()) {
+                            if group_to_update.is_some() {
                                 break;
                             }
                         }
+                    }
+                    
+                    if let Some(group_id) = group_to_update {
+                        // Add proposal to existing group
+                        add_item_to_group(item, group_id, &mut existing_groups).await?;
+                        newly_grouped.insert(item.id());
+                        info!(
+                            proposal_id = %external_id,
+                            topic_id = %topic_external_id,
+                            group_id = %group_id,
+                            "Added proposal to existing group via URL matching"
+                        );
                     }
                 }
             }
@@ -475,7 +481,7 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
                     let parts: Vec<&str> = best_match.id.split('_').collect();
                     if let Ok(group_id) = Uuid::parse_str(parts[1]) {
                         // Add item to existing group
-                        add_item_to_group(item, group_id, &existing_groups).await?;
+                        add_item_to_group(item, group_id, &mut existing_groups).await?;
                         newly_grouped.insert(item.id());
                     }
                 } else {
@@ -485,7 +491,8 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
                         .find(|i| i.id() == best_match.id)
                         .unwrap();
 
-                    create_new_group_with_items(vec![item, other_item], dao).await?;
+                    let new_group = create_new_group_with_items(vec![item, other_item], dao).await?;
+                    existing_groups.push(new_group);
                     newly_grouped.insert(item.id());
                     newly_grouped.insert(other_item.id());
                 }
@@ -498,12 +505,14 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
                     threshold = %SIMILARITY_THRESHOLD,
                     "Best match below threshold, creating single-item group"
                 );
-                create_single_item_group(item, dao).await?;
+                let new_group = create_single_item_group(item, dao).await?;
+                existing_groups.push(new_group);
                 newly_grouped.insert(item.id());
             }
         } else {
             // No candidates at all, create single-item group
-            create_single_item_group(item, dao).await?;
+            let new_group = create_single_item_group(item, dao).await?;
+            existing_groups.push(new_group);
             newly_grouped.insert(item.id());
         }
     }
@@ -516,10 +525,11 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::ptr_arg)]  // We need &mut Vec to replace elements
 async fn add_item_to_group(
     item: &GroupableItem,
     group_id: Uuid,
-    existing_groups: &[proposal_group::Model],
+    existing_groups: &mut Vec<proposal_group::Model>,
 ) -> Result<()> {
     // Find the group
     let group = existing_groups
@@ -538,10 +548,15 @@ async fn add_item_to_group(
     let mut active_group: proposal_group::ActiveModel = group.clone().into();
     active_group.items = Set(serde_json::to_value(&items)?);
 
-    proposal_group::Entity::update(active_group)
+    let updated_group = proposal_group::Entity::update(active_group)
         .exec(DB.get().unwrap())
         .await
         .context("Failed to update group")?;
+
+    // Update the existing_groups vector with the updated model
+    if let Some(group_in_vec) = existing_groups.iter_mut().find(|g| g.id == group_id) {
+        *group_in_vec = updated_group;
+    }
 
     info!(
         group_id = %group_id,
@@ -553,7 +568,7 @@ async fn add_item_to_group(
     Ok(())
 }
 
-async fn create_new_group_with_items(items: Vec<&GroupableItem>, dao: &dao::Model) -> Result<()> {
+async fn create_new_group_with_items(items: Vec<&GroupableItem>, dao: &dao::Model) -> Result<proposal_group::Model> {
     let group_items: Vec<ProposalGroupItem> =
         items.iter().map(|item| item.to_group_item()).collect();
 
@@ -568,22 +583,29 @@ async fn create_new_group_with_items(items: Vec<&GroupableItem>, dao: &dao::Mode
         dao_id: Set(dao.id),
     };
 
-    let created_group = proposal_group::Entity::insert(new_group)
+    let insert_result = proposal_group::Entity::insert(new_group)
         .exec(DB.get().unwrap())
         .await
         .context("Failed to create proposal group")?;
 
+    // Fetch the complete created group
+    let created_group = proposal_group::Entity::find_by_id(insert_result.last_insert_id)
+        .one(DB.get().unwrap())
+        .await
+        .context("Failed to fetch created group")?
+        .context("Created group not found")?;
+
     info!(
-        group_id = %created_group.last_insert_id,
+        group_id = %created_group.id,
         group_name = %group_name,
         item_count = items.len(),
         "Created new group with multiple items"
     );
 
-    Ok(())
+    Ok(created_group)
 }
 
-async fn create_single_item_group(item: &GroupableItem, dao: &dao::Model) -> Result<()> {
+async fn create_single_item_group(item: &GroupableItem, dao: &dao::Model) -> Result<proposal_group::Model> {
     create_new_group_with_items(vec![item], dao).await
 }
 
