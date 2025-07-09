@@ -82,7 +82,7 @@ job "mapper" {
         # Rust settings
         RUST_LOG = "mapper=debug,llm_client=debug,llm_interface=debug,llm_models=debug,llm_devices=debug"
         RUST_BACKTRACE = "1"
-        
+
         # Set target directory for llm_client to find llama-server
         CARGO_TARGET_DIR = "/app/target"
       }
@@ -185,7 +185,7 @@ EOF
       }
 
       resources {
-        cpu    = 12000   # 12 CPU cores
+        cpu    = 16000   # 16 CPU cores
         memory = 12288   # 12GB RAM
 
         # Reserve additional resources for peak loads
