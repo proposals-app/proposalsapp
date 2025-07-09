@@ -319,7 +319,7 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
                             }
                         }
                     }
-                    
+
                     if let Some(group_id) = group_to_update {
                         // Add proposal to existing group
                         add_item_to_group(item, group_id, &mut existing_groups).await?;
@@ -472,8 +472,8 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
             );
 
             // Check if the best match meets the minimum similarity threshold
-            const SIMILARITY_THRESHOLD: f32 = 0.7;
-            
+            const SIMILARITY_THRESHOLD: f32 = 0.75;
+
             if best_match.angular_similarity >= SIMILARITY_THRESHOLD {
                 // Good match - proceed with grouping
                 if best_match.id.starts_with("group_") {
@@ -491,7 +491,8 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
                         .find(|i| i.id() == best_match.id)
                         .unwrap();
 
-                    let new_group = create_new_group_with_items(vec![item, other_item], dao).await?;
+                    let new_group =
+                        create_new_group_with_items(vec![item, other_item], dao).await?;
                     existing_groups.push(new_group);
                     newly_grouped.insert(item.id());
                     newly_grouped.insert(other_item.id());
@@ -525,7 +526,7 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
     Ok(())
 }
 
-#[allow(clippy::ptr_arg)]  // We need &mut Vec to replace elements
+#[allow(clippy::ptr_arg)] // We need &mut Vec to replace elements
 async fn add_item_to_group(
     item: &GroupableItem,
     group_id: Uuid,
@@ -543,15 +544,17 @@ async fn add_item_to_group(
 
     // Check if item already exists in the group
     let new_item = item.to_group_item();
-    let already_exists = items.iter().any(|existing_item| match (&new_item, existing_item) {
-        (ProposalGroupItem::Proposal(new_p), ProposalGroupItem::Proposal(existing_p)) => {
-            new_p.external_id == existing_p.external_id
-        }
-        (ProposalGroupItem::Topic(new_t), ProposalGroupItem::Topic(existing_t)) => {
-            new_t.external_id == existing_t.external_id
-        }
-        _ => false,
-    });
+    let already_exists = items
+        .iter()
+        .any(|existing_item| match (&new_item, existing_item) {
+            (ProposalGroupItem::Proposal(new_p), ProposalGroupItem::Proposal(existing_p)) => {
+                new_p.external_id == existing_p.external_id
+            }
+            (ProposalGroupItem::Topic(new_t), ProposalGroupItem::Topic(existing_t)) => {
+                new_t.external_id == existing_t.external_id
+            }
+            _ => false,
+        });
 
     if already_exists {
         info!(
@@ -589,7 +592,10 @@ async fn add_item_to_group(
     Ok(())
 }
 
-async fn create_new_group_with_items(items: Vec<&GroupableItem>, dao: &dao::Model) -> Result<proposal_group::Model> {
+async fn create_new_group_with_items(
+    items: Vec<&GroupableItem>,
+    dao: &dao::Model,
+) -> Result<proposal_group::Model> {
     let group_items: Vec<ProposalGroupItem> =
         items.iter().map(|item| item.to_group_item()).collect();
 
@@ -626,7 +632,10 @@ async fn create_new_group_with_items(items: Vec<&GroupableItem>, dao: &dao::Mode
     Ok(created_group)
 }
 
-async fn create_single_item_group(item: &GroupableItem, dao: &dao::Model) -> Result<proposal_group::Model> {
+async fn create_single_item_group(
+    item: &GroupableItem,
+    dao: &dao::Model,
+) -> Result<proposal_group::Model> {
     create_new_group_with_items(vec![item], dao).await
 }
 
