@@ -1,8 +1,6 @@
 use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
-#[cfg(target_os = "macos")]
-use llm_client::MetalConfig;
 use llm_client::RequestConfigTrait;
 use llm_client::{InstructPromptTrait, LlmClient, LlmLocalTrait};
 use llm_models::GgufLoaderTrait;
@@ -17,42 +15,6 @@ use std::collections::{HashMap, HashSet};
 use tracing::{error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
-
-pub fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
-    // Remove query parameters and fragments
-    let url_without_query = url.split('?').next().unwrap_or("");
-    let url_clean = url_without_query.split('#').next().unwrap_or("");
-    let parts: Vec<&str> = url_clean
-        .split('/')
-        .filter(|&part| !part.is_empty())
-        .collect();
-
-    // Check if the URL contains the "t" segment, which is typical for Discourse
-    // topic URLs
-    if let Some(index) = parts.iter().position(|&part| part == "t") {
-        // Discourse URLs typically have the format: /t/slug/id or sometimes just /t/id
-        // First, check if there's a segment after 't'
-        if let Some(first_part) = parts.get(index + 1) {
-            // Check if it's a numeric ID (old format: /t/12345)
-            if let Ok(id) = first_part.parse::<i32>() {
-                return (Some(id), None);
-            }
-
-            // Otherwise, it's a slug. Check if there's an ID after the slug
-            let slug = Some(first_part.to_string());
-            let id = parts
-                .get(index + 2)
-                .and_then(|part| part.parse::<i32>().ok());
-
-            (id, slug)
-        } else {
-            (None, None)
-        }
-    } else {
-        // If the URL doesn't contain the "t" segment, return None for both ID and slug
-        (None, None)
-    }
-}
 
 lazy_static::lazy_static! {
     /// Mapping of DAO slugs to the Discourse category IDs that should be included
@@ -573,7 +535,7 @@ impl Grouper {
     }
 
     // Main grouping algorithm with scoring
-    async fn simple_grouping_pass(
+    async fn ai_grouping_pass(
         &self,
         mut ungrouped_items: Vec<NormalizedItem>,
         mut groups: HashMap<Uuid, Vec<NormalizedItem>>, // group_id -> items
@@ -808,8 +770,8 @@ impl Grouper {
         })
     }
 
-    // Persist simplified grouping results
-    async fn persist_simple_results(
+    // Persist grouping results
+    async fn persist_results(
         &self,
         groups: HashMap<Uuid, Vec<NormalizedItem>>,
         dao_id: Uuid,
@@ -833,7 +795,7 @@ impl Grouper {
                 items.iter().map(|item| item.raw_data.clone()).collect();
 
             let items_json = serde_json::to_value(&proposal_items)?;
-            let group_name = format!("Group: {}", items[0].title);
+            let group_name = format!("{}", items[0].title);
 
             if existing_group_ids.contains(&group_id) {
                 // Update existing group
@@ -866,6 +828,113 @@ impl Grouper {
         Ok(())
     }
 
+    // Procedural grouping step: match proposals with discourse topics based on discussion URLs
+    async fn procedural_grouping_pass(
+        &self,
+        proposals: &[proposal::Model],
+        topics: &[discourse_topic::Model],
+        all_items: &[NormalizedItem],
+        groups: &mut HashMap<Uuid, Vec<NormalizedItem>>,
+        grouped_item_ids: &mut HashSet<String>,
+    ) -> Result<()> {
+        info!("Starting procedural grouping pass");
+
+        // Build a map of topic external_id -> topic for fast lookup
+        let topic_by_id: HashMap<i32, &discourse_topic::Model> =
+            topics.iter().map(|t| (t.external_id, t)).collect();
+
+        // Build a map of topic slug -> topic for slug-based matching
+        let topic_by_slug: HashMap<String, &discourse_topic::Model> =
+            topics.iter().map(|t| (t.slug.clone(), t)).collect();
+
+        let mut matched_count = 0;
+
+        for proposal in proposals {
+            // Skip if already grouped
+            let proposal_item_id = format!("proposal_{}", proposal.external_id);
+            if grouped_item_ids.contains(&proposal_item_id) {
+                continue;
+            }
+
+            // Check if proposal has a discussion URL
+            if let Some(discussion_url) = &proposal.discussion_url {
+                if discussion_url.is_empty() {
+                    continue;
+                }
+
+                // Extract discourse ID or slug from the URL
+                let (extracted_id, extracted_slug) = extract_discourse_id_or_slug(discussion_url);
+
+                // Try to find matching topic
+                let matched_topic = if let Some(id) = extracted_id {
+                    topic_by_id.get(&id).copied()
+                } else if let Some(slug) = extracted_slug {
+                    topic_by_slug.get(&slug).copied()
+                } else {
+                    None
+                };
+
+                if let Some(topic) = matched_topic {
+                    let topic_item_id = format!("topic_{}", topic.external_id);
+
+                    // Find the normalized items
+                    let proposal_item = all_items.iter().find(|item| {
+                        matches!(&item.raw_data, ProposalGroupItem::Proposal(p) if p.external_id == proposal.external_id)
+                    });
+
+                    let topic_item = all_items.iter().find(|item| {
+                        matches!(&item.raw_data, ProposalGroupItem::Topic(t) if t.external_id == topic.external_id.to_string())
+                    });
+
+                    if let Some(prop_item) = proposal_item {
+                        // Check if topic is already in a group
+                        if grouped_item_ids.contains(&topic_item_id) {
+                            // Find which group contains the topic
+                            let existing_group = groups.iter_mut().find(|(_, items)| {
+                                items.iter().any(|item| {
+                                    matches!(&item.raw_data, ProposalGroupItem::Topic(t) if t.external_id == topic.external_id.to_string())
+                                })
+                            });
+
+                            if let Some((_group_id, group_items)) = existing_group {
+                                // Add proposal to existing group
+                                group_items.push(prop_item.clone());
+                                grouped_item_ids.insert(proposal_item_id.clone());
+
+                                matched_count += 1;
+                                info!(
+                                    "Added proposal '{}' to existing group containing topic '{}' via URL",
+                                    proposal.name, topic.title
+                                );
+                            }
+                        } else if let Some(topic_item) = topic_item {
+                            // Create a new group with both items
+                            let new_group_id = Uuid::new_v4();
+                            groups
+                                .insert(new_group_id, vec![prop_item.clone(), topic_item.clone()]);
+
+                            // Mark both as grouped
+                            grouped_item_ids.insert(proposal_item_id.clone());
+                            grouped_item_ids.insert(topic_item_id.clone());
+
+                            matched_count += 1;
+                            info!(
+                                "Procedurally matched proposal '{}' with topic '{}' via URL",
+                                proposal.name, topic.title
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        info!(
+            "Procedural grouping completed: {} matches found",
+            matched_count
+        );
+        Ok(())
+    }
+
     // Main entry point
     pub async fn run_grouping_for_dao(&self, dao_id: Uuid) -> Result<()> {
         info!("Starting grouping for DAO {}", dao_id);
@@ -882,20 +951,17 @@ impl Grouper {
             existing_groups.len()
         );
 
-        // Normalize items
+        // Normalize items (without keywords for now)
         let mut all_items = Vec::new();
 
-        for proposal in proposals {
-            let mut normalized = self.normalize_proposal(proposal).await?;
-            // Extract keywords for each item
-            normalized.keywords = self.extract_keywords(&normalized).await?;
+        for proposal in &proposals {
+            let normalized = self.normalize_proposal(proposal.clone()).await?;
             all_items.push(normalized);
         }
 
-        for topic in topics {
-            match self.normalize_topic(topic, dao_id.clone()).await {
-                Ok(mut normalized) => {
-                    normalized.keywords = self.extract_keywords(&normalized).await?;
+        for topic in &topics {
+            match self.normalize_topic(topic.clone(), dao_id.clone()).await {
+                Ok(normalized) => {
                     all_items.push(normalized);
                 }
                 Err(e) => {
@@ -952,25 +1018,499 @@ impl Grouper {
             groups.insert(group.id, group_items);
         }
 
-        // Get ungrouped items
-        let ungrouped_items: Vec<_> = all_items
+        // Step 2: Run procedural grouping FIRST (before AI grouping)
+        self.procedural_grouping_pass(
+            &proposals,
+            &topics,
+            &all_items,
+            &mut groups,
+            &mut grouped_item_ids,
+        )
+        .await?;
+
+        // Persist groups after procedural grouping
+        info!(
+            "Persisting {} groups after procedural grouping",
+            groups.len()
+        );
+        self.persist_results(groups.clone(), dao_id).await?;
+
+        // Extract keywords for all items after procedural grouping
+        info!("Extracting keywords for {} items", all_items.len());
+        let mut all_items_with_keywords = Vec::new();
+        for mut item in all_items {
+            item.keywords = self.extract_keywords(&item).await?;
+            all_items_with_keywords.push(item);
+        }
+
+        // Get ungrouped items (after procedural grouping)
+        let ungrouped_items: Vec<_> = all_items_with_keywords
             .into_iter()
             .filter(|item| !grouped_item_ids.contains(&item.id))
             .collect();
 
         info!(
-            "Starting grouping with {} ungrouped items and {} existing groups",
-            ungrouped_items.len(),
-            groups.len()
+            "After procedural grouping: {} ungrouped items remaining for AI grouping",
+            ungrouped_items.len()
         );
 
-        // Step 2-5: Run the simplified grouping algorithm
-        let final_groups = self.simple_grouping_pass(ungrouped_items, groups).await?;
+        // Step 3-5: Run the AI-based grouping algorithm on remaining ungrouped items
+        let final_groups = self.ai_grouping_pass(ungrouped_items, groups).await?;
 
-        // Persist results
-        self.persist_simple_results(final_groups, dao_id).await?;
+        // Persist results again after AI grouping
+        info!("Persisting final groups after AI grouping");
+        self.persist_results(final_groups, dao_id).await?;
 
         info!("Grouping complete for DAO {}", dao_id);
         Ok(())
+    }
+}
+
+pub fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
+    // Remove query parameters and fragments
+    let url_without_query = url.split('?').next().unwrap_or("");
+    let url_clean = url_without_query.split('#').next().unwrap_or("");
+    let parts: Vec<&str> = url_clean
+        .split('/')
+        .filter(|&part| !part.is_empty())
+        .collect();
+
+    // Check if the URL contains the "t" segment, which is typical for Discourse
+    // topic URLs
+    if let Some(index) = parts.iter().position(|&part| part == "t") {
+        // Discourse URLs typically have the format: /t/slug/id or sometimes just /t/id
+        // First, check if there's a segment after 't'
+        if let Some(first_part) = parts.get(index + 1) {
+            // Check if it's a numeric ID (old format: /t/12345)
+            if let Ok(id) = first_part.parse::<i32>() {
+                return (Some(id), None);
+            }
+
+            // Otherwise, it's a slug. Check if there's an ID after the slug
+            let slug = Some(ToString::to_string(first_part));
+            let id = parts
+                .get(index + 2)
+                .and_then(|part| part.parse::<i32>().ok());
+
+            (id, slug)
+        } else {
+            (None, None)
+        }
+    } else {
+        // If the URL doesn't contain the "t" segment, return None for both ID and slug
+        (None, None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Tests for ID-only format: /t/12345
+    #[test]
+    fn test_id_only_basic() {
+        let url = "https://example.com/t/12345";
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
+    }
+
+    #[test]
+    fn test_id_only_with_query_params() {
+        let url = "https://example.com/t/12345?param=value&another=test";
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
+    }
+
+    #[test]
+    fn test_id_only_with_post_number() {
+        let url = "https://example.com/t/12345/67";
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
+    }
+
+    #[test]
+    fn test_id_only_with_trailing_slash() {
+        let url = "https://example.com/t/12345/";
+        assert_eq!(extract_discourse_id_or_slug(url), (Some(12345), None));
+    }
+
+    // Tests for slug-only format: /t/topic-slug
+    #[test]
+    fn test_slug_only_basic() {
+        let url = "https://example.com/t/my-topic-slug";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (None, Some("my-topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_slug_only_with_dashes() {
+        let url = "https://example.com/t/this-is-a-long-topic-slug";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (None, Some("this-is-a-long-topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_slug_only_alphanumeric_mix() {
+        let url = "https://example.com/t/proposal123abc";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (None, Some("proposal123abc".to_string()))
+        );
+    }
+
+    // Tests for slug + ID format: /t/slug/12345
+    #[test]
+    fn test_slug_and_id_basic() {
+        let url = "https://example.com/t/my-topic/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("my-topic".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_slug_and_id_with_query_params() {
+        let url = "https://example.com/t/topic-slug/12345?u=username&ref=search";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_slug_and_id_with_post_number() {
+        let url = "https://example.com/t/my-topic-slug/12345/7";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("my-topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_real_arbitrum_forum_url() {
+        let url = "https://forum.arbitrum.foundation/t/reallocate-redeemed-usdm-funds-to-step-2-budget/29335?u=entropy";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (
+                Some(29335),
+                Some("reallocate-redeemed-usdm-funds-to-step-2-budget".to_string())
+            )
+        );
+    }
+
+    #[test]
+    fn test_very_long_arbitrum_slug() {
+        let url = "https://forum.arbitrum.foundation/t/wind-down-the-mss-transfer-payment-responsibilities-to-the-arbitrum-foundation/29279";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (
+                Some(29279),
+                Some("wind-down-the-mss-transfer-payment-responsibilities-to-the-arbitrum-foundation".to_string())
+            )
+        );
+    }
+
+    #[test]
+    fn test_extremely_long_slug_with_id() {
+        let url = "https://forum.arbitrum.foundation/t/non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (
+                Some(12345),
+                Some("non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead".to_string())
+            )
+        );
+    }
+
+    // Tests for URL variations and edge cases
+    #[test]
+    fn test_url_with_fragment() {
+        let url = "https://forum.example.com/t/topic-slug/12345#post_5";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_url_with_multiple_slashes() {
+        let url = "https://forum.example.com//t//topic-slug//12345//";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_protocol_relative_url() {
+        let url = "//forum.example.com/t/topic-slug/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_relative_url() {
+        let url = "/t/topic-slug/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_url_without_protocol() {
+        let url = "forum.example.com/t/topic-slug/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("topic-slug".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_unicode_characters_in_slug() {
+        let url = "https://forum.example.com/t/тема-на-русском/12345";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (Some(12345), Some("тема-на-русском".to_string()))
+        );
+    }
+
+    // Tests for invalid/malformed URLs
+    #[test]
+    fn test_empty_url() {
+        let url = "";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
+    }
+
+    #[test]
+    fn test_url_without_t_segment() {
+        let url = "https://example.com/some/other/path";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
+    }
+
+    #[test]
+    fn test_url_with_empty_t_segment() {
+        let url = "https://example.com/t/";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
+    }
+
+    #[test]
+    fn test_url_with_only_domain() {
+        let url = "https://example.com";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
+    }
+
+    #[test]
+    fn test_url_with_t_but_no_content() {
+        let url = "https://example.com/t";
+        assert_eq!(extract_discourse_id_or_slug(url), (None, None));
+    }
+
+    // Edge case: slug that looks like it could be an ID but isn't numeric
+    #[test]
+    fn test_slug_only_with_trailing_slash() {
+        let url = "https://forum.arbitrum.foundation/t/non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead/";
+        assert_eq!(
+            extract_discourse_id_or_slug(url),
+            (
+                None,
+                Some("non-constitutional-proposal-for-piloting-enhancements-and-strengthening-the-sustainability-of-arbitrumhub-in-the-year-ahead".to_string())
+            )
+        );
+    }
+
+    // Real-world URL extraction tests based on actual Arbitrum forum URLs
+    #[test]
+    fn test_real_arbitrum_forum_urls() {
+        // Test cases from actual Arbitrum DAO discussion URLs
+        let test_cases = vec![
+            (
+                "https://forum.arbitrum.foundation/t/arbitrum-research-and-development-collective-v2-extension/29476",
+                (Some(29476), Some("arbitrum-research-and-development-collective-v2-extension".to_string()))
+            ),
+            (
+                "https://forum.arbitrum.foundation/t/proposal-extend-agv-council-term-and-align-future-elections-with-operational-cadence/29425",
+                (Some(29425), Some("proposal-extend-agv-council-term-and-align-future-elections-with-operational-cadence".to_string()))
+            ),
+            (
+                "https://forum.arbitrum.foundation/t/constitutional-aip-remove-cost-cap-on-arbitrum-nova/29332",
+                (Some(29332), Some("constitutional-aip-remove-cost-cap-on-arbitrum-nova".to_string()))
+            ),
+            (
+                "https://forum.arbitrum.foundation/t/arbitrum-treasury-management-council-consolidating-efforts/29334",
+                (Some(29334), Some("arbitrum-treasury-management-council-consolidating-efforts".to_string()))
+            ),
+        ];
+
+        for (url, expected) in test_cases {
+            assert_eq!(
+                extract_discourse_id_or_slug(url),
+                expected,
+                "Failed for URL: {}",
+                url
+            );
+        }
+    }
+
+    #[test]
+    fn test_special_characters_in_real_slugs() {
+        // Test with actual Arbitrum proposals that have special formatting
+        let test_cases = vec![
+            (
+                "https://forum.arbitrum.foundation/t/non-constitutional-proposal-establishing-the-arbitrum-ecosystem-fund/29513",
+                (
+                    Some(29513),
+                    Some(
+                        "non-constitutional-proposal-establishing-the-arbitrum-ecosystem-fund"
+                            .to_string(),
+                    ),
+                ),
+            ),
+            (
+                "https://forum.arbitrum.foundation/t/proposal-institutional-arb-buyback-via-bond-issuance/29491",
+                (
+                    Some(29491),
+                    Some("proposal-institutional-arb-buyback-via-bond-issuance".to_string()),
+                ),
+            ),
+            (
+                "https://forum.arbitrum.foundation/t/proposal-launch-native-arb-staking-at-8-apy/29399",
+                (
+                    Some(29399),
+                    Some("proposal-launch-native-arb-staking-at-8-apy".to_string()),
+                ),
+            ),
+        ];
+
+        for (url, expected) in test_cases {
+            assert_eq!(
+                extract_discourse_id_or_slug(url),
+                expected,
+                "Failed for URL: {}",
+                url
+            );
+        }
+    }
+
+    #[test]
+    fn test_uniswap_forum_urls() {
+        // Test with actual Uniswap forum URLs
+        let test_cases = vec![
+            (
+                "https://gov.uniswap.org/t/making-protocol-fees-operational/21198?u=gfxlabs",
+                (Some(21198), Some("making-protocol-fees-operational".to_string()))
+            ),
+            (
+                "https://gov.uniswap.org/t/uniswap-deployments-accountability-committee-next-steps-the-committee-application-thread/22475?u=doo_stablelab",
+                (Some(22475), Some("uniswap-deployments-accountability-committee-next-steps-the-committee-application-thread".to_string()))
+            ),
+            (
+                "https://gov.uniswap.org/t/rfc-onboard-unichain-to-v3-and-create-unichains-own-message-passing-bridge/24219",
+                (Some(24219), Some("rfc-onboard-unichain-to-v3-and-create-unichains-own-message-passing-bridge".to_string()))
+            ),
+            (
+                "https://gov.uniswap.org/t/rfc-onboard-unichain-to-v3-and-create-unichains-own-message-passing-bridge/24219/5",
+                (Some(24219), Some("rfc-onboard-unichain-to-v3-and-create-unichains-own-message-passing-bridge".to_string()))
+            ),
+        ];
+
+        for (url, expected) in test_cases {
+            assert_eq!(
+                extract_discourse_id_or_slug(url),
+                expected,
+                "Failed for URL: {}",
+                url
+            );
+        }
+    }
+
+    #[test]
+    fn test_edge_case_uniswap_urls() {
+        // Test edge cases from the provided list
+        let test_cases = vec![
+            // Standard format
+            (
+                "https://gov.uniswap.org/t/arbitrum-ltipp-incentive-matching/24066",
+                (
+                    Some(24066),
+                    Some("arbitrum-ltipp-incentive-matching".to_string()),
+                ),
+            ),
+            // With post number
+            (
+                "https://gov.uniswap.org/t/deploy-uniswap-v3-on-linea/21261/1",
+                (Some(21261), Some("deploy-uniswap-v3-on-linea".to_string())),
+            ),
+            // With query params
+            (
+                "https://gov.uniswap.org/t/rfc-deploy-uniswap-v3-on-x-layer/24307?u=gfxlabs",
+                (
+                    Some(24307),
+                    Some("rfc-deploy-uniswap-v3-on-x-layer".to_string()),
+                ),
+            ),
+            // With post number and query params
+            (
+                "https://gov.uniswap.org/t/rfc-deploy-uniswap-v3-on-x-layer/24307/26?u=gfxlabs",
+                (
+                    Some(24307),
+                    Some("rfc-deploy-uniswap-v3-on-x-layer".to_string()),
+                ),
+            ),
+            // URL ending with just slug (no ID)
+            (
+                "https://gov.uniswap.org/t/deploy-uniswap-v3-to-boba-network/",
+                (None, Some("deploy-uniswap-v3-to-boba-network".to_string())),
+            ),
+            // URL ending with just slug (no ID, no trailing slash)
+            (
+                "https://gov.uniswap.org/t/rfc-deploy-uniswap-v3-on-zora",
+                (None, Some("rfc-deploy-uniswap-v3-on-zora".to_string())),
+            ),
+            // URL ending with just slug (no ID)
+            (
+                "https://gov.uniswap.org/t/temperature-check-should-uniswap-v3-be-deployed-to-bnb-chain",
+                (
+                    None,
+                    Some(
+                        "temperature-check-should-uniswap-v3-be-deployed-to-bnb-chain".to_string(),
+                    ),
+                ),
+            ),
+        ];
+
+        for (url, expected) in test_cases {
+            assert_eq!(
+                extract_discourse_id_or_slug(url),
+                expected,
+                "Failed for URL: {}",
+                url
+            );
+        }
+    }
+
+    #[test]
+    fn test_non_discourse_urls() {
+        // Test non-discourse URLs that should return None
+        let test_cases = vec![
+            (
+                "https://snapshot.org/#/uniswapgovernance.eth/proposal/0xe7274e00eb2a084cdc3b7510a8b40aa303ac2d7944e9706ad090c974c76e71bf",
+                (None, None),
+            ),
+            ("https://github.com/uniswap/v3-core", (None, None)),
+            ("https://uniswap.org/", (None, None)),
+        ];
+
+        for (url, expected) in test_cases {
+            assert_eq!(
+                extract_discourse_id_or_slug(url),
+                expected,
+                "Failed for URL: {}",
+                url
+            );
+        }
     }
 }
