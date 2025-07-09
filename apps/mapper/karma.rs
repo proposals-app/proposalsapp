@@ -18,7 +18,7 @@ use tokio::{
     sync::Mutex,
     time::{Instant, sleep},
 };
-use tracing::{Span, info, instrument, warn};
+use tracing::{info, instrument, warn};
 
 #[derive(Debug, Deserialize)]
 struct KarmaFullApiResponse {
@@ -59,9 +59,6 @@ pub async fn run_karma_task() -> Result<()> {
     let daos = fetch_daos_with_discourse().await?;
 
     for (dao, maybe_dao_discourse) in daos {
-        let span = Span::current();
-        span.record("dao_slug", &dao.slug);
-
         info!("Processing dao: {}", dao.slug);
 
         if let Some(discourse) = maybe_dao_discourse {

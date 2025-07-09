@@ -11,12 +11,9 @@ use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberI
 
 mod grouper;
 mod karma;
-mod redis_embeddings;
-
-use redis_embeddings::RedisEmbeddingCache;
+mod redis_cache;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
-pub static EMBEDDINGS: OnceCell<RedisEmbeddingCache> = OnceCell::new();
 
 pub async fn initialize_db() -> Result<()> {
     let database_url =
@@ -63,13 +60,15 @@ async fn main() -> Result<()> {
     info!("Application starting up");
     initialize_db().await?;
 
-    // Initialize Redis-backed embedding cache
-    let embedding_cache = RedisEmbeddingCache::new().await?;
-    EMBEDDINGS
-        .set(embedding_cache)
-        .map_err(|_| anyhow::anyhow!("Failed to set Redis embedding cache"))?;
+    // Initialize Redis
+    if let Err(e) = redis_cache::initialize_redis().await {
+        warn!(
+            "Failed to initialize Redis, continuing without caching: {}",
+            e
+        );
+    }
 
-    info!("Embedding cache initialized successfully");
+    info!("Using LLM-based grouper");
 
     // Start health check server
     let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
@@ -89,19 +88,11 @@ async fn main() -> Result<()> {
         loop {
             info!("Running grouper task");
 
-            // Log cache statistics before task
-            if let Ok((entries, memory_bytes)) = EMBEDDINGS.get().unwrap().cache_stats().await {
-                let memory_mb = memory_bytes as f64 / 1_048_576.0;
-                info!(
-                    cache_entries = entries,
-                    cache_memory_mb = memory_mb,
-                    "Cache statistics before grouper task"
-                );
+            match crate::grouper::run_grouper_task().await {
+                Ok(_) => info!("Grouper task completed successfully"),
+                Err(e) => error!(error = %e, "Grouper task runtime error"),
             }
 
-            if let Err(e) = grouper::run_group_task().await {
-                error!(error = %e, "Grouper task runtime error");
-            }
             info!(
                 "Grouper task completed, sleeping for {} seconds",
                 interval.as_secs()
@@ -110,21 +101,21 @@ async fn main() -> Result<()> {
         }
     });
 
-    let karma_handle = tokio::spawn(async move {
-        // Run the karma task every 30 minutes
-        let interval = Duration::from_secs(30 * 60);
-        loop {
-            info!("Running karma task");
-            if let Err(e) = karma::run_karma_task().await {
-                error!(error = %e, "Karma task runtime error");
-            }
-            info!(
-                "Karma task completed, sleeping for {} seconds",
-                interval.as_secs()
-            );
-            tokio::time::sleep(interval).await;
-        }
-    });
+    // let karma_handle = tokio::spawn(async move {
+    //     // Run the karma task every 30 minutes
+    //     let interval = Duration::from_secs(30 * 60);
+    //     loop {
+    //         info!("Running karma task");
+    //         if let Err(e) = karma::run_karma_task().await {
+    //             error!(error = %e, "Karma task runtime error");
+    //         }
+    //         info!(
+    //             "Karma task completed, sleeping for {} seconds",
+    //             interval.as_secs()
+    //         );
+    //         tokio::time::sleep(interval).await;
+    //     }
+    // });
 
     // Uptime ping task
     let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
@@ -149,9 +140,9 @@ async fn main() -> Result<()> {
         result = grouper_handle => {
             error!("Grouper task completed unexpectedly: {:?}", result);
         }
-        result = karma_handle => {
-            error!("Karma task completed unexpectedly: {:?}", result);
-        }
+        // result = karma_handle => {
+        //     error!("Karma task completed unexpectedly: {:?}", result);
+        // }
         result = uptime_handle => {
             error!("Uptime task completed unexpectedly: {:?}", result);
         }
