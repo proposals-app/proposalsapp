@@ -1,8 +1,10 @@
 use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
-use llm_client::{GgufPresetTrait, InstructPromptTrait, LlmClient};
+use llm_client::{InstructPromptTrait, LlmClient};
+use llm_models::GgufLoaderTrait;
 use proposalsapp_db::models::*;
+use rand::Rng;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set, prelude::*,
     sea_query,
@@ -77,13 +79,13 @@ pub async fn run_grouper_task() -> Result<()> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NormalizedItem {
+    pub dao_id: String,
     pub id: String, // Composite: "proposal_{external_id}" or "topic_{external_id}"
     pub title: String,
     pub body: String,
     pub created_at: DateTime<Utc>,
-    pub item_type: ItemType,         // Proposal or Discussion
-    pub keywords: Vec<String>,       // LLM-extracted keywords
-    pub summary: Option<String>,     // LLM-generated if body exceeds context
+    pub item_type: ItemType,
+    pub keywords: Vec<String>,
     pub raw_data: ProposalGroupItem, // Original ProposalItem or TopicItem
 }
 
@@ -103,11 +105,19 @@ impl Grouper {
         // Initialize LLM client with proper error handling
         info!("Initializing LLM client for grouper");
 
-        let llm_client = LlmClient::llama_cpp()
-            .llama3_2_3b_instruct()
+        // Use Hugging Face URL to download the model automatically
+        // This is Llama 3.1 8B Instruct with Q4_K_M quantization (~4.9GB)
+        let model_url = "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf";
+
+        info!("Downloading/using LLM model from: {}", model_url);
+
+        let mut builder = LlmClient::llama_cpp();
+        builder.hf_quant_file_url(model_url);
+
+        let llm_client = builder
             .init()
             .await
-            .context("Failed to initialize LLM client - make sure llama.cpp server can start")?;
+            .context("Failed to initialize LLM client - make sure llama.cpp server can start and model can be downloaded")?;
 
         info!("LLM client initialized successfully");
         Ok(Self { db, llm_client })
@@ -188,7 +198,7 @@ impl Grouper {
     // Keyword extraction using LLM with Redis caching
     async fn extract_keywords(&self, item: &NormalizedItem) -> Result<Vec<String>> {
         // Create a cache key based on item ID and a hash of title+body
-        let cache_key = format!("mapper:keywords:{}", item.id);
+        let cache_key = format!("mapper:keywords:{}-{}", item.id, item.dao_id);
 
         // Try to get from cache first
         if let Ok(Some(cached_keywords)) = redis_cache::get_cached_keywords(&cache_key).await {
@@ -203,11 +213,35 @@ impl Grouper {
             .prompt()
             .add_system_message()
             .unwrap()
-            .set_content("You are a DAO governance analyst. You specialty is tagging proposals with specific but descriptive keywords. Extract 10-15 key concepts from this governance item. Focus on: identifiers, main topics of the proposal, differentiating factors, specific proposal names, technical components, action items, important entities, proposal author. Avoid too generic terms.
+            .set_content(r#"
+                You are a DAO governance analyst specializing in precise proposal tagging. Analyze this governance item and extract 10-20 specific, descriptive keywords that uniquely identify and categorize this proposal.
 
-IMPORTANT: Return ONLY a comma-separated list of keywords. Do not include any prefixes, explanations, or formatting. Always use lowercase. Do not start with 'Keywords:' or any other text. Just the keywords separated by commas.
+                Extraction Guidelines:
+                - Prioritize specificity over generality (e.g., "uniswap-v3-fee-adjustment" not "protocol-update")
+                - Include exact names, numbers, and identifiers when present
+                - Capture the proposal's unique characteristics that distinguish it from others
+                - Use hyphens to connect multi-word concepts (e.g., "cross-chain-bridge")
 
-Example response: governance, proposal, voting, treasury, delegation");
+                Required Coverage Areas:
+                1. IDENTIFIERS: proposal ID, voting round, specific dates
+                2. PROPOSAL TYPE: funding-request, parameter-change, strategic-initiative, etc.
+                3. TECHNICAL ELEMENTS: specific protocols, smart contracts, technical standards
+                4. FINANCIAL DETAILS: amounts, percentages, token symbols, budget items
+                5. ENTITIES: proposal author, affected protocols, partner organizations
+                6. ACTIONS: specific verbs describing what will happen (e.g., "deploy", "allocate", "integrate")
+                7. SCOPE: affected chains, ecosystems, or communities
+
+                Exclusion Rules:
+                - Omit generic terms unless combined with specifics (not "governance" but "governance-token-migration")
+                - Skip filler words like "proposal", "discussion", "DAO" unless part of a specific name
+                - Avoid abstract concepts without context
+
+                Output Format:
+                Return ONLY lowercase keywords separated by commas. No prefixes, explanations, or additional formatting. If the data is missing, return "invalid-data".
+
+                Example (good): compound-grant-23, defi-education-initiative, 50k-usdc-funding, alice-smith, q1-2024, developer-onboarding, polygon-deployment, compound-finance
+
+                Example (bad): governance, proposal, voting, community, discussion, update"#);
 
         // Limit the body to prevent exceeding token limits
         // Reserve ~1k chars for system prompt and formatting, leaving ~14k for content
@@ -235,8 +269,9 @@ Example response: governance, proposal, voting, treasury, delegation");
 
         info!("Keywords for {}: {:?}", item.id, keywords);
 
+        let ttl = 604800 + rand::rng().random_range(302400..302400 * 3);
         // Cache the result for 7 days (604800 seconds)
-        if let Err(e) = redis_cache::cache_keywords(&cache_key, &keywords, 604800).await {
+        if let Err(e) = redis_cache::cache_keywords(&cache_key, &keywords, ttl).await {
             warn!("Failed to cache keywords: {}", e);
         }
 
@@ -260,23 +295,24 @@ Example response: governance, proposal, voting, treasury, delegation");
 
         // Create prompt with all relevant information
         let prompt = format!(
-            r#"Item A:
-Title: {}
-Body: {}
-Keywords: {:?}
-Created: {}
+            r#"
+                Item A:
+                Title: {}
+                Body: {}
+                Keywords: {:?}
+                Created: {}
 
-Item B:
-Title: {}
-Body: {}
-Keywords: {:?}
-Created: {}
+                Item B:
+                Title: {}
+                Body: {}
+                Keywords: {:?}
+                Created: {}
 
-Consider if they are:
-- The same proposal at different stages
-- Strongly related proposals that should be tracked together
-- A proposal and its implementation/review
-- Separate topics despite any similarities"#,
+                Consider if they are:
+                - The same proposal at different stages
+                - Strongly related proposals that should be tracked together
+                - A proposal and its implementation/review
+                - Separate topics despite any similarities"#,
             item_a.title,
             body_a,
             keywords_a,
@@ -287,20 +323,49 @@ Consider if they are:
             item_b.created_at.format("%Y-%m-%d")
         );
 
-        // Safety check to ensure we don't exceed limits
-        if prompt.len() > 15000 {
-            warn!(
-                "Prompt length {} exceeds 15k limit, further truncation needed",
-                prompt.len()
-            );
-        }
-
         // Get LLM score
         let mut score_request = self.llm_client.reason().integer();
         score_request.primitive.lower_bound(0).upper_bound(100);
 
         let score = score_request
-            .set_instructions("You are a DAO governance analyst. You specialty is mapping together forum discussions to offchain or onchain proposals on the same topic. Rate from 0 to 100 how likely these two governance items should be grouped together. 0 means completely unrelated, 100 means definitely the same topic.")
+            .set_instructions(r#"
+                You are a DAO governance analyst specializing in proposal relationship mapping. Evaluate whether these two governance items should be grouped together.
+
+                Scoring Guidelines:
+                - 90-100: Same proposal/initiative at different stages or formats
+                - 70-89: Directly related items that form a coherent governance thread
+                - 50-69: Related topics with significant shared context
+                - 30-49: Loosely related with some common elements
+                - 10-29: Minimal connection, different topics sharing minor details
+                - 0-9: Completely unrelated items
+
+                Strong Grouping Indicators (HIGH scores):
+                1. SEQUENTIAL PROGRESSION: Temperature check → Formal proposal → Implementation update
+                2. SAME INITIATIVE: Identical funding request, protocol change, or strategic decision across venues
+                3. EXPLICIT REFERENCES: One item directly mentions or links to the other
+                4. IDENTICAL KEY DETAILS: Same amounts, addresses, specific parameter values, or implementation specs
+                5. AUTHOR CONTINUITY: Same proposer advancing through governance stages
+
+                Moderate Grouping Indicators (MEDIUM scores):
+                1. SHARED OBJECTIVES: Different approaches to the same problem
+                2. DEPENDENCY RELATIONSHIP: One proposal depends on or complements the other
+                3. TOPICAL CLUSTERING: Multiple proposals in the same domain (e.g., all security audits)
+                4. TEMPORAL PROXIMITY: Related items posted within days/weeks of each other
+
+                Weak/No Grouping Indicators (LOW scores):
+                1. COMPETING PROPOSALS: Mutually exclusive alternatives
+                2. DIFFERENT DOMAINS: Unrelated protocol areas or initiatives
+                3. GENERIC SIMILARITIES: Only sharing common governance terms
+                4. COINCIDENTAL OVERLAP: Similar words but different contexts
+
+                Analysis Framework:
+                - Compare titles for direct matches or progression patterns
+                - Check if keywords overlap in meaningful ways (not just generic terms)
+                - Identify specific entities, amounts, or technical details that match
+                - Consider temporal relationship and logical flow
+                - Look for explicit mentions or references between items
+
+                Return a single integer from 0 to 100 based on the strength of relationship."#)
             .set_supporting_material(&prompt)
             .return_primitive()
             .await
@@ -496,18 +561,22 @@ Consider if they are:
 
         Ok(NormalizedItem {
             id,
+            dao_id: proposal.dao_id.to_string(),
             title: proposal.name.clone(),
             body: proposal.body.clone(),
             created_at: Utc.from_utc_datetime(&proposal.created_at),
             item_type: ItemType::Proposal,
             keywords: vec![], // Will be filled by extract_keywords
-            summary: None,
             raw_data,
         })
     }
 
     // Normalize a discourse topic into our common format
-    async fn normalize_topic(&self, topic: discourse_topic::Model) -> Result<NormalizedItem> {
+    async fn normalize_topic(
+        &self,
+        topic: discourse_topic::Model,
+        dao_id: String,
+    ) -> Result<NormalizedItem> {
         let external_id = topic.external_id.to_string();
         let id = format!("topic_{}", external_id);
 
@@ -531,12 +600,12 @@ Consider if they are:
 
         Ok(NormalizedItem {
             id,
+            dao_id,
             title: topic.title.clone(),
             body,
             created_at: Utc.from_utc_datetime(&topic.created_at),
             item_type: ItemType::Discussion,
             keywords: vec![], // Will be filled by extract_keywords
-            summary: None,
             raw_data,
         })
     }
@@ -626,7 +695,10 @@ Consider if they are:
         }
 
         for topic in topics {
-            match self.normalize_topic(topic).await {
+            match self
+                .normalize_topic(topic, dao_id.clone().to_string())
+                .await
+            {
                 Ok(mut normalized) => {
                     normalized.keywords = self.extract_keywords(&normalized).await?;
                     all_items.push(normalized);
