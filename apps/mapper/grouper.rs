@@ -208,12 +208,64 @@ impl Grouper {
 
         info!("Cache miss for keywords: {}, extracting with LLM", item.id);
 
-        let mut basic_completion = self.llm_client.basic_completion();
-        basic_completion
-            .prompt()
-            .add_system_message()
-            .unwrap()
-            .set_content(r#"
+        // Try extraction with multiple attempts, each with fresh context
+        let max_attempts = 3;
+        let mut last_error = None;
+
+        for attempt in 0..max_attempts {
+            if attempt > 0 {
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            }
+
+            match self.extract_keywords_single_attempt(item, attempt).await {
+                Ok(keywords) if keywords.len() >= 5 && keywords.len() <= 25 => {
+                    // Success! Cache and return
+                    info!("Keywords for {}: {:?}", item.id, keywords);
+                    let ttl = 604800 + rand::rng().random_range(302400..302400 * 3);
+                    if let Err(e) = redis_cache::cache_keywords(&cache_key, &keywords, ttl).await {
+                        warn!("Failed to cache keywords: {}", e);
+                    }
+                    return Ok(keywords);
+                }
+                Ok(keywords) => {
+                    warn!(
+                        "Invalid keyword count ({}) on attempt {}/{}",
+                        keywords.len(),
+                        attempt + 1,
+                        max_attempts
+                    );
+                    last_error = Some(format!("Got {} keywords, expected 5-25", keywords.len()));
+                }
+                Err(e) => {
+                    warn!(
+                        "Failed to extract keywords on attempt {}/{}: {}",
+                        attempt + 1,
+                        max_attempts,
+                        e
+                    );
+                    last_error = Some(e.to_string());
+                }
+            }
+        }
+
+        // All attempts failed, return fallback
+        warn!(
+            "Failed to extract valid keywords after {} attempts: {:?}",
+            max_attempts, last_error
+        );
+        let fallback = vec!["invalid-keyword-extraction".to_string()];
+        Ok(fallback)
+    }
+
+    // Single attempt at keyword extraction with fresh LLM context
+    async fn extract_keywords_single_attempt(
+        &self,
+        item: &NormalizedItem,
+        attempt: usize,
+    ) -> Result<Vec<String>> {
+        // Use increasingly explicit prompts for retries
+        let system_prompt = if attempt == 0 {
+            r#"
                 You are a DAO governance analyst specializing in precise proposal tagging. Analyze this governance item and extract 10-20 specific, descriptive keywords that uniquely identify and categorize this proposal.
 
                 Extraction Guidelines:
@@ -247,7 +299,21 @@ impl Grouper {
 
                 Example (good): compound-grant-23, defi-education-initiative, 50k-usdc-funding, alice-smith, q1-2024, developer-onboarding, polygon-deployment, compound-finance
 
-                Example (bad): governance, proposal, voting, community, discussion, update"#);
+                Example (bad): governance, proposal, voting, community, discussion, update"#
+        } else if attempt == 1 {
+            // More explicit for first retry
+            "Return ONLY comma-separated keywords. No explanations, no prefixes, no 'assistant', no 'Here are'. Just keywords: lowercase, hyphens ok, no spaces. 10-20 keywords only. Example: governance-token,treasury-management,defi-protocol"
+        } else {
+            // Very explicit for final retry
+            "OUTPUT ONLY KEYWORDS SEPARATED BY COMMAS. NOTHING ELSE. Example: keyword1,keyword2,keyword3"
+        };
+
+        let mut basic_completion = self.llm_client.basic_completion();
+        basic_completion
+            .prompt()
+            .add_system_message()
+            .unwrap()
+            .set_content(system_prompt);
 
         // Limit the body to prevent exceeding token limits
         // Reserve ~1k chars for system prompt and formatting, leaving ~14k for content
@@ -259,74 +325,70 @@ impl Grouper {
             .unwrap()
             .set_content(&format!("Title: {}\nBody: {}", item.title, truncated_body));
 
-        let mut attempts = 0;
-        let max_attempts = 3;
-        let mut keywords = Vec::new();
-        
-        while attempts < max_attempts {
-            let response = basic_completion
-                .run()
-                .await
-                .context("Failed to extract keywords")?;
+        let response = basic_completion
+            .run()
+            .await
+            .context("Failed to extract keywords")?;
 
-            let keywords_string = response.content.trim();
-            
-            // Parse keywords
-            let parsed_keywords: Vec<String> = keywords_string
-                .split(',')
-                .map(|s| s.trim().to_lowercase())
-                .filter(|s| {
-                    // Validate each keyword:
-                    // - Not empty and at least 2 chars
-                    // - Contains only lowercase letters, numbers, and hyphens
-                    // - No spaces (should use hyphens instead)
-                    !s.is_empty() 
-                    && s.len() >= 2 
+        let keywords_string = response.content.trim();
+
+        // First, handle the "assistant" prefix
+        let mut cleaned_string = keywords_string;
+        if let Some(idx) = cleaned_string.find("assistant") {
+            cleaned_string = &cleaned_string[idx + "assistant".len()..];
+        }
+
+        // Remove any leading/trailing whitespace and newlines
+        cleaned_string = cleaned_string.trim();
+
+        // Find the actual keyword list - look for patterns that indicate keywords
+        let keyword_part = if cleaned_string.contains('\n') {
+            // If there are multiple lines, keywords are likely on first or specific line
+            cleaned_string
+                .lines()
+                .find(|line| {
+                    let trimmed = line.trim();
+                    // Check if this line looks like a comma-separated list
+                    trimmed.contains(',')
+                        && !trimmed.contains("Here")
+                        && !trimmed.contains("keywords")
+                        && !trimmed.contains("following")
+                        && !trimmed.contains("These")
+                        && !trimmed.contains("Note")
+                })
+                .unwrap_or(cleaned_string)
+        } else if let Some(idx) = cleaned_string.rfind(':') {
+            // If there's a colon, keywords likely come after it
+            cleaned_string[idx + 1..].trim()
+        } else {
+            // Otherwise use the whole string
+            cleaned_string
+        };
+
+        // Parse keywords - split by comma and clean each one
+        let parsed_keywords: Vec<String> = keyword_part
+            .split(',')
+            .map(|s| {
+                s.trim()
+                    .trim_matches('"') // Remove quotes if present
+                    .trim_matches('\'') // Remove single quotes
+                    .to_lowercase()
+            })
+            .filter(|s| {
+                // Validate each keyword:
+                // - Not empty and at least 2 chars
+                // - Contains only lowercase letters, numbers, and hyphens
+                // - No spaces (should use hyphens instead)
+                !s.is_empty()
+                    && s.len() >= 2
+                    && s.len() <= 50  // Max length to avoid garbage
                     && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
                     && !s.contains(' ')
-                })
-                .collect();
-            
-            // Check if we got a reasonable response
-            if !parsed_keywords.is_empty() && parsed_keywords.len() >= 5 && parsed_keywords.len() <= 25 {
-                keywords = parsed_keywords;
-                break;
-            }
-            
-            attempts += 1;
-            if attempts < max_attempts {
-                warn!(
-                    "Invalid keyword format received (got {} valid keywords), retrying... (attempt {}/{})", 
-                    parsed_keywords.len(), 
-                    attempts + 1, 
-                    max_attempts
-                );
-                // Add a small delay before retry
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                
-                // Re-emphasize the format in the prompt for retry
-                basic_completion
-                    .prompt()
-                    .add_system_message()
-                    .unwrap()
-                    .set_content("CRITICAL: Return ONLY comma-separated keywords. Each keyword must be lowercase, can contain hyphens for multi-word concepts (like cross-chain-bridge), but NO spaces. Return between 10-20 keywords. Example: governance,proposal,voting,treasury,delegation,cross-chain,parameter-update");
-            }
-        }
-        
-        if keywords.is_empty() {
-            warn!("Failed to extract valid keywords after {} attempts, using fallback", max_attempts);
-            keywords = vec!["invalid-keyword-extraction".to_string()];
-        }
+            })
+            .take(25) // Limit to 25 keywords max to avoid garbage
+            .collect();
 
-        info!("Keywords for {}: {:?}", item.id, keywords);
-
-        let ttl = 604800 + rand::rng().random_range(302400..302400 * 3);
-        // Cache the result for 7 days (604800 seconds)
-        if let Err(e) = redis_cache::cache_keywords(&cache_key, &keywords, ttl).await {
-            warn!("Failed to cache keywords: {}", e);
-        }
-
-        Ok(keywords)
+        Ok(parsed_keywords)
     }
 
     // Scoring function that returns a match score from 0 to 100
@@ -458,11 +520,11 @@ impl Grouper {
                     score, current_item_id, grouped_item.id, group_id
                 );
 
-                if score >= MATCH_THRESHOLD {
-                    if best_match.is_none() || score > best_match.as_ref().unwrap().0 {
-                        best_match = Some((score, grouped_item.id.clone(), true));
-                        best_group_id = Some(group_id);
-                    }
+                if score >= MATCH_THRESHOLD && best_match.is_none()
+                    || score > best_match.as_ref().unwrap().0
+                {
+                    best_match = Some((score, grouped_item.id.clone(), true));
+                    best_group_id = Some(group_id);
                 }
             }
 
@@ -474,11 +536,11 @@ impl Grouper {
                     score, current_item_id, other_item.id
                 );
 
-                if score >= MATCH_THRESHOLD {
-                    if best_match.is_none() || score > best_match.as_ref().unwrap().0 {
-                        best_match = Some((score, other_item.id.clone(), false));
-                        best_ungrouped_idx = Some(idx);
-                    }
+                if score >= MATCH_THRESHOLD && best_match.is_none()
+                    || score > best_match.as_ref().unwrap().0
+                {
+                    best_match = Some((score, other_item.id.clone(), false));
+                    best_ungrouped_idx = Some(idx);
                 }
             }
 
