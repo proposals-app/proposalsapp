@@ -32,9 +32,11 @@ const VoteComponents = {
 export function ResultCard({ content, result }: ResultCardProps) {
   // Use HiddenVote component if votes are hidden and not finalized
   const isHidden = result.hiddenVote && result.scoresState !== 'final';
-  const Component = isHidden 
-    ? HiddenVote 
-    : (result.voteType ? VoteComponents[result.voteType] : null);
+  const Component = isHidden
+    ? HiddenVote
+    : result.voteType
+      ? VoteComponents[result.voteType]
+      : null;
   const onchain = result.proposal.blockCreatedAt ? true : false;
 
   return (

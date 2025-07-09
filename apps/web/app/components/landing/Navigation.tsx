@@ -148,7 +148,9 @@ export function Navigation() {
                 {dao.name}
               </Link>
             ))}
-            <div className={`border-t ${isLight ? 'border-zinc-200' : 'border-zinc-700'} my-2`} />
+            <div
+              className={`border-t ${isLight ? 'border-zinc-200' : 'border-zinc-700'} my-2`}
+            />
             <Link
               href='/docs'
               onClick={() => setMobileMenuOpen(false)}

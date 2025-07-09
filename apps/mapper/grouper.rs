@@ -1,6 +1,8 @@
 use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
+#[cfg(target_os = "macos")]
+use llm_client::MetalConfig;
 use llm_client::RequestConfigTrait;
 use llm_client::{InstructPromptTrait, LlmClient, LlmLocalTrait};
 use llm_models::GgufLoaderTrait;
@@ -15,6 +17,42 @@ use std::collections::{HashMap, HashSet};
 use tracing::{error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
+
+pub fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) {
+    // Remove query parameters and fragments
+    let url_without_query = url.split('?').next().unwrap_or("");
+    let url_clean = url_without_query.split('#').next().unwrap_or("");
+    let parts: Vec<&str> = url_clean
+        .split('/')
+        .filter(|&part| !part.is_empty())
+        .collect();
+
+    // Check if the URL contains the "t" segment, which is typical for Discourse
+    // topic URLs
+    if let Some(index) = parts.iter().position(|&part| part == "t") {
+        // Discourse URLs typically have the format: /t/slug/id or sometimes just /t/id
+        // First, check if there's a segment after 't'
+        if let Some(first_part) = parts.get(index + 1) {
+            // Check if it's a numeric ID (old format: /t/12345)
+            if let Ok(id) = first_part.parse::<i32>() {
+                return (Some(id), None);
+            }
+
+            // Otherwise, it's a slug. Check if there's an ID after the slug
+            let slug = Some(first_part.to_string());
+            let id = parts
+                .get(index + 2)
+                .and_then(|part| part.parse::<i32>().ok());
+
+            (id, slug)
+        } else {
+            (None, None)
+        }
+    } else {
+        // If the URL doesn't contain the "t" segment, return None for both ID and slug
+        (None, None)
+    }
+}
 
 lazy_static::lazy_static! {
     /// Mapping of DAO slugs to the Discourse category IDs that should be included
@@ -115,17 +153,40 @@ impl Grouper {
         let mut builder = LlmClient::llama_cpp();
         builder.hf_quant_file_url(model_url);
 
-        // Configure for CPU-only execution with limited RAM
-        // The container has 12GB RAM, but we need to leave room for other processes
-        // Set to 8GB to be safe (model is ~5GB, leaving 3GB for inference)
-        builder = builder.cpu_only().use_ram_gb(8.0);
+        // Platform-specific configuration
+        #[cfg(target_os = "macos")]
+        {
+            info!("Detected macOS, configuring for Metal GPU acceleration");
+            // On macOS, use Metal GPU with 8GB RAM allocation
+            // Metal automatically uses GPU index 0 on macOS
+            let metal_config = llm_client::MetalConfig::new_from_ram_gb(8.0);
+            builder = builder.metal_config(metal_config);
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            info!("Detected non-macOS platform (likely Linux), configuring for CPU-only execution");
+            // On Linux and other platforms, use CPU-only with 8GB RAM limit
+            // The container has 12GB RAM, but we need to leave room for other processes
+            builder = builder.cpu_only().use_ram_gb(8.0);
+        }
 
         let llm_client = builder
             .init()
             .await
             .context("Failed to initialize LLM client - make sure llama.cpp server can start and model can be downloaded")?;
 
-        info!("LLM client initialized successfully");
+        // Log device configuration
+        if let Ok(llama_backend) = llm_client.backend.llama_cpp() {
+            let gpu_count = llama_backend.server.device_config.gpu_count();
+            info!(
+                "LLM client initialized successfully with {} GPU(s)",
+                gpu_count
+            );
+        } else {
+            info!("LLM client initialized successfully");
+        }
+
         Ok(Self { db, llm_client })
     }
 
@@ -256,6 +317,7 @@ impl Grouper {
 
                 Extraction Guidelines:
                 - Prioritize specificity over generality (e.g., "uniswap-v3-fee-adjustment" not "protocol-update")
+                - Do not, under any circumstance, make up ids (like "dao-proposal-123") which do not explicitly exist in the text
                 - Include exact names, numbers, and identifiers when present
                 - Capture the proposal's unique characteristics that distinguish it from others
                 - Use hyphens to connect multi-word concepts (e.g., "cross-chain-bridge")

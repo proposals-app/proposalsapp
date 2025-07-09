@@ -15,7 +15,7 @@ let connectionPromise = null;
 
 // Create Redis client lazily
 function createRedisClient() {
-  return createClient({ 
+  return createClient({
     url: redisUrl,
     // Keep connection alive with periodic pings
     pingInterval: 30000, // 30 seconds
@@ -27,8 +27,8 @@ function createRedisClient() {
         const delay = Math.min(times * 50, 30000);
         console.log(`Redis reconnecting attempt ${times}, delay: ${delay}ms`);
         return delay;
-      }
-    }
+      },
+    },
   });
 }
 
@@ -143,13 +143,17 @@ const cacheHandler = {
 
     try {
       // Check if there's a pending entry
-      const isPending = await redisClient.exists(`${PENDING_CACHE_PREFIX}${cacheKey}`);
+      const isPending = await redisClient.exists(
+        `${PENDING_CACHE_PREFIX}${cacheKey}`
+      );
       if (isPending) {
         // Wait for the pending entry to complete
         let retries = 0;
         while (retries < 50) {
           // Max 5 seconds wait (50 * 100ms)
-          const exists = await redisClient.exists(`${PENDING_CACHE_PREFIX}${cacheKey}`);
+          const exists = await redisClient.exists(
+            `${PENDING_CACHE_PREFIX}${cacheKey}`
+          );
           if (!exists) break;
           await new Promise((resolve) => setTimeout(resolve, 100));
           retries++;
@@ -185,7 +189,9 @@ const cacheHandler = {
 
     try {
       // Mark this entry as pending
-      await redisClient.set(`${PENDING_CACHE_PREFIX}${cacheKey}`, '1', { EX: 60 }); // 60s timeout
+      await redisClient.set(`${PENDING_CACHE_PREFIX}${cacheKey}`, '1', {
+        EX: 60,
+      }); // 60s timeout
 
       try {
         const entry = await pendingEntry;
@@ -208,9 +214,13 @@ const cacheHandler = {
         };
 
         // Store in Redis with expiration based on entry.expire
-        await redisClient.set(`${CACHE_PREFIX}${cacheKey}`, JSON.stringify(entryCopy), {
-          EX: entry.expire,
-        });
+        await redisClient.set(
+          `${CACHE_PREFIX}${cacheKey}`,
+          JSON.stringify(entryCopy),
+          {
+            EX: entry.expire,
+          }
+        );
 
         // Restore the stream in the original entry
         entry.value = bufferToStream(valueBuffer);

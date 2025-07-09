@@ -91,10 +91,10 @@ export function ResultsChart({ results }: ResultsChartProps) {
     };
 
     // Initialize ECharts instance
-    const chart = echarts.init(chartRef.current, null, { 
+    const chart = echarts.init(chartRef.current, null, {
       renderer: 'svg',
       width: 'auto',
-      height: 'auto'
+      height: 'auto',
     });
 
     const isRankedChoice = deserializedResults.voteType === 'ranked-choice';
@@ -536,7 +536,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
       },
       { threshold: 0.1 }
     );
-    
+
     if (chartRef.current) {
       intersectionObserver.observe(chartRef.current);
     }

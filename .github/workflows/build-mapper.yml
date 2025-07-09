@@ -3,17 +3,17 @@ name: Build and Push Mapper
 on:
   push:
     branches:
-      - '**'  # Trigger on all branches
+      - "**" # Trigger on all branches
     paths:
-      - 'apps/mapper/**'
-      - 'libs/rust/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - '.github/workflows/build-mapper.yml'
+      - "apps/mapper/**"
+      - "libs/rust/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/build-mapper.yml"
   workflow_dispatch:
     inputs:
       force_build:
-        description: 'Force build even without changes'
+        description: "Force build even without changes"
         required: false
         default: false
         type: boolean
@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -121,7 +121,7 @@ jobs:
         run: |
           echo "📦 New image available: ${{ steps.webhook.outputs.image }}"
           echo "🏷️  Tag: ${{ steps.webhook.outputs.tag }}"
-          
+
           # Create deployment metadata
           DEPLOYMENT_JSON=$(cat <<EOF
           {
@@ -137,13 +137,13 @@ jobs:
           }
           EOF
           )
-          
+
           echo "📤 Updating Consul KV with deployment metadata..."
-          
+
           # Update Consul KV with retry logic
           CONSUL_SERVERS=("consul-nomad-sib-01:8500" "consul-nomad-sib-03:8500" "consul-nomad-fsn-01:8500")
           UPDATED=false
-          
+
           for server in "${CONSUL_SERVERS[@]}"; do
             echo "Trying Consul server: ${server}"
             
@@ -163,16 +163,16 @@ jobs:
               fi
             done
           done
-          
+
           if [ "$UPDATED" = false ]; then
             echo "❌ ERROR: Failed to update Consul KV on all servers!"
             echo "Deployment metadata was not saved. Nomad will not receive the update."
             exit 1
           fi
-          
+
           echo "✅ Deployment metadata updated successfully"
           echo "ℹ️  Nomad will detect the change via Consul template and restart with the new image"
-          
+
       - name: Log build information
         if: success() && github.event_name == 'push' && github.ref != 'refs/heads/main'
         run: |
@@ -187,16 +187,16 @@ jobs:
     if: success()
     permissions:
       packages: write
-    continue-on-error: true  # Don't fail the workflow if cleanup fails
-    
+    continue-on-error: true # Don't fail the workflow if cleanup fails
+
     steps:
       - name: Delete old container images
         uses: actions/delete-package-versions@v4
         with:
-          package-name: 'proposalsapp/mapper'
-          package-type: 'container'
+          package-name: "proposalsapp/mapper"
+          package-type: "container"
           min-versions-to-keep: 10
-          delete-only-untagged-versions: 'false'
+          delete-only-untagged-versions: "false"
           # Keep last 5 versions per branch
-          ignore-versions: '^(main|master|develop)-(.*)'
-        continue-on-error: true  # Continue even if package doesn't exist yet
+          ignore-versions: "^(main|master|develop)-(.*)"
+        continue-on-error: true # Continue even if package doesn't exist yet

@@ -1,182 +1,501 @@
-import { db, dbPool, type Selectable, type Dao } from '@proposalsapp/db';
-import express from 'express';
+import {
+  db,
+  ProposalState,
+  type Selectable,
+  type Dao,
+  type Kysely,
+  type DB,
+} from '@proposalsapp/db';
+import { Resend } from 'resend';
 import cron from 'node-cron';
-import { config, validateConfig } from './config';
-import { DependencyContainer } from './services/DependencyContainer';
-import { CircuitBreaker } from './services/CircuitBreaker';
-import { UptimeMonitor } from './services/UptimeMonitor';
+import { formatDistanceStrict } from 'date-fns';
+import { config as dotenv_config } from 'dotenv';
+import { render } from '@react-email/render';
+import {
+  NewProposalEmailTemplate,
+  NewDiscussionEmailTemplate,
+  EndingProposalEmailTemplate,
+} from '@proposalsapp/emails';
 
-// Validate configuration on startup
-validateConfig();
+dotenv_config();
 
-// Initialize dependency container
-const container = new DependencyContainer(
-  {
-    resendApiKey: config.resendApiKey,
-    fromEmail: config.fromEmail,
-    notificationConfig: config.notifications,
-  },
-  db
-);
-
-// Initialize circuit breakers
-const mainCircuitBreaker = config.circuitBreaker.enabled
-  ? new CircuitBreaker(
-      config.circuitBreaker.threshold,
-      config.circuitBreaker.timeout
-    )
-  : null;
-
-// Create a separate circuit breaker for email operations with lower threshold
-const emailCircuitBreaker = config.circuitBreaker.enabled
-  ? new CircuitBreaker(
-      Math.max(3, Math.floor(config.circuitBreaker.threshold / 2)), // Lower threshold for emails
-      config.circuitBreaker.timeout
-    )
-  : null;
-
-// Set the email circuit breaker in the container
-if (emailCircuitBreaker) {
-  container.setEmailCircuitBreaker(emailCircuitBreaker);
+// Configuration - only what we actually need
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+if (!RESEND_API_KEY) {
+  console.error('Missing required environment variable: RESEND_API_KEY');
+  process.exit(1);
 }
 
-// Initialize uptime monitor
-const uptimeMonitor = new UptimeMonitor(
-  db.public,
-  config.betterstackKey,
-  mainCircuitBreaker,
-  emailCircuitBreaker
-);
+const FROM_EMAIL =
+  process.env.FROM_EMAIL || 'Proposals.app <no-reply@proposals.app>';
+const NEW_PROPOSAL_MINUTES = 5;
+const ENDING_PROPOSAL_MINUTES = 60;
+const NEW_DISCUSSION_MINUTES = 5;
+const COOLDOWN_HOURS = 24;
 
-// Express app for health checks
-const app = express();
+// DAO-specific Discourse category filters
+const DAO_DISCOURSE_CATEGORIES: Record<string, number[]> = {
+  arbitrum: [7, 8],
+  // Add more DAOs and their allowed categories here as needed
+};
 
-// Setup health endpoint via uptime monitor
-uptimeMonitor.setupHealthEndpoint(app);
+// Initialize Resend
+const resend = new Resend(RESEND_API_KEY);
 
-// Main notification processing function
+// ============================================
+// Main Process Entry Points
+// ============================================
+
+// Main process
 async function processNotifications(): Promise<void> {
   console.log('Starting notification processing...');
 
   try {
-    // Get all enabled DAOs
-    const daos = await container.getDaoRepository().getEnabledDaos();
-    console.log(`Found ${daos.length} enabled DAOs`);
+    // Get enabled DAOs (those with at least one enabled governor)
+    const daos = await db.public
+      .selectFrom('dao')
+      .selectAll()
+      .where('dao.id', 'in', (qb) =>
+        qb.selectFrom('daoGovernor').select('daoId').where('enabled', '=', true)
+      )
+      .execute();
 
     for (const dao of daos) {
-      await processDao(dao);
-    }
-
-    console.log('Notification processing completed successfully');
-  } catch (error) {
-    console.error('Error during notification processing:', error);
-    throw error;
-  }
-}
-
-// Process notifications for a single DAO
-async function processDao(dao: Selectable<Dao>): Promise<void> {
-  console.log(`\nProcessing notifications for ${dao.name}`);
-
-  try {
-    // Get notification service for this DAO
-    const notificationService = container.getNotificationService(dao.slug);
-
-    // Process new proposals
-    await notificationService.processNewProposalNotifications(dao);
-
-    // Process ending proposals
-    await notificationService.processEndingProposalNotifications(dao);
-
-    // Process new discussions if Discourse is enabled
-    const daoDiscourse = await db.public
-      .selectFrom('daoDiscourse')
-      .selectAll()
-      .where('daoId', '=', dao.id)
-      .where('enabled', '=', true)
-      .executeTakeFirst();
-
-    if (daoDiscourse) {
-      await notificationService.processNewDiscussionNotifications(
-        dao,
-        daoDiscourse.id,
-        daoDiscourse.discourseBaseUrl
-      );
-    }
-  } catch (error) {
-    console.error(`Error processing notifications for ${dao.name}:`, error);
-    // Continue with other DAOs even if one fails
-  }
-}
-
-// Schedule cron job
-const task = cron.schedule(config.cronSchedule, async () => {
-  console.log('\n--- Cron job triggered ---');
-
-  const executeWithCircuitBreaker = mainCircuitBreaker
-    ? () => mainCircuitBreaker.execute(() => processNotifications())
-    : processNotifications;
-
-  try {
-    await executeWithCircuitBreaker();
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Circuit breaker is OPEN') {
-      console.error(
-        'Circuit breaker is OPEN, skipping notification processing'
-      );
-    } else {
-      console.error('Error in cron job:', error);
-    }
-  }
-});
-
-// Start services
-app.listen(config.port, () => {
-  console.log(`Email service is running on port ${config.port}`);
-  console.log(
-    `Health check available at http://localhost:${config.port}/health`
-  );
-
-  task.start();
-  console.log('Cron job scheduled to run:', config.cronSchedule);
-
-  uptimeMonitor.start();
-});
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\nShutting down gracefully...');
-
-  task.stop();
-
-  uptimeMonitor.stop();
-
-  // Close all database pools
-  const closePools = async () => {
-    const poolsToClose = [];
-
-    // Always close public pool
-    poolsToClose.push(dbPool.public.end());
-
-    // Close all DAO-specific pools
-    for (const [key, pool] of Object.entries(dbPool)) {
-      if (key !== 'public' && pool && typeof pool.end === 'function') {
-        poolsToClose.push(pool.end());
+      try {
+        await processDao(dao);
+      } catch (error) {
+        console.error(`Error processing ${dao.name}:`, error);
       }
     }
 
-    await Promise.all(poolsToClose);
-  };
+    console.log('Notification processing completed');
+  } catch (error) {
+    console.error('Error during notification processing:', error);
+  }
+}
 
-  closePools()
-    .then(() => {
-      console.log('All database connections closed');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('Error closing database connections:', error);
-      process.exit(1);
-    });
+// Process notifications for a DAO
+async function processDao(dao: Selectable<Dao>): Promise<void> {
+  console.log(`\nProcessing ${dao.name}`);
+
+  try {
+    await processNewProposals(dao);
+    await processEndingProposals(dao);
+    await processNewDiscussions(dao);
+  } catch (error) {
+    console.error(`Error processing notifications for ${dao.name}:`, error);
+  }
+}
+
+// ============================================
+// Notification Type Processors
+// ============================================
+
+// Process new proposal notifications
+async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
+  const daoDb = getDaoDb(dao.slug);
+  if (!daoDb) {
+    console.error(`Database for DAO ${dao.slug} not found`);
+    return;
+  }
+
+  // Get new proposals
+  const newProposals = await db.public
+    .selectFrom('proposal')
+    .selectAll()
+    .where('daoId', '=', dao.id)
+    .where('proposalState', '=', ProposalState.ACTIVE)
+    .where('markedSpam', '=', false)
+    .where(
+      'createdAt',
+      '>=',
+      new Date(Date.now() - NEW_PROPOSAL_MINUTES * 60 * 1000)
+    )
+    .execute();
+
+  if (newProposals.length === 0) {
+    console.log(`No new proposals found for ${dao.name}`);
+    return;
+  }
+
+  // Get users who want new proposal notifications
+  const users = await daoDb
+    .selectFrom('user')
+    .select(['id', 'email'])
+    .where('emailSettingsNewProposals', '=', true)
+    .execute();
+
+  console.log(
+    `Found ${newProposals.length} new proposals and ${users.length} users for ${dao.name}`
+  );
+
+  for (const proposal of newProposals) {
+    for (const user of users) {
+      if (await alreadySent(user.id, proposal.id, 'new_proposal', dao.slug))
+        continue;
+
+      // Get author ENS if available
+      const voter = proposal.author
+        ? await db.public
+            .selectFrom('voter')
+            .select('ens')
+            .where('address', '=', proposal.author)
+            .executeTakeFirst()
+        : null;
+
+      const html = await render(
+        NewProposalEmailTemplate({
+          proposalName: proposal.name,
+          proposalUrl: proposal.url,
+          daoName: dao.name,
+          authorAddress:
+            proposal.author || '0x0000000000000000000000000000000000000000',
+          authorEns: voter?.ens || undefined,
+        })
+      );
+
+      const idempotencyKey = generateIdempotencyKey(
+        user.id,
+        proposal.id,
+        'new_proposal'
+      );
+
+      await sendEmail(
+        user.email,
+        `New proposal in ${dao.name}`,
+        html,
+        idempotencyKey
+      );
+      await recordNotification(user.id, proposal.id, 'new_proposal', dao.slug);
+    }
+  }
+}
+
+// Process ending proposal notifications
+async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
+  const daoDb = getDaoDb(dao.slug);
+  if (!daoDb) {
+    console.error(`Database for DAO ${dao.slug} not found`);
+    return;
+  }
+
+  // Get ending proposals
+  const endingProposals = await db.public
+    .selectFrom('proposal')
+    .selectAll()
+    .where('daoId', '=', dao.id)
+    .where('proposalState', '=', ProposalState.ACTIVE)
+    .where('markedSpam', '=', false)
+    .where(
+      'endAt',
+      '<=',
+      new Date(Date.now() + ENDING_PROPOSAL_MINUTES * 60 * 1000)
+    )
+    .where('endAt', '>', new Date())
+    .execute();
+
+  if (endingProposals.length === 0) {
+    console.log(`No ending proposals found for ${dao.name}`);
+    return;
+  }
+
+  // Get users who want ending proposal notifications
+  const users = await daoDb
+    .selectFrom('user')
+    .select(['id', 'email'])
+    .where('emailSettingsEndingProposals', '=', true)
+    .execute();
+
+  console.log(
+    `Found ${endingProposals.length} ending proposals and ${users.length} users for ${dao.name}`
+  );
+
+  for (const proposal of endingProposals) {
+    for (const user of users) {
+      if (await alreadySent(user.id, proposal.id, 'ending_proposal', dao.slug))
+        continue;
+
+      const endTime = formatDistanceStrict(
+        new Date(proposal.endAt),
+        new Date(),
+        { addSuffix: false }
+      );
+
+      const html = await render(
+        EndingProposalEmailTemplate({
+          proposalName: proposal.name,
+          proposalUrl: proposal.url,
+          daoName: dao.name,
+          endTime,
+        })
+      );
+
+      const idempotencyKey = generateIdempotencyKey(
+        user.id,
+        proposal.id,
+        'ending_proposal'
+      );
+
+      await sendEmail(
+        user.email,
+        `Proposal ending soon in ${dao.name}`,
+        html,
+        idempotencyKey
+      );
+      await recordNotification(
+        user.id,
+        proposal.id,
+        'ending_proposal',
+        dao.slug
+      );
+    }
+  }
+}
+
+// Process new discussion notifications
+async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
+  const daoDb = getDaoDb(dao.slug);
+  if (!daoDb) {
+    console.error(`Database for DAO ${dao.slug} not found`);
+    return;
+  }
+
+  // Check if Discourse is enabled for this DAO
+  const daoDiscourse = await db.public
+    .selectFrom('daoDiscourse')
+    .selectAll()
+    .where('daoId', '=', dao.id)
+    .where('enabled', '=', true)
+    .executeTakeFirst();
+
+  if (!daoDiscourse) {
+    console.log(`Discourse not enabled for ${dao.name}`);
+    return;
+  }
+
+  // Get allowed category IDs for filtering
+  const allowedCategories = DAO_DISCOURSE_CATEGORIES[dao.slug];
+
+  let query = db.public
+    .selectFrom('discourseTopic')
+    .innerJoin('discoursePost', (join) =>
+      join
+        .onRef('discoursePost.topicId', '=', 'discourseTopic.externalId')
+        .on('discoursePost.postNumber', '=', 1)
+        .onRef(
+          'discoursePost.daoDiscourseId',
+          '=',
+          'discourseTopic.daoDiscourseId'
+        )
+    )
+    .innerJoin('discourseUser', (join) =>
+      join
+        .onRef('discourseUser.externalId', '=', 'discoursePost.userId')
+        .onRef(
+          'discourseUser.daoDiscourseId',
+          '=',
+          'discoursePost.daoDiscourseId'
+        )
+    )
+    .select([
+      'discourseTopic.id',
+      'discourseTopic.title',
+      'discourseTopic.slug',
+      'discourseTopic.externalId',
+      'discourseUser.username',
+      'discourseUser.avatarTemplate',
+    ])
+    .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
+    .where(
+      'discourseTopic.createdAt',
+      '>=',
+      new Date(Date.now() - NEW_DISCUSSION_MINUTES * 60 * 1000)
+    );
+
+  // Apply category filter if configured
+  if (allowedCategories && allowedCategories.length > 0) {
+    query = query.where('discourseTopic.categoryId', 'in', allowedCategories);
+  }
+
+  const newTopics = await query.execute();
+
+  if (newTopics.length === 0) {
+    console.log(`No new discussions found for ${dao.name}`);
+    return;
+  }
+
+  // Get users who want new discussion notifications
+  const users = await daoDb
+    .selectFrom('user')
+    .select(['id', 'email'])
+    .where('emailSettingsNewDiscussions', '=', true)
+    .execute();
+
+  console.log(
+    `Found ${newTopics.length} new discussions and ${users.length} users for ${dao.name}`
+  );
+
+  for (const topic of newTopics) {
+    const topicUrl = `${daoDiscourse.discourseBaseUrl}/t/${topic.slug}/${topic.externalId}`;
+
+    for (const user of users) {
+      if (await alreadySent(user.id, topic.id, 'new_discussion', dao.slug))
+        continue;
+
+      const html = await render(
+        NewDiscussionEmailTemplate({
+          discussionTitle: topic.title,
+          discussionUrl: topicUrl,
+          daoName: dao.name,
+          authorUsername: topic.username || '',
+          authorProfilePicture: topic.avatarTemplate || '',
+        })
+      );
+
+      const idempotencyKey = generateIdempotencyKey(
+        user.id,
+        topic.id,
+        'new_discussion'
+      );
+
+      await sendEmail(
+        user.email,
+        `New discussion in ${dao.name}`,
+        html,
+        idempotencyKey
+      );
+      await recordNotification(user.id, topic.id, 'new_discussion', dao.slug);
+    }
+  }
+}
+
+// ============================================
+// Helper Functions
+// ============================================
+
+// Type-safe DAO database getter
+function getDaoDb(daoSlug: string): Kysely<DB> | null {
+  // Currently we only support arbitrum and uniswap
+  if (daoSlug === 'arbitrum') {
+    return db.arbitrum;
+  } else if (daoSlug === 'uniswap') {
+    return db.uniswap;
+  }
+  return null;
+}
+
+// Send email helper
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  idempotencyKey?: string
+): Promise<void> {
+  try {
+    await resend.emails.send(
+      { from: FROM_EMAIL, to, subject, html },
+      { idempotencyKey }
+    );
+    console.log(`Email sent to ${to}: ${subject}`);
+  } catch (error) {
+    console.error(`Failed to send email to ${to}:`, error);
+  }
+}
+
+// Generate idempotency key for email notifications
+function generateIdempotencyKey(
+  userId: string,
+  targetId: string,
+  type: 'new_proposal' | 'ending_proposal' | 'new_discussion'
+): string {
+  // Use daily buckets to ensure retries within the same day use the same key
+  const date = new Date();
+  const dayBucket = `${date.getUTCFullYear()}-${String(
+    date.getUTCMonth() + 1
+  ).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  return `${userId}-${targetId}-${type}-${dayBucket}`;
+}
+
+// Check if we already sent this notification
+async function alreadySent(
+  userId: string,
+  targetId: string,
+  type: string,
+  daoSlug: string
+): Promise<boolean> {
+  const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000);
+
+  const daoDb = getDaoDb(daoSlug);
+  if (!daoDb) {
+    console.error(`Database for DAO ${daoSlug} not found`);
+    return false;
+  }
+
+  const existing = await daoDb
+    .selectFrom('userNotification')
+    .select('id')
+    .where('userId', '=', userId)
+    .where('targetId', '=', targetId)
+    .where('type', '=', type)
+    .where('sentAt', '>=', cutoff)
+    .executeTakeFirst();
+
+  return !!existing;
+}
+
+// Record notification sent
+async function recordNotification(
+  userId: string,
+  targetId: string,
+  type: string,
+  daoSlug: string
+): Promise<void> {
+  try {
+    const daoDb = getDaoDb(daoSlug);
+    if (!daoDb) {
+      console.error(`Database for DAO ${daoSlug} not found`);
+      return;
+    }
+
+    await daoDb
+      .insertInto('userNotification')
+      .values({
+        userId,
+        targetId,
+        type,
+        sentAt: new Date(),
+      })
+      .execute();
+  } catch (error) {
+    console.error('Failed to record notification:', error);
+  }
+}
+
+// ============================================
+// Service Initialization
+// ============================================
+
+// Schedule cron job - runs every minute
+cron.schedule('* * * * *', () => {
+  console.log('\n--- Running notification check ---');
+  void processNotifications();
+});
+
+// Start the service
+console.log('Email service started - checking for notifications every minute');
+
+// Handle shutdown
+process.on('SIGINT', async () => {
+  console.log('\nShutting down...');
+
+  // Close database connections
+  await Promise.all([
+    db.public.destroy(),
+    db.arbitrum.destroy(),
+    db.uniswap.destroy(),
+  ]).catch(console.error);
+
+  process.exit(0);
 });
 
 // Handle uncaught errors
