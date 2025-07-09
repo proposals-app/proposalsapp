@@ -2,7 +2,7 @@ use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use llm_client::RequestConfigTrait;
-use llm_client::{InstructPromptTrait, LlmClient};
+use llm_client::{InstructPromptTrait, LlmClient, LlmLocalTrait};
 use llm_models::GgufLoaderTrait;
 use proposalsapp_db::models::*;
 use rand::Rng;
@@ -114,6 +114,11 @@ impl Grouper {
 
         let mut builder = LlmClient::llama_cpp();
         builder.hf_quant_file_url(model_url);
+
+        // Configure for CPU-only execution with limited RAM
+        // The container has 12GB RAM, but we need to leave room for other processes
+        // Set to 8GB to be safe (model is ~5GB, leaving 3GB for inference)
+        builder = builder.cpu_only().use_ram_gb(8.0);
 
         let llm_client = builder
             .init()
