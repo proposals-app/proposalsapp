@@ -1221,24 +1221,6 @@ const SkeletonGroupItemDetailed = React.forwardRef<
 });
 SkeletonGroupItemDetailed.displayName = 'SkeletonGroupItemDetailed';
 
-// AI Summary Loading State - for AI generation loading
-const SkeletonAISummaryLoading = React.forwardRef<
-  HTMLDivElement,
-  { className?: string; children?: React.ReactNode }
->(({ className, children }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'skeleton-blueprint skeleton-text flex items-center justify-center space-x-2 p-3 text-neutral-500 dark:text-neutral-400',
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-});
-SkeletonAISummaryLoading.displayName = 'SkeletonAISummaryLoading';
 
 // Enhanced Group Item Skeleton - for streaming group items with enhanced visual fidelity
 const SkeletonGroupItemEnhanced = React.forwardRef<
@@ -1666,7 +1648,6 @@ export {
   SkeletonTimeline,
   SkeletonChart,
   // Specialized components
-  SkeletonAISummaryLoading,
   SkeletonActionBar,
   SkeletonSearchAndFilter,
   SkeletonGroupListPage,
