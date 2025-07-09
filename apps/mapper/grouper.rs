@@ -21,7 +21,8 @@ lazy_static::lazy_static! {
     /// in proposal grouping. Topics in other categories will be ignored.
     static ref DAO_DISCOURSE_CATEGORY_FILTERS: HashMap<&'static str, Vec<i32>> = {
         let mut m = HashMap::new();
-        // m.insert("arbitrum", vec![7, 8, 9]);
+
+        m.insert("arbitrum", vec![7, 8, 9]);
         m.insert("uniswap", vec![5, 8, 9, 10]);
         m
     };
