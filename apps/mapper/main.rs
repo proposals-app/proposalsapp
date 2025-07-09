@@ -71,21 +71,8 @@ async fn main() -> Result<()> {
 
     info!("Embedding cache initialized successfully");
 
-    // Start health check server with memory stats
-    let app = Router::new().route(
-        "/health",
-        axum::routing::get(|| async {
-            if let Ok((entries, memory_bytes)) = EMBEDDINGS.get().unwrap().cache_stats().await {
-                let memory_mb = memory_bytes as f64 / 1_048_576.0;
-                format!(
-                    "OK - Cache entries: {}, Est. memory: {:.2} MB",
-                    entries, memory_mb
-                )
-            } else {
-                "OK - Unable to fetch cache stats".to_string()
-            }
-        }),
-    );
+    // Start health check server
+    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
 

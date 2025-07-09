@@ -39,13 +39,13 @@ job "mapper" {
     }
 
     ephemeral_disk {
-      size    = 6000  # Increased to 6GB for model storage (5GB cache + overhead)
+      size    = 8000  # Increased to 6GB for model storage (5GB cache + overhead)
       sticky  = true   # Keep models between restarts
       migrate = true
     }
 
     network {
-      port "http" {
+      port "health" {
         static = 3002
         to = 3000
         host_network = "tailscale"
@@ -58,7 +58,7 @@ job "mapper" {
       config {
         # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/mapper:latest"
-        ports = ["http"]
+        ports = ["health"]
         force_pull = true
 
         # Add logging configuration
@@ -173,7 +173,7 @@ EOF
       }
 
       resources {
-        cpu    = 8000   # 8 CPU cores
+        cpu    = 12000   # 12 CPU cores
         memory = 12288   # 12GB RAM
 
         # Reserve additional resources for peak loads
@@ -187,7 +187,7 @@ EOF
           "rust",
           "data-processing"
         ]
-        port = "http"
+        port = "health"
         address_mode = "host"
 
         check {
@@ -195,7 +195,7 @@ EOF
           path     = "/health"
           interval = "5s"    # Reduced from 10s for faster detection
           timeout  = "2s"
-          
+
           # Additional health check configuration
           check_restart {
             limit = 3          # Restart after 3 consecutive failures
