@@ -12,14 +12,14 @@ export const SUPPORTED_DAOS: DAO[] = [
     link: 'https://arbitrum.proposals.app',
     subdomain: 'arbitrum',
   },
-  {
-    name: 'Uniswap',
-    logo: '/assets/project-logos/uniswap.svg',
-    link: 'https://uniswap.proposals.app',
-    subdomain: 'uniswap',
-  },
+  // {
+  //   name: 'Uniswap',
+  //   logo: '/assets/project-logos/uniswap.svg',
+  //   link: 'https://uniswap.proposals.app',
+  //   subdomain: 'uniswap',
+  // },
 ];
 
 export const getDAOBySubdomain = (subdomain: string): DAO | undefined => {
-  return SUPPORTED_DAOS.find(dao => dao.subdomain === subdomain);
+  return SUPPORTED_DAOS.find((dao) => dao.subdomain === subdomain);
 };
