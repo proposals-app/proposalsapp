@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lld \
     git \
     curl \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Switch to nightly Rust for f16 feature support
@@ -60,7 +61,7 @@ WORKDIR /app
 ARG APP_NAME
 ARG RUST_VERSION
 
-# Install build dependencies
+# Install build dependencies including cmake for llama.cpp
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
@@ -71,6 +72,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdw-dev \
     git \
     curl \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Switch to nightly Rust for f16 feature support
@@ -110,6 +112,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
+
+# Copy llama-server binary and create expected directory structure
+RUN mkdir -p /app/target/llama_cpp
+COPY --from=builder /app/target/llama_cpp/llama-server /app/target/llama_cpp/llama-server
+RUN chmod +x /app/target/llama_cpp/llama-server
 
 # Set the default command
 CMD ["mapper"]

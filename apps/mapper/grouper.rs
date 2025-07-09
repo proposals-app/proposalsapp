@@ -141,7 +141,7 @@ impl Grouper {
         let end_chars = available_chars - start_chars;
 
         // Find the byte positions for the character positions
-        let mut char_indices: Vec<(usize, char)> = text.char_indices().collect();
+        let char_indices: Vec<(usize, char)> = text.char_indices().collect();
 
         // Get start portion - try to break at a word boundary
         let mut start_end_idx = if start_chars < char_indices.len() {
@@ -203,7 +203,7 @@ impl Grouper {
             .prompt()
             .add_system_message()
             .unwrap()
-            .set_content("You are a DAO governance analyst. You specialty is tagging proposals with specific but descriptive keywords. Extract 10-15 key concepts from this governance item. Focus on: main topics of the proposal, differentiating factors, specific proposal names, technical components, action items, important entities, proposal author. Avoid too generic terms.
+            .set_content("You are a DAO governance analyst. You specialty is tagging proposals with specific but descriptive keywords. Extract 10-15 key concepts from this governance item. Focus on: identifiers, main topics of the proposal, differentiating factors, specific proposal names, technical components, action items, important entities, proposal author. Avoid too generic terms.
 
 IMPORTANT: Return ONLY a comma-separated list of keywords. Do not include any prefixes, explanations, or formatting. Always use lowercase. Do not start with 'Keywords:' or any other text. Just the keywords separated by commas.
 

@@ -7,6 +7,9 @@
       # BetterStack monitoring
       - key: "mapper/betterstack_key"
         value: "{{ vault_mapper_betterstack_key }}"
+      # Hugging Face token for model downloads
+      - key: "mapper/hugging_face_token"
+        value: "{{ vault_mapper_hugging_face_token }}"
 
   tasks:
     - name: Ensure Consul is available

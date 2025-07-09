@@ -172,6 +172,9 @@ REDIS_URL=
 # BetterStack monitoring
 BETTERSTACK_KEY={{ keyOrDefault "mapper/betterstack_key" "" }}
 
+# Hugging Face token for model downloads
+HUGGING_FACE_TOKEN={{ keyOrDefault "mapper/hugging_face_token" "" }}
+
 EOF
         destination = "secrets/env"
         env         = true
