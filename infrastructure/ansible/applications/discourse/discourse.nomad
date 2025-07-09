@@ -88,10 +88,6 @@ job "discourse" {
         # BetterStack monitoring (optional)
         BETTERSTACK_KEY = "${BETTERSTACK_KEY}"
 
-        # Performance tuning
-        TOKIO_WORKER_THREADS = "4"
-        DATABASE_POOL_SIZE = "10"
-        DATABASE_TIMEOUT = "30"
       }
 
       # Deployment metadata template for visibility
@@ -114,7 +110,7 @@ No deployment information available
 {{ end }}
 EOF
       }
-      
+
       # Environment configuration template
       # Does not trigger restarts to avoid loops
       template {
@@ -187,7 +183,7 @@ EOF
           path     = "/health"
           interval = "5s"
           timeout  = "2s"
-          
+
           # Additional health check configuration
           check_restart {
             limit = 3          # Restart after 3 consecutive failures

@@ -17,6 +17,13 @@ job "mapper" {
   group "mapper" {
     count = 1  # Single instance service
 
+    # Prefer to run in dc1 but can run anywhere if needed
+    affinity {
+      attribute = "${node.datacenter}"
+      value     = "dc1"
+      weight    = 100
+    }
+
     migrate {
       max_parallel = 1
       health_check = "checks"
@@ -193,13 +200,13 @@ EOF
         check {
           type     = "http"
           path     = "/health"
-          interval = "5s"    # Reduced from 10s for faster detection
-          timeout  = "2s"
+          interval = "30s"
+          timeout  = "10s"
 
           # Additional health check configuration
           check_restart {
             limit = 3          # Restart after 3 consecutive failures
-            grace = "60s"     # Grace period before health checks start (longer for mapper startup)
+            grace = "60s"     # Grace period before health checks start
             ignore_warnings = false
           }
         }
