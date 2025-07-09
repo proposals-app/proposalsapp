@@ -283,7 +283,7 @@ async fn process_dao_grouping(dao: &dao::Model) -> Result<()> {
 
                 // Find the topic in ungrouped items
                 let topic_item = ungrouped_items.iter().find(|i| {
-                    matches!(i, GroupableItem::Topic { external_id: tid, .. } if tid == &topic_external_id)
+                    matches!(i, GroupableItem::Topic { external_id, .. } if external_id == &topic_external_id)
                 });
 
                 if let Some(topic) = topic_item {
@@ -541,8 +541,29 @@ async fn add_item_to_group(
     let mut items = serde_json::from_value::<Vec<ProposalGroupItem>>(group.items.clone())
         .context("Failed to deserialize group items")?;
 
+    // Check if item already exists in the group
+    let new_item = item.to_group_item();
+    let already_exists = items.iter().any(|existing_item| match (&new_item, existing_item) {
+        (ProposalGroupItem::Proposal(new_p), ProposalGroupItem::Proposal(existing_p)) => {
+            new_p.external_id == existing_p.external_id
+        }
+        (ProposalGroupItem::Topic(new_t), ProposalGroupItem::Topic(existing_t)) => {
+            new_t.external_id == existing_t.external_id
+        }
+        _ => false,
+    });
+
+    if already_exists {
+        info!(
+            group_id = %group_id,
+            item_id = %item.id(),
+            "Item already exists in group, skipping"
+        );
+        return Ok(());
+    }
+
     // Add new item
-    items.push(item.to_group_item());
+    items.push(new_item);
 
     // Update group
     let mut active_group: proposal_group::ActiveModel = group.clone().into();
