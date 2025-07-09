@@ -575,7 +575,7 @@ impl Grouper {
     async fn normalize_topic(
         &self,
         topic: discourse_topic::Model,
-        dao_id: String,
+        dao_id: Uuid,
     ) -> Result<NormalizedItem> {
         let external_id = topic.external_id.to_string();
         let id = format!("topic_{}", external_id);
@@ -600,7 +600,7 @@ impl Grouper {
 
         Ok(NormalizedItem {
             id,
-            dao_id,
+            dao_id: dao_id.to_string(),
             title: topic.title.clone(),
             body,
             created_at: Utc.from_utc_datetime(&topic.created_at),
@@ -695,10 +695,7 @@ impl Grouper {
         }
 
         for topic in topics {
-            match self
-                .normalize_topic(topic, dao_id.clone().to_string())
-                .await
-            {
+            match self.normalize_topic(topic, dao_id.clone()).await {
                 Ok(mut normalized) => {
                     normalized.keywords = self.extract_keywords(&normalized).await?;
                     all_items.push(normalized);
