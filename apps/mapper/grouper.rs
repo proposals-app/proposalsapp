@@ -236,8 +236,14 @@ impl Grouper {
                 - Skip filler words like "proposal", "discussion", "DAO" unless part of a specific name
                 - Avoid abstract concepts without context
 
-                Output Format:
-                Return ONLY lowercase keywords separated by commas. No prefixes, explanations, or additional formatting. If the data is missing, return "invalid-data".
+                OUTPUT FORMAT REQUIREMENTS:
+                - Return ONLY a comma-separated list of keywords
+                - Each keyword must be lowercase letters, numbers, and hyphens only
+                - Multi-word concepts should use hyphens (e.g., cross-chain-bridge)
+                - No spaces, no special characters except hyphens
+                - No prefixes, explanations, numbered lists, or formatting
+                - Just return the keywords separated by commas
+                - Aim for 10-20 keywords
 
                 Example (good): compound-grant-23, defi-education-initiative, 50k-usdc-funding, alice-smith, q1-2024, developer-onboarding, polygon-deployment, compound-finance
 
@@ -253,19 +259,64 @@ impl Grouper {
             .unwrap()
             .set_content(&format!("Title: {}\nBody: {}", item.title, truncated_body));
 
-        let response = basic_completion
-            .run()
-            .await
-            .context("Failed to extract keywords")?;
+        let mut attempts = 0;
+        let max_attempts = 3;
+        let mut keywords = Vec::new();
+        
+        while attempts < max_attempts {
+            let response = basic_completion
+                .run()
+                .await
+                .context("Failed to extract keywords")?;
 
-        let keywords_string = response.content;
-
-        // Simple parsing: split by commas and clean up
-        let keywords: Vec<String> = keywords_string
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty() && s.len() > 2)
-            .collect();
+            let keywords_string = response.content.trim();
+            
+            // Parse keywords
+            let parsed_keywords: Vec<String> = keywords_string
+                .split(',')
+                .map(|s| s.trim().to_lowercase())
+                .filter(|s| {
+                    // Validate each keyword:
+                    // - Not empty and at least 2 chars
+                    // - Contains only lowercase letters, numbers, and hyphens
+                    // - No spaces (should use hyphens instead)
+                    !s.is_empty() 
+                    && s.len() >= 2 
+                    && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+                    && !s.contains(' ')
+                })
+                .collect();
+            
+            // Check if we got a reasonable response
+            if !parsed_keywords.is_empty() && parsed_keywords.len() >= 5 && parsed_keywords.len() <= 25 {
+                keywords = parsed_keywords;
+                break;
+            }
+            
+            attempts += 1;
+            if attempts < max_attempts {
+                warn!(
+                    "Invalid keyword format received (got {} valid keywords), retrying... (attempt {}/{})", 
+                    parsed_keywords.len(), 
+                    attempts + 1, 
+                    max_attempts
+                );
+                // Add a small delay before retry
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                
+                // Re-emphasize the format in the prompt for retry
+                basic_completion
+                    .prompt()
+                    .add_system_message()
+                    .unwrap()
+                    .set_content("CRITICAL: Return ONLY comma-separated keywords. Each keyword must be lowercase, can contain hyphens for multi-word concepts (like cross-chain-bridge), but NO spaces. Return between 10-20 keywords. Example: governance,proposal,voting,treasury,delegation,cross-chain,parameter-update");
+            }
+        }
+        
+        if keywords.is_empty() {
+            warn!("Failed to extract valid keywords after {} attempts, using fallback", max_attempts);
+            keywords = vec!["invalid-keyword-extraction".to_string()];
+        }
 
         info!("Keywords for {}: {:?}", item.id, keywords);
 
