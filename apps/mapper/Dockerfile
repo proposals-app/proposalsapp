@@ -28,8 +28,10 @@ WORKDIR /app
 ARG APP_NAME
 ARG RUST_VERSION
 
-# Install only essential build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install only essential build dependencies including CUDA toolkit
+# Enable contrib repository for nvidia packages
+RUN echo "deb http://deb.debian.org/debian bookworm contrib" >> /etc/apt/sources.list && \
+    apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     python3 \
@@ -39,6 +41,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     cmake \
+    nvidia-cuda-toolkit \
+    nvidia-cuda-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Switch to nightly Rust for f16 feature support
@@ -51,13 +55,14 @@ ENV CARGO_PROFILE_RELEASE_INCREMENTAL=true
 ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
-# Configure llama.cpp build for Docker/container compatibility
+# Configure llama.cpp build for Docker/container compatibility with GPU support
 # CRITICAL: Disable GGML_NATIVE to prevent CPU-specific optimizations
 # This ensures the binary works across different environments (GitHub runners -> LXC containers)
-ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
-# Also set environment variables that llm_client might use
-ENV GGML_NO_NATIVE=1
-ENV LLAMA_NO_NATIVE=1
+# Enable CUDA support for GPU acceleration
+ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+# Enable CUDA support
+ENV GGML_CUDA=1
+ENV CUDA_DOCKER_ARCH=all-major
 # Use portable CPU flags that work everywhere
 # x86-64-v2 includes SSE3, SSSE3, SSE4.1, SSE4.2 which are available on all modern CPUs
 ENV CFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
@@ -73,8 +78,10 @@ WORKDIR /app
 ARG APP_NAME
 ARG RUST_VERSION
 
-# Install build dependencies including cmake for llama.cpp
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install build dependencies including cmake for llama.cpp and CUDA toolkit
+# Enable contrib repository for nvidia packages
+RUN echo "deb http://deb.debian.org/debian bookworm contrib" >> /etc/apt/sources.list && \
+    apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     build-essential \
@@ -85,6 +92,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     cmake \
+    nvidia-cuda-toolkit \
+    nvidia-cuda-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Switch to nightly Rust for f16 feature support
@@ -97,13 +106,14 @@ ENV CARGO_PROFILE_RELEASE_INCREMENTAL=true
 ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
-# Configure llama.cpp build for Docker/container compatibility
+# Configure llama.cpp build for Docker/container compatibility with GPU support
 # CRITICAL: Disable GGML_NATIVE to prevent CPU-specific optimizations
 # This ensures the binary works across different environments (GitHub runners -> LXC containers)
-ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
-# Also set environment variables that llm_client might use
-ENV GGML_NO_NATIVE=1
-ENV LLAMA_NO_NATIVE=1
+# Enable CUDA support for GPU acceleration
+ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+# Enable CUDA support
+ENV GGML_CUDA=1
+ENV CUDA_DOCKER_ARCH=all-major
 # Use portable CPU flags that work everywhere
 # x86-64-v2 includes SSE3, SSSE3, SSE4.1, SSE4.2 which are available on all modern CPUs
 ENV CFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
@@ -124,6 +134,7 @@ WORKDIR /app
 ARG APP_NAME
 
 # Install runtime dependencies INCLUDING build tools for llama.cpp compilation
+# CUDA runtime libraries will be provided by nvidia-docker runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
