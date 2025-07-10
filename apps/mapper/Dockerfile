@@ -141,24 +141,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
-# Copy the llama_cpp directory but remove the incompatible binary
+# Copy the llama_cpp directory with the compatible llama-server built by llm_client
 COPY --from=builder /app/target/llama_cpp /app/target/llama_cpp
-RUN rm -f /app/target/llama_cpp/llama-server
-
-# Download and build a compatible llama-server
-# Build with native optimizations since we're ensuring build and runtime CPUs match (dc2)
-# This will use all available CPU features for maximum performance
-RUN cd /tmp && \
-    git clone --depth 1 https://github.com/ggml-org/llama.cpp && \
-    cd llama.cpp && \
-    cmake -B build \
-        -DLLAMA_NATIVE=ON \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build --config Release -j$(nproc) && \
-    cp build/bin/llama-server /app/target/llama_cpp/llama-server && \
-    chmod +x /app/target/llama_cpp/llama-server && \
-    cd / && rm -rf /tmp/llama.cpp
 
 # Set the default command
 CMD ["mapper"]
