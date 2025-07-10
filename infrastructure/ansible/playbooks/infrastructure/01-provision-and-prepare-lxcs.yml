@@ -142,7 +142,7 @@
           --unprivileged 1 \
           --onboot 1 \
           --ssh-public-keys /root/.ssh/authorized_keys \
-          --start 0
+          --start 0 || { echo "Failed to create container {{ item.0.id }}"; exit 1; }
       when: "'not_found' in item.1.stdout"
       loop: "{{ my_containers | zip(container_exists.results) | list }}"
       register: container_created
@@ -178,6 +178,355 @@
       loop: "{{ my_containers | zip(container_exists.results) | list }}"
       register: tun_config
 
+    - name: Configure GPU passthrough for eligible containers
+      when: 
+        - gpu_enabled_hosts[inventory_hostname] | default(false)
+        - item.0.name in gpu_passthrough_containers
+      shell: |
+        echo "Configuring GPU passthrough for container {{ item.0.id }} ({{ item.0.name }})..."
+        
+        # Get device numbers from host facts - ensure variables are set even if devices do not exist yet
+        if [ -e /dev/nvidiactl ]; then
+          hex_val=$(stat -c '%t' /dev/nvidiactl)
+          nvidia_major=$(printf "%d" 0x"$hex_val")
+        else
+          nvidia_major="195"
+        fi
+        
+        if [ -e /dev/nvidia-caps/nvidia-cap1 ]; then
+          hex_val=$(stat -c '%t' /dev/nvidia-caps/nvidia-cap1)
+          nvidia_caps_major=$(printf "%d" 0x"$hex_val")
+        else
+          nvidia_caps_major="234"
+        fi
+        
+        if [ -e /dev/nvidia-uvm ]; then
+          hex_val=$(stat -c '%t' /dev/nvidia-uvm)
+          nvidia_uvm_major=$(printf "%d" 0x"$hex_val")
+        else
+          nvidia_uvm_major="509"
+        fi
+        
+        if [ -e /dev/nvidia-modeset ]; then
+          hex_val=$(stat -c '%t' /dev/nvidia-modeset)
+          nvidia_modeset_major=$(printf "%d" 0x"$hex_val")
+        else
+          nvidia_modeset_major="237"
+        fi
+        
+        if [ -e /dev/dri/card0 ]; then
+          hex_val=$(stat -c '%t' /dev/dri/card0)
+          dri_major=$(printf "%d" 0x"$hex_val")
+        else
+          dri_major="226"
+        fi
+        
+        echo "Device majors detected:"
+        echo "  nvidia: $nvidia_major"
+        echo "  nvidia-caps: $nvidia_caps_major"  
+        echo "  nvidia-uvm: $nvidia_uvm_major"
+        echo "  nvidia-modeset: $nvidia_modeset_major"
+        echo "  dri: $dri_major"
+        
+        # Validate that we have valid device numbers
+        if [ -z "$nvidia_major" ] || [ "$nvidia_major" = "" ]; then
+          echo "ERROR: Failed to detect nvidia device major number"
+          nvidia_major="195"
+        fi
+        if [ -z "$dri_major" ] || [ "$dri_major" = "" ]; then
+          echo "ERROR: Failed to detect DRI device major number"
+          dri_major="226"
+        fi
+        
+        # Check if GPU configuration already exists
+        if grep -q "# GPU Passthrough Configuration" /etc/pve/lxc/{{ item.0.id }}.conf; then
+          echo "GPU passthrough already configured"
+        else
+          # Dynamically detect available GPU devices - handle case where no GPUs exist yet
+          gpu_devices=""
+          gpu_found=false
+          for i in {0..7}; do
+            device="/dev/nvidia$i"
+            if [ -e "$device" ]; then
+              device_name=$(basename "$device")
+              if [ -n "$gpu_devices" ]; then
+                gpu_devices=$(printf "%s\n" "$gpu_devices")
+              fi
+              gpu_devices="${gpu_devices}lxc.mount.entry: $device dev/$device_name none bind,optional,create=file"
+              gpu_found=true
+            fi
+          done
+          
+          # If no GPU devices found, add placeholders for first 4 GPUs
+          if [ "$gpu_found" = "false" ]; then
+            for i in {0..3}; do
+              if [ -n "$gpu_devices" ]; then
+                gpu_devices=$(printf "%s\n" "$gpu_devices")
+              fi
+              gpu_devices="${gpu_devices}lxc.mount.entry: /dev/nvidia$i dev/nvidia$i none bind,optional,create=file"
+            done
+          fi
+          
+          # Add GPU passthrough configuration
+          {
+            echo ""
+            echo "# GPU Passthrough Configuration"
+            echo "# Device permissions"
+            echo "lxc.cgroup2.devices.allow: c ${nvidia_major}:* rwm"
+            echo "lxc.cgroup2.devices.allow: c ${dri_major}:* rwm"
+            echo ""
+            echo "# nvidia-uvm can be 507-511, allow all"
+            echo "lxc.cgroup2.devices.allow: c 507:* rwm"
+            echo "lxc.cgroup2.devices.allow: c 508:* rwm"
+            echo "lxc.cgroup2.devices.allow: c 509:* rwm"
+            echo "lxc.cgroup2.devices.allow: c 510:* rwm"
+            echo "lxc.cgroup2.devices.allow: c 511:* rwm"
+            echo ""
+            echo "# nvidia-caps can be 234-235"
+            echo "lxc.cgroup2.devices.allow: c 234:* rwm"
+            echo "lxc.cgroup2.devices.allow: c 235:* rwm"
+            echo ""
+            echo "# nvidia-modeset if present"
+            echo "lxc.cgroup2.devices.allow: c ${nvidia_modeset_major}:* rwm"
+            echo ""
+            echo "# Mount NVIDIA GPU devices"
+            echo "$gpu_devices"
+            echo "# Mount NVIDIA control devices"
+            echo "lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file"
+            echo "lxc.mount.entry: /dev/nvidia-modeset dev/nvidia-modeset none bind,optional,create=file"
+            echo "lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file"
+            echo "lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file"
+            echo ""
+            echo "# Mount DRI devices"
+            echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir"
+            echo ""
+            echo "# Mount nvidia-caps"
+            echo "lxc.mount.entry: /dev/nvidia-caps dev/nvidia-caps none bind,optional,create=dir"
+            echo ""
+            echo "# Additional GPU-related mounts"
+            echo "lxc.mount.entry: /usr/lib/x86_64-linux-gnu/nvidia usr/lib/x86_64-linux-gnu/nvidia none bind,optional,create=dir"
+          } >> /etc/pve/lxc/{{ item.0.id }}.conf
+          echo "GPU passthrough configuration added"
+        fi
+        
+        # Display final GPU configuration
+        echo "GPU configuration in container:"
+        grep -A 20 "# GPU Passthrough Configuration" /etc/pve/lxc/{{ item.0.id }}.conf
+      loop: "{{ my_containers | zip(container_exists.results) | list }}"
+      register: gpu_config
+
+    - name: GPU host preparation
+      when: gpu_enabled_hosts[inventory_hostname] | default(false)
+      block:
+        - name: Ensure kernel headers are installed
+          apt:
+            name:
+              - linux-headers-amd64
+              - pve-headers
+            state: present
+            update_cache: yes
+          ignore_errors: true
+
+        - name: Check secure boot status
+          shell: |
+            if command -v mokutil &>/dev/null; then
+              mokutil --sb-state 2>/dev/null || echo "SecureBoot not supported"
+            else
+              echo "mokutil not found - SecureBoot check skipped"
+            fi
+          register: secure_boot_status
+          changed_when: false
+
+        - name: Fail if Secure Boot is enabled
+          fail:
+            msg: |
+              ❌ ERROR: Secure Boot is enabled!
+              NVIDIA drivers will NOT work with Secure Boot enabled unless properly signed.
+              Please disable Secure Boot and re-run this playbook.
+          when: "'SecureBoot enabled' in secure_boot_status.stdout"
+
+        - name: Install GPU support packages
+          apt:
+            name:
+              - build-essential
+              - dkms
+              - pve-headers-{{ ansible_kernel }}
+              - wget
+              - libglvnd-dev
+              - pkg-config
+              - mokutil
+            state: present
+            update_cache: yes
+
+        - name: Blacklist nouveau driver
+          copy:
+            content: |
+              # Only blacklist nouveau for NVIDIA driver
+              # DO NOT blacklist nvidia drivers for LXC passthrough!
+              blacklist nouveau
+              options nouveau modeset=0
+            dest: /etc/modprobe.d/blacklist-nouveau.conf
+            mode: '0644'
+
+        - name: Check if NVIDIA driver is installed
+          stat:
+            path: /usr/bin/nvidia-smi
+          register: nvidia_driver_check
+
+        - name: Add NVIDIA CUDA repository key
+          apt_key:
+            url: https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/3bf863cc.pub
+            state: present
+          when: not nvidia_driver_check.stat.exists
+
+        - name: Add NVIDIA CUDA repository  
+          apt_repository:
+            repo: "deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /"
+            state: present
+            filename: cuda-debian12
+          when: not nvidia_driver_check.stat.exists
+
+        - name: Install NVIDIA driver from CUDA repository
+          apt:
+            name:
+              - cuda-drivers
+              - nvidia-settings
+              - nvidia-modprobe
+              - nvidia-persistenced
+            state: present
+            update_cache: yes
+          when: not nvidia_driver_check.stat.exists
+          register: nvidia_driver_install
+          retries: 2
+          delay: 10
+          until: nvidia_driver_install is success
+
+        - name: Create NVIDIA device nodes script
+          copy:
+            content: |
+              #!/bin/bash
+              # Script to create NVIDIA device nodes if they don't exist
+              
+              # Load modules if not loaded
+              modprobe nvidia 2>/dev/null || true
+              modprobe nvidia-uvm 2>/dev/null || true
+              
+              # Wait for modules to initialize
+              sleep 2
+              
+              # Create nvidia-uvm devices if missing
+              if [ ! -e /dev/nvidia-uvm ]; then
+                major=$(grep nvidia-uvm /proc/devices | cut -d ' ' -f 1)
+                if [ -n "$major" ]; then
+                  mknod -m 666 /dev/nvidia-uvm c $major 0
+                  mknod -m 666 /dev/nvidia-uvm-tools c $major 1
+                fi
+              fi
+              
+              # Create nvidia-modeset device if missing
+              if [ ! -e /dev/nvidia-modeset ]; then
+                major=$(grep nvidia-modeset /proc/devices | cut -d ' ' -f 1)
+                if [ -n "$major" ]; then
+                  mknod -m 666 /dev/nvidia-modeset c $major 0
+                fi
+              fi
+              
+              # Create nvidia-caps directory and devices
+              mkdir -p /dev/nvidia-caps
+              nvidia_caps_major=$(grep nvidia-caps /proc/devices | cut -d ' ' -f 1)
+              if [ -n "$nvidia_caps_major" ]; then
+                for i in {1..10}; do
+                  if [ ! -e /dev/nvidia-caps/nvidia-cap$i ]; then
+                    mknod -m 666 /dev/nvidia-caps/nvidia-cap$i c $nvidia_caps_major $i 2>/dev/null || true
+                  fi
+                done
+              fi
+              
+              # Set permissions
+              chmod 666 /dev/nvidia* 2>/dev/null || true
+              chmod 666 /dev/nvidia-caps/* 2>/dev/null || true
+            dest: /usr/local/bin/create-nvidia-devices.sh
+            mode: '0755'
+
+        - name: Create systemd service for NVIDIA device creation
+          copy:
+            content: |
+              [Unit]
+              Description=Create NVIDIA device nodes
+              After=nvidia.service
+              
+              [Service]
+              Type=oneshot
+              ExecStart=/usr/local/bin/create-nvidia-devices.sh
+              RemainAfterExit=yes
+              
+              [Install]
+              WantedBy=multi-user.target
+            dest: /etc/systemd/system/nvidia-devices.service
+            mode: '0644'
+
+        - name: Enable NVIDIA device creation service
+          systemd:
+            name: nvidia-devices.service
+            enabled: yes
+            daemon_reload: yes
+            state: started
+
+        - name: Enable NVIDIA persistence daemon
+          systemd:
+            name: nvidia-persistenced
+            enabled: yes
+            state: started
+          ignore_errors: true
+
+        - name: Update initramfs if driver was installed
+          command: update-initramfs -u -k all
+          when: nvidia_driver_install is changed
+          ignore_errors: true
+
+        - name: Check for NVIDIA GPU presence
+          shell: |
+            if lspci | grep -i nvidia > /dev/null 2>&1; then
+              echo "nvidia_gpu_found"
+            else
+              echo "no_nvidia_gpu"
+            fi
+          register: gpu_check
+          changed_when: false
+
+        - name: Display GPU detection result
+          debug:
+            msg: |
+              GPU detection on {{ inventory_hostname }}: {{ gpu_check.stdout }}
+              {% if gpu_check.stdout == "no_nvidia_gpu" %}
+              Note: No NVIDIA GPU detected. This might be because:
+              - The GPU is passed through to a VM
+              - The host needs a reboot after driver installation
+              - No physical GPU is installed
+              {% endif %}
+          when: gpu_enabled_hosts[inventory_hostname] | default(false)
+
+        - name: Load NVIDIA kernel modules
+          modprobe:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - nvidia
+            - nvidia-uvm
+            - nvidia-modeset
+          when: 
+            - gpu_enabled_hosts[inventory_hostname] | default(false)
+            - gpu_check.stdout == "nvidia_gpu_found"
+          ignore_errors: true
+
+        - name: Run NVIDIA device creation script
+          command: /usr/local/bin/create-nvidia-devices.sh
+          when: 
+            - gpu_enabled_hosts[inventory_hostname] | default(false)
+            - gpu_check.stdout == "nvidia_gpu_found"
+            - nvidia_driver_install is changed or nvidia_driver_check.stat.exists
+          ignore_errors: true
+
     - name: Check container status
       shell: "pct status {{ item.id }} | grep -q 'status: running' && echo 'running' || echo 'stopped'"
       loop: "{{ my_containers }}"
@@ -189,11 +538,22 @@
       loop: "{{ my_containers | zip(container_status.results) | list }}"
       when: "'stopped' in item.1.stdout"
       register: containers_started
+      retries: 3
+      delay: 5
+      until: containers_started is success
+      ignore_errors: true
+
+    - name: Check if any containers failed to start
+      shell: "pct status {{ item.id }} | grep -q 'status: running' || echo 'Container {{ item.id }} failed to start'"
+      loop: "{{ my_containers }}"
+      register: container_start_check
+      changed_when: false
+      when: containers_started is defined
 
     - name: Wait for containers to be ready
       pause:
         seconds: 15
-      when: container_created.changed
+      when: container_created.changed or containers_started.changed
 
     - name: Enable SSH in containers
       shell: |
@@ -231,6 +591,9 @@
       shell: |
         pct exec {{ item.id }} -- bash -c "
           echo '=== Setting up Tailscale in {{ item.name }} ==='
+
+          # Wait for container to be fully ready
+          sleep 5
 
           # Check if Tailscale is already running and configured
           if systemctl is-active --quiet tailscaled && tailscale status &>/dev/null; then
@@ -595,22 +958,33 @@
         host: "{{ ansible_host | default(inventory_hostname) }}"
         port: 22
         delay: 5
-        timeout: 60
+        timeout: 120
+        state: started
       delegate_to: localhost
       become: false
+      register: wait_result
+      ignore_errors: true
+      
+    - name: Skip container if network not ready
+      set_fact:
+        skip_container: true
+      when: wait_result is failed
 
     - name: Wait for SSH connection
       wait_for_connection:
         delay: 5
         timeout: 180
+      when: skip_container is not defined or not skip_container
 
     - name: Gather facts after connection
       setup:
+      when: skip_container is not defined or not skip_container
 
     - name: Update apt cache
       apt:
         update_cache: yes
         cache_valid_time: 3600
+      when: skip_container is not defined or not skip_container
 
     - name: Install base packages
       apt:
@@ -714,6 +1088,153 @@
           - Run 05-install-postgres.yml for database nodes
           ========================================
 
+    - name: Configure GPU support in containers
+      when: inventory_hostname in gpu_passthrough_containers
+      block:
+        - name: Check NVIDIA device accessibility
+          stat:
+            path: "{{ item }}"
+          loop:
+            - /dev/nvidia0
+            - /dev/nvidiactl
+            - /dev/nvidia-uvm
+          register: nvidia_devices
+
+        - name: Display device status
+          debug:
+            msg: |
+              NVIDIA Device Status:
+              {% for device in nvidia_devices.results %}
+              {{ device.item }}: {{ 'Found' if device.stat.exists else 'Missing' }}
+              {% endfor %}
+
+        - name: Download NVIDIA Container Toolkit GPG key
+          get_url:
+            url: "https://nvidia.github.io/libnvidia-container/gpgkey"
+            dest: "/tmp/nvidia-container-toolkit-gpgkey"
+            mode: '0644'
+
+        - name: Add NVIDIA Container Toolkit GPG key
+          shell: |
+            cat /tmp/nvidia-container-toolkit-gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+          args:
+            creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+        - name: Add NVIDIA Container Toolkit repository
+          shell: |
+            curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+          args:
+            creates: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+        - name: Update apt cache after adding NVIDIA repository
+          apt:
+            update_cache: yes
+
+        - name: Install NVIDIA Container Toolkit
+          apt:
+            name:
+              - nvidia-container-toolkit
+              - nvidia-container-runtime
+            state: present
+            update_cache: yes
+
+        - name: Create NVIDIA configuration directory
+          file:
+            path: /etc/nvidia
+            state: directory
+            mode: '0755'
+
+        - name: Create NVIDIA runtime configuration
+          copy:
+            content: |
+              # NVIDIA runtime configuration for containers
+              disable-require = false
+              
+              [nvidia-container-cli]
+              environment = []
+              debug = "/var/log/nvidia-container-toolkit.log"
+              ldcache = "/etc/ld.so.cache"
+              load-kmods = false
+              no-cgroups = true
+              user = "root:root"
+              ldconfig = "@/sbin/ldconfig"
+              
+              [nvidia-container-runtime]
+              debug = "/var/log/nvidia-container-runtime.log"
+              log-level = "info"
+              mode = "auto"
+            dest: /etc/nvidia/nvidia-container-runtime.config
+            mode: '0644'
+
+        - name: Configure NVIDIA container toolkit for LXC
+          shell: |
+            # Configure for LXC usage
+            nvidia-ctk config --set nvidia-container-cli.no-cgroups=true --in-place
+            
+            # Ensure runtime hook is configured
+            nvidia-ctk runtime configure --runtime=docker
+          changed_when: false
+          ignore_errors: true
+
+        - name: Gather package facts
+          package_facts:
+            manager: auto
+          when: inventory_hostname in gpu_passthrough_containers
+
+        - name: Configure Docker for GPU support
+          when: 
+            - inventory_hostname in gpu_passthrough_containers
+            - "'docker' in (ansible_facts.packages | default({}))"
+          block:
+            - name: Configure Docker daemon for NVIDIA runtime
+              copy:
+                content: |
+                  {
+                    "default-runtime": "nvidia",
+                    "runtimes": {
+                      "nvidia": {
+                        "path": "nvidia-container-runtime",
+                        "runtimeArgs": []
+                      }
+                    }
+                  }
+                dest: /etc/docker/daemon.json
+                mode: '0644'
+                backup: yes
+
+            - name: Restart Docker to apply GPU configuration
+              systemd:
+                name: docker
+                state: restarted
+                daemon_reload: yes
+
+        - name: Install GPU health check script
+          template:
+            src: ../../templates/gpu-health-check.sh.j2
+            dest: /usr/local/bin/gpu-health-check.sh
+            mode: '0755'
+
+        - name: Install GPU health check systemd service
+          template:
+            src: ../../templates/gpu-health-check.service.j2
+            dest: /etc/systemd/system/gpu-health-check.service
+            mode: '0644'
+
+        - name: Install GPU health check timer
+          template:
+            src: ../../templates/gpu-health-check.timer.j2
+            dest: /etc/systemd/system/gpu-health-check.timer
+            mode: '0644'
+
+        - name: Enable GPU health check timer
+          systemd:
+            name: gpu-health-check.timer
+            enabled: yes
+            state: started
+            daemon_reload: yes
+
 # Verification checks at the end
 - name: Verify Infrastructure Setup
   hosts: proxmox_nodes
@@ -799,6 +1320,12 @@
               {% if ssh_check.stdout %}
               SSH Issues:
               {{ ssh_check.stdout }}
+              {% endif %}
+              
+              {% if gpu_enabled_hosts[inventory_hostname] | default(false) %}
+              GPU Configuration:
+              - GPU Host: {{ inventory_hostname }}
+              - GPU Containers: {{ gpu_passthrough_containers | join(', ') }}
               {% endif %}
               ========================================
 

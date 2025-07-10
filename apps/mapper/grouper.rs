@@ -2,7 +2,7 @@ use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use llm_client::RequestConfigTrait;
-use llm_client::{InstructPromptTrait, LlmClient, LlmLocalTrait};
+use llm_client::{InstructPromptTrait, LlmClient};
 use llm_models::GgufLoaderTrait;
 use proposalsapp_db::models::*;
 use rand::Rng;
@@ -116,24 +116,6 @@ impl Grouper {
         let mut builder = LlmClient::llama_cpp();
         builder.hf_quant_file_url(model_url);
 
-        // Platform-specific configuration
-        #[cfg(target_os = "macos")]
-        {
-            info!("Detected macOS, configuring for Metal GPU acceleration");
-            // On macOS, use Metal GPU with 8GB RAM allocation
-            // Metal automatically uses GPU index 0 on macOS
-            let metal_config = llm_client::MetalConfig::new_from_ram_gb(8.0);
-            builder = builder.metal_config(metal_config);
-        }
-
-        #[cfg(not(target_os = "macos"))]
-        {
-            info!("Detected non-macOS platform (likely Linux), configuring for CPU-only execution");
-            // On Linux and other platforms, use CPU-only with 8GB RAM limit
-            // The container has 12GB RAM, but we need to leave room for other processes
-            builder = builder.cpu_only().use_ram_gb(8.0);
-        }
-
         let llm_client = builder
             .init()
             .await
@@ -226,6 +208,8 @@ impl Grouper {
     }
 
     // Keyword extraction using LLM with Redis caching
+    // Returns a vector of keywords, or ["insufficient-content"] if the content is too sparse
+    // Returns ["extraction-failed"] if the LLM extraction process fails
     async fn extract_keywords(&self, item: &NormalizedItem) -> Result<Vec<String>> {
         // Create a cache key based on item ID and a hash of title+body
         let cache_key = format!("mapper:keywords:{}-{}", item.id, item.dao_id);
@@ -241,8 +225,14 @@ impl Grouper {
         // Use conversational approach with a single LLM session
         match self.extract_keywords_with_conversation(item).await {
             Ok(keywords) => {
-                // Success! Cache and return
-                info!("Keywords for {}: {:?}", item.id, keywords);
+                // Log result
+                if keywords.len() == 1 && keywords[0] == "insufficient-content" {
+                    warn!("Insufficient content for keyword extraction in {}", item.id);
+                } else {
+                    info!("Keywords for {}: {:?}", item.id, keywords);
+                }
+
+                // Cache and return
                 let ttl = 604800 + rand::rng().random_range(302400..302400 * 3);
                 if let Err(e) = redis_cache::cache_keywords(&cache_key, &keywords, ttl).await {
                     warn!("Failed to cache keywords: {}", e);
@@ -251,8 +241,8 @@ impl Grouper {
             }
             Err(e) => {
                 warn!("Failed to extract keywords for {}: {}", item.id, e);
-                // Return fallback
-                Ok(vec!["invalid-keyword-extraction".to_string()])
+                // Return fallback for extraction failure
+                Ok(vec!["extraction-failed".to_string()])
             }
         }
     }
@@ -284,6 +274,7 @@ impl Grouper {
                 - Include exact names, numbers, and identifiers when present
                 - Capture the proposal's unique characteristics that distinguish it from others
                 - Use hyphens to connect multi-word concepts (e.g., "cross-chain-bridge")
+                - If there is not enough meaningful information to extract keywords, return ONLY: insufficient-content
 
                 Required Coverage Areas:
                 1. IDENTIFIERS: proposal ID, voting round, specific dates
@@ -308,6 +299,7 @@ impl Grouper {
                 - Just return the keywords separated by commas
                 - Aim for 10-20 keywords
                 - End your response after listing the keywords
+                - Special case: If content is insufficient, return ONLY the single keyword: insufficient-content
 
                 Example (good): compound-grant-23, defi-education-initiative, 50k-usdc-funding, alice-smith, q1-2024, developer-onboarding, polygon-deployment, compound-finance
 
@@ -339,7 +331,11 @@ impl Grouper {
             let keywords = self.parse_keyword_response(&response.content);
 
             // Check if we got valid keywords
-            if keywords.len() >= 5 && keywords.len() <= 25 {
+            if keywords.len() == 1 && keywords[0] == "insufficient-content" {
+                // Special case: insufficient content is valid
+                return Ok(keywords);
+            } else if keywords.len() >= 5 && keywords.len() <= 25 {
+                // Normal case: good number of keywords
                 return Ok(keywords);
             }
 
@@ -365,10 +361,10 @@ impl Grouper {
 
             // Add a corrective user message based on what went wrong
             let correction = if keywords.is_empty() {
-                "I need you to provide keywords. Please respond with ONLY comma-separated keywords, nothing else. For example: keyword1,keyword2,keyword3".to_string()
+                "I need you to provide keywords. Please respond with ONLY comma-separated keywords, nothing else. For example: keyword1,keyword2,keyword3. If there is truly insufficient content to extract meaningful keywords, respond with only: insufficient-content".to_string()
             } else if keywords.len() < 5 {
                 format!(
-                    "You only provided {} keywords. I need at least 10 keywords. Please provide more keywords as a comma-separated list.",
+                    "You only provided {} keywords. I need at least 10 keywords. Please provide more keywords as a comma-separated list. If there is truly insufficient content to extract meaningful keywords, respond with only: insufficient-content",
                     keywords.len()
                 )
             } else {
@@ -401,32 +397,41 @@ impl Grouper {
     fn parse_keyword_response(&self, response: &str) -> Vec<String> {
         let cleaned = response.trim();
 
-        // Find the actual keyword content
+        // Find the actual keyword content (strip "assistant" prefix if present)
         let keyword_content = if let Some(idx) = cleaned.find("assistant") {
             cleaned[idx + "assistant".len()..].trim()
         } else {
             cleaned
         };
 
-        // Look for the line that contains keywords
+        // Extract the main content line (skip any preamble)
         let keyword_line = if keyword_content.contains('\n') {
+            // Find the line that looks like keywords
             keyword_content
                 .lines()
+                .map(|line| line.trim())
                 .find(|line| {
-                    let trimmed = line.trim();
-                    trimmed.contains(',')
-                        && !trimmed.to_lowercase().contains("here")
-                        && !trimmed.to_lowercase().contains("keywords")
-                        && !trimmed.to_lowercase().contains("following")
+                    // Skip lines that are just explanatory text
+                    !line.to_lowercase().contains("here")
+                        && !line.to_lowercase().contains("keywords")
+                        && !line.to_lowercase().contains("following")
+                        && !line.is_empty()
+                        && (line.contains(',') || *line == "insufficient-content")
                 })
-                .unwrap_or(keyword_content)
+                .unwrap_or(keyword_content.trim())
         } else if let Some(idx) = keyword_content.rfind(':') {
+            // Handle case where keywords come after a colon
             keyword_content[idx + 1..].trim()
         } else {
-            keyword_content
+            keyword_content.trim()
         };
 
-        // Parse and validate keywords
+        // Check for insufficient content case
+        if keyword_line == "insufficient-content" {
+            return vec!["insufficient-content".to_string()];
+        }
+
+        // Parse comma-separated keywords
         keyword_line
             .split(',')
             .map(|s| s.trim().trim_matches('"').trim_matches('\'').to_lowercase())
@@ -521,6 +526,7 @@ impl Grouper {
                 2. DIFFERENT DOMAINS: Unrelated protocol areas or initiatives
                 3. GENERIC SIMILARITIES: Only sharing common governance terms
                 4. COINCIDENTAL OVERLAP: Similar words but different contexts
+                5. INSUFFICIENT DATA: Lack of sufficient information to make a determination
 
                 Analysis Framework:
                 - Compare titles for direct matches or progression patterns

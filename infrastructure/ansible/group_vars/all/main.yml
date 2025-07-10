@@ -78,3 +78,9 @@ redis_password: "{{ vault_redis_password }}"
 # pgbackweb configuration
 pgbackweb_postgres_database: pgbackweb
 pgbackweb_encryption_key: "{{ vault_pgbackweb_encryption_key }}"
+
+# GPU configuration
+gpu_enabled_hosts:
+  sib-03: true # Has 2x RTX 3090 + 1x RTX 4070
+gpu_passthrough_containers:
+  - apps-sib-03 # Container that will receive GPU access

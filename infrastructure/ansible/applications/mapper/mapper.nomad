@@ -67,6 +67,9 @@ job "mapper" {
         ports = ["health"]
         force_pull = true
 
+        # Enable NVIDIA runtime for GPU support
+        runtime = "nvidia"
+
         # Add logging configuration
         logging {
           type = "json-file"
@@ -193,6 +196,11 @@ EOF
 
         # Reserve additional resources for peak loads
         memory_max = 16384  # Allow bursting to 16GB
+
+        # GPU allocation for LLM acceleration
+        device "nvidia/gpu" {
+          count = 1
+        }
       }
 
       service {

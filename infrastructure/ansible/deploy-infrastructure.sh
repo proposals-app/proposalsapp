@@ -141,7 +141,7 @@ fi
 
 # Run playbooks in order
 PLAYBOOKS=(
-    "playbooks/infrastructure/01-provision-and-prepare-lxcs.yml:Provisioning LXC containers and base setup"
+    "playbooks/infrastructure/01-provision-and-prepare-lxcs.yml:Provisioning LXC containers, base setup, and GPU configuration"
     "playbooks/infrastructure/02-install-consul.yml:Installing and configuring Consul"
     "playbooks/infrastructure/03-install-nomad.yml:Installing and configuring Nomad"
     "playbooks/infrastructure/04-install-postgres-unified.yml:Installing PostgreSQL with Patroni, etcd, and pgpool-II"
@@ -234,6 +234,7 @@ if [ $failed -eq 0 ]; then
     echo "  • Local-first routing (100% reads to local DB/Redis when healthy)"
     echo "  • Auto-deployment service monitoring GitHub Actions builds"
     echo "  • 3 GitHub Actions self-hosted runners"
+    echo "  • GPU passthrough for apps-sib-03 (2x RTX 3090 + 1x RTX 4070)"
     echo ""
     echo -e "${CYAN}Next steps:${NC}"
     echo "1. Verify Consul cluster: consul members"

@@ -1,0 +1,24 @@
+[Unit]
+Description=GPU Health Check for {{ inventory_hostname }}
+After=network-online.target consul.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/gpu-health-check.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gpu-health-check
+
+# Security settings
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log
+
+# Environment
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+[Install]
+WantedBy=multi-user.target
