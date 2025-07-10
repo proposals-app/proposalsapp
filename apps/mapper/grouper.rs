@@ -315,13 +315,16 @@ impl Grouper {
 
         // Limit the body to prevent exceeding token limits
         // Reserve ~1k chars for system prompt and formatting, leaving ~14k for content
-        let truncated_body = Self::truncate_text(&item.body, 12000);
+        let truncated_body = Self::truncate_text(&item.body, 5000);
 
         basic_completion
             .prompt()
             .add_user_message()
             .unwrap()
-            .set_content(format!("Title: {}\nBody: {}", item.title, truncated_body));
+            .set_content(format!(
+                "Please analyze the following governance item and extract keywords. The content is provided in XML format:\n\n<TITLE>{}</TITLE>\n<BODY>{}</BODY>\n\nRemember to return ONLY a comma-separated list of keywords, nothing else.",
+                item.title, truncated_body
+            ));
 
         // Try conversational approach with up to 3 rounds
         let max_rounds = 3;
