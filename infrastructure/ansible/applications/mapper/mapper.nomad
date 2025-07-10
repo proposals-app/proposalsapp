@@ -1,5 +1,5 @@
 job "mapper" {
-  datacenters = ["dc1", "dc2", "dc3"]
+  datacenters = ["dc2"]
   type = "service"
 
   update {
@@ -16,6 +16,12 @@ job "mapper" {
 
   group "mapper" {
     count = 1  # Single instance service
+
+    # Ensure it runs on apps-sib-03 (dc2) to match the GitHub runner CPU
+    constraint {
+      attribute = "${node.unique.name}"
+      value     = "apps-sib-03"
+    }
 
     migrate {
       max_parallel = 1
