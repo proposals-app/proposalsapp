@@ -22,16 +22,14 @@ RUN cargo install cargo-chef --locked
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
 
-# Stage 2: Cacher
-FROM rust:${RUST_VERSION}-slim-bookworm AS cacher
+# Stage 2: Cacher with CUDA support
+FROM nvidia/cuda:12.0.0-devel-ubuntu22.04 AS cacher
 WORKDIR /app
 ARG APP_NAME
 ARG RUST_VERSION
 
-# Install only essential build dependencies including CUDA toolkit
-# Enable contrib repository for nvidia packages
-RUN echo "deb http://deb.debian.org/debian bookworm contrib" >> /etc/apt/sources.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
+# Install build dependencies - CUDA is already available in the base image
+RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     python3 \
@@ -41,9 +39,11 @@ RUN echo "deb http://deb.debian.org/debian bookworm contrib" >> /etc/apt/sources
     git \
     curl \
     cmake \
-    nvidia-cuda-toolkit \
-    nvidia-cuda-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${RUST_VERSION}
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Switch to nightly Rust for f16 feature support
 RUN rustup default nightly
@@ -58,11 +58,13 @@ ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 # Configure llama.cpp build for Docker/container compatibility with GPU support
 # CRITICAL: Disable GGML_NATIVE to prevent CPU-specific optimizations
 # This ensures the binary works across different environments (GitHub runners -> LXC containers)
-# Enable CUDA support for GPU acceleration
+# Enable CUDA support - the base image provides CUDA toolkit
+ENV CUDACXX=/usr/local/cuda/bin/nvcc
 ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
 # Enable CUDA support
 ENV GGML_CUDA=1
 ENV CUDA_DOCKER_ARCH=all-major
+ENV FORCE_CMAKE=1
 # Use portable CPU flags that work everywhere
 # x86-64-v2 includes SSE3, SSSE3, SSE4.1, SSE4.2 which are available on all modern CPUs
 ENV CFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
@@ -72,16 +74,14 @@ RUN cargo install cargo-chef --locked
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
 
-# Stage 3: Builder
-FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+# Stage 3: Builder with CUDA support
+FROM nvidia/cuda:12.0.0-devel-ubuntu22.04 AS builder
 WORKDIR /app
 ARG APP_NAME
 ARG RUST_VERSION
 
-# Install build dependencies including cmake for llama.cpp and CUDA toolkit
-# Enable contrib repository for nvidia packages
-RUN echo "deb http://deb.debian.org/debian bookworm contrib" >> /etc/apt/sources.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
+# Install build dependencies - CUDA is already available in the base image
+RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     build-essential \
@@ -92,9 +92,11 @@ RUN echo "deb http://deb.debian.org/debian bookworm contrib" >> /etc/apt/sources
     git \
     curl \
     cmake \
-    nvidia-cuda-toolkit \
-    nvidia-cuda-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${RUST_VERSION}
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Switch to nightly Rust for f16 feature support
 RUN rustup default nightly
@@ -109,11 +111,13 @@ ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 # Configure llama.cpp build for Docker/container compatibility with GPU support
 # CRITICAL: Disable GGML_NATIVE to prevent CPU-specific optimizations
 # This ensures the binary works across different environments (GitHub runners -> LXC containers)
-# Enable CUDA support for GPU acceleration
+# Enable CUDA support - the base image provides CUDA toolkit
+ENV CUDACXX=/usr/local/cuda/bin/nvcc
 ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
 # Enable CUDA support
 ENV GGML_CUDA=1
 ENV CUDA_DOCKER_ARCH=all-major
+ENV FORCE_CMAKE=1
 # Use portable CPU flags that work everywhere
 # x86-64-v2 includes SSE3, SSSE3, SSE4.1, SSE4.2 which are available on all modern CPUs
 ENV CFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
@@ -121,20 +125,19 @@ ENV CXXFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
 
 # Copy cached dependencies first
 COPY --from=cacher /app/target target
-COPY --from=cacher /usr/local/cargo /usr/local/cargo
+COPY --from=cacher /root/.cargo /root/.cargo
 # Then copy source code
 COPY . .
 
 # Build the project with parallel jobs
 RUN cargo build --release --bin ${APP_NAME} --jobs $(nproc)
 
-# Stage 4: Final
-FROM debian:bookworm-slim
+# Stage 4: Final runtime with CUDA
+FROM nvidia/cuda:12.0.0-runtime-ubuntu22.04
 WORKDIR /app
 ARG APP_NAME
 
 # Install runtime dependencies INCLUDING build tools for llama.cpp compilation
-# CUDA runtime libraries will be provided by nvidia-docker runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
