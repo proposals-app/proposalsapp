@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { SUPPORTED_DAOS } from './dao-config';
 
@@ -63,9 +63,8 @@ export function Navigation() {
       {/* Desktop Menu */}
       <div className='hidden items-center gap-6 sm:flex'>
         {SUPPORTED_DAOS.map((dao, index) => (
-          <>
+          <React.Fragment key={dao.name}>
             <Link
-              key={dao.name}
               href={dao.link}
               className={`hidden transition-colors duration-300 sm:block ${
                 isLight
@@ -77,7 +76,6 @@ export function Navigation() {
             </Link>
             {index < SUPPORTED_DAOS.length - 1 && (
               <span
-                key={`separator-${index}`}
                 className={`hidden sm:block ${
                   isLight ? 'text-zinc-400' : 'text-zinc-600'
                 }`}
@@ -85,7 +83,7 @@ export function Navigation() {
                 |
               </span>
             )}
-          </>
+          </React.Fragment>
         ))}
         <span
           className={`hidden sm:block ${
