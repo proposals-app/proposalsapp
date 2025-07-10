@@ -471,8 +471,7 @@ pub async fn upsert_post_likes_batch(
             .await
             .with_context(|| {
                 format!(
-                    "Failed to batch insert {} new post likes for post {}",
-                    new_likes_count, post_id
+                    "Failed to batch insert {new_likes_count} new post likes for post {post_id}"
                 )
             })?;
         info!(
@@ -498,7 +497,7 @@ pub async fn get_post_like_count(post_external_id: i32, dao_discourse_id: Uuid) 
         )
         .count(db())
         .await
-        .with_context(|| format!("Failed to count post likes for post {}", post_external_id))?;
+        .with_context(|| format!("Failed to count post likes for post {post_external_id}"))?;
 
     debug!(
         post_external_id,

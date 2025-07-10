@@ -250,8 +250,7 @@ impl DiscourseApi {
         // Handle potential errors returned from the worker (e.g., network errors, parsing errors).
         let shared_response = response_result.with_context(|| {
             format!(
-                "Worker task failed processing request for endpoint: {}",
-                endpoint
+                "Worker task failed processing request for endpoint: {endpoint}"
             )
         })?;
 
@@ -428,8 +427,7 @@ impl DiscourseApi {
                     // Send owned error to each waiter.
                     // We need to capture the error before the loop as `e` is moved into the first `context` call.
                     let error_message = format!(
-                        "Discourse API request failed for {}: {:?}",
-                        endpoint_key_clone, e
+                        "Discourse API request failed for {endpoint_key_clone}: {e:?}"
                     );
                     for sender in senders {
                         // Create a fresh anyhow::Error for each sender with the captured message.
@@ -498,7 +496,7 @@ impl DiscourseApi {
                             info!(url, attempt, ?response_time, "Request successful (200 OK)");
                             // Read body text - potential point of failure
                             return response.text().await.with_context(|| {
-                                format!("Failed to read response body text for {}", url)
+                                format!("Failed to read response body text for {url}")
                             });
                         }
                         StatusCode::TOO_MANY_REQUESTS => {

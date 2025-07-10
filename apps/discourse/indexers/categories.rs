@@ -39,7 +39,7 @@ impl CategoryIndexer {
             // Fetch categories including subcategories.
             // Note: Discourse's category pagination can be inconsistent.
             // We add safety breaks.
-            let url = format!("/categories.json?include_subcategories=true&page={}", page);
+            let url = format!("/categories.json?include_subcategories=true&page={page}");
             debug!(%url, "Fetching categories page");
 
             let response: CategoryResponse = match self
@@ -59,7 +59,7 @@ impl CategoryIndexer {
                     }
                     // For other errors, log and return error
                     error!(error = ?e, page, url = %url, "Failed to fetch categories page");
-                    return Err(e).context(format!("Failed to fetch categories page {}", page));
+                    return Err(e).context(format!("Failed to fetch categories page {page}"));
                 }
             };
 
@@ -152,15 +152,15 @@ fn flatten_categories(categories: &[Category], result: &mut Vec<Category>) {
         result.push(category_to_add);
 
         // Recursively flatten children
-        if let Some(subcategories) = &category.subcategory_list {
-            if !subcategories.is_empty() {
-                debug!(
-                    parent_category_id = category.id,
-                    num_subcategories = subcategories.len(),
-                    "Flattening subcategories"
-                );
-                flatten_categories(subcategories, result);
-            }
+        if let Some(subcategories) = &category.subcategory_list
+            && !subcategories.is_empty()
+        {
+            debug!(
+                parent_category_id = category.id,
+                num_subcategories = subcategories.len(),
+                "Flattening subcategories"
+            );
+            flatten_categories(subcategories, result);
         }
     }
 }

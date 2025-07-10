@@ -30,8 +30,7 @@ impl LikesIndexer {
 
         // API endpoint for fetching users who performed action type 2 (like) on a post
         let url = format!(
-            "/post_action_users.json?id={}&post_action_type_id=2",
-            post_id
+            "/post_action_users.json?id={post_id}&post_action_type_id=2"
         );
 
         debug!(%url, "Fetching likes for post");
@@ -39,7 +38,7 @@ impl LikesIndexer {
             .discourse_api
             .queue(&url, priority) // Use priority flag
             .await
-            .with_context(|| format!("Failed to fetch likes for post_id {}", post_id))?;
+            .with_context(|| format!("Failed to fetch likes for post_id {post_id}"))?;
 
         // Extract user IDs from the response
         let user_ids: Vec<i32> = response
@@ -57,7 +56,7 @@ impl LikesIndexer {
         // Perform batch upsert into the database
         upsert_post_likes_batch(post_id, user_ids, dao_discourse_id)
             .await
-            .with_context(|| format!("Failed to batch upsert likes for post_id {}", post_id))?;
+            .with_context(|| format!("Failed to batch upsert likes for post_id {post_id}"))?;
 
         info!(
             post_id,

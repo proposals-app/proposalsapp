@@ -222,7 +222,7 @@ impl Grouper {
         let start_text = &text[..start_end_idx].trim_end();
         let end_text = &text[end_start_idx..].trim_start();
 
-        format!("{}{}{}", start_text, ELLIPSIS, end_text)
+        format!("{start_text}{ELLIPSIS}{end_text}")
     }
 
     // Keyword extraction using LLM with Redis caching
@@ -321,7 +321,7 @@ impl Grouper {
             .prompt()
             .add_user_message()
             .unwrap()
-            .set_content(&format!("Title: {}\nBody: {}", item.title, truncated_body));
+            .set_content(format!("Title: {}\nBody: {}", item.title, truncated_body));
 
         // Try conversational approach with up to 3 rounds
         let max_rounds = 3;
@@ -400,7 +400,7 @@ impl Grouper {
 
         // Find the actual keyword content
         let keyword_content = if let Some(idx) = cleaned.find("assistant") {
-            &cleaned[idx + "assistant".len()..].trim()
+            cleaned[idx + "assistant".len()..].trim()
         } else {
             cleaned
         };
@@ -712,7 +712,7 @@ impl Grouper {
     // Normalize a proposal into our common format
     async fn normalize_proposal(&self, proposal: proposal::Model) -> Result<NormalizedItem> {
         let external_id = proposal.external_id.clone();
-        let id = format!("proposal_{}", external_id);
+        let id = format!("proposal_{external_id}");
 
         let raw_data = ProposalGroupItem::Proposal(ProposalItem {
             name: proposal.name.clone(),
@@ -739,7 +739,7 @@ impl Grouper {
         dao_id: Uuid,
     ) -> Result<NormalizedItem> {
         let external_id = topic.external_id.to_string();
-        let id = format!("topic_{}", external_id);
+        let id = format!("topic_{external_id}");
 
         // Get the first post content
         let first_post = discourse_post::Entity::find()
@@ -796,7 +796,7 @@ impl Grouper {
                 items.iter().map(|item| item.raw_data.clone()).collect();
 
             let items_json = serde_json::to_value(&proposal_items)?;
-            let group_name = format!("{}", items[0].title);
+            let group_name = items[0].title.to_string();
 
             if existing_group_ids.contains(&group_id) {
                 // Update existing group
@@ -961,7 +961,7 @@ impl Grouper {
         }
 
         for topic in &topics {
-            match self.normalize_topic(topic.clone(), dao_id.clone()).await {
+            match self.normalize_topic(topic.clone(), dao_id).await {
                 Ok(normalized) => {
                     all_items.push(normalized);
                 }
@@ -1350,8 +1350,7 @@ mod tests {
             assert_eq!(
                 extract_discourse_id_or_slug(url),
                 expected,
-                "Failed for URL: {}",
-                url
+                "Failed for URL: {url}"
             );
         }
     }
@@ -1390,8 +1389,7 @@ mod tests {
             assert_eq!(
                 extract_discourse_id_or_slug(url),
                 expected,
-                "Failed for URL: {}",
-                url
+                "Failed for URL: {url}"
             );
         }
     }
@@ -1422,8 +1420,7 @@ mod tests {
             assert_eq!(
                 extract_discourse_id_or_slug(url),
                 expected,
-                "Failed for URL: {}",
-                url
+                "Failed for URL: {url}"
             );
         }
     }
@@ -1487,8 +1484,7 @@ mod tests {
             assert_eq!(
                 extract_discourse_id_or_slug(url),
                 expected,
-                "Failed for URL: {}",
-                url
+                "Failed for URL: {url}"
             );
         }
     }
@@ -1509,8 +1505,7 @@ mod tests {
             assert_eq!(
                 extract_discourse_id_or_slug(url),
                 expected,
-                "Failed for URL: {}",
-                url
+                "Failed for URL: {url}"
             );
         }
     }

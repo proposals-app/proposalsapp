@@ -4620,7 +4620,7 @@ __metadata:
     eslint-config-prettier: "npm:^10.1.5"
     eslint-plugin-prettier: "npm:^5.5.1"
     eslint-plugin-storybook: "npm:^9.0.16"
-    framer-motion: "npm:^12.23.1"
+    framer-motion: "npm:^12.23.2"
     fuse.js: "npm:^7.1.0"
     hast: "npm:^1.0.0"
     hast-util-to-dom: "npm:^4.0.1"
@@ -4642,7 +4642,7 @@ __metadata:
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.6"
     posthog-js: "npm:^1.257.0"
-    posthog-node: "npm:^5.3.1"
+    posthog-node: "npm:^5.4.0"
     prettier: "npm:^3.6.2"
     prettier-plugin-classnames: "npm:^0.8.1"
     prettier-plugin-merge: "npm:^0.8.0"
@@ -4680,7 +4680,7 @@ __metadata:
     wagmi: "npm:^2.15.6"
     web-push: "npm:^3.6.7"
     webpack: "npm:^5.100.0"
-    zod: "npm:^4.0.0"
+    zod: "npm:^4.0.2"
   languageName: unknown
   linkType: soft
 
@@ -13764,12 +13764,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:^12.23.1":
-  version: 12.23.1
-  resolution: "framer-motion@npm:12.23.1"
+"framer-motion@npm:^12.23.2":
+  version: 12.23.2
+  resolution: "framer-motion@npm:12.23.2"
   dependencies:
-    motion-dom: "npm:^12.23.1"
-    motion-utils: "npm:^12.23.1"
+    motion-dom: "npm:^12.23.2"
+    motion-utils: "npm:^12.23.2"
     tslib: "npm:^2.4.0"
   peerDependencies:
     "@emotion/is-prop-valid": "*"
@@ -13782,7 +13782,7 @@ __metadata:
       optional: true
     react-dom:
       optional: true
-  checksum: 10c0/56d93921f50a6dcab0772d91b1dc198fa567ccfce62b6f5d52d46fd1b45f83b4f5bf53c3fa31c3919fca790fdb5d9f61ab6eb67cf12bc5cd64d582ca030b8a1f
+  checksum: 10c0/99876d4140104c9d8fab02c236635d55c785e6c401e41704b93371bdaccc9e6f60dcb2d820ea30416eb4aaec0fef606a678ad2c41f4a554342cf0a904899bf77
   languageName: node
   linkType: hard
 
@@ -18279,19 +18279,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion-dom@npm:^12.23.1":
-  version: 12.23.1
-  resolution: "motion-dom@npm:12.23.1"
+"motion-dom@npm:^12.23.2":
+  version: 12.23.2
+  resolution: "motion-dom@npm:12.23.2"
   dependencies:
-    motion-utils: "npm:^12.23.1"
-  checksum: 10c0/81d6fc9c4199352c0881b3f16830a32ff367ecdfc38ee4bbe5798b1437f3cce0cdcfd09161477ea28049d0fe9a290e0aeae7f7e6d692ec74a69746c368e6e820
+    motion-utils: "npm:^12.23.2"
+  checksum: 10c0/91455a31c558ebd915b45a4157d14553733c432a208c2ab61c54e3d305f32793e559609e2cc2b2d4acaa712637ac067ca62e359d5c6d8b22022bfbff7c023ab8
   languageName: node
   linkType: hard
 
-"motion-utils@npm:^12.23.1":
-  version: 12.23.1
-  resolution: "motion-utils@npm:12.23.1"
-  checksum: 10c0/7bc071fcca2753fa6765d69565d25678bc7b8dbc3af009b22bc8b82b56cc5e8400e2a8a459df53830cb637e2af9ed11fe21174a3bb8fcf49e63ff458f85e1c93
+"motion-utils@npm:^12.23.2":
+  version: 12.23.2
+  resolution: "motion-utils@npm:12.23.2"
+  checksum: 10c0/bb7479b780371acd43e3a18721deaa9e0324e6f672751310ee1a886e9fd46fe5f71e51510140dadcbd2f81100cd32b9614a2ff40ab2bb8d074d1fb321f6bdd89
   languageName: node
   linkType: hard
 
@@ -20250,10 +20250,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-node@npm:^5.3.1":
-  version: 5.3.1
-  resolution: "posthog-node@npm:5.3.1"
-  checksum: 10c0/5bbb9acbbfb0305600a308f68486b307bc71f562e296d68988216173a76e9fa2c69f12976f63767bad746d4a18e2d3c978f461a263b30b4b4a2d42e9d39fd362
+"posthog-node@npm:^5.4.0":
+  version: 5.4.0
+  resolution: "posthog-node@npm:5.4.0"
+  checksum: 10c0/b0fdac7541e485e3c2c74b6f9b289302cd78862855988be12f286a7884949a5993b1cfc2e6d30f5c2d655105ea914be6f67c71d190285c1f8b593a2536c9ca4d
   languageName: node
   linkType: hard
 
@@ -25691,10 +25691,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "zod@npm:4.0.0"
-  checksum: 10c0/ffffb604e936f83ea90b4b8aee7b8e7557cb99f8355af6897c3d0ee942e45dd2802253c6d97c0cd7ec142200523e41c2bc7568bda9e10dbbeed2c8574414e476
+"zod@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "zod@npm:4.0.2"
+  checksum: 10c0/31d82196d5be1c8290a860e79b469c64934979a95533d6c7802cb164562a1584d03bc19fa349747f7c54e45fa85c10b2f731a2805626f96f8908bc94bccd38b8
   languageName: node
   linkType: hard
 

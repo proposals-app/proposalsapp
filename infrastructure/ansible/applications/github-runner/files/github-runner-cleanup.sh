@@ -55,25 +55,35 @@ log "=== Cleaning Docker buildx cache (primary space consumer) ==="
 if [ -d "/var/cache/buildx" ]; then
     SIZE=$(du -sh /var/cache/buildx 2>/dev/null | awk '{print $1}' || echo "unknown")
     log "Removing /var/cache/buildx (size: $SIZE)..."
-    rm -rf /var/cache/buildx/* 2>&1 | tee -a "$LOGFILE" || log "Warning: Failed to clean /var/cache/buildx"
+    # Use sudo to ensure we can delete all files
+    sudo rm -rf /var/cache/buildx/* 2>&1 | tee -a "$LOGFILE" || log "Warning: Failed to clean /var/cache/buildx"
+    # Recreate directory with proper permissions
+    sudo mkdir -p /var/cache/buildx
+    sudo chown runner:runner /var/cache/buildx
 fi
 
-# Clean buildx builder cache
+# Clean buildx builder cache (before removing builders)
 log "Cleaning buildx builder cache..."
-docker buildx prune -af 2>&1 | tee -a "$LOGFILE" || log "Warning: Docker buildx prune failed"
+docker buildx prune -af --verbose 2>&1 | tee -a "$LOGFILE" || log "Warning: Docker buildx prune failed"
 
 # Remove all buildx builders and their volumes (can use 34GB+ per builder)
 log "Removing all buildx builders and volumes..."
-for builder in $(docker buildx ls | grep -E "builder-[a-f0-9-]+" | awk '{print $1}' || true); do
-    log "Removing builder: $builder"
-    docker buildx rm "$builder" 2>&1 | tee -a "$LOGFILE" || log "Warning: Failed to remove builder $builder"
+# Get all builders except 'default'
+for builder in $(docker buildx ls --format '{{.Name}}' 2>/dev/null | grep -v '^default$' || true); do
+    if [ -n "$builder" ]; then
+        log "Removing builder: $builder"
+        docker buildx rm "$builder" --force 2>&1 | tee -a "$LOGFILE" || log "Warning: Failed to remove builder $builder"
+    fi
 done
 
-# Also check for the default 'multiarch' builder
-if docker buildx ls | grep -q "multiarch"; then
-    log "Removing multiarch builder..."
-    docker buildx rm multiarch 2>&1 | tee -a "$LOGFILE" || true
-fi
+# Clean any leftover buildkit instances
+log "Cleaning leftover buildkit containers..."
+docker ps -a --filter "name=buildx_buildkit_" --format "{{.Names}}" | while read container; do
+    if [ -n "$container" ]; then
+        log "Removing buildkit container: $container"
+        docker rm -f "$container" 2>&1 | tee -a "$LOGFILE" || true
+    fi
+done
 
 # 2. Clean Docker system
 log "=== Cleaning Docker system ==="
@@ -93,10 +103,23 @@ log "Cleaning Docker volumes..."
 docker volume prune -af 2>&1 | tee -a "$LOGFILE" || log "Warning: Docker volume prune failed"
 
 # Remove orphaned buildx volumes specifically
-for volume in $(docker volume ls -q | grep -E "buildx_buildkit_.*" || true); do
-    log "Removing buildx volume: $volume"
-    docker volume rm "$volume" 2>&1 | tee -a "$LOGFILE" || log "Warning: Failed to remove volume $volume"
-done
+log "Looking for buildx volumes to remove..."
+BUILDX_VOLUMES=$(docker volume ls -q | grep -E "buildx_buildkit_.*|buildkit.*" || true)
+if [ -n "$BUILDX_VOLUMES" ]; then
+    for volume in $BUILDX_VOLUMES; do
+        log "Removing buildx volume: $volume"
+        docker volume rm -f "$volume" 2>&1 | tee -a "$LOGFILE" || log "Warning: Failed to remove volume $volume"
+    done
+else
+    log "No buildx volumes found"
+fi
+
+# Also check for buildx cache in user's docker directory
+if [ -d "$RUNNER_HOME/.docker/buildx" ]; then
+    BUILDX_SIZE=$(du -sh "$RUNNER_HOME/.docker/buildx" 2>/dev/null | awk '{print $1}' || echo "unknown")
+    log "Cleaning user buildx directory (size: $BUILDX_SIZE)..."
+    rm -rf "$RUNNER_HOME/.docker/buildx/cache" 2>&1 | tee -a "$LOGFILE" || true
+fi
 
 # Clean Docker build cache
 log "Cleaning Docker build cache..."
@@ -147,14 +170,26 @@ fi
 if [ -d "$RUNNER_HOME" ]; then
     log "=== Cleaning development caches ==="
     
-    # Rust/Cargo
+    # Rust/Cargo - preserve rustup, only clean cargo caches
     if [ -d "$RUNNER_HOME/.cargo" ]; then
-        log "Cleaning Cargo caches..."
-        rm -rf "$RUNNER_HOME/.cargo/git" 2>&1 | tee -a "$LOGFILE" || true
-        rm -rf "$RUNNER_HOME/.cargo/registry/cache" 2>&1 | tee -a "$LOGFILE" || true
+        log "Cleaning Cargo caches (preserving rustup)..."
+        # Clean git checkouts (can be re-cloned)
+        rm -rf "$RUNNER_HOME/.cargo/git/checkouts" 2>&1 | tee -a "$LOGFILE" || true
+        # Clean git db only if aggressive
         if [ "$CLEANUP_LEVEL" != "normal" ]; then
+            rm -rf "$RUNNER_HOME/.cargo/git/db" 2>&1 | tee -a "$LOGFILE" || true
+        fi
+        # Clean registry cache (downloaded .crate files)
+        rm -rf "$RUNNER_HOME/.cargo/registry/cache" 2>&1 | tee -a "$LOGFILE" || true
+        # Clean registry src (extracted crates)
+        rm -rf "$RUNNER_HOME/.cargo/registry/src" 2>&1 | tee -a "$LOGFILE" || true
+        # Only clean index in critical mode (will need re-download)
+        if [ "$CLEANUP_LEVEL" = "critical" ]; then
             rm -rf "$RUNNER_HOME/.cargo/registry/index" 2>&1 | tee -a "$LOGFILE" || true
         fi
+        # Report cargo cache size after cleanup
+        CARGO_SIZE=$(du -sh "$RUNNER_HOME/.cargo" 2>/dev/null | awk '{print $1}' || echo "unknown")
+        log "Cargo directory size after cleanup: $CARGO_SIZE"
     fi
     
     # Node/Yarn/npm
@@ -206,11 +241,24 @@ if [ "$CURRENT_USAGE" -ge "$AGGRESSIVE_CLEANUP_THRESHOLD" ]; then
         log "Docker overlay2 size: $OVERLAY_SIZE"
     fi
     
+    # Check if Docker is responsive
+    if ! docker info >/dev/null 2>&1; then
+        log "WARNING: Docker is not responsive, attempting restart..."
+        systemctl restart docker 2>&1 | tee -a "$LOGFILE" || log "Warning: Failed to restart Docker"
+        sleep 10
+    fi
+    
     # Last resort: restart Docker service to clear any hanging resources
     if [ "$CLEANUP_LEVEL" = "critical" ] && [ "$CURRENT_USAGE" -ge "$CRITICAL_CLEANUP_THRESHOLD" ]; then
         log "CRITICAL: Restarting Docker service..."
+        # Stop all containers before restart
+        docker kill $(docker ps -q) 2>/dev/null || true
         systemctl restart docker 2>&1 | tee -a "$LOGFILE" || log "Warning: Failed to restart Docker"
-        sleep 5
+        sleep 10
+        
+        # Clean up any stuck mounts
+        log "Cleaning up stuck Docker mounts..."
+        umount -l /var/lib/docker/overlay2/*/merged 2>/dev/null || true
     fi
 fi
 

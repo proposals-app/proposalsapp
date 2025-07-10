@@ -6,9 +6,9 @@
 set -euo pipefail
 
 # Configuration
-SOFT_THRESHOLD=70    # Proactive cleanup when no jobs running
-HARD_THRESHOLD=80    # Force cleanup even if jobs running (with safety checks)
-CRITICAL_THRESHOLD=90 # Emergency cleanup - stop jobs if needed
+SOFT_THRESHOLD=65    # Proactive cleanup when no jobs running (lowered from 70)
+HARD_THRESHOLD=75    # Force cleanup even if jobs running (lowered from 80)
+CRITICAL_THRESHOLD=85 # Emergency cleanup - stop jobs if needed (lowered from 90)
 CHECK_PATH="/"
 LOGFILE="/var/log/github-runner-disk-monitor.log"
 MAX_LOG_SIZE=10485760  # 10MB
@@ -55,20 +55,48 @@ check_buildx_usage() {
         log "Buildx cache: $(du -sh /var/cache/buildx 2>/dev/null | awk '{print $1}' || echo '0')"
     fi
     
-    # Check buildx volumes
-    local volume_size=$(docker volume ls -q | grep -E "buildx_buildkit_.*" | xargs -I {} docker volume inspect {} 2>/dev/null | jq -r '.[0].Mountpoint' | xargs -I {} du -sb {} 2>/dev/null | awk '{sum+=$1} END {print sum}' || echo "0")
-    if [ -n "$volume_size" ] && [ "$volume_size" != "" ]; then
-        total_size=$((total_size + volume_size))
-        log "Buildx volumes: $(echo $volume_size | numfmt --to=iec-i --suffix=B)"
+    # Check buildx volumes - improved detection
+    local volume_sizes=0
+    local volume_count=0
+    for volume in $(docker volume ls -q | grep -E "buildx_buildkit_.*|buildkit.*" 2>/dev/null || true); do
+        if [ -n "$volume" ]; then
+            local mount_point=$(docker volume inspect "$volume" 2>/dev/null | jq -r '.[0].Mountpoint' || echo "")
+            if [ -n "$mount_point" ] && [ -d "$mount_point" ]; then
+                local vol_size=$(du -sb "$mount_point" 2>/dev/null | awk '{print $1}' || echo "0")
+                volume_sizes=$((volume_sizes + vol_size))
+                volume_count=$((volume_count + 1))
+            fi
+        fi
+    done
+    
+    if [ "$volume_count" -gt 0 ]; then
+        total_size=$((total_size + volume_sizes))
+        log "Buildx volumes ($volume_count found): $(echo $volume_sizes | numfmt --to=iec-i --suffix=B 2>/dev/null || echo "${volume_sizes} bytes")"
+    fi
+    
+    # Check user's buildx directory
+    if [ -d "$RUNNER_HOME/.docker/buildx" ]; then
+        local user_buildx_size=$(du -sb "$RUNNER_HOME/.docker/buildx" 2>/dev/null | awk '{print $1}' || echo "0")
+        total_size=$((total_size + user_buildx_size))
+        log "User buildx directory: $(du -sh "$RUNNER_HOME/.docker/buildx" 2>/dev/null | awk '{print $1}' || echo '0')"
     fi
     
     # Convert to GB for easier comparison
     local total_gb=$((total_size / 1073741824))
     
-    # If buildx is using more than 20GB, it's a problem
-    if [ "$total_gb" -gt 20 ]; then
+    # If buildx is using more than 10GB, it's a problem (lowered threshold)
+    if [ "$total_gb" -gt 10 ]; then
         log "WARNING: Buildx cache using ${total_gb}GB - cleanup recommended"
         return 0  # Indicates cleanup needed
+    fi
+    
+    # Also check if /var/cache/buildx alone is over 5GB
+    if [ -d "/var/cache/buildx" ]; then
+        local cache_gb=$((cache_size / 1073741824))
+        if [ "$cache_gb" -gt 5 ]; then
+            log "WARNING: /var/cache/buildx alone is ${cache_gb}GB - cleanup recommended"
+            return 0
+        fi
     fi
     
     return 1  # No cleanup needed

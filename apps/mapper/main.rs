@@ -101,21 +101,21 @@ async fn main() -> Result<()> {
         }
     });
 
-    // let karma_handle = tokio::spawn(async move {
-    //     // Run the karma task every 30 minutes
-    //     let interval = Duration::from_secs(30 * 60);
-    //     loop {
-    //         info!("Running karma task");
-    //         if let Err(e) = karma::run_karma_task().await {
-    //             error!(error = %e, "Karma task runtime error");
-    //         }
-    //         info!(
-    //             "Karma task completed, sleeping for {} seconds",
-    //             interval.as_secs()
-    //         );
-    //         tokio::time::sleep(interval).await;
-    //     }
-    // });
+    let karma_handle = tokio::spawn(async move {
+        // Run the karma task every 30 minutes
+        let interval = Duration::from_secs(30 * 60);
+        loop {
+            info!("Running karma task");
+            if let Err(e) = karma::run_karma_task().await {
+                error!(error = %e, "Karma task runtime error");
+            }
+            info!(
+                "Karma task completed, sleeping for {} seconds",
+                interval.as_secs()
+            );
+            tokio::time::sleep(interval).await;
+        }
+    });
 
     // Uptime ping task
     let uptime_key = std::env::var("BETTERSTACK_KEY").context("BETTERSTACK_KEY must be set")?;
@@ -140,9 +140,9 @@ async fn main() -> Result<()> {
         result = grouper_handle => {
             error!("Grouper task completed unexpectedly: {:?}", result);
         }
-        // result = karma_handle => {
-        //     error!("Karma task completed unexpectedly: {:?}", result);
-        // }
+        result = karma_handle => {
+            error!("Karma task completed unexpectedly: {:?}", result);
+        }
         result = uptime_handle => {
             error!("Uptime task completed unexpectedly: {:?}", result);
         }

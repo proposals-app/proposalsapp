@@ -336,7 +336,7 @@ impl PostIndexer {
         let post_external_id = post.id;
         upsert_post(&post, dao_discourse_id)
             .await
-            .with_context(|| format!("Failed upsert_post for {}", post_external_id))?;
+            .with_context(|| format!("Failed upsert_post for {post_external_id}"))?;
         debug!(post_id = post_external_id, "Post upserted successfully.");
 
         // 4. Check and Fetch Likes if Necessary

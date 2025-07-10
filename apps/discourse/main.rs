@@ -171,7 +171,7 @@ async fn main() -> Result<()> {
 
         indexer_tasks.spawn(
             async move {
-                let task_name = format!("full_refresh_{}", dao_name_full);
+                let task_name = format!("full_refresh_{dao_name_full}");
                 info!(task = %task_name, "Starting full refresh task loop");
                 let start_delay = tokio::time::Instant::now() + INITIAL_FULL_REFRESH_TASK_DELAY;
                 let mut interval = interval_at(start_delay, FULL_REFRESH_INTERVAL);
@@ -220,7 +220,7 @@ async fn main() -> Result<()> {
 
         indexer_tasks.spawn(
             async move {
-                let task_name = format!("recent_updates_{}", dao_name_recent);
+                let task_name = format!("recent_updates_{dao_name_recent}");
                 info!(task = %task_name, "Starting recent updates task loop");
                 let start_delay = tokio::time::Instant::now() + INITIAL_RECENT_UPDATE_TASK_DELAY;
                 let mut interval = interval_at(start_delay, RECENT_UPDATE_INTERVAL);

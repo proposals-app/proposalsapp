@@ -91,8 +91,7 @@ impl TopicIndexer {
             };
 
             let url = format!(
-                "/latest.json?order={}{}&page={}",
-                order_by, ascending_param, page
+                "/latest.json?order={order_by}{ascending_param}&page={page}"
             );
             debug!(%url, "Fetching topics page");
 
@@ -121,8 +120,8 @@ impl TopicIndexer {
 
                     for topic in topics_on_page {
                         // Check lookback cutoff for recent updates
-                        if !fetch_all {
-                            if let Some(cutoff) = lookback_cutoff {
+                        if !fetch_all
+                            && let Some(cutoff) = lookback_cutoff {
                                 // Use bumped_at or last_posted_at for activity check
                                 if topic.bumped_at < cutoff {
                                     info!(topic_id = topic.id, bumped_at = %topic.bumped_at, ?cutoff, "Reached topic older than lookback cutoff. Stopping pagination.");
@@ -130,7 +129,6 @@ impl TopicIndexer {
                                     break; // Stop processing this page
                                 }
                             }
-                        }
 
                         total_processed_topics += 1;
                         let topic_external_id = topic.id; // Store for logging/potential use
@@ -172,8 +170,7 @@ impl TopicIndexer {
                                 // Wrap result for joinset handling
                                 .map_err(|e| {
                                     e.context(format!(
-                                        "Post update failed for topic {}",
-                                        topic_id_clone
+                                        "Post update failed for topic {topic_id_clone}"
                                     ))
                                 })
                         });
@@ -221,7 +218,7 @@ impl TopicIndexer {
                         while let Some(result) = join_set.join_next().await {
                             Self::handle_join_result(result);
                         }
-                        return Err(e).context(format!("Failed to fetch topics page {}", page));
+                        return Err(e).context(format!("Failed to fetch topics page {page}"));
                     }
                 }
             }

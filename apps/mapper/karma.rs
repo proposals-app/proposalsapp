@@ -69,8 +69,7 @@ pub async fn run_karma_task() -> Result<()> {
 
                 loop {
                     let url = format!(
-                        "https://api.karmahq.xyz/api/dao/delegates?name={}&offset={}&order=desc&field=score&period=lifetime&pageSize={}&statuses=active,inactive,withdrawn,recognized",
-                        karma_dao_name, offset, page_size
+                        "https://api.karmahq.xyz/api/dao/delegates?name={karma_dao_name}&offset={offset}&order=desc&field=score&period=lifetime&pageSize={page_size}&statuses=active,inactive,withdrawn,recognized"
                     );
 
                     info!("Fetching karma data for dao: {} url: {}", dao.slug, url);
@@ -351,7 +350,7 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
             }
             Err(e) => {
                 return Err(e)
-                    .with_context(|| format!("Failed to fetch JSON data for DAO: {}", dao_slug));
+                    .with_context(|| format!("Failed to fetch JSON data for DAO: {dao_slug}"));
             }
         };
 
@@ -366,8 +365,7 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
             // Successfully got the data
             return response.text().await.with_context(|| {
                 format!(
-                    "Failed to read JSON response body for DAO: {}. Status: {}, URL: {}",
-                    dao_slug, status, url
+                    "Failed to read JSON response body for DAO: {dao_slug}. Status: {status}, URL: {url}"
                 )
             });
         } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS && retry_count < MAX_RETRIES {
@@ -394,7 +392,7 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
             retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
         } else {
             // Other error status codes
-            let headers_str = format!("{:?}", headers);
+            let headers_str = format!("{headers:?}");
             return Err(anyhow::anyhow!(
                 "Failed to fetch JSON data for DAO: {}. Status: {}, URL: {}, Headers: {}",
                 dao_slug,
@@ -408,7 +406,7 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
 
 fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
     let response: KarmaFullApiResponse = serde_json::from_str(body)
-        .with_context(|| format!("Failed to parse JSON for DAO: {}", dao_slug))?;
+        .with_context(|| format!("Failed to parse JSON for DAO: {dao_slug}"))?;
     Ok(response.data.delegates)
 }
 
@@ -474,8 +472,7 @@ async fn update_delegate(
         .await
         .with_context(|| {
             format!(
-                "Failed to find discourse user for handle: {} and dao_discourse_id: {}",
-                forum_handle, dao_discourse_id
+                "Failed to find discourse user for handle: {forum_handle} and dao_discourse_id: {dao_discourse_id}"
             )
         })?;
 
@@ -515,8 +512,8 @@ async fn update_delegate(
 
     // If no delegate found via voter, check for existing delegate via discourse
     // user with period_end > now
-    if delegate.is_none() {
-        if let Some(discourse_user) = &discourse_user {
+    if delegate.is_none()
+        && let Some(discourse_user) = &discourse_user {
             delegate = delegate_to_discourse_user::Entity::find()
                 .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user.id))
                 .inner_join(delegate::Entity)
@@ -534,7 +531,6 @@ async fn update_delegate(
                     dao_id: dao.id,
                 });
         }
-    }
 
     let delegate: delegate::Model = if let Some(del) = delegate {
         del

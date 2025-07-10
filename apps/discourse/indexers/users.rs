@@ -82,8 +82,7 @@ impl UserIndexer {
 
         loop {
             let url = format!(
-                "/directory_items.json?page={}&order={}&period=all", // Use `period=all` consistently
-                page, order
+                "/directory_items.json?page={page}&order={order}&period=all"
             );
             debug!(%url, "Fetching users page");
 
@@ -100,7 +99,7 @@ impl UserIndexer {
                         break;
                     }
                     error!(error = ?e, page, url = %url, "Failed to fetch users page");
-                    return Err(e).context(format!("Failed to fetch users page {}", page));
+                    return Err(e).context(format!("Failed to fetch users page {page}"));
                 }
             };
 
@@ -185,12 +184,11 @@ impl UserIndexer {
             );
 
             // Check termination conditions
-            if let Some(limit) = page_limit {
-                if page >= limit {
+            if let Some(limit) = page_limit
+                && page >= limit {
                     info!(page, limit, "Reached page limit for user fetch. Stopping.");
                     break;
                 }
-            }
             // Safety break
             if page >= MAX_PAGES_PER_RUN {
                 error!(
@@ -220,7 +218,7 @@ impl UserIndexer {
         // Return the user ID
         debug!("Fetching user by username for upsert");
 
-        let url = format!("/u/{}.json", username);
+        let url = format!("/u/{username}.json");
         debug!(%url, "Fetching user details");
 
         // Fetch user details from the API
@@ -228,7 +226,7 @@ impl UserIndexer {
             .discourse_api
             .queue(&url, priority) // Use priority flag
             .await
-            .with_context(|| format!("Failed to fetch user details for username: {}", username))?;
+            .with_context(|| format!("Failed to fetch user details for username: {username}"))?;
 
         let user_detail = response.user;
 
@@ -266,7 +264,7 @@ impl UserIndexer {
         // Upsert the user data
         upsert_user(&user_to_upsert, dao_discourse_id)
             .await
-            .with_context(|| format!("Failed to upsert user fetched by username: {}", username))?;
+            .with_context(|| format!("Failed to upsert user fetched by username: {username}"))?;
 
         debug!(user_id = user_to_upsert.id, username = %username, "Successfully fetched and upserted user.");
         Ok(user_to_upsert.id) // Return the external user ID
@@ -285,7 +283,7 @@ impl UserIndexer {
             // Handle absolute URLs and protocol-relative URLs
             if sized_template.starts_with("//") {
                 // Assume https for protocol-relative URLs
-                format!("https:{}", sized_template)
+                format!("https:{sized_template}")
             } else {
                 sized_template
             }
@@ -297,7 +295,7 @@ impl UserIndexer {
                 if sized_template.starts_with('/') {
                     sized_template // Already starts with /
                 } else {
-                    format!("/{}", sized_template) // Prepend / if missing
+                    format!("/{sized_template}") // Prepend / if missing
                 }
             )
         };

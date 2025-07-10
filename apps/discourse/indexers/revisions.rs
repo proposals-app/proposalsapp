@@ -253,7 +253,7 @@ async fn update_revisions_for_post(
             let post_external_id = post_summary.external_id; // External ID
 
             async move {
-                let url = format!("/posts/{}/revisions/{}.json", post_external_id, rev_num);
+                let url = format!("/posts/{post_external_id}/revisions/{rev_num}.json");
                 debug!(%url, "Fetching revision");
 
                 // Fetch the revision data
@@ -263,8 +263,7 @@ async fn update_revisions_for_post(
                         error!(error = ?e, %url, rev_num, "Failed to fetch revision data");
                         // Return error to stop processing this revision
                         return Err(e.context(format!(
-                            "Failed to fetch revision v{} for post {}",
-                            rev_num, post_external_id
+                            "Failed to fetch revision v{rev_num} for post {post_external_id}"
                         )));
                     }
                 };
@@ -285,8 +284,7 @@ async fn update_revisions_for_post(
                     .await
                     .with_context(|| {
                         format!(
-                            "Failed to upsert revision v{} for post_id {}",
-                            rev_num, post_internal_id
+                            "Failed to upsert revision v{rev_num} for post_id {post_internal_id}"
                         )
                     })
             }

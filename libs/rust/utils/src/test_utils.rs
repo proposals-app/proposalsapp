@@ -40,8 +40,7 @@ pub fn assert_proposal(proposal: &proposal::ActiveModel, expected: &ExpectedProp
         for &expected_str in body_contains {
             assert!(
                 body.contains(expected_str),
-                "Proposal body does not contain expected string: {}",
-                expected_str
+                "Proposal body does not contain expected string: {expected_str}"
             );
         }
     }
