@@ -46,7 +46,7 @@ job "mapper" {
     }
 
     ephemeral_disk {
-      size    = 8000  # Increased to 6GB for model storage (5GB cache + overhead)
+      size    = 8000  # 8GB for model storage (5GB model + overhead)
       sticky  = true   # Keep models between restarts
       migrate = true
     }
@@ -89,6 +89,14 @@ job "mapper" {
         # Set Hugging Face cache to use the ephemeral disk so models persist between restarts
         HF_HOME = "/alloc/data/huggingface"
         HUGGING_FACE_HUB_CACHE = "/alloc/data/huggingface/hub"
+        
+        # These environment variables are kept for reference but won't be used
+        # since llama-server is now built in the Dockerfile
+        # CMAKE_ARGS = "-DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF"
+        # GGML_NO_NATIVE = "1"
+        # LLAMA_NO_NATIVE = "1"
+        # CFLAGS = "-march=x86-64-v2 -mtune=generic"
+        # CXXFLAGS = "-march=x86-64-v2 -mtune=generic"
       }
 
       # Deployment metadata template for visibility

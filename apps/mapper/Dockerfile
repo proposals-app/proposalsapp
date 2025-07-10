@@ -123,13 +123,15 @@ FROM debian:bookworm-slim
 WORKDIR /app
 ARG APP_NAME
 
-# Install runtime dependencies
+# Install runtime dependencies INCLUDING build tools for llama.cpp compilation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
     libunwind-dev \
     libdw-dev \
     build-essential \
+    cmake \
+    git \
     python3 \
     curl \
     procps \
@@ -138,10 +140,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
-# Copy llama-server binary and create expected directory structure
-RUN mkdir -p /app/target/llama_cpp
-COPY --from=builder /app/target/llama_cpp/llama-server /app/target/llama_cpp/llama-server
-RUN chmod +x /app/target/llama_cpp/llama-server
+# Copy the llama_cpp directory but remove the incompatible binary
+COPY --from=builder /app/target/llama_cpp /app/target/llama_cpp
+RUN rm -f /app/target/llama_cpp/llama-server
+
+# Download and build a compatible llama-server
+RUN cd /tmp && \
+    git clone --depth 1 https://github.com/ggml-org/llama.cpp && \
+    cd llama.cpp && \
+    cmake -B build -DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF && \
+    cmake --build build --config Release -j$(nproc) && \
+    cp build/bin/llama-server /app/target/llama_cpp/llama-server && \
+    chmod +x /app/target/llama_cpp/llama-server && \
+    cd / && rm -rf /tmp/llama.cpp
 
 # Set the default command
 CMD ["mapper"]
