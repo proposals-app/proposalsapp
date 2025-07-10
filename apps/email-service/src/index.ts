@@ -16,6 +16,7 @@ import {
   NewDiscussionEmailTemplate,
   EndingProposalEmailTemplate,
 } from '@proposalsapp/emails';
+import { createServer } from 'http';
 
 dotenv_config();
 
@@ -475,6 +476,27 @@ async function recordNotification(
 // Service Initialization
 // ============================================
 
+// Create health check server
+const PORT = process.env.PORT || 3000;
+const server = createServer((req, res) => {
+  if (req.url === '/health' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'healthy',
+      service: 'email-service',
+      timestamp: new Date().toISOString()
+    }));
+  } else {
+    res.writeHead(404);
+    res.end('Not Found');
+  }
+});
+
+// Start HTTP server
+server.listen(PORT, () => {
+  console.log(`Health check server listening on port ${PORT}`);
+});
+
 // Schedule cron job - runs every minute
 cron.schedule('* * * * *', () => {
   console.log('\n--- Running notification check ---');
@@ -487,6 +509,9 @@ console.log('Email service started - checking for notifications every minute');
 // Handle shutdown
 process.on('SIGINT', async () => {
   console.log('\nShutting down...');
+
+  // Close HTTP server
+  server.close();
 
   // Close database connections
   await Promise.all([
