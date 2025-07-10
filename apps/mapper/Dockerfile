@@ -146,18 +146,25 @@ COPY --from=builder /app/target/llama_cpp /app/target/llama_cpp
 RUN rm -f /app/target/llama_cpp/llama-server
 
 # Download and build a compatible llama-server
+# Build with features common to both AMD and Intel CPUs, avoiding AVX-512
+# Using haswell target (2013) which is widely supported and includes AVX2
 RUN cd /tmp && \
     git clone --depth 1 https://github.com/ggml-org/llama.cpp && \
     cd llama.cpp && \
     cmake -B build \
-        -DGGML_NATIVE=OFF \
+        -DLLAMA_NATIVE=OFF \
+        -DLLAMA_AVX=ON \
+        -DLLAMA_AVX2=ON \
+        -DLLAMA_F16C=ON \
+        -DLLAMA_FMA=ON \
+        -DLLAMA_AVX512=OFF \
+        -DLLAMA_AVX512_VBMI=OFF \
+        -DLLAMA_AVX512_VNNI=OFF \
+        -DLLAMA_AVX512_BF16=OFF \
         -DBUILD_SHARED_LIBS=OFF \
-        -DGGML_AVX=OFF \
-        -DGGML_AVX2=OFF \
-        -DGGML_F16C=OFF \
-        -DGGML_FMA=OFF \
-        -DGGML_SSE3=ON \
-        -DCMAKE_BUILD_TYPE=Release && \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_FLAGS="-march=haswell -mtune=generic" \
+        -DCMAKE_CXX_FLAGS="-march=haswell -mtune=generic" && \
     cmake --build build --config Release -j$(nproc) && \
     cp build/bin/llama-server /app/target/llama_cpp/llama-server && \
     chmod +x /app/target/llama_cpp/llama-server && \
