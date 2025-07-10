@@ -85,6 +85,10 @@ job "mapper" {
 
         # Set target directory for llm_client to find llama-server
         CARGO_TARGET_DIR = "/app/target"
+        
+        # Set Hugging Face cache to use the ephemeral disk so models persist between restarts
+        HF_HOME = "/alloc/data/huggingface"
+        HUGGING_FACE_HUB_CACHE = "/alloc/data/huggingface/hub"
       }
 
       # Deployment metadata template for visibility

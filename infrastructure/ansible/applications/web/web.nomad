@@ -9,8 +9,8 @@ job "web" {
     healthy_deadline  = "2m"
     progress_deadline = "5m"
     auto_revert       = true
-    auto_promote      = true
-    canary            = 1
+    auto_promote      = false
+    canary            = 0
     stagger           = "30s"
   }
 

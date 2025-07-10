@@ -53,11 +53,12 @@ ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 # Disable AVX512 for llama.cpp to ensure compatibility with Intel i9-14900K
 # These will be used by the llm_client crate when building llama.cpp
-ENV CMAKE_ARGS="-DGGML_AVX512=OFF -DGGML_AVX512_VBMI=OFF -DGGML_AVX512_VNNI=OFF -DGGML_AVX512_BF16=OFF"
+ENV CMAKE_ARGS="-DGGML_AVX512=OFF -DGGML_AVX512_VBMI=OFF -DGGML_AVX512_VNNI=OFF -DGGML_AVX512_BF16=OFF -DGGML_F16C=OFF"
 ENV LLAMA_NO_AVX512=1
-# Target x86-64-v3 which includes AVX2 but not AVX512
-ENV CFLAGS="-march=x86-64-v3"
-ENV CXXFLAGS="-march=x86-64-v3"
+# Use conservative CPU flags for compatibility with virtualized environments (LXC containers)
+# x86-64-v2 includes SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT but not AVX
+ENV CFLAGS="-march=x86-64-v2 -mno-f16c"
+ENV CXXFLAGS="-march=x86-64-v2 -mno-f16c"
 
 RUN cargo install cargo-chef --locked
 COPY --from=planner /app/recipe.json recipe.json
@@ -95,11 +96,12 @@ ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 # Disable AVX512 for llama.cpp to ensure compatibility with Intel i9-14900K
 # These will be used by the llm_client crate when building llama.cpp
-ENV CMAKE_ARGS="-DGGML_AVX512=OFF -DGGML_AVX512_VBMI=OFF -DGGML_AVX512_VNNI=OFF -DGGML_AVX512_BF16=OFF"
+ENV CMAKE_ARGS="-DGGML_AVX512=OFF -DGGML_AVX512_VBMI=OFF -DGGML_AVX512_VNNI=OFF -DGGML_AVX512_BF16=OFF -DGGML_F16C=OFF"
 ENV LLAMA_NO_AVX512=1
-# Target x86-64-v3 which includes AVX2 but not AVX512
-ENV CFLAGS="-march=x86-64-v3"
-ENV CXXFLAGS="-march=x86-64-v3"
+# Use conservative CPU flags for compatibility with virtualized environments (LXC containers)
+# x86-64-v2 includes SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT but not AVX
+ENV CFLAGS="-march=x86-64-v2 -mno-f16c"
+ENV CXXFLAGS="-march=x86-64-v2 -mno-f16c"
 
 # Copy cached dependencies first
 COPY --from=cacher /app/target target
