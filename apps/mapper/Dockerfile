@@ -134,6 +134,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     python3 \
     curl \
+    libcurl4-openssl-dev \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
@@ -148,7 +149,15 @@ RUN rm -f /app/target/llama_cpp/llama-server
 RUN cd /tmp && \
     git clone --depth 1 https://github.com/ggml-org/llama.cpp && \
     cd llama.cpp && \
-    cmake -B build -DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF && \
+    cmake -B build \
+        -DGGML_NATIVE=OFF \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DGGML_AVX=OFF \
+        -DGGML_AVX2=OFF \
+        -DGGML_F16C=OFF \
+        -DGGML_FMA=OFF \
+        -DGGML_SSE3=ON \
+        -DCMAKE_BUILD_TYPE=Release && \
     cmake --build build --config Release -j$(nproc) && \
     cp build/bin/llama-server /app/target/llama_cpp/llama-server && \
     chmod +x /app/target/llama_cpp/llama-server && \
