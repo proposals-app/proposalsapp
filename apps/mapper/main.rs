@@ -43,7 +43,11 @@ async fn main() -> Result<()> {
         .add_directive("hyper_util=off".parse().unwrap())
         .add_directive("alloy_rpc_client=off".parse().unwrap())
         .add_directive("reqwest=off".parse().unwrap())
-        .add_directive("alloy_transport_http=off".parse().unwrap());
+        .add_directive("alloy_transport_http=off".parse().unwrap())
+        .add_directive("llm_client=off".parse().unwrap())
+        .add_directive("llm_interface=off".parse().unwrap())
+        .add_directive("llm_models=off".parse().unwrap())
+        .add_directive("llm_devices=off".parse().unwrap());
 
     tracing_subscriber::registry()
         .with(env_filter)

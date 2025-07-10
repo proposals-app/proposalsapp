@@ -17,13 +17,6 @@ job "mapper" {
   group "mapper" {
     count = 1  # Single instance service
 
-    # Prefer to run in dc2 but can run anywhere if needed
-    affinity {
-      attribute = "${node.datacenter}"
-      value     = "dc2"
-      weight    = 100
-    }
-
     migrate {
       max_parallel = 1
       health_check = "checks"
@@ -80,16 +73,16 @@ job "mapper" {
 
       env {
         # Rust settings
-        RUST_LOG = "mapper=debug,llm_client=debug,llm_interface=debug,llm_models=debug,llm_devices=debug"
+        RUST_LOG = "mapper=debug"
         RUST_BACKTRACE = "1"
 
         # Set target directory for llm_client to find llama-server
         CARGO_TARGET_DIR = "/app/target"
-        
+
         # Set Hugging Face cache to use the ephemeral disk so models persist between restarts
         HF_HOME = "/alloc/data/huggingface"
         HUGGING_FACE_HUB_CACHE = "/alloc/data/huggingface/hub"
-        
+
         # These environment variables are kept for reference but won't be used
         # since llama-server is now built in the Dockerfile
         # CMAKE_ARGS = "-DGGML_NATIVE=OFF -DBUILD_SHARED_LIBS=OFF"
@@ -197,8 +190,8 @@ EOF
       }
 
       resources {
-        cpu    = 16000   # 16 CPU cores
-        memory = 12288   # 12GB RAM
+        cpu    = 18000
+        memory = 6144   # 6GB RAM
 
         # Reserve additional resources for peak loads
         memory_max = 16384  # Allow bursting to 16GB
