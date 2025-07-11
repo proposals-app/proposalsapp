@@ -306,8 +306,7 @@ impl Grouper {
                 Example (bad): governance, proposal, voting, community, discussion, update"#);
 
         // Limit the body to prevent exceeding token limits
-        // Reserve ~1k chars for system prompt and formatting, leaving ~14k for content
-        let truncated_body = Self::truncate_text(&item.body, 5000);
+        let truncated_body = Self::truncate_text(&item.body, 8000);
 
         basic_completion
             .prompt()
