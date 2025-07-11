@@ -1,7 +1,6 @@
 use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
-use gag::Gag;
 use llm_client::DecisionTrait;
 use llm_client::InstructPromptTrait;
 use llm_client::LlmClient;
@@ -161,13 +160,10 @@ impl Grouper {
         let mut builder = LlmClient::llama_cpp();
         builder.hf_quant_file_url(model_url);
 
-        // Suppress stdout during initialization to avoid the "Llm Client Ready" message
-        // Using gag crate to temporarily suppress stdout without affecting the logging pipeline
+        // Initialize LLM client with output suppression
+        // The llm_client and its dependencies output debug info to stdout/stderr
         let llm_client = {
-            let _gag =
-                Gag::stdout().map_err(|e| anyhow::anyhow!("Failed to suppress stdout: {}", e))?;
-
-            // Initialize the LLM client while stdout is gagged
+            let _suppressor = crate::llm_ops::OutputSuppressor::new();
             builder
                 .init()
                 .await
@@ -398,10 +394,14 @@ impl Grouper {
         let max_rounds = 3;
 
         for round in 0..max_rounds {
-            let response = basic_completion
-                .run()
-                .await
-                .context("Failed to run LLM completion")?;
+            // Execute with suppressed output
+            let response = {
+                let _suppressor = crate::llm_ops::OutputSuppressor::new();
+                basic_completion
+                    .run()
+                    .await
+                    .context("Failed to run LLM completion")?
+            };
 
             // Try to parse the response
             let keywords = self.parse_keyword_response(&response.content);
@@ -670,10 +670,13 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
             ));
 
         // Get the score using reasoning (non-optional)
-        let score = reason_request
-            .return_primitive()
-            .await
-            .context("Failed to get similarity score from LLM reasoning")?;
+        let score = {
+            let _suppressor = crate::llm_ops::OutputSuppressor::new();
+            reason_request
+                .return_primitive()
+                .await
+                .context("Failed to get similarity score from LLM reasoning")?
+        };
 
         // Convert from u32 to u8, ensuring it's within bounds
         let score = score.min(100) as u8;
@@ -778,10 +781,13 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             ));
 
         // Get the consensus score
-        let consensus_score = decision_request
-            .return_primitive()
-            .await
-            .context("Failed to get consensus score from decision workflow")?;
+        let consensus_score = {
+            let _suppressor = crate::llm_ops::OutputSuppressor::new();
+            decision_request
+                .return_primitive()
+                .await
+                .context("Failed to get consensus score from decision workflow")?
+        };
 
         let consensus_score = (consensus_score as u8).min(100);
 

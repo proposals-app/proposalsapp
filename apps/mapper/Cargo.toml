@@ -11,7 +11,7 @@ bincode = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
 fastembed = { workspace = true }
-gag = "1.0"
+gag = "1.0"  # Used by llm_ops module for output suppression
 lazy_static = { workspace = true }
 llm_client = { workspace = true }
 llm_models = { workspace = true }

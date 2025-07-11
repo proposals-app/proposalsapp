@@ -11,6 +11,7 @@ use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberI
 
 mod grouper;
 mod karma;
+mod llm_ops;
 mod redis_cache;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
