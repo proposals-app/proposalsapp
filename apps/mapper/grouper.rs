@@ -595,7 +595,7 @@ Weak/No Grouping Indicators (LOW scores):
 
 {}
 
-Based on the above items, provide a similarity score between 0 and 100."#,
+Based on the above items, provide a precise similarity score between 0 and 100. Do not round up the score, make it a precise integer."#,
                 prompt
             ));
 
@@ -697,7 +697,7 @@ Scoring Guidelines:
 CRITICAL: The grouping threshold is 80. Scores of 80 and above mean the items WILL be grouped together.
 Scores below 80 mean they will remain separate.
 
-Based on careful analysis, provide a final similarity score between 0 and 100."#,
+Based on careful analysis, provide a final precise similarity score between 0 and 100. Do not round up the score, make it a precise integer."#,
                 prompt
             ));
 
