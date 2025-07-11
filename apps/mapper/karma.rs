@@ -410,7 +410,6 @@ fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
     Ok(response.data.delegates)
 }
 
-#[instrument(skip( dao, delegate_data), fields(dao_slug = %dao.slug, delegate_address = %delegate_data.public_address))]
 async fn update_delegate(
     dao: &dao::Model,
     delegate_data: &KarmaDelegate,
@@ -513,24 +512,25 @@ async fn update_delegate(
     // If no delegate found via voter, check for existing delegate via discourse
     // user with period_end > now
     if delegate.is_none()
-        && let Some(discourse_user) = &discourse_user {
-            delegate = delegate_to_discourse_user::Entity::find()
-                .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user.id))
-                .inner_join(delegate::Entity)
-                .filter(delegate::Column::DaoId.eq(dao.id))
-                .one(&txn)
-                .await
-                .with_context(|| {
-                    format!(
-                        "Failed to find delegate via discourse user for discourse_user_id: {}",
-                        discourse_user.id
-                    )
-                })?
-                .map(|dtdu| delegate::Model {
-                    id: dtdu.delegate_id,
-                    dao_id: dao.id,
-                });
-        }
+        && let Some(discourse_user) = &discourse_user
+    {
+        delegate = delegate_to_discourse_user::Entity::find()
+            .filter(delegate_to_discourse_user::Column::DiscourseUserId.eq(discourse_user.id))
+            .inner_join(delegate::Entity)
+            .filter(delegate::Column::DaoId.eq(dao.id))
+            .one(&txn)
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to find delegate via discourse user for discourse_user_id: {}",
+                    discourse_user.id
+                )
+            })?
+            .map(|dtdu| delegate::Model {
+                id: dtdu.delegate_id,
+                dao_id: dao.id,
+            });
+    }
 
     let delegate: delegate::Model = if let Some(del) = delegate {
         del
