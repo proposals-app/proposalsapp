@@ -1,8 +1,9 @@
 use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
-use llm_client::RequestConfigTrait;
+use llm_client::InstructPromptTrait;
 use llm_client::LlmClient;
+use llm_client::RequestConfigTrait;
 use llm_models::GgufLoaderTrait;
 use proposalsapp_db::models::*;
 use rand::Rng;
@@ -492,24 +493,23 @@ impl Grouper {
 
         // Create prompt with all relevant information
         let prompt = format!(
-            r#"
-                Item A:
-                Title: {}
-                Body: {}
-                Keywords: {:?}
-                Created: {}
+            r#"Item A:
+Title: {}
+Body: {}
+Keywords: {:?}
+Created: {}
 
-                Item B:
-                Title: {}
-                Body: {}
-                Keywords: {:?}
-                Created: {}
+Item B:
+Title: {}
+Body: {}
+Keywords: {:?}
+Created: {}
 
-                Consider if they are:
-                - The same proposal at different stages
-                - Strongly related proposals that should be tracked together
-                - A proposal and its implementation/review
-                - Separate topics despite any similarities"#,
+Consider if they are:
+- The same proposal at different stages
+- Strongly related proposals that should be tracked together
+- A proposal and its implementation/review
+- Separate topics despite any similarities"#,
             item_a.title,
             body_a,
             keywords_a,
@@ -520,23 +520,24 @@ impl Grouper {
             item_b.created_at.format("%Y-%m-%d")
         );
 
-        // Get LLM score using basic completion
-        let mut basic_completion = self.llm_client.basic_completion();
-        
-        // Configure for focused integer output
-        basic_completion
-            .max_tokens(10)  // We only need a number
-            .temperature(0.3)  // Lower temperature for consistent scoring
-            .frequency_penalty(0.0);
-        
-        // System prompt for scoring
-        basic_completion
-            .prompt()
-            .add_system_message()
-            .unwrap()
-            .set_content(r#"You are a DAO governance analyst specializing in proposal relationship mapping. 
+        // Use the integer primitive from llm_client for structured output
+        let mut integer_primitive = self.llm_client.basic_primitive().integer();
 
-Your task is to evaluate whether two governance items should be grouped together by returning ONLY a single integer score from 0 to 100.
+        // Configure the integer bounds
+        integer_primitive.primitive.lower_bound(0).upper_bound(100);
+
+        // Configure generation parameters
+        integer_primitive
+            .temperature(0.3) // Lower temperature for consistent scoring
+            .max_tokens(50); // Small limit since we only need a number
+
+        // Set the instruction prompt
+        integer_primitive
+            .instructions()
+            .set_content(format!(
+                r#"You are a DAO governance analyst specializing in proposal relationship mapping.
+
+Evaluate whether two governance items should be grouped together by returning a single integer score from 0 to 100.
 
 Scoring Guidelines:
 - 90-100: Same proposal/initiative at different stages or formats
@@ -566,39 +567,21 @@ Weak/No Grouping Indicators (LOW scores):
 4. COINCIDENTAL OVERLAP: Similar words but different contexts
 5. INSUFFICIENT DATA: Lack of sufficient information to make a determination
 
-IMPORTANT: Return ONLY a single integer between 0 and 100. No explanations, no text, just the number."#);
-        
-        // Add the comparison prompt
-        basic_completion
-            .prompt()
-            .add_user_message()
-            .unwrap()
-            .set_content(prompt);
-        
-        // Get the response
-        let response = basic_completion
-            .run()
+{}
+
+Based on the above items, provide a similarity score between 0 and 100."#,
+                prompt
+            ));
+
+        // Get the score using the structured integer primitive
+        let score = integer_primitive
+            .return_primitive()
             .await
-            .context("Failed to run LLM completion for scoring")?;
-        
-        // Parse the integer from the response
-        let score_text = response.content.trim();
-        let score = score_text
-            .parse::<u8>()
-            .unwrap_or_else(|_| {
-                // Try to extract a number if there's extra text
-                score_text
-                    .split_whitespace()
-                    .find_map(|word| word.parse::<u8>().ok())
-                    .unwrap_or_else(|| {
-                        warn!("Failed to parse score from response: '{}', defaulting to 0", score_text);
-                        0
-                    })
-            });
-        
-        // Ensure score is within bounds
-        let score = score.min(100);
-        
+            .context("Failed to get integer score from LLM")?;
+
+        // Convert from u32 to u8, ensuring it's within bounds
+        let score = (score as u8).min(100);
+
         Ok(score)
     }
 
@@ -635,7 +618,7 @@ IMPORTANT: Return ONLY a single integer between 0 and 100. No explanations, no t
                     score, current_item_id, grouped_item.id, group_id
                 );
 
-                if score >= MATCH_THRESHOLD 
+                if score >= MATCH_THRESHOLD
                     && (best_match.is_none() || score > best_match.as_ref().unwrap().0)
                 {
                     best_match = Some((score, grouped_item.id.clone(), true));
@@ -651,7 +634,7 @@ IMPORTANT: Return ONLY a single integer between 0 and 100. No explanations, no t
                     score, current_item_id, other_item.id
                 );
 
-                if score >= MATCH_THRESHOLD 
+                if score >= MATCH_THRESHOLD
                     && (best_match.is_none() || score > best_match.as_ref().unwrap().0)
                 {
                     best_match = Some((score, other_item.id.clone(), false));
