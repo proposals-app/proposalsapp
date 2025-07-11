@@ -136,6 +136,8 @@ impl Grouper {
     }
 
     // Helper function to safely truncate text with middle ellipsis
+    // This implementation uses char_indices() for accurate character counting and is_char_boundary() 
+    // for safety when we need to find valid slice points. This hybrid approach is optimal for our use case.
     fn truncate_text(text: &str, max_chars: usize) -> String {
         const ELLIPSIS: &str = " [... TRUNCATED ...] ";
         const ELLIPSIS_LEN: usize = 21; // " [... TRUNCATED ...] " is 21 chars
@@ -149,62 +151,92 @@ impl Grouper {
 
         // If max_chars is too small, just truncate at the end
         if max_chars <= ELLIPSIS_LEN + 20 {
-            let mut cutoff = max_chars.saturating_sub(4).min(text.len());
-            while cutoff > 0 && !text.is_char_boundary(cutoff) {
-                cutoff -= 1;
+            // Use char_indices().nth() for safe truncation at character boundaries
+            let truncate_at = max_chars.saturating_sub(4);
+            match text.char_indices().nth(truncate_at) {
+                None => text.to_string(), // Text is shorter than truncate_at
+                Some((byte_idx, _)) => format!("{}...", &text[..byte_idx]),
             }
-            return format!("{}...", &text[..cutoff]);
-        }
-
-        // Calculate how many chars to keep from start and end
-        let available_chars = max_chars - ELLIPSIS_LEN;
-        // Keep 70% at the start, 30% at the end for better context
-        let start_chars = (available_chars * 7) / 10;
-        let end_chars = available_chars - start_chars;
-
-        // Find the byte positions for the character positions
-        let char_indices: Vec<(usize, char)> = text.char_indices().collect();
-
-        // Get start portion - try to break at a word boundary
-        let mut start_end_idx = if start_chars < char_indices.len() {
-            char_indices[start_chars].0
         } else {
-            text.len()
-        };
+            // Calculate how many chars to keep from start and end
+            let available_chars = max_chars - ELLIPSIS_LEN;
+            // Keep 70% at the start, 30% at the end for better context
+            let start_chars = (available_chars * 7) / 10;
+            let end_chars = available_chars - start_chars;
 
-        // Look for a good break point (space or newline) near the cutoff
-        if let Some((idx, _)) = char_indices
-            .iter()
-            .take(start_chars)
-            .rev()
-            .take(50) // Look back up to 50 chars
-            .find(|(_, ch)| ch.is_whitespace())
-        {
-            start_end_idx = *idx;
+            // Find the byte positions for the character positions using char_indices()
+            let char_indices: Vec<(usize, char)> = text.char_indices().collect();
+
+            // Safe start position
+            let start_end_idx = match char_indices.get(start_chars) {
+                Some((idx, _)) => *idx,
+                None => text.len(), // If we're past the end, use the whole string
+            };
+
+            // Look for a good break point (space or newline) near the cutoff
+            let start_end_idx = char_indices
+                .iter()
+                .take(start_chars)
+                .rev()
+                .take(50) // Look back up to 50 chars
+                .find(|(_, ch)| ch.is_whitespace())
+                .map(|(idx, _)| *idx)
+                .unwrap_or(start_end_idx);
+
+            // Safe end position
+            let end_start_char_pos = char_count.saturating_sub(end_chars);
+            let end_start_idx = match char_indices.get(end_start_char_pos) {
+                Some((idx, _)) => *idx,
+                None => 0, // If position is invalid, start from beginning
+            };
+
+            // Look for a good break point after the cutoff
+            let end_start_idx = char_indices
+                .iter()
+                .skip(end_start_char_pos)
+                .take(50) // Look forward up to 50 chars
+                .find(|(_, ch)| ch.is_whitespace())
+                .map(|(idx, _)| idx + 1) // Skip the whitespace
+                .unwrap_or(end_start_idx);
+
+            // Ensure end_start_idx is not before start_end_idx
+            if end_start_idx <= start_end_idx {
+                // If ranges overlap, just do a simple truncation
+                match text.char_indices().nth(max_chars.saturating_sub(4)) {
+                    None => text.to_string(),
+                    Some((byte_idx, _)) => format!("{}...", &text[..byte_idx]),
+                }
+            } else {
+                // Ensure indices are valid before slicing
+                let start_text = if start_end_idx <= text.len() && text.is_char_boundary(start_end_idx) {
+                    &text[..start_end_idx]
+                } else {
+                    // Find the nearest valid boundary before start_end_idx
+                    let mut idx = start_end_idx.min(text.len());
+                    while idx > 0 && !text.is_char_boundary(idx) {
+                        idx -= 1;
+                    }
+                    &text[..idx]
+                };
+                
+                let end_text = if end_start_idx <= text.len() && text.is_char_boundary(end_start_idx) {
+                    &text[end_start_idx..]
+                } else {
+                    // Find the nearest valid boundary after end_start_idx
+                    let mut idx = end_start_idx.min(text.len());
+                    while idx < text.len() && !text.is_char_boundary(idx) {
+                        idx += 1;
+                    }
+                    if idx < text.len() {
+                        &text[idx..]
+                    } else {
+                        ""
+                    }
+                };
+                
+                format!("{}{ELLIPSIS}{}", start_text.trim_end(), end_text.trim_start())
+            }
         }
-
-        // Get end portion - try to break at a word boundary
-        let end_start_char_pos = char_count.saturating_sub(end_chars);
-        let mut end_start_idx = if end_start_char_pos < char_indices.len() {
-            char_indices[end_start_char_pos].0
-        } else {
-            0
-        };
-
-        // Look for a good break point after the cutoff
-        if let Some((idx, _)) = char_indices
-            .iter()
-            .skip(end_start_char_pos)
-            .take(50) // Look forward up to 50 chars
-            .find(|(_, ch)| ch.is_whitespace())
-        {
-            end_start_idx = idx + 1; // Skip the whitespace
-        }
-
-        let start_text = &text[..start_end_idx].trim_end();
-        let end_text = &text[end_start_idx..].trim_start();
-
-        format!("{start_text}{ELLIPSIS}{end_text}")
     }
 
     // Keyword extraction using LLM with Redis caching
@@ -1114,6 +1146,36 @@ pub fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_truncate_text_with_unicode() {
+        // Test with non-breaking space (the character that caused the panic)
+        let text_with_nbsp = "Hello\u{a0}world this is a test with non-breaking space";
+        let truncated = Grouper::truncate_text(text_with_nbsp, 10);
+        assert!(truncated.ends_with("..."));
+        assert!(truncated.len() <= text_with_nbsp.len());
+        
+        // Test with emoji
+        let text_with_emoji = "Hello 🧑‍🔬 scientist emoji test";
+        let truncated = Grouper::truncate_text(text_with_emoji, 10);
+        assert!(truncated.ends_with("..."));
+        
+        // Test with mixed Unicode characters
+        let mixed_unicode = "English русский 中文 العربية mixed text";
+        let truncated = Grouper::truncate_text(mixed_unicode, 20);
+        assert!(truncated.ends_with("..."));
+        
+        // Test with exact boundary - the problematic case from the error
+        let problematic_text = "# Deploy Uniswap v3 on Gnosis Chain\nContext\n-------\n\nAfter passing the\u{a0}[Temperature Check vote](https://snapshot.org/#/uniswap/proposal/0xb328c7583c0f1ea85f8a273dd36977c95e47c3713744caf7143e68b65efcc8a5)\u{a0}with 7M UNI voting in favor of deploying Uniswap v";
+        // This should not panic
+        let truncated = Grouper::truncate_text(problematic_text, 200);
+        assert!(!truncated.is_empty());
+        
+        // Test middle truncation with unicode
+        let long_unicode = format!("Start текст с unicode символами {}end часть с unicode", "middle part ".repeat(50));
+        let truncated = Grouper::truncate_text(&long_unicode, 100);
+        assert!(truncated.contains("[... TRUNCATED ...]"));
+    }
 
     // Tests for ID-only format: /t/12345
     #[test]
