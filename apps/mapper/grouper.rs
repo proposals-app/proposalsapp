@@ -1,6 +1,7 @@
 use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
+use llm_client::DecisionTrait;
 use llm_client::InstructPromptTrait;
 use llm_client::LlmClient;
 use llm_client::RequestConfigTrait;
@@ -17,6 +18,14 @@ use tiktoken_rs::{CoreBPE, cl100k_base};
 use tracing::{error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
+
+// Module-level constants
+const MATCH_THRESHOLD: u8 = 80;
+const DECISION_RANGE: u8 = 10;
+const MAX_BODY_TOKENS_PER_ITEM: usize = 3000;
+const KEYWORD_EXTRACTION_MAX_TOKENS: usize = 3000;
+const KEYWORD_CACHE_TTL_BASE: u64 = 604800; // 7 days in seconds
+const KEYWORD_CACHE_TTL_JITTER_MAX: u64 = 302400 * 3; // Max 3x 3.5 days
 
 lazy_static::lazy_static! {
     /// Mapping of DAO slugs to the Discourse category IDs that should be included
@@ -96,10 +105,24 @@ pub struct NormalizedItem {
     pub raw_data: ProposalGroupItem, // Original ProposalItem or TopicItem
 }
 
+impl NormalizedItem {
+    /// Get a truncated version of the body text, limited by token count
+    pub fn get_truncated_body(&self, max_tokens: usize) -> String {
+        Grouper::truncate_text(&self.body, max_tokens)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ItemType {
     Proposal,
     Discussion,
+}
+
+#[derive(Debug, Clone)]
+struct MatchResult {
+    score: u8,
+    item_id: String,
+    is_grouped: bool,
 }
 
 pub struct Grouper {
@@ -252,7 +275,8 @@ impl Grouper {
                 }
 
                 // Cache and return
-                let ttl = 604800 + rand::rng().random_range(302400..302400 * 3);
+                let ttl = KEYWORD_CACHE_TTL_BASE
+                    + rand::rng().random_range(302400..KEYWORD_CACHE_TTL_JITTER_MAX);
                 if let Err(e) = redis_cache::cache_keywords(&cache_key, &keywords, ttl).await {
                     warn!("Failed to cache keywords: {}", e);
                 }
@@ -330,7 +354,7 @@ impl Grouper {
         // - Response space for keywords: ~300 tokens
         // - Buffer: ~200 tokens
         // This leaves ~7500 tokens for content, but we'll use 3000 to be conservative
-        let truncated_body = Self::truncate_text(&item.body, 3000);
+        let truncated_body = Self::truncate_text(&item.body, KEYWORD_EXTRACTION_MAX_TOKENS);
 
         basic_completion
             .prompt()
@@ -487,22 +511,21 @@ impl Grouper {
 
         // For similarity comparison, allocate 3000 tokens per item
         // This gives us 6000 tokens total for both items, leaving ~2000 for prompt/response
-        let max_body_tokens_per_item = 3000;
-        let body_a = Self::truncate_text(&item_a.body, max_body_tokens_per_item);
-        let body_b = Self::truncate_text(&item_b.body, max_body_tokens_per_item);
+        let body_a = item_a.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM);
+        let body_b = item_b.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM);
 
         // Create prompt with all relevant information
         let prompt = format!(
             r#"Item A:
 Title: {}
 Body: {}
-Keywords: {:?}
+Keywords: {}
 Created: {}
 
 Item B:
 Title: {}
 Body: {}
-Keywords: {:?}
+Keywords: {}
 Created: {}
 
 Consider if they are:
@@ -512,34 +535,37 @@ Consider if they are:
 - Separate topics despite any similarities"#,
             item_a.title,
             body_a,
-            keywords_a,
+            keywords_a.join(", "),
             item_a.created_at.format("%Y-%m-%d"),
             item_b.title,
             body_b,
-            keywords_b,
+            keywords_b.join(", "),
             item_b.created_at.format("%Y-%m-%d")
         );
 
-        // Use the integer primitive from llm_client for structured output
-        let mut integer_primitive = self.llm_client.basic_primitive().integer();
+        // Use reasoning workflow for more accurate scoring
+        let mut reason_request = self.llm_client.reason().integer();
 
         // Configure the integer bounds
-        integer_primitive.primitive.lower_bound(0).upper_bound(100);
+        reason_request.primitive.lower_bound(0).upper_bound(100);
 
-        // Configure generation parameters
-        integer_primitive
+        // Configure reasoning parameters
+        reason_request
+            .reasoning_sentences(3) // Allow 3 sentences for thinking through the comparison
+            .conclusion_sentences(1) // Concise conclusion
             .temperature(0.3) // Lower temperature for consistent scoring
-            .max_tokens(50); // Small limit since we only need a number
+            .max_tokens(300); // More tokens for reasoning process
 
-        // Set the instruction prompt
-        integer_primitive
+        // Set the instructions
+        reason_request
             .instructions()
+            .set_content("You are a DAO governance analyst specializing in proposal relationship mapping. Analyze whether these two governance items should be grouped together.");
+
+        // Set the supporting material with scoring guidelines
+        reason_request
+            .supporting_material()
             .set_content(format!(
-                r#"You are a DAO governance analyst specializing in proposal relationship mapping.
-
-Evaluate whether two governance items should be grouped together by returning a single integer score from 0 to 100.
-
-Scoring Guidelines:
+                r#"Scoring Guidelines:
 - 90-100: Same proposal/initiative at different stages or formats
 - 70-89: Directly related items that form a coherent governance thread
 - 50-69: Related topics with significant shared context
@@ -573,16 +599,124 @@ Based on the above items, provide a similarity score between 0 and 100."#,
                 prompt
             ));
 
-        // Get the score using the structured integer primitive
-        let score = integer_primitive
+        // Get the score using reasoning (non-optional)
+        let score = reason_request
             .return_primitive()
             .await
-            .context("Failed to get integer score from LLM")?;
+            .context("Failed to get similarity score from LLM reasoning")?;
 
         // Convert from u32 to u8, ensuring it's within bounds
-        let score = (score as u8).min(100);
+        let score = score.min(100) as u8;
 
         Ok(score)
+    }
+
+    // Confirm a match decision using decision workflow with multiple votes
+    async fn confirm_match_decision(
+        &self,
+        item_a: &NormalizedItem,
+        item_b: &NormalizedItem,
+        initial_score: u8,
+    ) -> Result<u8> {
+        // Only use decision workflow if score is near threshold
+
+        // If score is clearly above or below threshold, just return it
+        if initial_score < MATCH_THRESHOLD - DECISION_RANGE
+            || initial_score > MATCH_THRESHOLD + DECISION_RANGE
+        {
+            return Ok(initial_score);
+        }
+
+        info!(
+            "Score {} is near threshold, running decision confirmation with 3 votes",
+            initial_score
+        );
+
+        // Create the comparison prompt once
+        let prompt = format!(
+            r#"Item A:
+Title: {}
+Body: {}
+Keywords: {}
+Created: {}
+
+Item B:
+Title: {}
+Body: {}
+Keywords: {}
+Created: {}
+
+Initial assessment score: {}
+
+The initial assessment determined these items have a similarity score of {}. This is near the grouping threshold of 80.
+Please carefully analyze whether these items should be grouped together."#,
+            item_a.title,
+            item_a.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM),
+            item_a.keywords.join(", "),
+            item_a.created_at.format("%Y-%m-%d"),
+            item_b.title,
+            item_b.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM),
+            item_b.keywords.join(", "),
+            item_b.created_at.format("%Y-%m-%d"),
+            initial_score,
+            initial_score
+        );
+
+        // Use decision workflow for consensus
+        let mut decision_request = self.llm_client.reason().integer().decision();
+
+        // Configure the decision parameters
+        decision_request.best_of_n_votes(3); // Get consensus from 3 votes
+        decision_request
+            .reason
+            .primitive
+            .lower_bound(0)
+            .upper_bound(100);
+
+        // Set the instructions
+        decision_request
+            .reason
+            .instructions()
+            .set_content("You are a DAO governance analyst providing a final determination on whether these items should be grouped. Consider the initial score and provide your own assessment.");
+
+        // Set the supporting material
+        decision_request
+            .reason
+            .supporting_material()
+            .set_content(format!(
+                r#"{}
+
+Scoring Guidelines:
+- 90-100: Same proposal/initiative at different stages or formats
+- 70-89: Directly related items that form a coherent governance thread
+- 50-69: Related topics with significant shared context
+- 30-49: Loosely related with some common elements
+- 10-29: Minimal connection, different topics sharing minor details
+- 0-9: Completely unrelated items
+
+CRITICAL: The grouping threshold is 80. Scores of 80 and above mean the items WILL be grouped together.
+Scores below 80 mean they will remain separate.
+
+Based on careful analysis, provide a final similarity score between 0 and 100."#,
+                prompt
+            ));
+
+        // Get the consensus score
+        let consensus_score = decision_request
+            .return_primitive()
+            .await
+            .context("Failed to get consensus score from decision workflow")?;
+
+        let consensus_score = (consensus_score as u8).min(100);
+
+        info!(
+            "Decision consensus: {} (initial: {}, difference: {})",
+            consensus_score,
+            initial_score,
+            (consensus_score as i16 - initial_score as i16).abs()
+        );
+
+        Ok(consensus_score)
     }
 
     // Main grouping algorithm with scoring
@@ -591,8 +725,6 @@ Based on the above items, provide a similarity score between 0 and 100."#,
         mut ungrouped_items: Vec<NormalizedItem>,
         mut groups: HashMap<Uuid, Vec<NormalizedItem>>, // group_id -> items
     ) -> Result<HashMap<Uuid, Vec<NormalizedItem>>> {
-        const MATCH_THRESHOLD: u8 = 80;
-
         while let Some(current_item) = ungrouped_items.pop() {
             let current_item_id = current_item.id.clone();
             let current_item_title = current_item.title.clone();
@@ -601,12 +733,16 @@ Based on the above items, provide a similarity score between 0 and 100."#,
                 current_item_title, current_item_id
             );
 
-            let mut best_match: Option<(u8, String, bool)> = None; // (score, item_id, is_grouped)
+            let mut best_match: Option<MatchResult> = None;
             let mut best_group_id: Option<Uuid> = None;
             let mut best_ungrouped_idx: Option<usize> = None;
 
             // Score against all grouped items - iterate directly over groups to get fresh data
+            let mut found_perfect_match = false;
             for (group_id, items) in groups.iter() {
+                if found_perfect_match {
+                    break;
+                }
                 for grouped_item in items {
                     let score = self.match_score(&current_item, grouped_item).await?;
                     info!(
@@ -614,41 +750,142 @@ Based on the above items, provide a similarity score between 0 and 100."#,
                         score, current_item_id, grouped_item.id, group_id
                     );
 
+                    // Early termination for perfect matches
+                    if score >= 95 {
+                        info!(
+                            "Perfect match found (score: {}) - terminating search early",
+                            score
+                        );
+                        best_match = Some(MatchResult {
+                            score,
+                            item_id: grouped_item.id.clone(),
+                            is_grouped: true,
+                        });
+                        best_group_id = Some(*group_id);
+                        found_perfect_match = true;
+                        break;
+                    }
+
                     if score >= MATCH_THRESHOLD
-                        && (best_match.is_none() || score > best_match.as_ref().unwrap().0)
+                        && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
                     {
-                        best_match = Some((score, grouped_item.id.clone(), true));
+                        best_match = Some(MatchResult {
+                            score,
+                            item_id: grouped_item.id.clone(),
+                            is_grouped: true,
+                        });
                         best_group_id = Some(*group_id);
                     }
                 }
             }
 
-            // Score ungrouped items
-            for (idx, other_item) in ungrouped_items.iter().enumerate() {
-                let score = self.match_score(&current_item, other_item).await?;
-                info!(
-                    "Score {} for item {} vs ungrouped item {}",
-                    score, current_item_id, other_item.id
-                );
+            // Score ungrouped items only if no perfect match found
+            if !found_perfect_match {
+                for (idx, other_item) in ungrouped_items.iter().enumerate() {
+                    let score = self.match_score(&current_item, other_item).await?;
+                    info!(
+                        "Score {} for item {} vs ungrouped item {}",
+                        score, current_item_id, other_item.id
+                    );
 
-                if score >= MATCH_THRESHOLD
-                    && (best_match.is_none() || score > best_match.as_ref().unwrap().0)
-                {
-                    best_match = Some((score, other_item.id.clone(), false));
-                    best_ungrouped_idx = Some(idx);
+                    // Early termination for perfect matches
+                    if score >= 95 {
+                        info!(
+                            "Perfect match found (score: {}) - terminating search early",
+                            score
+                        );
+                        best_match = Some(MatchResult {
+                            score,
+                            item_id: other_item.id.clone(),
+                            is_grouped: false,
+                        });
+                        best_ungrouped_idx = Some(idx);
+                        break;
+                    }
+
+                    if score >= MATCH_THRESHOLD
+                        && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
+                    {
+                        best_match = Some(MatchResult {
+                            score,
+                            item_id: other_item.id.clone(),
+                            is_grouped: false,
+                        });
+                        best_ungrouped_idx = Some(idx);
+                    }
                 }
             }
 
-            // Process the best match if found
-            match best_match {
-                Some((score, matched_id, is_grouped)) => {
-                    if is_grouped {
+            // Run decision confirmation on the best match if found
+            let confirmed_match = match best_match {
+                Some(match_result) => {
+                    // Skip confirmation for perfect matches (95+)
+                    if match_result.score >= 95 {
+                        info!(
+                            "Skipping decision confirmation for perfect match (score: {})",
+                            match_result.score
+                        );
+                        Some(match_result)
+                    } else {
+                        // Find the matched item to run confirmation
+                        let matched_item = if match_result.is_grouped {
+                            // Find in groups
+                            groups
+                                .values()
+                                .flatten()
+                                .find(|item| item.id == match_result.item_id)
+                        } else {
+                            // Find in ungrouped items
+                            ungrouped_items.get(best_ungrouped_idx.unwrap())
+                        };
+
+                        if let Some(matched_item) = matched_item {
+                            // Run decision workflow to confirm the match
+                            let final_score = self
+                                .confirm_match_decision(
+                                    &current_item,
+                                    matched_item,
+                                    match_result.score,
+                                )
+                                .await?;
+
+                            // Check if the confirmed score still meets the threshold
+                            if final_score >= MATCH_THRESHOLD {
+                                Some(MatchResult {
+                                    score: final_score,
+                                    item_id: match_result.item_id.clone(),
+                                    is_grouped: match_result.is_grouped,
+                                })
+                            } else {
+                                info!(
+                                    "Decision workflow rejected match: initial score {} -> final score {}",
+                                    match_result.score, final_score
+                                );
+                                None
+                            }
+                        } else {
+                            // Should not happen, but handle gracefully
+                            warn!(
+                                "Could not find matched item {} for confirmation",
+                                match_result.item_id
+                            );
+                            Some(match_result)
+                        }
+                    }
+                }
+                None => None,
+            };
+
+            // Process the confirmed match
+            match confirmed_match {
+                Some(match_result) => {
+                    if match_result.is_grouped {
                         // Add to existing group
                         info!(
                             "Best match: Item {} matches with grouped item {} (score: {}) in group {}",
                             current_item_id,
-                            matched_id,
-                            score,
+                            match_result.item_id,
+                            match_result.score,
                             best_group_id.unwrap()
                         );
                         groups
@@ -659,7 +896,7 @@ Based on the above items, provide a similarity score between 0 and 100."#,
                         // Create new group with both items
                         info!(
                             "Best match: Item {} matches with ungrouped item {} (score: {})",
-                            current_item_id, matched_id, score
+                            current_item_id, match_result.item_id, match_result.score
                         );
                         let matched_item = ungrouped_items.remove(best_ungrouped_idx.unwrap());
                         let new_group_id = Uuid::new_v4();
@@ -770,8 +1007,8 @@ Based on the above items, provide a similarity score between 0 and 100."#,
         Ok(NormalizedItem {
             id,
             dao_id: proposal.dao_id.to_string(),
-            title: proposal.name.clone(),
-            body: proposal.body.clone(),
+            title: proposal.name,
+            body: proposal.body,
             created_at: Utc.from_utc_datetime(&proposal.created_at),
             item_type: ItemType::Proposal,
             keywords: vec![], // Will be filled by extract_keywords
@@ -809,7 +1046,7 @@ Based on the above items, provide a similarity score between 0 and 100."#,
         Ok(NormalizedItem {
             id,
             dao_id: dao_id.to_string(),
-            title: topic.title.clone(),
+            title: topic.title,
             body,
             created_at: Utc.from_utc_datetime(&topic.created_at),
             item_type: ItemType::Discussion,
@@ -821,7 +1058,7 @@ Based on the above items, provide a similarity score between 0 and 100."#,
     // Persist grouping results
     async fn persist_results(
         &self,
-        groups: HashMap<Uuid, Vec<NormalizedItem>>,
+        groups: &HashMap<Uuid, Vec<NormalizedItem>>,
         dao_id: Uuid,
     ) -> Result<()> {
         // Get existing group IDs
@@ -833,7 +1070,7 @@ Based on the above items, provide a similarity score between 0 and 100."#,
             .map(|g| g.id)
             .collect();
 
-        for (group_id, items) in groups {
+        for (group_id, items) in groups.iter() {
             if items.is_empty() {
                 continue;
             }
@@ -845,10 +1082,10 @@ Based on the above items, provide a similarity score between 0 and 100."#,
             let items_json = serde_json::to_value(&proposal_items)?;
             let group_name = items[0].title.to_string();
 
-            if existing_group_ids.contains(&group_id) {
+            if existing_group_ids.contains(group_id) {
                 // Update existing group
                 proposal_group::Entity::update_many()
-                    .filter(proposal_group::Column::Id.eq(group_id))
+                    .filter(proposal_group::Column::Id.eq(*group_id))
                     .col_expr(
                         proposal_group::Column::Items,
                         sea_query::Expr::value(items_json),
@@ -862,7 +1099,7 @@ Based on the above items, provide a similarity score between 0 and 100."#,
             } else {
                 // Create new group
                 let new_group = proposal_group::ActiveModel {
-                    id: Set(group_id),
+                    id: Set(*group_id),
                     name: Set(group_name),
                     items: Set(items_json),
                     created_at: Set(Utc::now().naive_utc()),
@@ -1081,18 +1318,16 @@ Based on the above items, provide a similarity score between 0 and 100."#,
             "Persisting {} groups after procedural grouping",
             groups.len()
         );
-        self.persist_results(groups.clone(), dao_id).await?;
+        self.persist_results(&groups, dao_id).await?;
 
         // Extract keywords for all items after procedural grouping
         info!("Extracting keywords for {} items", all_items.len());
-        let mut all_items_with_keywords = Vec::new();
-        for mut item in all_items {
-            item.keywords = self.extract_keywords(&item).await?;
-            all_items_with_keywords.push(item);
+        for item in &mut all_items {
+            item.keywords = self.extract_keywords(item).await?;
         }
 
         // Get ungrouped items (after procedural grouping)
-        let ungrouped_items: Vec<_> = all_items_with_keywords
+        let ungrouped_items: Vec<_> = all_items
             .into_iter()
             .filter(|item| !grouped_item_ids.contains(&item.id))
             .collect();
@@ -1107,7 +1342,7 @@ Based on the above items, provide a similarity score between 0 and 100."#,
 
         // Persist results again after AI grouping
         info!("Persisting final groups after AI grouping");
-        self.persist_results(final_groups, dao_id).await?;
+        self.persist_results(&final_groups, dao_id).await?;
 
         info!("Grouping complete for DAO {}", dao_id);
         Ok(())
