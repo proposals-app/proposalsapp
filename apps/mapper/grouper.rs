@@ -328,10 +328,14 @@ impl Grouper {
                 6. ACTIONS: specific verbs describing what will happen (e.g., "deploy", "allocate", "integrate")
                 7. SCOPE: affected chains, ecosystems, or communities
 
-                Exclusion Rules:
-                - Omit generic terms unless combined with specifics (not "governance" but "governance-token-migration")
-                - Skip filler words like "proposal", "discussion", "DAO" unless part of a specific name
-                - Avoid abstract concepts without context
+                Exclusion Rules (CRITICAL for DAO contexts):
+                - EXCLUDE generic governance terms that appear in most proposals:
+                  * Simple terms: governance, proposal, vote, voting, dao, discussion, community, protocol
+                  * Procedural terms: temperature-check, snapshot, on-chain, quorum, forum, thread
+                  * Generic actions: update, change, improve, implement (unless with specific context)
+                - ONLY include these if combined with specifics (e.g., "governance-token-migration", "snapshot-vote-123")
+                - Skip abstract concepts without concrete details
+                - Avoid terms that would appear in 50%+ of all DAO proposals
 
                 OUTPUT FORMAT REQUIREMENTS:
                 - Return ONLY a comma-separated list of keywords
@@ -344,9 +348,9 @@ impl Grouper {
                 - End your response after listing the keywords
                 - Special case: If content is insufficient, return ONLY the single keyword: insufficient-content
 
-                Example (good): compound-grant-23, defi-education-initiative, 50k-usdc-funding, alice-smith, q1-2024, developer-onboarding, polygon-deployment, compound-finance
+                Example (good): compound-grant-23, defi-education-initiative, 50k-usdc-funding, alice-smith, q1-2024, developer-onboarding, polygon-deployment, compound-finance, fee-switch-activation, bridge-audit-consensys
 
-                Example (bad): governance, proposal, voting, community, discussion, update"#);
+                Example (bad): governance, proposal, voting, community, discussion, update, dao, protocol, implementation, forum-post"#);
 
         // Limit the body to prevent exceeding token limits
         // For keyword extraction with 8192 token context window:
@@ -565,33 +569,64 @@ Consider if they are:
         reason_request
             .supporting_material()
             .set_content(format!(
-                r#"Scoring Guidelines:
-- 90-100: Same proposal/initiative at different stages or formats
-- 70-89: Directly related items that form a coherent governance thread
-- 50-69: Related topics with significant shared context
-- 30-49: Loosely related with some common elements
-- 10-29: Minimal connection, different topics sharing minor details
-- 0-9: Completely unrelated items
+                r#"IMPORTANT BASELINE CONTEXT: All items being compared are already DAO governance topics, so they share ~20-30 points of inherent similarity from common governance vocabulary, procedures, and ecosystem context. Your scoring must differentiate BEYOND this baseline similarity.
 
-Strong Grouping Indicators (HIGH scores):
-1. SEQUENTIAL PROGRESSION: Temperature check → Formal proposal → Implementation update
-2. SAME INITIATIVE: Identical funding request, protocol change, or strategic decision across venues
-3. EXPLICIT REFERENCES: One item directly mentions or links to the other
-4. IDENTICAL KEY DETAILS: Same amounts, addresses, specific parameter values, or implementation specs
-5. AUTHOR CONTINUITY: Same proposer advancing through governance stages
+Scoring Guidelines (Adjusted for DAO Context):
 
-Moderate Grouping Indicators (MEDIUM scores):
-1. SHARED OBJECTIVES: Different approaches to the same problem
-2. DEPENDENCY RELATIONSHIP: One proposal depends on or complements the other
-3. TOPICAL CLUSTERING: Multiple proposals in the same domain (e.g., all security audits)
-4. TEMPORAL PROXIMITY: Related items posted within days/weeks of each other
+0-15: Maximum Unrelatedness Within Same DAO
+- Different protocol areas entirely (treasury vs technical vs community)
+- No shared specifics beyond generic governance terms
+- Months/quarters apart with no connection
+- Examples: "Deploy on Arbitrum" vs "Q3 Treasury Report", "Bug Bounty Program" vs "Marketing Budget"
 
-Weak/No Grouping Indicators (LOW scores):
-1. COMPETING PROPOSALS: Mutually exclusive alternatives
-2. DIFFERENT DOMAINS: Unrelated protocol areas or initiatives
-3. GENERIC SIMILARITIES: Only sharing common governance terms
-4. COINCIDENTAL OVERLAP: Similar words but different contexts
-5. INSUFFICIENT DATA: Lack of sufficient information to make a determination
+16-35: Minimal Substantive Connection
+- Same broad category but completely different initiatives
+- No shared stakeholders, amounts, or technical details
+- Generic category overlap only
+- Examples: Two unrelated grant requests, "Deploy on Chain A" vs "Deploy on Chain B" (different tech stacks)
+
+36-55: Moderate Thematic Relationship
+- Same problem space, different solutions
+- Shared category with some specific overlap
+- Competing or alternative proposals
+- Examples: Multiple security audit proposals (different vendors), Various treasury strategies (different approaches)
+
+56-75: Significant Operational Connection
+- Clear dependencies or complementary goals
+- Same author/team across related initiatives
+- Shared specific parameters but not same proposal
+- Examples: "Temperature Check: Fee Reduction" vs "Discussion: Fee Model Analysis", Grant request + progress report
+
+76-85: Strong Governance Continuity
+- Same initiative progressing through stages
+- Clear progression markers (RFC→Temp Check→Proposal)
+- Days to weeks apart with continuity
+- Examples: "[RFC] Deploy V3" → "[Proposal] Deploy V3", Snapshot vote → On-chain execution
+
+86-95: Near-Identical Items
+- Same proposal across platforms
+- Minor revisions or amendments
+- Identical key parameters (amounts, addresses, specifications)
+- Examples: Forum post ↔ On-chain proposal, Draft → Final versions
+
+96-100: Duplicates or Perfect Matches
+- Identical content with trivial differences
+- Same proposal ID across systems
+- Repostings or system duplicates
+
+CRITICAL DIFFERENTIATION FACTORS:
+1. Specific parameters (amounts, addresses, dates) vs generic terms
+2. Explicit references/URLs between items
+3. Author/proposer continuity
+4. Temporal progression indicators
+5. Unique technical specifications
+
+PENALIZE for baseline similarities:
+- Generic governance vocabulary (proposal, vote, treasury, protocol)
+- Standard procedural language (temperature check, quorum)
+- Common DAO references without specific context
+
+Remember: Focus on what makes these items MORE related than any two random DAO proposals would be."#
 
 {}
 
@@ -686,16 +721,22 @@ Please carefully analyze whether these items should be grouped together."#,
             .set_content(format!(
                 r#"{}
 
-Scoring Guidelines:
-- 90-100: Same proposal/initiative at different stages or formats
-- 70-89: Directly related items that form a coherent governance thread
-- 50-69: Related topics with significant shared context
-- 30-49: Loosely related with some common elements
-- 10-29: Minimal connection, different topics sharing minor details
-- 0-9: Completely unrelated items
+BASELINE CONTEXT: Remember that all items share ~20-30 points of inherent DAO governance similarity. Differentiate BEYOND this baseline.
+
+Scoring Guidelines (Adjusted for DAO Context):
+- 0-15: Maximum unrelatedness within same DAO (different domains entirely)
+- 16-35: Minimal substantive connection (category overlap only)
+- 36-55: Moderate thematic relationship (same problem, different solutions)
+- 56-75: Significant operational connection (dependencies, same team)
+- 76-85: Strong governance continuity (same initiative progressing)
+- 86-95: Near-identical items (same proposal, different platforms)
+- 96-100: Duplicates or perfect matches
 
 CRITICAL: The grouping threshold is 80. Scores of 80 and above mean the items WILL be grouped together.
 Scores below 80 mean they will remain separate.
+
+Focus on: specific parameters, explicit references, author continuity, temporal progression, unique technical details.
+Ignore: generic governance terms, standard procedures, common DAO vocabulary.
 
 Based on careful analysis, provide a final precise similarity score between 0 and 100. Do not round up the score, make it a precise integer, use the entire range from 0 to 100."#,
                 prompt
