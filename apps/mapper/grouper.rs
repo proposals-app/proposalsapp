@@ -20,7 +20,7 @@ use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
 
 // Module-level constants
-const MATCH_THRESHOLD: u8 = 80;
+const MATCH_THRESHOLD: u8 = 75;
 const DECISION_RANGE: u8 = 10;
 const MAX_BODY_TOKENS_PER_ITEM: usize = 3000;
 const KEYWORD_EXTRACTION_MAX_TOKENS: usize = 3000;
@@ -591,19 +591,19 @@ Scoring Guidelines (Adjusted for DAO Context):
 - Competing or alternative proposals
 - Examples: Multiple security audit proposals (different vendors), Various treasury strategies (different approaches)
 
-56-75: Significant Operational Connection
+56-{}: Significant Operational Connection
 - Clear dependencies or complementary goals
 - Same author/team across related initiatives
 - Shared specific parameters but not same proposal
 - Examples: "Temperature Check: Fee Reduction" vs "Discussion: Fee Model Analysis", Grant request + progress report
 
-76-85: Strong Governance Continuity
+{}-{}: Strong Governance Continuity (APPROACHING GROUPING THRESHOLD)
 - Same initiative progressing through stages
 - Clear progression markers (RFC→Temp Check→Proposal)
 - Days to weeks apart with continuity
 - Examples: "[RFC] Deploy V3" → "[Proposal] Deploy V3", Snapshot vote → On-chain execution
 
-86-95: Near-Identical Items
+{}-95: Near-Identical Items (ABOVE GROUPING THRESHOLD)
 - Same proposal across platforms
 - Minor revisions or amendments
 - Identical key parameters (amounts, addresses, specifications)
@@ -613,6 +613,9 @@ Scoring Guidelines (Adjusted for DAO Context):
 - Identical content with trivial differences
 - Same proposal ID across systems
 - Repostings or system duplicates
+
+CRITICAL: The grouping threshold is {}. Scores of {} and above mean the items WILL be grouped together.
+Scores below {} mean they will remain separate.
 
 CRITICAL DIFFERENTIATION FACTORS:
 1. Specific parameters (amounts, addresses, dates) vs generic terms
@@ -626,11 +629,18 @@ PENALIZE for baseline similarities:
 - Standard procedural language (temperature check, quorum)
 - Common DAO references without specific context
 
-Remember: Focus on what makes these items MORE related than any two random DAO proposals would be."#
+Remember: Focus on what makes these items MORE related than any two random DAO proposals would be.
 
 {}
 
 Based on the above items, provide a precise similarity score between 0 and 100. Do not round up the score, make it a precise integer, use the entire range from 0 to 100."#,
+                MATCH_THRESHOLD - 5,
+                MATCH_THRESHOLD - 5,
+                MATCH_THRESHOLD,
+                MATCH_THRESHOLD + 6,
+                MATCH_THRESHOLD,
+                MATCH_THRESHOLD,
+                MATCH_THRESHOLD,
                 prompt
             ));
 
@@ -683,7 +693,7 @@ Created: {}
 
 Initial assessment score: {}
 
-The initial assessment determined these items have a similarity score of {}. This is near the grouping threshold of 80.
+The initial assessment determined these items have a similarity score of {}. This is near the grouping threshold of {}.
 Please carefully analyze whether these items should be grouped together."#,
             item_a.title,
             item_a.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM),
@@ -694,7 +704,8 @@ Please carefully analyze whether these items should be grouped together."#,
             item_b.keywords.join(", "),
             item_b.created_at.format("%Y-%m-%d"),
             initial_score,
-            initial_score
+            initial_score,
+            MATCH_THRESHOLD
         );
 
         // Use decision workflow for consensus
@@ -727,19 +738,18 @@ Scoring Guidelines (Adjusted for DAO Context):
 - 0-15: Maximum unrelatedness within same DAO (different domains entirely)
 - 16-35: Minimal substantive connection (category overlap only)
 - 36-55: Moderate thematic relationship (same problem, different solutions)
-- 56-75: Significant operational connection (dependencies, same team)
-- 76-85: Strong governance continuity (same initiative progressing)
-- 86-95: Near-identical items (same proposal, different platforms)
+- 56-{}: Significant operational connection (dependencies, same team)
+- {}-{}: Strong governance continuity (same initiative progressing)
+- {}-95: Near-identical items (same proposal, different platforms)
 - 96-100: Duplicates or perfect matches
 
-CRITICAL: The grouping threshold is 80. Scores of 80 and above mean the items WILL be grouped together.
-Scores below 80 mean they will remain separate.
+CRITICAL: The grouping threshold is {}. Scores of {} and above mean the items WILL be grouped together.
+Scores below {} mean they will remain separate.
 
 Focus on: specific parameters, explicit references, author continuity, temporal progression, unique technical details.
 Ignore: generic governance terms, standard procedures, common DAO vocabulary.
 
-Based on careful analysis, provide a final precise similarity score between 0 and 100. Do not round up the score, make it a precise integer, use the entire range from 0 to 100."#,
-                prompt
+Based on careful analysis, provide a final precise similarity score between 0 and 100. Do not round up the score, make it a precise integer, use the entire range from 0 to 100."#, prompt, MATCH_THRESHOLD - 5, MATCH_THRESHOLD - 5, MATCH_THRESHOLD, MATCH_THRESHOLD + 6, MATCH_THRESHOLD, MATCH_THRESHOLD, MATCH_THRESHOLD
             ));
 
         // Get the consensus score
