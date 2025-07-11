@@ -2,7 +2,7 @@ use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use llm_client::RequestConfigTrait;
-use llm_client::{InstructPromptTrait, LlmClient};
+use llm_client::LlmClient;
 use llm_models::GgufLoaderTrait;
 use proposalsapp_db::models::*;
 use rand::Rng;
@@ -12,6 +12,7 @@ use sea_orm::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use tiktoken_rs::{CoreBPE, cl100k_base};
 use tracing::{error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
@@ -26,6 +27,9 @@ lazy_static::lazy_static! {
         m.insert("uniswap", vec![5, 8, 9, 10]);
         m
     };
+
+    /// Tokenizer for counting tokens using cl100k_base encoding (used by GPT-3.5 and GPT-4)
+    static ref TOKENIZER: CoreBPE = cl100k_base().expect("Failed to load cl100k_base tokenizer");
 }
 
 // Public function to run from main.rs
@@ -135,107 +139,89 @@ impl Grouper {
         Ok(Self { db, llm_client })
     }
 
-    // Helper function to safely truncate text with middle ellipsis
-    // This implementation uses char_indices() for accurate character counting and is_char_boundary() 
-    // for safety when we need to find valid slice points. This hybrid approach is optimal for our use case.
-    fn truncate_text(text: &str, max_chars: usize) -> String {
+    // Helper function to safely truncate text with middle ellipsis based on token count
+    // This implementation uses tiktoken for accurate token counting, ensuring the truncated text
+    // fits within LLM context windows while preserving meaningful content from both ends
+    fn truncate_text(text: &str, max_tokens: usize) -> String {
         const ELLIPSIS: &str = " [... TRUNCATED ...] ";
-        const ELLIPSIS_LEN: usize = 21; // " [... TRUNCATED ...] " is 21 chars
 
-        // Count actual characters, not bytes
-        let char_count = text.chars().count();
+        // Tokenize the text
+        let tokens = TOKENIZER.encode_ordinary(text);
 
-        if char_count <= max_chars {
+        let token_count = tokens.len();
+
+        // If text is already within token limit, return as-is
+        if token_count <= max_tokens {
             return text.to_string();
         }
 
-        // If max_chars is too small, just truncate at the end
-        if max_chars <= ELLIPSIS_LEN + 20 {
-            // Use char_indices().nth() for safe truncation at character boundaries
-            let truncate_at = max_chars.saturating_sub(4);
-            match text.char_indices().nth(truncate_at) {
-                None => text.to_string(), // Text is shorter than truncate_at
-                Some((byte_idx, _)) => format!("{}...", &text[..byte_idx]),
+        // Count tokens for the ellipsis
+        let ellipsis_tokens = TOKENIZER.encode_ordinary(ELLIPSIS).len();
+
+        // If max_tokens is too small, just truncate at the end
+        if max_tokens <= ellipsis_tokens + 10 {
+            // Truncate tokens and decode back to string
+            let truncate_at = max_tokens.saturating_sub(3); // Reserve 3 tokens for "..."
+            let truncated_tokens = &tokens[..truncate_at.min(tokens.len())];
+
+            match TOKENIZER.decode(truncated_tokens.to_vec()) {
+                Ok(decoded) => format!("{}...", decoded),
+                Err(_) => {
+                    // Fallback to character-based truncation
+                    let char_limit = truncate_at * 4; // Rough estimate: 1 token ≈ 4 chars
+                    format!("{}...", &text[..char_limit.min(text.len())])
+                }
             }
         } else {
-            // Calculate how many chars to keep from start and end
-            let available_chars = max_chars - ELLIPSIS_LEN;
+            // Calculate how many tokens to keep from start and end
+            let available_tokens = max_tokens.saturating_sub(ellipsis_tokens);
             // Keep 70% at the start, 30% at the end for better context
-            let start_chars = (available_chars * 7) / 10;
-            let end_chars = available_chars - start_chars;
+            let start_tokens = (available_tokens * 7) / 10;
+            let end_tokens = available_tokens - start_tokens;
 
-            // Find the byte positions for the character positions using char_indices()
-            let char_indices: Vec<(usize, char)> = text.char_indices().collect();
+            // Get start tokens
+            let start_part = &tokens[..start_tokens.min(tokens.len())];
 
-            // Safe start position
-            let start_end_idx = match char_indices.get(start_chars) {
-                Some((idx, _)) => *idx,
-                None => text.len(), // If we're past the end, use the whole string
-            };
+            // Get end tokens
+            let end_start_pos = tokens.len().saturating_sub(end_tokens);
+            let end_part = &tokens[end_start_pos..];
 
-            // Look for a good break point (space or newline) near the cutoff
-            let start_end_idx = char_indices
-                .iter()
-                .take(start_chars)
-                .rev()
-                .take(50) // Look back up to 50 chars
-                .find(|(_, ch)| ch.is_whitespace())
-                .map(|(idx, _)| *idx)
-                .unwrap_or(start_end_idx);
-
-            // Safe end position
-            let end_start_char_pos = char_count.saturating_sub(end_chars);
-            let end_start_idx = match char_indices.get(end_start_char_pos) {
-                Some((idx, _)) => *idx,
-                None => 0, // If position is invalid, start from beginning
-            };
-
-            // Look for a good break point after the cutoff
-            let end_start_idx = char_indices
-                .iter()
-                .skip(end_start_char_pos)
-                .take(50) // Look forward up to 50 chars
-                .find(|(_, ch)| ch.is_whitespace())
-                .map(|(idx, _)| idx + 1) // Skip the whitespace
-                .unwrap_or(end_start_idx);
-
-            // Ensure end_start_idx is not before start_end_idx
-            if end_start_idx <= start_end_idx {
-                // If ranges overlap, just do a simple truncation
-                match text.char_indices().nth(max_chars.saturating_sub(4)) {
-                    None => text.to_string(),
-                    Some((byte_idx, _)) => format!("{}...", &text[..byte_idx]),
+            // Decode the parts
+            let (start_text, end_text) = match (
+                TOKENIZER.decode(start_part.to_vec()),
+                TOKENIZER.decode(end_part.to_vec()),
+            ) {
+                (Ok(start), Ok(end)) => (start, end),
+                _ => {
+                    // Fallback to simple truncation if decoding fails
+                    let truncate_at = max_tokens.saturating_sub(3);
+                    let truncated_tokens = &tokens[..truncate_at.min(tokens.len())];
+                    match TOKENIZER.decode(truncated_tokens.to_vec()) {
+                        Ok(decoded) => return format!("{}...", decoded),
+                        Err(_) => return text.to_string(),
+                    }
                 }
+            };
+
+            // Try to find good break points (whitespace) near the boundaries
+            let start_text = if let Some(last_space) = start_text.rfind(|c: char| c.is_whitespace())
+            {
+                &start_text[..last_space]
             } else {
-                // Ensure indices are valid before slicing
-                let start_text = if start_end_idx <= text.len() && text.is_char_boundary(start_end_idx) {
-                    &text[..start_end_idx]
-                } else {
-                    // Find the nearest valid boundary before start_end_idx
-                    let mut idx = start_end_idx.min(text.len());
-                    while idx > 0 && !text.is_char_boundary(idx) {
-                        idx -= 1;
-                    }
-                    &text[..idx]
-                };
-                
-                let end_text = if end_start_idx <= text.len() && text.is_char_boundary(end_start_idx) {
-                    &text[end_start_idx..]
-                } else {
-                    // Find the nearest valid boundary after end_start_idx
-                    let mut idx = end_start_idx.min(text.len());
-                    while idx < text.len() && !text.is_char_boundary(idx) {
-                        idx += 1;
-                    }
-                    if idx < text.len() {
-                        &text[idx..]
-                    } else {
-                        ""
-                    }
-                };
-                
-                format!("{}{ELLIPSIS}{}", start_text.trim_end(), end_text.trim_start())
-            }
+                &start_text
+            };
+
+            let end_text = if let Some(first_space) = end_text.find(|c: char| c.is_whitespace()) {
+                &end_text[first_space + 1..]
+            } else {
+                &end_text
+            };
+
+            format!(
+                "{}{ELLIPSIS}{}",
+                start_text.trim_end(),
+                end_text.trim_start()
+            )
         }
     }
 
@@ -338,7 +324,12 @@ impl Grouper {
                 Example (bad): governance, proposal, voting, community, discussion, update"#);
 
         // Limit the body to prevent exceeding token limits
-        let truncated_body = Self::truncate_text(&item.body, 8000);
+        // For keyword extraction with 8192 token context window:
+        // - System prompt + instructions: ~200 tokens
+        // - Response space for keywords: ~300 tokens
+        // - Buffer: ~200 tokens
+        // This leaves ~7500 tokens for content, but we'll use 3000 to be conservative
+        let truncated_body = Self::truncate_text(&item.body, 3000);
 
         basic_completion
             .prompt()
@@ -486,12 +477,18 @@ impl Grouper {
 
         // Calculate available space for bodies
         // Total limit: 15k chars
-        // Reserve space for: titles (2x200), keywords (2x500), dates (2x20), template (~400)
-        // Total reserved: ~2500 chars, leaving ~12500 for bodies
-        let max_body_chars_per_item = 6000; // Split evenly between two items
+        // With 8192 token context window for similarity comparison:
+        // - System prompt + template: ~500 tokens
+        // - Two titles + metadata: ~200 tokens
+        // - Model response: ~1000 tokens
+        // - Buffer: ~500 tokens
+        // This leaves ~6000 tokens for content (3000 per item)
 
-        let body_a = Self::truncate_text(&item_a.body, max_body_chars_per_item);
-        let body_b = Self::truncate_text(&item_b.body, max_body_chars_per_item);
+        // For similarity comparison, allocate 3000 tokens per item
+        // This gives us 6000 tokens total for both items, leaving ~2000 for prompt/response
+        let max_body_tokens_per_item = 3000;
+        let body_a = Self::truncate_text(&item_a.body, max_body_tokens_per_item);
+        let body_b = Self::truncate_text(&item_b.body, max_body_tokens_per_item);
 
         // Create prompt with all relevant information
         let prompt = format!(
@@ -523,56 +520,86 @@ impl Grouper {
             item_b.created_at.format("%Y-%m-%d")
         );
 
-        // Get LLM score
-        let mut score_request = self.llm_client.reason().integer();
-        score_request.primitive.lower_bound(0).upper_bound(100);
+        // Get LLM score using basic completion
+        let mut basic_completion = self.llm_client.basic_completion();
+        
+        // Configure for focused integer output
+        basic_completion
+            .max_tokens(10)  // We only need a number
+            .temperature(0.3)  // Lower temperature for consistent scoring
+            .frequency_penalty(0.0);
+        
+        // System prompt for scoring
+        basic_completion
+            .prompt()
+            .add_system_message()
+            .unwrap()
+            .set_content(r#"You are a DAO governance analyst specializing in proposal relationship mapping. 
 
-        let score = score_request
-            .set_instructions(r#"
-                You are a DAO governance analyst specializing in proposal relationship mapping. Evaluate whether these two governance items should be grouped together.
+Your task is to evaluate whether two governance items should be grouped together by returning ONLY a single integer score from 0 to 100.
 
-                Scoring Guidelines:
-                - 90-100: Same proposal/initiative at different stages or formats
-                - 70-89: Directly related items that form a coherent governance thread
-                - 50-69: Related topics with significant shared context
-                - 30-49: Loosely related with some common elements
-                - 10-29: Minimal connection, different topics sharing minor details
-                - 0-9: Completely unrelated items
+Scoring Guidelines:
+- 90-100: Same proposal/initiative at different stages or formats
+- 70-89: Directly related items that form a coherent governance thread
+- 50-69: Related topics with significant shared context
+- 30-49: Loosely related with some common elements
+- 10-29: Minimal connection, different topics sharing minor details
+- 0-9: Completely unrelated items
 
-                Strong Grouping Indicators (HIGH scores):
-                1. SEQUENTIAL PROGRESSION: Temperature check → Formal proposal → Implementation update
-                2. SAME INITIATIVE: Identical funding request, protocol change, or strategic decision across venues
-                3. EXPLICIT REFERENCES: One item directly mentions or links to the other
-                4. IDENTICAL KEY DETAILS: Same amounts, addresses, specific parameter values, or implementation specs
-                5. AUTHOR CONTINUITY: Same proposer advancing through governance stages
+Strong Grouping Indicators (HIGH scores):
+1. SEQUENTIAL PROGRESSION: Temperature check → Formal proposal → Implementation update
+2. SAME INITIATIVE: Identical funding request, protocol change, or strategic decision across venues
+3. EXPLICIT REFERENCES: One item directly mentions or links to the other
+4. IDENTICAL KEY DETAILS: Same amounts, addresses, specific parameter values, or implementation specs
+5. AUTHOR CONTINUITY: Same proposer advancing through governance stages
 
-                Moderate Grouping Indicators (MEDIUM scores):
-                1. SHARED OBJECTIVES: Different approaches to the same problem
-                2. DEPENDENCY RELATIONSHIP: One proposal depends on or complements the other
-                3. TOPICAL CLUSTERING: Multiple proposals in the same domain (e.g., all security audits)
-                4. TEMPORAL PROXIMITY: Related items posted within days/weeks of each other
+Moderate Grouping Indicators (MEDIUM scores):
+1. SHARED OBJECTIVES: Different approaches to the same problem
+2. DEPENDENCY RELATIONSHIP: One proposal depends on or complements the other
+3. TOPICAL CLUSTERING: Multiple proposals in the same domain (e.g., all security audits)
+4. TEMPORAL PROXIMITY: Related items posted within days/weeks of each other
 
-                Weak/No Grouping Indicators (LOW scores):
-                1. COMPETING PROPOSALS: Mutually exclusive alternatives
-                2. DIFFERENT DOMAINS: Unrelated protocol areas or initiatives
-                3. GENERIC SIMILARITIES: Only sharing common governance terms
-                4. COINCIDENTAL OVERLAP: Similar words but different contexts
-                5. INSUFFICIENT DATA: Lack of sufficient information to make a determination
+Weak/No Grouping Indicators (LOW scores):
+1. COMPETING PROPOSALS: Mutually exclusive alternatives
+2. DIFFERENT DOMAINS: Unrelated protocol areas or initiatives
+3. GENERIC SIMILARITIES: Only sharing common governance terms
+4. COINCIDENTAL OVERLAP: Similar words but different contexts
+5. INSUFFICIENT DATA: Lack of sufficient information to make a determination
 
-                Analysis Framework:
-                - Compare titles for direct matches or progression patterns
-                - Check if keywords overlap in meaningful ways (not just generic terms)
-                - Identify specific entities, amounts, or technical details that match
-                - Consider temporal relationship and logical flow
-                - Look for explicit mentions or references between items
-
-                Return a single integer from 0 to 100 based on the strength of relationship."#)
-            .set_supporting_material(&prompt)
-            .return_primitive()
+IMPORTANT: Return ONLY a single integer between 0 and 100. No explanations, no text, just the number."#);
+        
+        // Add the comparison prompt
+        basic_completion
+            .prompt()
+            .add_user_message()
+            .unwrap()
+            .set_content(prompt);
+        
+        // Get the response
+        let response = basic_completion
+            .run()
             .await
-            .context("Failed to get match score")?;
-
-        Ok(score as u8)
+            .context("Failed to run LLM completion for scoring")?;
+        
+        // Parse the integer from the response
+        let score_text = response.content.trim();
+        let score = score_text
+            .parse::<u8>()
+            .unwrap_or_else(|_| {
+                // Try to extract a number if there's extra text
+                score_text
+                    .split_whitespace()
+                    .find_map(|word| word.parse::<u8>().ok())
+                    .unwrap_or_else(|| {
+                        warn!("Failed to parse score from response: '{}', defaulting to 0", score_text);
+                        0
+                    })
+            });
+        
+        // Ensure score is within bounds
+        let score = score.min(100);
+        
+        Ok(score)
     }
 
     // Main grouping algorithm with scoring
@@ -608,8 +635,8 @@ impl Grouper {
                     score, current_item_id, grouped_item.id, group_id
                 );
 
-                if score >= MATCH_THRESHOLD && best_match.is_none()
-                    || score > best_match.as_ref().unwrap().0
+                if score >= MATCH_THRESHOLD 
+                    && (best_match.is_none() || score > best_match.as_ref().unwrap().0)
                 {
                     best_match = Some((score, grouped_item.id.clone(), true));
                     best_group_id = Some(group_id);
@@ -624,8 +651,8 @@ impl Grouper {
                     score, current_item_id, other_item.id
                 );
 
-                if score >= MATCH_THRESHOLD && best_match.is_none()
-                    || score > best_match.as_ref().unwrap().0
+                if score >= MATCH_THRESHOLD 
+                    && (best_match.is_none() || score > best_match.as_ref().unwrap().0)
                 {
                     best_match = Some((score, other_item.id.clone(), false));
                     best_ungrouped_idx = Some(idx);
@@ -1151,29 +1178,37 @@ mod tests {
     fn test_truncate_text_with_unicode() {
         // Test with non-breaking space (the character that caused the panic)
         let text_with_nbsp = "Hello\u{a0}world this is a test with non-breaking space";
-        let truncated = Grouper::truncate_text(text_with_nbsp, 10);
+        // Using ~3 tokens (roughly 10 chars at ~3.3 chars/token)
+        let truncated = Grouper::truncate_text(text_with_nbsp, 3);
         assert!(truncated.ends_with("..."));
         assert!(truncated.len() <= text_with_nbsp.len());
-        
+
         // Test with emoji
         let text_with_emoji = "Hello 🧑‍🔬 scientist emoji test";
-        let truncated = Grouper::truncate_text(text_with_emoji, 10);
+        // Using ~3 tokens (roughly 10 chars)
+        let truncated = Grouper::truncate_text(text_with_emoji, 3);
         assert!(truncated.ends_with("..."));
-        
+
         // Test with mixed Unicode characters
         let mixed_unicode = "English русский 中文 العربية mixed text";
-        let truncated = Grouper::truncate_text(mixed_unicode, 20);
+        // Using ~6 tokens (roughly 20 chars)
+        let truncated = Grouper::truncate_text(mixed_unicode, 6);
         assert!(truncated.ends_with("..."));
-        
+
         // Test with exact boundary - the problematic case from the error
         let problematic_text = "# Deploy Uniswap v3 on Gnosis Chain\nContext\n-------\n\nAfter passing the\u{a0}[Temperature Check vote](https://snapshot.org/#/uniswap/proposal/0xb328c7583c0f1ea85f8a273dd36977c95e47c3713744caf7143e68b65efcc8a5)\u{a0}with 7M UNI voting in favor of deploying Uniswap v";
         // This should not panic
-        let truncated = Grouper::truncate_text(problematic_text, 200);
+        // Using ~50 tokens (roughly 200 chars at ~4 chars/token)
+        let truncated = Grouper::truncate_text(problematic_text, 50);
         assert!(!truncated.is_empty());
-        
+
         // Test middle truncation with unicode
-        let long_unicode = format!("Start текст с unicode символами {}end часть с unicode", "middle part ".repeat(50));
-        let truncated = Grouper::truncate_text(&long_unicode, 100);
+        let long_unicode = format!(
+            "Start текст с unicode символами {}end часть с unicode",
+            "middle part ".repeat(50)
+        );
+        // Using ~25 tokens (roughly 100 chars at ~4 chars/token)
+        let truncated = Grouper::truncate_text(&long_unicode, 25);
         assert!(truncated.contains("[... TRUNCATED ...]"));
     }
 
