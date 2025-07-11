@@ -97,6 +97,28 @@ static_resources:
                 route:
                   cluster: prometheus_cluster
                   timeout: 30s
+            - name: discourse_forum_service
+              domains: ["forum.proposals.app"]
+              routes:
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: discourse_forum_cluster
+                  timeout: 30s
+              request_headers_to_add:
+              - header:
+                  key: X-Forwarded-Host
+                  value: "%REQ(HOST)%"
+              - header:
+                  key: X-Forwarded-Proto
+                  value: "https"
+              - header:
+                  key: X-Forwarded-For
+                  value: "%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%"
+                append_action: APPEND_IF_EXISTS_OR_ADD
+              - header:
+                  key: X-Real-IP
+                  value: "%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%"
           http_filters:
           - name: envoy.filters.http.router
             typed_config:
@@ -200,6 +222,36 @@ static_resources:
       {{- if ne . (env "DATACENTER") }}
       {{- $dc := . }}
       {{- range service (printf "prometheus@%s" $dc) }}
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: {{ .Address }}
+                port_value: {{ .Port }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+
+  - name: discourse_forum_cluster
+    connect_timeout: 5s
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: discourse_forum_cluster
+      endpoints:
+      # Query all datacenters for single-instance services
+      {{- range service "discourse-forum" }}
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: {{ .Address }}
+                port_value: {{ .Port }}
+      {{- end }}
+      {{- range datacenters }}
+      {{- if ne . (env "DATACENTER") }}
+      {{- $dc := . }}
+      {{- range service (printf "discourse-forum@%s" $dc) }}
       - lb_endpoints:
         - endpoint:
             address:

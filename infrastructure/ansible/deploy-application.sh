@@ -19,6 +19,7 @@ show_usage() {
     echo "  web              - Next.js frontend application"
     echo "  email-service    - Email notification service for proposals"
     echo "  homepage         - Infrastructure dashboard with service discovery"
+    echo "  discourse-forum  - Self-contained Discourse forum instance"
     echo ""
     echo "Note: For observability stack (Prometheus, Grafana, Loki), use ./deploy-observability.sh"
     echo ""
@@ -46,7 +47,7 @@ if [ "$APP_NAME" = "all" ]; then
     echo "Deploying all applications in order"
     echo "=========================================="
 
-    DEPLOYMENT_ORDER="cloudflared consul-ingress homepage web rindexer discourse mapper email-service"
+    DEPLOYMENT_ORDER="cloudflared consul-ingress homepage web rindexer discourse mapper email-service discourse-forum"
 
     # Check if we should continue on error
     CONTINUE_ON_ERROR=false
@@ -102,7 +103,7 @@ if [ "$APP_NAME" = "all" ]; then
 fi
 
 # List of valid applications
-VALID_APPS="rindexer discourse mapper email-service cloudflared consul-ingress web homepage"
+VALID_APPS="rindexer discourse mapper email-service cloudflared consul-ingress web homepage discourse-forum"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then

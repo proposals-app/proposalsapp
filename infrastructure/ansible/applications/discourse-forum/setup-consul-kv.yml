@@ -1,0 +1,138 @@
+---
+- name: Setup Consul KV values for discourse-forum in all datacenters
+  hosts: consul_servers
+  become: true
+  vars:
+    consul_kv_values:
+      # Admin account configuration
+      - key: "discourse-forum/admin_username"
+        value: "{{ vault_discourse_forum_admin_username }}"
+      - key: "discourse-forum/admin_password"
+        value: "{{ vault_discourse_forum_admin_password }}"
+      - key: "discourse-forum/admin_email"
+        value: "{{ vault_discourse_forum_admin_email }}"
+
+      # Site configuration
+      - key: "discourse-forum/site_name"
+        value: "{{ vault_discourse_forum_site_name }}"
+      - key: "discourse-forum/hostname"
+        value: "{{ vault_discourse_forum_hostname }}"
+
+      # Database configuration
+      - key: "discourse-forum/db_name"
+        value: "{{ vault_discourse_forum_db_name }}"
+      - key: "discourse-forum/db_username"
+        value: "{{ vault_discourse_forum_db_username }}"
+      - key: "discourse-forum/db_password"
+        value: "{{ vault_discourse_forum_db_password }}"
+
+      # Redis configuration
+      - key: "discourse-forum/redis_password"
+        value: "{{ vault_discourse_forum_redis_password }}"
+
+      # SMTP configuration
+      - key: "discourse-forum/smtp_host"
+        value: "{{ vault_discourse_forum_smtp_host }}"
+      - key: "discourse-forum/smtp_port"
+        value: "{{ vault_discourse_forum_smtp_port }}"
+      - key: "discourse-forum/smtp_user"
+        value: "{{ vault_discourse_forum_smtp_user }}"
+      - key: "discourse-forum/smtp_password"
+        value: "{{ vault_discourse_forum_smtp_password }}"
+      - key: "discourse-forum/smtp_protocol"
+        value: "{{ vault_discourse_forum_smtp_protocol }}"
+      - key: "discourse-forum/notification_email"
+        value: "{{ vault_discourse_forum_notification_email }}"
+
+      # Optional monitoring
+      - key: "discourse-forum/better_stack_key"
+        value: "{{ vault_discourse_forum_better_stack_key | default('') }}"
+
+      # Security keys
+      - key: "discourse-forum/secret_key_base"
+        value: "{{ vault_discourse_forum_secret_key_base }}"
+
+  tasks:
+    - name: Ensure Consul is available
+      wait_for:
+        port: 8500
+        host: localhost
+        timeout: 60
+
+    - name: Get local Consul datacenter info
+      uri:
+        url: "http://localhost:8500/v1/agent/self"
+        method: GET
+      register: consul_info
+
+    - name: Set datacenter variable
+      set_fact:
+        current_datacenter: "{{ consul_info.json.Config.Datacenter }}"
+
+    - name: Store values in local datacenter's Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop: "{{ consul_kv_values }}"
+      loop_control:
+        label: "{{ item.key }} in {{ current_datacenter }}"
+      no_log: true # Don't log sensitive values
+
+    - name: Display setup information for this datacenter
+      debug:
+        msg: |
+          ========================================
+          Consul KV Setup Complete for {{ current_datacenter }}
+          ========================================
+
+          Environment variables have been stored in Consul KV
+          for datacenter: {{ current_datacenter }}
+
+          Run this playbook on all consul servers to replicate
+          the configuration across all datacenters.
+          ========================================
+      run_once: true
+
+- name: Display final deployment instructions
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Show deployment instructions
+      debug:
+        msg: |
+          ========================================
+          Discourse Forum Setup Complete
+          ========================================
+
+          To deploy the Discourse forum application:
+          1. Ensure this playbook has been run on all consul servers
+          2. Run: nomad job run infrastructure/ansible/applications/discourse-forum/discourse-forum.nomad
+
+          The Discourse forum is a self-contained deployment that includes:
+          - PostgreSQL 17 database
+          - Redis 7 cache
+          - Discourse application (Bitnami image)
+          - Sidekiq background job processor
+
+          To verify the values in each datacenter:
+          - consul kv get discourse-forum/admin_username
+          - consul kv get discourse-forum/hostname
+          - consul kv get discourse-forum/db_name
+
+          The forum will be available at:
+          - https://forum.proposals.app (after configuring ingress)
+
+          Important notes:
+          - The forum uses 20GB of persistent storage
+          - All data is stored in the Nomad allocation directory
+          - PostgreSQL and Redis are only accessible within the job
+          - Initial setup wizard will run on first access
+          - SMTP must be configured for email functionality
+
+          Post-deployment steps:
+          1. Update consul-ingress.nomad to add forum.proposals.app routing
+          2. Access the forum and complete the setup wizard
+          3. Configure categories, permissions, and SSO if needed
+          4. Set up regular backups of the /alloc/data directory
+          ========================================
