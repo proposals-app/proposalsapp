@@ -242,29 +242,31 @@
         if grep -q "# GPU Passthrough Configuration" /etc/pve/lxc/{{ item.0.id }}.conf; then
           echo "GPU passthrough already configured"
         else
-          # Dynamically detect available GPU devices - handle case where no GPUs exist yet
+          # Dynamically detect available GPU devices
+          # IMPORTANT: LXC config does NOT support shell expansion like {0..3}
+          # Each device must have its own mount entry line
           gpu_devices=""
-          gpu_found=false
-          for i in {0..7}; do
-            device="/dev/nvidia$i"
-            if [ -e "$device" ]; then
-              device_name=$(basename "$device")
-              if [ -n "$gpu_devices" ]; then
-                gpu_devices=$(printf "%s\n" "$gpu_devices")
-              fi
-              gpu_devices="${gpu_devices}lxc.mount.entry: $device dev/$device_name none bind,optional,create=file"
-              gpu_found=true
+          
+          # Find all nvidia GPU devices (nvidia0, nvidia1, etc.)
+          for device in $(ls -1 /dev/nvidia* 2>/dev/null | grep -E 'nvidia[0-9]+$' || true); do
+            device_name=$(basename "$device")
+            if [ -n "$gpu_devices" ]; then
+              gpu_devices="${gpu_devices}\n"
             fi
+            gpu_devices="${gpu_devices}lxc.mount.entry: $device dev/$device_name none bind,optional,create=file"
           done
           
-          # If no GPU devices found, add placeholders for first 4 GPUs
-          if [ "$gpu_found" = "false" ]; then
-            for i in {0..3}; do
-              if [ -n "$gpu_devices" ]; then
-                gpu_devices=$(printf "%s\n" "$gpu_devices")
-              fi
-              gpu_devices="${gpu_devices}lxc.mount.entry: /dev/nvidia$i dev/nvidia$i none bind,optional,create=file"
-            done
+          # If no GPU devices found, detect the number of GPUs from nvidia-smi and create entries
+          if [ -z "$gpu_devices" ]; then
+            gpu_count=$(nvidia-smi --query-gpu=count --format=csv,noheader 2>/dev/null | head -1 || echo "0")
+            if [ "$gpu_count" -gt 0 ]; then
+              for i in $(seq 0 $((gpu_count - 1))); do
+                if [ -n "$gpu_devices" ]; then
+                  gpu_devices="${gpu_devices}\n"
+                fi
+                gpu_devices="${gpu_devices}lxc.mount.entry: /dev/nvidia$i dev/nvidia$i none bind,optional,create=file"
+              done
+            fi
           fi
           
           # Add GPU passthrough configuration
@@ -290,7 +292,7 @@
             echo "lxc.cgroup2.devices.allow: c ${nvidia_modeset_major}:* rwm"
             echo ""
             echo "# Mount NVIDIA GPU devices"
-            echo "$gpu_devices"
+            echo -e "$gpu_devices"
             echo "# Mount NVIDIA control devices"
             echo "lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file"
             echo "lxc.mount.entry: /dev/nvidia-modeset dev/nvidia-modeset none bind,optional,create=file"
@@ -314,6 +316,37 @@
         grep -A 20 "# GPU Passthrough Configuration" /etc/pve/lxc/{{ item.0.id }}.conf
       loop: "{{ my_containers | zip(container_exists.results) | list }}"
       register: gpu_config
+
+    - name: Ensure GPU devices are properly configured
+      when: 
+        - gpu_enabled_hosts[inventory_hostname] | default(false)
+        - item.name in gpu_passthrough_containers
+      block:
+        - name: Find all NVIDIA GPU devices
+          find:
+            paths: /dev
+            patterns: 'nvidia[0-9]+$'
+            use_regex: yes
+            file_type: any
+          register: gpu_device_files
+
+        - name: Verify GPU mount entries are correct
+          shell: |
+            config_file="/etc/pve/lxc/{{ item.id }}.conf"
+            
+            # Check each found GPU device
+            {% for device in gpu_device_files.files | default([]) %}
+            device_name="{{ device.path | basename }}"
+            if ! grep -q "lxc.mount.entry: {{ device.path }} dev/$device_name" "$config_file"; then
+              echo "Missing mount entry for {{ device.path }}"
+              # Add the missing entry after the GPU devices comment
+              sed -i '/# Mount NVIDIA GPU devices/a lxc.mount.entry: {{ device.path }} dev/{{ device.path | basename }} none bind,optional,create=file' "$config_file"
+            fi
+            {% endfor %}
+            
+            echo "GPU mount entries verified"
+          loop: "{{ my_containers }}"
+          when: gpu_device_files.files is defined and gpu_device_files.files | length > 0
 
     - name: GPU host preparation
       when: gpu_enabled_hosts[inventory_hostname] | default(false)
@@ -1140,6 +1173,32 @@
             state: present
             update_cache: yes
 
+        - name: Get NVIDIA driver version from host
+          command: nvidia-smi --query-gpu=driver_version --format=csv,noheader
+          register: nvidia_driver_version
+          delegate_to: "{{ proxmox_node }}"
+          ignore_errors: true
+
+        - name: Set default driver version if detection failed
+          set_fact:
+            nvidia_driver_version_clean: "{{ nvidia_driver_version.stdout | default('575.57.08') | trim }}"
+
+        - name: Install NVIDIA drivers in container
+          shell: |
+            DRIVER_VERSION="{{ nvidia_driver_version_clean }}"
+            echo "Installing NVIDIA driver version: ${DRIVER_VERSION}"
+            
+            # Download and install the driver with --no-kernel-modules flag
+            cd /tmp
+            wget -q "https://us.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run" || \
+            wget -q "https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
+            
+            chmod +x "NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
+            ./NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run --no-kernel-modules --silent || true
+            rm -f "NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
+          args:
+            creates: /usr/bin/nvidia-smi
+
         - name: Create NVIDIA configuration directory
           file:
             path: /etc/nvidia
@@ -1173,6 +1232,12 @@
             # Configure for LXC usage
             nvidia-ctk config --set nvidia-container-cli.no-cgroups=true --in-place
             
+            # Also update the config file directly to ensure no-cgroups is set
+            if [ -f /etc/nvidia-container-runtime/config.toml ]; then
+              sed -i 's/^#no-cgroups = false/no-cgroups = true/' /etc/nvidia-container-runtime/config.toml
+              sed -i 's/^no-cgroups = false/no-cgroups = true/' /etc/nvidia-container-runtime/config.toml
+            fi
+            
             # Ensure runtime hook is configured
             nvidia-ctk runtime configure --runtime=docker
           changed_when: false
@@ -1181,7 +1246,6 @@
         - name: Gather package facts
           package_facts:
             manager: auto
-          when: inventory_hostname in gpu_passthrough_containers
 
         - name: Configure Docker for GPU support
           when: 

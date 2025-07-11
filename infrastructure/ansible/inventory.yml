@@ -20,100 +20,100 @@ all:
           container_id: 5303
           datacenter: dc3
           proxmox_node: fsn-01
-          tailscale_ip: 100.95.176.25
+          tailscale_ip: 100.103.8.70
         apps-sib-01:
           ansible_host: apps-sib-01
           container_id: 5103
           datacenter: dc1
           proxmox_node: sib-01
-          tailscale_ip: 100.104.56.6
+          tailscale_ip: 100.126.6.111
         apps-sib-03:
           ansible_host: apps-sib-03
           container_id: 5203
           datacenter: dc2
           proxmox_node: sib-03
-          tailscale_ip: 100.84.86.54
+          tailscale_ip: 100.73.134.41
         consul-nomad-fsn-01:
           ansible_host: consul-nomad-fsn-01
           container_id: 5301
           datacenter: dc3
           proxmox_node: fsn-01
-          tailscale_ip: 100.92.37.57
+          tailscale_ip: 100.96.41.30
         consul-nomad-sib-01:
           ansible_host: consul-nomad-sib-01
           container_id: 5101
           datacenter: dc1
           proxmox_node: sib-01
-          tailscale_ip: 100.76.253.39
+          tailscale_ip: 100.77.214.30
         consul-nomad-sib-03:
           ansible_host: consul-nomad-sib-03
           container_id: 5201
           datacenter: dc2
           proxmox_node: sib-03
-          tailscale_ip: 100.102.103.126
+          tailscale_ip: 100.88.47.121
         db-fsn-01:
           ansible_host: db-fsn-01
           container_id: 5302
           datacenter: dc3
           postgres_role: standby
           proxmox_node: fsn-01
-          tailscale_ip: 100.73.107.99
+          tailscale_ip: 100.102.189.82
         db-sib-01:
           ansible_host: db-sib-01
           container_id: 5102
           datacenter: dc1
           postgres_role: primary
           proxmox_node: sib-01
-          tailscale_ip: 100.64.149.77
+          tailscale_ip: 100.118.94.57
         db-sib-03:
           ansible_host: db-sib-03
           container_id: 5202
           datacenter: dc2
           postgres_role: standby
           proxmox_node: sib-03
-          tailscale_ip: 100.121.3.48
+          tailscale_ip: 100.121.134.115
         github-runner-fsn-01:
           ansible_host: github-runner-fsn-01
           container_id: 5304
           datacenter: dc3
           proxmox_node: fsn-01
-          tailscale_ip: 100.122.10.115
+          tailscale_ip: 100.78.54.109
         github-runner-sib-01:
           ansible_host: github-runner-sib-01
           container_id: 5104
           datacenter: dc1
           proxmox_node: sib-01
-          tailscale_ip: 100.126.69.59
+          tailscale_ip: 100.96.123.84
         github-runner-sib-03:
           ansible_host: github-runner-sib-03
           container_id: 5204
           datacenter: dc2
           proxmox_node: sib-03
-          tailscale_ip: 100.86.219.110
+          tailscale_ip: 100.117.187.107
         pgbackweb-sib-01:
           ansible_host: pgbackweb-sib-01
           container_id: 5107
           datacenter: dc1
           proxmox_node: sib-01
-          tailscale_ip: 100.64.220.59
+          tailscale_ip: 100.72.162.37
         redis-fsn-01:
           ansible_host: redis-fsn-01
           container_id: 5305
           datacenter: dc3
           proxmox_node: fsn-01
-          tailscale_ip: 100.125.164.40
+          tailscale_ip: 100.109.207.70
         redis-sib-01:
           ansible_host: redis-sib-01
           container_id: 5105
           datacenter: dc1
           proxmox_node: sib-01
-          tailscale_ip: 100.115.108.3
+          tailscale_ip: 100.72.30.110
         redis-sib-03:
           ansible_host: redis-sib-03
           container_id: 5205
           datacenter: dc2
           proxmox_node: sib-03
-          tailscale_ip: 100.94.222.1
+          tailscale_ip: 100.82.255.15
     nomad_clients:
       hosts:
         apps-fsn-01: null

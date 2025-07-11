@@ -67,7 +67,7 @@ client {
     cidr = "{{ tailscale_ip }}/32"
     interface = "tailscale0"
   }
-  
+
   # Local container network for internal-only services
   host_network "local" {
     cidr = "{{ ansible_default_ipv4.address }}/32"
@@ -199,3 +199,24 @@ plugin "raw_exec" {
     enabled = false
   }
 }
+
+# Plugin directory configuration for external plugins
+plugin_dir = "/opt/nomad/plugins/"
+
+# NVIDIA GPU Device Plugin
+# Enables GPU resource scheduling for containers
+# Only configured on nodes with GPU passthrough
+{% if inventory_hostname in gpu_passthrough_containers | default([]) %}
+plugin "nvidia-gpu" {
+  config {
+    # Enable GPU fingerprinting
+    enabled = true
+
+    # Fingerprint all GPUs on the node
+    fingerprint_period = "1m"
+
+    # Ignore integrated GPUs
+    ignored_gpu_ids = []
+  }
+}
+{% endif %}

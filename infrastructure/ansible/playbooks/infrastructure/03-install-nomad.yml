@@ -34,7 +34,7 @@
           # Ensure Consul is available
           After=consul.service
           Wants=consul.service
-          
+
           [Service]
           Environment="CONSUL_HTTP_ADDR=http://127.0.0.1:{{ consul_client_port }}"
           # Add startup delay to ensure Consul is ready
@@ -124,7 +124,7 @@
           # Ensure Consul is available
           After=consul.service
           Wants=consul.service
-          
+
           [Service]
           Environment="CONSUL_HTTP_ADDR=http://127.0.0.1:{{ consul_client_port }}"
           # Add startup delay to ensure Consul is ready
@@ -140,15 +140,15 @@
           [Unit]
           # Additional dependencies for Nomad clients - made non-fatal to avoid circular dependencies
           After=pgpool.service haproxy.service consul.service
-          
+
           [Service]
           # Wait for Consul to be ready first (critical dependency)
           ExecStartPre=/bin/bash -c 'for i in {1..30}; do consul members &>/dev/null && echo "Consul is ready" && exit 0 || echo "Waiting for Consul to be ready..."; sleep 2; done; exit 1'
-          
+
           # Try to wait for pgpool, but don't block startup if it's not available
           # This prevents circular dependency - Nomad can start and then schedule pgpool
           ExecStartPre=-/bin/bash -c 'echo "[Nomad] Checking for pgpool service in Consul..."; for i in {1..10}; do consul catalog services 2>/dev/null | grep -q pgpool && echo "[Nomad] pgpool found in Consul" && exit 0; echo "[Nomad] Waiting for pgpool in Consul (non-fatal)..."; sleep 2; done; echo "[Nomad] pgpool not found in Consul after 20s, continuing anyway (will be scheduled by Nomad)"; exit 0'
-          
+
           # Try to wait for haproxy-redis, but don't block startup if it's not available
           ExecStartPre=-/bin/bash -c 'echo "[Nomad] Checking for haproxy-redis service in Consul..."; for i in {1..10}; do consul catalog services 2>/dev/null | grep -q haproxy-redis && echo "[Nomad] haproxy-redis found in Consul" && exit 0; echo "[Nomad] Waiting for haproxy-redis in Consul (non-fatal)..."; sleep 2; done; echo "[Nomad] haproxy-redis not found in Consul after 20s, continuing anyway (will be scheduled by Nomad)"; exit 0'
         dest: /etc/systemd/system/nomad.service.d/client-dependencies.conf
@@ -169,6 +169,72 @@
         - /opt/nomad-volumes/loki
         - /opt/nomad-volumes/grafana
         - /opt/nomad-volumes/prometheus
+        - /var/lib/nomad-volumes
+
+    - name: Install NVIDIA Container Toolkit (GPU-enabled containers only)
+      when: inventory_hostname in gpu_passthrough_containers | default([])
+      block:
+        - name: Create keyring directory
+          file:
+            path: /usr/share/keyrings
+            state: directory
+            mode: "0755"
+
+        - name: Add NVIDIA GPG key to keyring
+          get_url:
+            url: https://nvidia.github.io/libnvidia-container/gpgkey
+            dest: /tmp/nvidia-gpgkey
+          register: nvidia_gpgkey
+
+        - name: Dearmor NVIDIA GPG key
+          shell: gpg --dearmor < /tmp/nvidia-gpgkey > /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+          when: nvidia_gpgkey is changed
+
+        - name: Add NVIDIA container toolkit repository with signed-by
+          shell: |
+            curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+          args:
+            creates: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+        - name: Update apt cache
+          apt:
+            update_cache: yes
+
+        - name: Install NVIDIA container toolkit
+          apt:
+            name:
+              - nvidia-container-toolkit
+            state: present
+
+        - name: Add NVIDIA CUDA repository for libraries
+          shell: |
+            wget -qO- https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/3bf863cc.pub | apt-key add -
+            echo "deb https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" > /etc/apt/sources.list.d/cuda-debian12.list
+          args:
+            creates: /etc/apt/sources.list.d/cuda-debian12.list
+
+        - name: Update apt cache for CUDA repo
+          apt:
+            update_cache: yes
+
+        - name: Install NVIDIA libraries
+          apt:
+            name:
+              - cuda-drivers-fabricmanager-575
+            state: present
+          ignore_errors: yes  # May partially fail but installs needed libraries
+
+        - name: Create symlink for libnvidia-ml.so
+          shell: |
+            if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.575.57.08 ]; then
+              cd /usr/lib/x86_64-linux-gnu
+              ln -sf libnvidia-ml.so.575.57.08 libnvidia-ml.so
+              ldconfig
+            fi
+          args:
+            creates: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
 
     - name: Create Docker daemon configuration
       copy:
@@ -181,10 +247,43 @@
             },
             "storage-driver": "overlay2",
             "metrics-addr": "127.0.0.1:9323",
-            "experimental": true
+            "experimental": true{% if inventory_hostname in gpu_passthrough_containers | default([]) %},
+            "runtimes": {
+              "nvidia": {
+                "path": "nvidia-container-runtime",
+                "runtimeArgs": []
+              }
+            },
+            "default-runtime": "nvidia"{% endif %}
           }
         dest: /etc/docker/daemon.json
       notify: restart docker
+
+    - name: Install Nomad GPU device plugin (GPU-enabled containers only)
+      when: inventory_hostname in gpu_passthrough_containers | default([])
+      block:
+        - name: Create Nomad plugins directory
+          file:
+            path: /opt/nomad/plugins
+            state: directory
+            owner: nomad
+            group: nomad
+            mode: "0755"
+
+        - name: Download Nomad nvidia-gpu device plugin
+          unarchive:
+            src: https://releases.hashicorp.com/nomad-device-nvidia/1.0.0/nomad-device-nvidia_1.0.0_linux_amd64.zip
+            dest: /opt/nomad/plugins/
+            remote_src: yes
+            owner: nomad
+            group: nomad
+            mode: "0755"
+            creates: /opt/nomad/plugins/nomad-device-nvidia
+
+        - name: Rename nvidia-gpu plugin binary
+          command: mv /opt/nomad/plugins/nomad-device-nvidia /opt/nomad/plugins/nvidia-gpu
+          args:
+            creates: /opt/nomad/plugins/nvidia-gpu
 
     - name: Create Docker authentication for GitHub Container Registry
       copy:

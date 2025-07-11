@@ -191,8 +191,8 @@ EOF
       }
 
       resources {
-        cpu    = 18000
-        memory = 6144   # 6GB RAM
+        cpu    = 4000
+        memory = 2048   # 2GB RAM
 
         # Reserve additional resources for peak loads
         memory_max = 16384  # Allow bursting to 16GB
