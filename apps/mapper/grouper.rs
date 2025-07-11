@@ -189,7 +189,7 @@ impl Grouper {
             let truncated_tokens = &tokens[..truncate_at.min(tokens.len())];
 
             match TOKENIZER.decode(truncated_tokens.to_vec()) {
-                Ok(decoded) => format!("{}...", decoded),
+                Ok(decoded) => format!("{decoded}..."),
                 Err(_) => {
                     // Fallback to character-based truncation
                     let char_limit = truncate_at * 4; // Rough estimate: 1 token ≈ 4 chars
@@ -221,7 +221,7 @@ impl Grouper {
                     let truncate_at = max_tokens.saturating_sub(3);
                     let truncated_tokens = &tokens[..truncate_at.min(tokens.len())];
                     match TOKENIZER.decode(truncated_tokens.to_vec()) {
-                        Ok(decoded) => return format!("{}...", decoded),
+                        Ok(decoded) => return format!("{decoded}..."),
                         Err(_) => return text.to_string(),
                     }
                 }
@@ -666,8 +666,8 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
         // Only use decision workflow if score is near threshold
 
         // If score is clearly above or below threshold, just return it
-        if initial_score < MATCH_THRESHOLD - DECISION_RANGE
-            || initial_score > MATCH_THRESHOLD + DECISION_RANGE
+        if !(MATCH_THRESHOLD - DECISION_RANGE..=MATCH_THRESHOLD + DECISION_RANGE)
+            .contains(&initial_score)
         {
             return Ok(initial_score);
         }
