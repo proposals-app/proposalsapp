@@ -79,14 +79,15 @@ pub async fn run_grouper_task() -> Result<()> {
         }
     };
 
-    for dao in filtered_daos {
+    let total_daos = filtered_daos.len();
+    for (idx, dao) in filtered_daos.into_iter().enumerate() {
         info!(
-            "Processing DAO: {} ({}) with slug: {}",
-            dao.name, dao.id, dao.slug
+            "Processing DAO {}/{}: {} ({}) with slug: {}",
+            idx + 1, total_daos, dao.name, dao.id, dao.slug
         );
         match grouper.run_grouping_for_dao(dao.id).await {
-            Ok(_) => info!("Successfully completed grouping for DAO: {}", dao.name),
-            Err(e) => error!("Failed to run grouping for DAO {}: {}", dao.name, e),
+            Ok(_) => info!("Successfully completed grouping for DAO {}/{}: {}", idx + 1, total_daos, dao.name),
+            Err(e) => error!("Failed to run grouping for DAO {}/{} ({}): {}", idx + 1, total_daos, dao.name, e),
         }
     }
 
@@ -777,12 +778,16 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         mut groups: HashMap<Uuid, Vec<NormalizedItem>>, // group_id -> items
         dao_id: Uuid,
     ) -> Result<HashMap<Uuid, Vec<NormalizedItem>>> {
+        let total_ungrouped = ungrouped_items.len();
+        let mut processed_count = 0;
+        
         while let Some(current_item) = ungrouped_items.pop() {
+            processed_count += 1;
             let current_item_id = current_item.id.clone();
             let current_item_title = current_item.title.clone();
             info!(
-                "Processing item: {} ({})",
-                current_item_title, current_item_id
+                "AI grouping {}/{}: Processing item: {} ({})",
+                processed_count, total_ungrouped, current_item_title, current_item_id
             );
 
             let mut best_match: Option<MatchResult> = None;
@@ -791,16 +796,20 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
             // Score against all grouped items - iterate directly over groups to get fresh data
             let mut found_perfect_match = false;
+            let total_groups = groups.len();
+            let mut groups_checked = 0;
+            
             for (group_id, items) in groups.iter() {
                 if found_perfect_match {
                     break;
                 }
+                groups_checked += 1;
+                if groups_checked % 10 == 0 || groups_checked == total_groups {
+                    info!("Checking against existing groups: {}/{}", groups_checked, total_groups);
+                }
+                
                 for grouped_item in items {
                     let score = self.match_score(&current_item, grouped_item).await?;
-                    info!(
-                        "Score {} for item {} vs grouped item {} in group {}",
-                        score, current_item_id, grouped_item.id, group_id
-                    );
 
                     // Early termination for perfect matches
                     if score >= 95 {
@@ -833,12 +842,21 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
             // Score ungrouped items only if no perfect match found
             if !found_perfect_match {
+                let remaining_ungrouped = ungrouped_items.len();
+                if remaining_ungrouped > 0 {
+                    info!("Checking against {} remaining ungrouped items", remaining_ungrouped);
+                }
+                
                 for (idx, other_item) in ungrouped_items.iter().enumerate() {
                     let score = self.match_score(&current_item, other_item).await?;
-                    info!(
-                        "Score {} for item {} vs ungrouped item {}",
-                        score, current_item_id, other_item.id
-                    );
+                    
+                    // Only log high scores to reduce noise
+                    if score >= MATCH_THRESHOLD {
+                        info!(
+                            "Potential match found: score {} for item {} vs ungrouped item {}",
+                            score, current_item_id, other_item.id
+                        );
+                    }
 
                     // Early termination for perfect matches
                     if score >= 95 {
@@ -970,10 +988,13 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             if let Err(e) = self.persist_results(&groups, dao_id).await {
                 error!("Failed to persist groups after processing item {}: {}", current_item_id, e);
                 // Continue processing despite persistence error
-            } else {
-                info!("Persisted groups after processing item {}", current_item_id);
             }
         }
+
+        info!(
+            "AI grouping complete: processed {} items, created/updated {} groups",
+            total_ungrouped, groups.len()
+        );
 
         Ok(groups)
     }
@@ -1182,7 +1203,8 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         groups: &mut HashMap<Uuid, Vec<NormalizedItem>>,
         grouped_item_ids: &mut HashSet<String>,
     ) -> Result<()> {
-        info!("Starting procedural grouping pass");
+        info!("Starting procedural grouping pass for {} proposals and {} topics", 
+              proposals.len(), topics.len());
 
         // Build a map of topic external_id -> topic for fast lookup
         let topic_by_id: HashMap<i32, &discourse_topic::Model> =
@@ -1193,6 +1215,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             topics.iter().map(|t| (t.slug.clone(), t)).collect();
 
         let mut matched_count = 0;
+        let mut proposals_with_urls = 0;
 
         for proposal in proposals {
             // Skip if already grouped
@@ -1206,6 +1229,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 if discussion_url.is_empty() {
                     continue;
                 }
+                proposals_with_urls += 1;
 
                 // Extract discourse ID or slug from the URL
                 let (extracted_id, extracted_slug) = extract_discourse_id_or_slug(discussion_url);
@@ -1274,8 +1298,8 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         }
 
         info!(
-            "Procedural grouping completed: {} matches found",
-            matched_count
+            "Procedural grouping completed: {} matches found from {} proposals with discussion URLs",
+            matched_count, proposals_with_urls
         );
         Ok(())
     }
@@ -1285,26 +1309,36 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         info!("Starting grouping for DAO {}", dao_id);
 
         // Load all data
+        info!("Loading data from database for DAO {}", dao_id);
         let proposals = self.load_proposals(dao_id).await?;
         let topics = self.load_topics(dao_id).await?;
         let existing_groups = self.load_groups(dao_id).await?;
 
+        let total_items = proposals.len() + topics.len();
         info!(
-            "Loaded {} proposals, {} topics, {} existing groups",
+            "Loaded {} proposals, {} topics ({} total items), {} existing groups",
             proposals.len(),
             topics.len(),
+            total_items,
             existing_groups.len()
         );
 
         // Normalize items (without keywords for now)
         let mut all_items = Vec::new();
+        info!("Normalizing {} items...", total_items);
 
-        for proposal in &proposals {
+        for (idx, proposal) in proposals.iter().enumerate() {
+            if idx % 100 == 0 && idx > 0 {
+                info!("Normalized {}/{} proposals", idx, proposals.len());
+            }
             let normalized = self.normalize_proposal(proposal.clone()).await?;
             all_items.push(normalized);
         }
 
-        for topic in &topics {
+        for (idx, topic) in topics.iter().enumerate() {
+            if idx % 100 == 0 && idx > 0 {
+                info!("Normalized {}/{} topics", idx, topics.len());
+            }
             match self.normalize_topic(topic.clone(), dao_id).await {
                 Ok(normalized) => {
                     all_items.push(normalized);
@@ -1382,9 +1416,13 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
         // Extract keywords for all items after procedural grouping
         info!("Extracting keywords for {} items", all_items.len());
-        for item in &mut all_items {
+        for (idx, item) in all_items.iter_mut().enumerate() {
+            if idx % 10 == 0 {
+                info!("Extracting keywords: {}/{} items processed", idx, all_items.len());
+            }
             item.keywords = self.extract_keywords(item).await?;
         }
+        info!("Keyword extraction complete for all {} items", all_items.len());
 
         // Get ungrouped items (after procedural grouping)
         let ungrouped_items: Vec<_> = all_items

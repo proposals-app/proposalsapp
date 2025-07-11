@@ -40,14 +40,30 @@ async fn main() -> Result<()> {
     // Initialize JSON logging for stdout
     let env_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info"))
+        // HTTP/networking crates
         .add_directive("hyper_util=off".parse().unwrap())
         .add_directive("alloy_rpc_client=off".parse().unwrap())
         .add_directive("reqwest=off".parse().unwrap())
         .add_directive("alloy_transport_http=off".parse().unwrap())
+        // LLM-related crates
         .add_directive("llm_client=off".parse().unwrap())
         .add_directive("llm_interface=off".parse().unwrap())
         .add_directive("llm_models=off".parse().unwrap())
-        .add_directive("llm_devices=off".parse().unwrap());
+        .add_directive("llm_devices=off".parse().unwrap())
+        .add_directive("llama_cpp_rs=off".parse().unwrap())
+        .add_directive("llama_cpp_sys=off".parse().unwrap())
+        .add_directive("llm=off".parse().unwrap())
+        // Hugging Face and model downloading
+        .add_directive("hf_hub=off".parse().unwrap())
+        .add_directive("huggingface_hub=off".parse().unwrap())
+        // Tokenizers
+        .add_directive("tiktoken_rs=off".parse().unwrap())
+        .add_directive("tokenizers=off".parse().unwrap())
+        // Other potential LLM-related crates
+        .add_directive("fastembed=off".parse().unwrap())
+        .add_directive("ort=off".parse().unwrap())
+        .add_directive("candle=off".parse().unwrap())
+        .add_directive("candle_core=off".parse().unwrap());
 
     tracing_subscriber::registry()
         .with(env_filter)
@@ -61,18 +77,23 @@ async fn main() -> Result<()> {
         )
         .init();
 
-    info!("Application starting up");
+    info!("Mapper service starting up");
+    info!("Initializing database connection...");
     initialize_db().await?;
+    info!("Database connection established");
 
     // Initialize Redis
+    info!("Initializing Redis connection...");
     if let Err(e) = redis_cache::initialize_redis().await {
         warn!(
             "Failed to initialize Redis, continuing without caching: {}",
             e
         );
+    } else {
+        info!("Redis connection established");
     }
 
-    info!("Using LLM-based grouper");
+    info!("Using LLM-based grouper for proposal matching");
 
     // Start health check server
     let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
