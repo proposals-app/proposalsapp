@@ -605,24 +605,21 @@ Based on the above items, provide a similarity score between 0 and 100."#,
             let mut best_group_id: Option<Uuid> = None;
             let mut best_ungrouped_idx: Option<usize> = None;
 
-            // Get all grouped items and score them
-            let grouped_items: Vec<(NormalizedItem, Uuid)> = groups
-                .iter()
-                .flat_map(|(group_id, items)| items.iter().map(|item| (item.clone(), *group_id)))
-                .collect();
+            // Score against all grouped items - iterate directly over groups to get fresh data
+            for (group_id, items) in groups.iter() {
+                for grouped_item in items {
+                    let score = self.match_score(&current_item, grouped_item).await?;
+                    info!(
+                        "Score {} for item {} vs grouped item {} in group {}",
+                        score, current_item_id, grouped_item.id, group_id
+                    );
 
-            for (grouped_item, group_id) in grouped_items {
-                let score = self.match_score(&current_item, &grouped_item).await?;
-                info!(
-                    "Score {} for item {} vs grouped item {} in group {}",
-                    score, current_item_id, grouped_item.id, group_id
-                );
-
-                if score >= MATCH_THRESHOLD
-                    && (best_match.is_none() || score > best_match.as_ref().unwrap().0)
-                {
-                    best_match = Some((score, grouped_item.id.clone(), true));
-                    best_group_id = Some(group_id);
+                    if score >= MATCH_THRESHOLD
+                        && (best_match.is_none() || score > best_match.as_ref().unwrap().0)
+                    {
+                        best_match = Some((score, grouped_item.id.clone(), true));
+                        best_group_id = Some(*group_id);
+                    }
                 }
             }
 

@@ -206,7 +206,7 @@
           apt:
             name:
               - nvidia-container-toolkit
-            state: present
+            state: latest
 
         - name: Add NVIDIA CUDA repository for libraries
           shell: |
@@ -222,15 +222,19 @@
         - name: Install NVIDIA libraries
           apt:
             name:
-              - cuda-drivers-fabricmanager-575
-            state: present
+              - cuda-drivers-575
+              - libnvidia-ml-575
+            state: latest
           ignore_errors: yes  # May partially fail but installs needed libraries
 
         - name: Create symlink for libnvidia-ml.so
           shell: |
-            if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.575.57.08 ]; then
+            # Find the latest libnvidia-ml.so.* file
+            NVIDIA_ML_LIB=$(ls -1 /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.* 2>/dev/null | sort -V | tail -1)
+            if [ -n "$NVIDIA_ML_LIB" ]; then
               cd /usr/lib/x86_64-linux-gnu
-              ln -sf libnvidia-ml.so.575.57.08 libnvidia-ml.so
+              ln -sf "$(basename $NVIDIA_ML_LIB)" libnvidia-ml.so
+              ln -sf "$(basename $NVIDIA_ML_LIB)" libnvidia-ml.so.1
               ldconfig
             fi
           args:
@@ -272,7 +276,7 @@
 
         - name: Download Nomad nvidia-gpu device plugin
           unarchive:
-            src: https://releases.hashicorp.com/nomad-device-nvidia/1.0.0/nomad-device-nvidia_1.0.0_linux_amd64.zip
+            src: https://releases.hashicorp.com/nomad-device-nvidia/1.1.0/nomad-device-nvidia_1.1.0_linux_amd64.zip
             dest: /opt/nomad/plugins/
             remote_src: yes
             owner: nomad

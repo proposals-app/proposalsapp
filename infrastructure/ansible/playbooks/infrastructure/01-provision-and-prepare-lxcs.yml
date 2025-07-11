@@ -423,10 +423,12 @@
           apt:
             name:
               - cuda-drivers
+              - nvidia-driver-575
+              - cuda-toolkit-12-0
               - nvidia-settings
               - nvidia-modprobe
               - nvidia-persistenced
-            state: present
+            state: latest
             update_cache: yes
           when: not nvidia_driver_check.stat.exists
           register: nvidia_driver_install
@@ -1170,7 +1172,7 @@
             name:
               - nvidia-container-toolkit
               - nvidia-container-runtime
-            state: present
+            state: latest
             update_cache: yes
 
         - name: Get NVIDIA driver version from host
@@ -1181,7 +1183,7 @@
 
         - name: Set default driver version if detection failed
           set_fact:
-            nvidia_driver_version_clean: "{{ nvidia_driver_version.stdout | default('575.57.08') | trim }}"
+            nvidia_driver_version_clean: "{{ nvidia_driver_version.stdout | default('575.85.01') | trim }}"
 
         - name: Install NVIDIA drivers in container
           shell: |
