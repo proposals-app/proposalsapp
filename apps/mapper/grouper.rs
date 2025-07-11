@@ -775,6 +775,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         &self,
         mut ungrouped_items: Vec<NormalizedItem>,
         mut groups: HashMap<Uuid, Vec<NormalizedItem>>, // group_id -> items
+        dao_id: Uuid,
     ) -> Result<HashMap<Uuid, Vec<NormalizedItem>>> {
         while let Some(current_item) = ungrouped_items.pop() {
             let current_item_id = current_item.id.clone();
@@ -963,6 +964,14 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                     let new_group_id = Uuid::new_v4();
                     groups.insert(new_group_id, vec![current_item]);
                 }
+            }
+
+            // Persist groups after processing each item
+            if let Err(e) = self.persist_results(&groups, dao_id).await {
+                error!("Failed to persist groups after processing item {}: {}", current_item_id, e);
+                // Continue processing despite persistence error
+            } else {
+                info!("Persisted groups after processing item {}", current_item_id);
             }
         }
 
@@ -1389,11 +1398,9 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         );
 
         // Step 3-5: Run the AI-based grouping algorithm on remaining ungrouped items
-        let final_groups = self.ai_grouping_pass(ungrouped_items, groups).await?;
+        let _final_groups = self.ai_grouping_pass(ungrouped_items, groups, dao_id).await?;
 
-        // Persist results again after AI grouping
-        info!("Persisting final groups after AI grouping");
-        self.persist_results(&final_groups, dao_id).await?;
+        // No need to persist again here since we persist after each item in ai_grouping_pass
 
         info!("Grouping complete for DAO {}", dao_id);
         Ok(())
