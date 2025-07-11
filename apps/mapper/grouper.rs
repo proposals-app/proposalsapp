@@ -1,6 +1,7 @@
 use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
+use gag::Gag;
 use llm_client::DecisionTrait;
 use llm_client::InstructPromptTrait;
 use llm_client::LlmClient;
@@ -83,11 +84,26 @@ pub async fn run_grouper_task() -> Result<()> {
     for (idx, dao) in filtered_daos.into_iter().enumerate() {
         info!(
             "Processing DAO {}/{}: {} ({}) with slug: {}",
-            idx + 1, total_daos, dao.name, dao.id, dao.slug
+            idx + 1,
+            total_daos,
+            dao.name,
+            dao.id,
+            dao.slug
         );
         match grouper.run_grouping_for_dao(dao.id).await {
-            Ok(_) => info!("Successfully completed grouping for DAO {}/{}: {}", idx + 1, total_daos, dao.name),
-            Err(e) => error!("Failed to run grouping for DAO {}/{} ({}): {}", idx + 1, total_daos, dao.name, e),
+            Ok(_) => info!(
+                "Successfully completed grouping for DAO {}/{}: {}",
+                idx + 1,
+                total_daos,
+                dao.name
+            ),
+            Err(e) => error!(
+                "Failed to run grouping for DAO {}/{} ({}): {}",
+                idx + 1,
+                total_daos,
+                dao.name,
+                e
+            ),
         }
     }
 
@@ -145,10 +161,18 @@ impl Grouper {
         let mut builder = LlmClient::llama_cpp();
         builder.hf_quant_file_url(model_url);
 
-        let llm_client = builder
-            .init()
-            .await
-            .context("Failed to initialize LLM client - make sure llama.cpp server can start and model can be downloaded")?;
+        // Suppress stdout during initialization to avoid the "Llm Client Ready" message
+        // Using gag crate to temporarily suppress stdout without affecting the logging pipeline
+        let llm_client = {
+            let _gag =
+                Gag::stdout().map_err(|e| anyhow::anyhow!("Failed to suppress stdout: {}", e))?;
+
+            // Initialize the LLM client while stdout is gagged
+            builder
+                .init()
+                .await
+                .context("Failed to initialize LLM client - make sure llama.cpp server can start and model can be downloaded")?
+        };
 
         // Log device configuration
         if let Ok(llama_backend) = llm_client.backend.llama_cpp() {
@@ -780,7 +804,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
     ) -> Result<HashMap<Uuid, Vec<NormalizedItem>>> {
         let total_ungrouped = ungrouped_items.len();
         let mut processed_count = 0;
-        
+
         while let Some(current_item) = ungrouped_items.pop() {
             processed_count += 1;
             let current_item_id = current_item.id.clone();
@@ -798,21 +822,24 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             let mut found_perfect_match = false;
             let total_groups = groups.len();
             let mut groups_checked = 0;
-            
+
             for (group_id, items) in groups.iter() {
                 if found_perfect_match {
                     break;
                 }
                 groups_checked += 1;
                 if groups_checked % 10 == 0 || groups_checked == total_groups {
-                    info!("Checking against existing groups: {}/{}", groups_checked, total_groups);
+                    info!(
+                        "Checking against existing groups: {}/{}",
+                        groups_checked, total_groups
+                    );
                 }
-                
+
                 for grouped_item in items {
                     let score = self.match_score(&current_item, grouped_item).await?;
 
                     // Early termination for perfect matches
-                    if score >= 95 {
+                    if score >= 98 {
                         info!(
                             "Perfect match found (score: {}) - terminating search early",
                             score
@@ -844,12 +871,15 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             if !found_perfect_match {
                 let remaining_ungrouped = ungrouped_items.len();
                 if remaining_ungrouped > 0 {
-                    info!("Checking against {} remaining ungrouped items", remaining_ungrouped);
+                    info!(
+                        "Checking against {} remaining ungrouped items",
+                        remaining_ungrouped
+                    );
                 }
-                
+
                 for (idx, other_item) in ungrouped_items.iter().enumerate() {
                     let score = self.match_score(&current_item, other_item).await?;
-                    
+
                     // Only log high scores to reduce noise
                     if score >= MATCH_THRESHOLD {
                         info!(
@@ -859,7 +889,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                     }
 
                     // Early termination for perfect matches
-                    if score >= 95 {
+                    if score >= 98 {
                         info!(
                             "Perfect match found (score: {}) - terminating search early",
                             score
@@ -890,7 +920,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             let confirmed_match = match best_match {
                 Some(match_result) => {
                     // Skip confirmation for perfect matches (95+)
-                    if match_result.score >= 95 {
+                    if match_result.score >= 98 {
                         info!(
                             "Skipping decision confirmation for perfect match (score: {})",
                             match_result.score
@@ -986,14 +1016,18 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
             // Persist groups after processing each item
             if let Err(e) = self.persist_results(&groups, dao_id).await {
-                error!("Failed to persist groups after processing item {}: {}", current_item_id, e);
+                error!(
+                    "Failed to persist groups after processing item {}: {}",
+                    current_item_id, e
+                );
                 // Continue processing despite persistence error
             }
         }
 
         info!(
             "AI grouping complete: processed {} items, created/updated {} groups",
-            total_ungrouped, groups.len()
+            total_ungrouped,
+            groups.len()
         );
 
         Ok(groups)
@@ -1203,8 +1237,11 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         groups: &mut HashMap<Uuid, Vec<NormalizedItem>>,
         grouped_item_ids: &mut HashSet<String>,
     ) -> Result<()> {
-        info!("Starting procedural grouping pass for {} proposals and {} topics", 
-              proposals.len(), topics.len());
+        info!(
+            "Starting procedural grouping pass for {} proposals and {} topics",
+            proposals.len(),
+            topics.len()
+        );
 
         // Build a map of topic external_id -> topic for fast lookup
         let topic_by_id: HashMap<i32, &discourse_topic::Model> =
@@ -1419,7 +1456,10 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         info!("Extracting keywords for {} items", total_items);
         for (idx, item) in all_items.iter_mut().enumerate() {
             if idx % 10 == 0 {
-                info!("Extracting keywords: {}/{} items processed", idx, total_items);
+                info!(
+                    "Extracting keywords: {}/{} items processed",
+                    idx, total_items
+                );
             }
             item.keywords = self.extract_keywords(item).await?;
         }
@@ -1437,7 +1477,9 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         );
 
         // Step 3-5: Run the AI-based grouping algorithm on remaining ungrouped items
-        let _final_groups = self.ai_grouping_pass(ungrouped_items, groups, dao_id).await?;
+        let _final_groups = self
+            .ai_grouping_pass(ungrouped_items, groups, dao_id)
+            .await?;
 
         // No need to persist again here since we persist after each item in ai_grouping_pass
 

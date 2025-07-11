@@ -45,10 +45,13 @@ async fn main() -> Result<()> {
         .add_directive("alloy_rpc_client=off".parse().unwrap())
         .add_directive("reqwest=off".parse().unwrap())
         .add_directive("alloy_transport_http=off".parse().unwrap())
-        // LLM-related crates
+        // LLM-related crates - use wildcard patterns to catch all modules
         .add_directive("llm_client=off".parse().unwrap())
+        .add_directive("llm_client::=off".parse().unwrap())  // All submodules
         .add_directive("llm_interface=off".parse().unwrap())
+        .add_directive("llm_interface::=off".parse().unwrap())
         .add_directive("llm_models=off".parse().unwrap())
+        .add_directive("llm_models::=off".parse().unwrap())
         .add_directive("llm_devices=off".parse().unwrap())
         .add_directive("llama_cpp_rs=off".parse().unwrap())
         .add_directive("llama_cpp_sys=off".parse().unwrap())
