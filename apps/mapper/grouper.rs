@@ -1415,14 +1415,15 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         self.persist_results(&groups, dao_id).await?;
 
         // Extract keywords for all items after procedural grouping
-        info!("Extracting keywords for {} items", all_items.len());
+        let total_items = all_items.len();
+        info!("Extracting keywords for {} items", total_items);
         for (idx, item) in all_items.iter_mut().enumerate() {
             if idx % 10 == 0 {
-                info!("Extracting keywords: {}/{} items processed", idx, all_items.len());
+                info!("Extracting keywords: {}/{} items processed", idx, total_items);
             }
             item.keywords = self.extract_keywords(item).await?;
         }
-        info!("Keyword extraction complete for all {} items", all_items.len());
+        info!("Keyword extraction complete for all {} items", total_items);
 
         // Get ungrouped items (after procedural grouping)
         let ungrouped_items: Vec<_> = all_items
