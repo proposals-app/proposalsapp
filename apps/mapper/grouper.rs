@@ -279,7 +279,6 @@ impl Grouper {
 
         // Try to get from cache first
         if let Ok(Some(cached_keywords)) = redis_cache::get_cached_keywords(&cache_key).await {
-            info!("Cache hit for keywords: {}", item.id);
             return Ok(cached_keywords);
         }
 
