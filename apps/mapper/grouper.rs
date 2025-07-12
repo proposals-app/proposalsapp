@@ -15,7 +15,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use tiktoken_rs::{CoreBPE, cl100k_base};
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
 
@@ -282,28 +282,39 @@ impl Grouper {
             return Ok(cached_keywords);
         }
 
-        info!("Cache miss for keywords: {}, extracting with LLM", item.id);
+        info!(
+            dao_id = %item.dao_id,
+            item_id = %item.id,
+            item_title = %item.title,
+            item_type = ?item.item_type,
+            "Cache miss - extracting keywords with LLM"
+        );
 
         // Use conversational approach with a single LLM session
         match self.extract_keywords_with_conversation(item).await {
             Ok(keywords) => {
-                // Log result
-                if keywords.len() == 1 && keywords[0] == "insufficient-content" {
-                    warn!("Insufficient content for keyword extraction in {}", item.id);
-                } else {
-                    info!("Keywords for {}: {:?}", item.id, keywords);
-                }
-
                 // Cache and return
                 let ttl = KEYWORD_CACHE_TTL_BASE
                     + rand::rng().random_range(302400..KEYWORD_CACHE_TTL_JITTER_MAX);
                 if let Err(e) = redis_cache::cache_keywords(&cache_key, &keywords, ttl).await {
-                    warn!("Failed to cache keywords: {}", e);
+                    warn!(
+                        dao_id = %item.dao_id,
+                        item_id = %item.id,
+                        error = %e,
+                        "Failed to cache keywords in Redis"
+                    );
                 }
                 Ok(keywords)
             }
             Err(e) => {
-                warn!("Failed to extract keywords for {}: {}", item.id, e);
+                warn!(
+                    dao_id = %item.dao_id,
+                    item_id = %item.id,
+                    item_title = %item.title,
+                    item_type = ?item.item_type,
+                    error = %e,
+                    "Failed to extract keywords - returning extraction-failed marker"
+                );
                 // Return fallback for extraction failure
                 Ok(vec!["extraction-failed".to_string()])
             }
@@ -408,18 +419,40 @@ impl Grouper {
             // Check if we got valid keywords
             if keywords.len() == 1 && keywords[0] == "insufficient-content" {
                 // Special case: insufficient content is valid
+                info!(
+                    dao_id = %item.dao_id,
+                    item_id = %item.id,
+                    item_title = %item.title,
+                    item_type = ?item.item_type,
+                    "Insufficient content for keyword extraction"
+                );
                 return Ok(keywords);
             } else if keywords.len() >= 5 && keywords.len() <= 25 {
                 // Normal case: good number of keywords
+                info!(
+                    dao_id = %item.dao_id,
+                    item_id = %item.id,
+                    item_title = %item.title,
+                    item_type = ?item.item_type,
+                    keywords_count = keywords.len(),
+                    keywords = %keywords.join(", "),
+                    extraction_round = round + 1,
+                    "Successfully extracted keywords"
+                );
                 return Ok(keywords);
             }
 
             // If this was the last round, give up
             if round == max_rounds - 1 {
                 warn!(
-                    "Failed to get valid keywords after {} rounds, got {} keywords",
-                    max_rounds,
-                    keywords.len()
+                    dao_id = %item.dao_id,
+                    item_id = %item.id,
+                    item_title = %item.title,
+                    item_type = ?item.item_type,
+                    max_rounds = max_rounds,
+                    keywords_found = keywords.len(),
+                    keywords = %keywords.join(", "),
+                    "Failed to get valid keywords after maximum rounds"
                 );
                 return Err(anyhow::anyhow!(
                     "Could not extract valid keywords after {} attempts",
@@ -671,14 +704,47 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
         // Get the score using reasoning (non-optional)
         let score = {
             let _suppressor = crate::llm_ops::OutputSuppressor::new();
-            reason_request
-                .return_primitive()
-                .await
-                .context("Failed to get similarity score from LLM reasoning")?
+            match reason_request.return_primitive().await {
+                Ok(score) => score,
+                Err(e) => {
+                    error!(
+                        dao_id = %item_a.dao_id,
+                        item_a_id = %item_a.id,
+                        item_a_title = %item_a.title,
+                        item_a_type = ?item_a.item_type,
+                        item_b_id = %item_b.id,
+                        item_b_title = %item_b.title,
+                        item_b_type = ?item_b.item_type,
+                        error = %e,
+                        prompt_length = prompt.len(),
+                        "LLM reasoning failed to generate similarity score"
+                    );
+                    return Err(e).context(format!(
+                        "Failed to get similarity score from LLM reasoning for '{}' vs '{}'",
+                        item_a.title, item_b.title
+                    ));
+                }
+            }
         };
 
         // Convert from u32 to u8, ensuring it's within bounds
         let score = score.min(100) as u8;
+
+        // Log detailed scoring information for analysis
+        info!(
+            dao_id = %item_a.dao_id,
+            item_a_id = %item_a.id,
+            item_a_title = %item_a.title,
+            item_a_type = ?item_a.item_type,
+            item_a_keywords = %keywords_a.join(", "),
+            item_b_id = %item_b.id,
+            item_b_title = %item_b.title,
+            item_b_type = ?item_b.item_type,
+            item_b_keywords = %keywords_b.join(", "),
+            score = score,
+            above_threshold = score >= MATCH_THRESHOLD,
+            "LLM similarity score calculated"
+        );
 
         Ok(score)
     }
@@ -782,19 +848,38 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         // Get the consensus score
         let consensus_score = {
             let _suppressor = crate::llm_ops::OutputSuppressor::new();
-            decision_request
-                .return_primitive()
-                .await
-                .context("Failed to get consensus score from decision workflow")?
+            match decision_request.return_primitive().await {
+                Ok(score) => score,
+                Err(e) => {
+                    error!(
+                        dao_id = %item_a.dao_id,
+                        item_a_id = %item_a.id,
+                        item_a_title = %item_a.title,
+                        item_b_id = %item_b.id,
+                        item_b_title = %item_b.title,
+                        initial_score = initial_score,
+                        error = %e,
+                        "Decision workflow failed to generate consensus score"
+                    );
+                    return Err(e).context("Failed to get consensus score from decision workflow");
+                }
+            }
         };
 
         let consensus_score = (consensus_score as u8).min(100);
 
+        // Log detailed decision information
         info!(
-            "Decision consensus: {} (initial: {}, difference: {})",
-            consensus_score,
-            initial_score,
-            (consensus_score as i16 - initial_score as i16).abs()
+            dao_id = %item_a.dao_id,
+            item_a_id = %item_a.id,
+            item_a_title = %item_a.title,
+            item_b_id = %item_b.id,
+            item_b_title = %item_b.title,
+            initial_score = initial_score,
+            consensus_score = consensus_score,
+            score_difference = (consensus_score as i16 - initial_score as i16).abs(),
+            decision = if consensus_score >= MATCH_THRESHOLD { "MATCH" } else { "NO_MATCH" },
+            "Decision workflow consensus reached"
         );
 
         Ok(consensus_score)
@@ -814,9 +899,17 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             processed_count += 1;
             let current_item_id = current_item.id.clone();
             let current_item_title = current_item.title.clone();
+            let current_item_type = current_item.item_type.clone();
+
             info!(
-                "AI grouping {}/{}: Processing item: {} ({})",
-                processed_count, total_ungrouped, current_item_title, current_item_id
+                dao_id = %dao_id,
+                item_id = %current_item_id,
+                item_title = %current_item_title,
+                item_type = ?current_item_type,
+                item_keywords = %current_item.keywords.join(", "),
+                created_at = %current_item.created_at.format("%Y-%m-%d"),
+                progress = format!("{}/{}", processed_count, total_ungrouped),
+                "Processing ungrouped item for AI matching"
             );
 
             let mut best_match: Option<MatchResult> = None;
@@ -833,12 +926,11 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                     break;
                 }
                 groups_checked += 1;
-                if groups_checked % 10 == 0 || groups_checked == total_groups {
-                    info!(
-                        "Checking against existing groups: {}/{}",
-                        groups_checked, total_groups
-                    );
-                }
+
+                info!(
+                    "Checking against existing groups: {}/{}",
+                    groups_checked, total_groups
+                );
 
                 for grouped_item in items {
                     let score = self.match_score(&current_item, grouped_item).await?;
@@ -846,8 +938,14 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                     // Early termination for perfect matches
                     if score >= 98 {
                         info!(
-                            "Perfect match found (score: {}) - terminating search early",
-                            score
+                            dao_id = %dao_id,
+                            current_item_id = %current_item_id,
+                            current_item_title = %current_item.title,
+                            matched_item_id = %grouped_item.id,
+                            matched_item_title = %grouped_item.title,
+                            group_id = %group_id,
+                            score = score,
+                            "Perfect match found - terminating search early"
                         );
                         best_match = Some(MatchResult {
                             score,
@@ -885,11 +983,26 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 for (idx, other_item) in ungrouped_items.iter().enumerate() {
                     let score = self.match_score(&current_item, other_item).await?;
 
-                    // Only log high scores to reduce noise
+                    // Log all scores for analysis, but with different levels
                     if score >= MATCH_THRESHOLD {
                         info!(
-                            "Potential match found: score {} for item {} vs ungrouped item {}",
-                            score, current_item_id, other_item.id
+                            dao_id = %dao_id,
+                            current_item_id = %current_item_id,
+                            current_item_title = %current_item.title,
+                            other_item_id = %other_item.id,
+                            other_item_title = %other_item.title,
+                            score = score,
+                            above_threshold = true,
+                            "Potential match found between ungrouped items"
+                        );
+                    } else if score >= 50 {
+                        // Log moderate scores at debug level for analysis
+                        debug!(
+                            dao_id = %dao_id,
+                            current_item_id = %current_item_id,
+                            other_item_id = %other_item.id,
+                            score = score,
+                            "Moderate similarity between ungrouped items"
                         );
                     }
 
@@ -963,8 +1076,14 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                                 })
                             } else {
                                 info!(
-                                    "Decision workflow rejected match: initial score {} -> final score {}",
-                                    match_result.score, final_score
+                                    dao_id = %dao_id,
+                                    item_a_id = %current_item_id,
+                                    item_a_title = %current_item.title,
+                                    item_b_id = %match_result.item_id,
+                                    initial_score = match_result.score,
+                                    final_score = final_score,
+                                    threshold = MATCH_THRESHOLD,
+                                    "Decision workflow rejected match - score below threshold"
                                 );
                                 None
                             }
@@ -986,35 +1105,58 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 Some(match_result) => {
                     if match_result.is_grouped {
                         // Add to existing group
+                        let group_id = best_group_id.unwrap();
+                        let group_size = groups.get(&group_id).map(|g| g.len()).unwrap_or(0);
+
                         info!(
-                            "Best match: Item {} matches with grouped item {} (score: {}) in group {}",
-                            current_item_id,
-                            match_result.item_id,
-                            match_result.score,
-                            best_group_id.unwrap()
+                            dao_id = %dao_id,
+                            action = "ADD_TO_GROUP",
+                            item_id = %current_item_id,
+                            item_title = %current_item.title,
+                            matched_with_id = %match_result.item_id,
+                            score = match_result.score,
+                            group_id = %group_id,
+                            group_size_before = group_size,
+                            group_size_after = group_size + 1,
+                            "Adding item to existing group"
                         );
-                        groups
-                            .get_mut(&best_group_id.unwrap())
-                            .unwrap()
-                            .push(current_item);
+
+                        groups.get_mut(&group_id).unwrap().push(current_item);
                     } else {
                         // Create new group with both items
-                        info!(
-                            "Best match: Item {} matches with ungrouped item {} (score: {})",
-                            current_item_id, match_result.item_id, match_result.score
-                        );
                         let matched_item = ungrouped_items.remove(best_ungrouped_idx.unwrap());
                         let new_group_id = Uuid::new_v4();
+
+                        info!(
+                            dao_id = %dao_id,
+                            action = "CREATE_GROUP",
+                            item_a_id = %current_item_id,
+                            item_a_title = %current_item.title,
+                            item_b_id = %match_result.item_id,
+                            item_b_title = %matched_item.title,
+                            score = match_result.score,
+                            new_group_id = %new_group_id,
+                            "Creating new group from two ungrouped items"
+                        );
+
                         groups.insert(new_group_id, vec![current_item, matched_item]);
                     }
                 }
                 None => {
                     // No matches above threshold, create single-item group
-                    info!(
-                        "No matches above threshold {} for {}, creating single-item group",
-                        MATCH_THRESHOLD, current_item_id
-                    );
                     let new_group_id = Uuid::new_v4();
+
+                    info!(
+                        dao_id = %dao_id,
+                        action = "CREATE_SINGLE_ITEM_GROUP",
+                        item_id = %current_item_id,
+                        item_title = %current_item.title,
+                        item_type = ?current_item.item_type,
+                        threshold = MATCH_THRESHOLD,
+                        new_group_id = %new_group_id,
+                        "No matches found - creating single-item group"
+                    );
+
                     groups.insert(new_group_id, vec![current_item]);
                 }
             }
@@ -1241,6 +1383,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         all_items: &[NormalizedItem],
         groups: &mut HashMap<Uuid, Vec<NormalizedItem>>,
         grouped_item_ids: &mut HashSet<String>,
+        dao_id: Uuid,
     ) -> Result<()> {
         info!(
             "Starting procedural grouping pass for {} proposals and {} topics",
@@ -1314,8 +1457,14 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
                                 matched_count += 1;
                                 info!(
-                                    "Added proposal '{}' to existing group containing topic '{}' via URL",
-                                    proposal.name, topic.title
+                                    dao_id = %dao_id,
+                                    action = "PROCEDURAL_ADD_TO_GROUP",
+                                    proposal_id = %proposal_item_id,
+                                    proposal_title = %proposal.name,
+                                    topic_id = %topic_item_id,
+                                    topic_title = %topic.title,
+                                    discussion_url = %discussion_url,
+                                    "Added proposal to existing group via discussion URL"
                                 );
                             }
                         } else if let Some(topic_item) = topic_item {
@@ -1330,8 +1479,15 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
                             matched_count += 1;
                             info!(
-                                "Procedurally matched proposal '{}' with topic '{}' via URL",
-                                proposal.name, topic.title
+                                dao_id = %dao_id,
+                                action = "PROCEDURAL_CREATE_GROUP",
+                                proposal_id = %proposal_item_id,
+                                proposal_title = %proposal.name,
+                                topic_id = %topic_item_id,
+                                topic_title = %topic.title,
+                                discussion_url = %discussion_url,
+                                new_group_id = %new_group_id,
+                                "Created new group from proposal and topic via discussion URL"
                             );
                         }
                     }
@@ -1446,6 +1602,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             &all_items,
             &mut groups,
             &mut grouped_item_ids,
+            dao_id,
         )
         .await?;
 
@@ -1482,13 +1639,64 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         );
 
         // Step 3-5: Run the AI-based grouping algorithm on remaining ungrouped items
-        let _final_groups = self
+        let final_groups = self
             .ai_grouping_pass(ungrouped_items, groups, dao_id)
             .await?;
 
         // No need to persist again here since we persist after each item in ai_grouping_pass
 
-        info!("Grouping complete for DAO {}", dao_id);
+        // Calculate final statistics
+        let total_groups = final_groups.len();
+        let single_item_groups = final_groups
+            .values()
+            .filter(|items| items.len() == 1)
+            .count();
+        let multi_item_groups = final_groups
+            .values()
+            .filter(|items| items.len() > 1)
+            .count();
+        let largest_group_size = final_groups
+            .values()
+            .map(|items| items.len())
+            .max()
+            .unwrap_or(0);
+        let avg_group_size = if total_groups > 0 {
+            final_groups
+                .values()
+                .map(|items| items.len())
+                .sum::<usize>() as f64
+                / total_groups as f64
+        } else {
+            0.0
+        };
+
+        let procedural_matches_count = final_groups
+            .values()
+            .filter(|items| {
+                items.len() > 1
+                    && items
+                        .iter()
+                        .any(|item| matches!(&item.raw_data, ProposalGroupItem::Proposal(_)))
+                    && items
+                        .iter()
+                        .any(|item| matches!(&item.raw_data, ProposalGroupItem::Topic(_)))
+            })
+            .count();
+
+        info!(
+            dao_id = %dao_id,
+            total_items = total_items,
+            total_groups = total_groups,
+            single_item_groups = single_item_groups,
+            multi_item_groups = multi_item_groups,
+            largest_group_size = largest_group_size,
+            avg_group_size = format!("{:.2}", avg_group_size),
+            procedural_matches = procedural_matches_count,
+            ai_matches = multi_item_groups - procedural_matches_count,
+            proposals_processed = proposals.len(),
+            topics_processed = topics.len(),
+            "Grouping complete - detailed statistics"
+        );
         Ok(())
     }
 }
