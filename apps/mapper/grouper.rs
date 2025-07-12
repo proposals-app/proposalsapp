@@ -762,12 +762,31 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
         if !(MATCH_THRESHOLD - DECISION_RANGE..=MATCH_THRESHOLD + DECISION_RANGE)
             .contains(&initial_score)
         {
+            info!(
+                dao_id = %item_a.dao_id,
+                phase = "CONFIRMATION_SKIPPED",
+                item_a_id = %item_a.id,
+                item_b_id = %item_b.id,
+                initial_score = initial_score,
+                threshold = MATCH_THRESHOLD,
+                decision_range = DECISION_RANGE,
+                reason = "score_outside_decision_range",
+                "[AI_GROUPING] Skipping confirmation - score clearly outside threshold range"
+            );
             return Ok(initial_score);
         }
 
         info!(
-            "Score {} is near threshold, running decision confirmation with 3 votes",
-            initial_score
+            dao_id = %item_a.dao_id,
+            phase = "CONFIRMATION_START",
+            item_a_id = %item_a.id,
+            item_a_title = %item_a.title,
+            item_b_id = %item_b.id,
+            item_b_title = %item_b.title,
+            initial_score = initial_score,
+            threshold = MATCH_THRESHOLD,
+            decision_range = DECISION_RANGE,
+            "[AI_GROUPING] Score near threshold - running decision confirmation with 3 votes"
         );
 
         // Create the comparison prompt once
@@ -871,15 +890,17 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         // Log detailed decision information
         info!(
             dao_id = %item_a.dao_id,
+            phase = "CONFIRMATION_COMPLETE",
             item_a_id = %item_a.id,
             item_a_title = %item_a.title,
             item_b_id = %item_b.id,
             item_b_title = %item_b.title,
             initial_score = initial_score,
             consensus_score = consensus_score,
-            score_difference = (consensus_score as i16 - initial_score as i16).abs(),
-            decision = if consensus_score >= MATCH_THRESHOLD { "MATCH" } else { "NO_MATCH" },
-            "Decision workflow consensus reached"
+            score_change = (consensus_score as i16 - initial_score as i16),
+            decision = if consensus_score >= MATCH_THRESHOLD { "CONFIRMED_MATCH" } else { "CONFIRMED_NO_MATCH" },
+            threshold = MATCH_THRESHOLD,
+            "[AI_GROUPING] Decision workflow consensus reached"
         );
 
         Ok(consensus_score)
@@ -895,6 +916,16 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         let total_ungrouped = ungrouped_items.len();
         let mut processed_count = 0;
 
+        // Log initial state
+        info!(
+            dao_id = %dao_id,
+            phase = "AI_GROUPING_START",
+            total_ungrouped_items = total_ungrouped,
+            existing_groups_count = groups.len(),
+            existing_grouped_items = groups.values().map(|items| items.len()).sum::<usize>(),
+            "[AI_GROUPING] Starting AI grouping pass"
+        );
+
         while let Some(current_item) = ungrouped_items.pop() {
             processed_count += 1;
             let current_item_id = current_item.id.clone();
@@ -903,13 +934,19 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
             info!(
                 dao_id = %dao_id,
+                phase = "START_PROCESSING_ITEM",
                 item_id = %current_item_id,
                 item_title = %current_item_title,
                 item_type = ?current_item_type,
+                item_keywords_count = current_item.keywords.len(),
                 item_keywords = %current_item.keywords.join(", "),
                 created_at = %current_item.created_at.format("%Y-%m-%d"),
-                progress = format!("{}/{}", processed_count, total_ungrouped),
-                "Processing ungrouped item for AI matching"
+                progress_current = processed_count,
+                progress_total = total_ungrouped,
+                progress_percent = format!("{:.1}%", (processed_count as f64 / total_ungrouped as f64) * 100.0),
+                groups_count = groups.len(),
+                remaining_ungrouped = ungrouped_items.len(),
+                "[AI_GROUPING] Starting to process ungrouped item"
             );
 
             let mut best_match: Option<MatchResult> = None;
@@ -917,45 +954,41 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             let mut best_ungrouped_idx: Option<usize> = None;
 
             // Score against all grouped items - iterate directly over groups to get fresh data
-            let mut found_perfect_match = false;
             let total_groups = groups.len();
             let mut groups_checked = 0;
 
             for (group_id, items) in groups.iter() {
-                if found_perfect_match {
-                    break;
-                }
                 groups_checked += 1;
 
-                info!(
-                    "Checking against existing groups: {}/{}",
-                    groups_checked, total_groups
+                debug!(
+                    dao_id = %dao_id,
+                    phase = "CHECK_GROUP",
+                    current_item_id = %current_item_id,
+                    group_id = %group_id,
+                    group_items_count = items.len(),
+                    groups_checked = groups_checked,
+                    total_groups = total_groups,
+                    "[AI_GROUPING] Checking against existing group"
                 );
 
                 for grouped_item in items {
                     let score = self.match_score(&current_item, grouped_item).await?;
 
-                    // Early termination for perfect matches
-                    if score >= 98 {
-                        info!(
-                            dao_id = %dao_id,
-                            current_item_id = %current_item_id,
-                            current_item_title = %current_item.title,
-                            matched_item_id = %grouped_item.id,
-                            matched_item_title = %grouped_item.title,
-                            group_id = %group_id,
-                            score = score,
-                            "Perfect match found - terminating search early"
-                        );
-                        best_match = Some(MatchResult {
-                            score,
-                            item_id: grouped_item.id.clone(),
-                            is_grouped: true,
-                        });
-                        best_group_id = Some(*group_id);
-                        found_perfect_match = true;
-                        break;
-                    }
+                    info!(
+                        dao_id = %dao_id,
+                        phase = "SCORE_GROUPED_ITEM",
+                        current_item_id = %current_item_id,
+                        current_item_title = %current_item.title,
+                        compared_item_id = %grouped_item.id,
+                        compared_item_title = %grouped_item.title,
+                        compared_item_type = ?grouped_item.item_type,
+                        group_id = %group_id,
+                        score = score,
+                        above_threshold = score >= MATCH_THRESHOLD,
+                        threshold = MATCH_THRESHOLD,
+                        is_new_best = score >= MATCH_THRESHOLD && (best_match.is_none() || score > best_match.as_ref().unwrap().score),
+                        "[AI_GROUPING] Scored against grouped item"
+                    );
 
                     if score >= MATCH_THRESHOLD
                         && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
@@ -970,56 +1003,37 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 }
             }
 
-            // Score ungrouped items only if no perfect match found
-            if !found_perfect_match {
+            // Score ungrouped items
+            {
                 let remaining_ungrouped = ungrouped_items.len();
                 if remaining_ungrouped > 0 {
                     info!(
-                        "Checking against {} remaining ungrouped items",
-                        remaining_ungrouped
+                        dao_id = %dao_id,
+                        phase = "START_UNGROUPED_COMPARISON",
+                        current_item_id = %current_item_id,
+                        remaining_ungrouped = remaining_ungrouped,
+                        "[AI_GROUPING] Starting comparison with ungrouped items"
                     );
                 }
 
                 for (idx, other_item) in ungrouped_items.iter().enumerate() {
                     let score = self.match_score(&current_item, other_item).await?;
 
-                    // Log all scores for analysis, but with different levels
-                    if score >= MATCH_THRESHOLD {
-                        info!(
-                            dao_id = %dao_id,
-                            current_item_id = %current_item_id,
-                            current_item_title = %current_item.title,
-                            other_item_id = %other_item.id,
-                            other_item_title = %other_item.title,
-                            score = score,
-                            above_threshold = true,
-                            "Potential match found between ungrouped items"
-                        );
-                    } else if score >= 50 {
-                        // Log moderate scores at debug level for analysis
-                        debug!(
-                            dao_id = %dao_id,
-                            current_item_id = %current_item_id,
-                            other_item_id = %other_item.id,
-                            score = score,
-                            "Moderate similarity between ungrouped items"
-                        );
-                    }
-
-                    // Early termination for perfect matches
-                    if score >= 98 {
-                        info!(
-                            "Perfect match found (score: {}) - terminating search early",
-                            score
-                        );
-                        best_match = Some(MatchResult {
-                            score,
-                            item_id: other_item.id.clone(),
-                            is_grouped: false,
-                        });
-                        best_ungrouped_idx = Some(idx);
-                        break;
-                    }
+                    info!(
+                        dao_id = %dao_id,
+                        phase = "SCORE_UNGROUPED_ITEM",
+                        current_item_id = %current_item_id,
+                        current_item_title = %current_item.title,
+                        compared_item_id = %other_item.id,
+                        compared_item_title = %other_item.title,
+                        compared_item_type = ?other_item.item_type,
+                        score = score,
+                        above_threshold = score >= MATCH_THRESHOLD,
+                        threshold = MATCH_THRESHOLD,
+                        is_new_best = score >= MATCH_THRESHOLD && (best_match.is_none() || score > best_match.as_ref().unwrap().score),
+                        ungrouped_index = idx,
+                        "[AI_GROUPING] Scored against ungrouped item"
+                    );
 
                     if score >= MATCH_THRESHOLD
                         && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
@@ -1034,67 +1048,80 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 }
             }
 
+            // Log best match summary before confirmation
+            if let Some(ref match_result) = best_match {
+                info!(
+                    dao_id = %dao_id,
+                    phase = "BEST_MATCH_FOUND",
+                    current_item_id = %current_item_id,
+                    best_match_item_id = %match_result.item_id,
+                    best_match_score = match_result.score,
+                    best_match_is_grouped = match_result.is_grouped,
+                    best_match_group_id = ?best_group_id,
+                    total_items_compared = total_groups + ungrouped_items.len(),
+                    "[AI_GROUPING] Best match identified, proceeding to confirmation"
+                );
+            } else {
+                info!(
+                    dao_id = %dao_id,
+                    phase = "NO_MATCH_FOUND",
+                    current_item_id = %current_item_id,
+                    threshold = MATCH_THRESHOLD,
+                    total_items_compared = total_groups + ungrouped_items.len(),
+                    "[AI_GROUPING] No matches above threshold found"
+                );
+            }
+
             // Run decision confirmation on the best match if found
             let confirmed_match = match best_match {
                 Some(match_result) => {
-                    // Skip confirmation for perfect matches (95+)
-                    if match_result.score >= 98 {
-                        info!(
-                            "Skipping decision confirmation for perfect match (score: {})",
-                            match_result.score
+                    // Find the matched item to run confirmation
+                    let matched_item = if match_result.is_grouped {
+                        // Find in groups
+                        groups
+                            .values()
+                            .flatten()
+                            .find(|item| item.id == match_result.item_id)
+                    } else {
+                        // Find in ungrouped items
+                        ungrouped_items.get(best_ungrouped_idx.unwrap())
+                    };
+
+                    if let Some(matched_item) = matched_item {
+                        // Run decision workflow to confirm the match
+                        let final_score = self
+                            .confirm_match_decision(&current_item, matched_item, match_result.score)
+                            .await?;
+
+                        // Check if the confirmed score still meets the threshold
+                        if final_score >= MATCH_THRESHOLD {
+                            Some(MatchResult {
+                                score: final_score,
+                                item_id: match_result.item_id.clone(),
+                                is_grouped: match_result.is_grouped,
+                            })
+                        } else {
+                            info!(
+                                dao_id = %dao_id,
+                                phase = "CONFIRMATION_REJECTED",
+                                current_item_id = %current_item_id,
+                                current_item_title = %current_item.title,
+                                matched_item_id = %match_result.item_id,
+                                initial_score = match_result.score,
+                                final_score = final_score,
+                                score_difference = (match_result.score as i16 - final_score as i16),
+                                threshold = MATCH_THRESHOLD,
+                                "[AI_GROUPING] Decision workflow rejected match - score below threshold"
+                            );
+                            None
+                        }
+                    } else {
+                        // Should not happen, but handle gracefully
+                        warn!(
+                            "Could not find matched item {} for confirmation",
+                            match_result.item_id
                         );
                         Some(match_result)
-                    } else {
-                        // Find the matched item to run confirmation
-                        let matched_item = if match_result.is_grouped {
-                            // Find in groups
-                            groups
-                                .values()
-                                .flatten()
-                                .find(|item| item.id == match_result.item_id)
-                        } else {
-                            // Find in ungrouped items
-                            ungrouped_items.get(best_ungrouped_idx.unwrap())
-                        };
-
-                        if let Some(matched_item) = matched_item {
-                            // Run decision workflow to confirm the match
-                            let final_score = self
-                                .confirm_match_decision(
-                                    &current_item,
-                                    matched_item,
-                                    match_result.score,
-                                )
-                                .await?;
-
-                            // Check if the confirmed score still meets the threshold
-                            if final_score >= MATCH_THRESHOLD {
-                                Some(MatchResult {
-                                    score: final_score,
-                                    item_id: match_result.item_id.clone(),
-                                    is_grouped: match_result.is_grouped,
-                                })
-                            } else {
-                                info!(
-                                    dao_id = %dao_id,
-                                    item_a_id = %current_item_id,
-                                    item_a_title = %current_item.title,
-                                    item_b_id = %match_result.item_id,
-                                    initial_score = match_result.score,
-                                    final_score = final_score,
-                                    threshold = MATCH_THRESHOLD,
-                                    "Decision workflow rejected match - score below threshold"
-                                );
-                                None
-                            }
-                        } else {
-                            // Should not happen, but handle gracefully
-                            warn!(
-                                "Could not find matched item {} for confirmation",
-                                match_result.item_id
-                            );
-                            Some(match_result)
-                        }
                     }
                 }
                 None => None,
@@ -1110,15 +1137,17 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
                         info!(
                             dao_id = %dao_id,
+                            phase = "FINAL_ACTION",
                             action = "ADD_TO_GROUP",
-                            item_id = %current_item_id,
-                            item_title = %current_item.title,
-                            matched_with_id = %match_result.item_id,
-                            score = match_result.score,
+                            current_item_id = %current_item_id,
+                            current_item_title = %current_item.title,
+                            current_item_type = ?current_item_type,
+                            matched_item_id = %match_result.item_id,
+                            final_score = match_result.score,
                             group_id = %group_id,
                             group_size_before = group_size,
                             group_size_after = group_size + 1,
-                            "Adding item to existing group"
+                            "[AI_GROUPING] Adding item to existing group"
                         );
 
                         groups.get_mut(&group_id).unwrap().push(current_item);
@@ -1129,14 +1158,17 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
                         info!(
                             dao_id = %dao_id,
+                            phase = "FINAL_ACTION",
                             action = "CREATE_GROUP",
                             item_a_id = %current_item_id,
                             item_a_title = %current_item.title,
+                            item_a_type = ?current_item_type,
                             item_b_id = %match_result.item_id,
                             item_b_title = %matched_item.title,
-                            score = match_result.score,
+                            item_b_type = ?matched_item.item_type,
+                            final_score = match_result.score,
                             new_group_id = %new_group_id,
-                            "Creating new group from two ungrouped items"
+                            "[AI_GROUPING] Creating new group from two ungrouped items"
                         );
 
                         groups.insert(new_group_id, vec![current_item, matched_item]);
@@ -1148,13 +1180,15 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
                     info!(
                         dao_id = %dao_id,
+                        phase = "FINAL_ACTION",
                         action = "CREATE_SINGLE_ITEM_GROUP",
-                        item_id = %current_item_id,
-                        item_title = %current_item.title,
-                        item_type = ?current_item.item_type,
+                        current_item_id = %current_item_id,
+                        current_item_title = %current_item.title,
+                        current_item_type = ?current_item_type,
                         threshold = MATCH_THRESHOLD,
                         new_group_id = %new_group_id,
-                        "No matches found - creating single-item group"
+                        total_items_compared = total_groups + ungrouped_items.len() + 1,
+                        "[AI_GROUPING] No matches found - creating single-item group"
                     );
 
                     groups.insert(new_group_id, vec![current_item]);
@@ -1171,10 +1205,23 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             }
         }
 
+        // Calculate final statistics
+        let total_groups_final = groups.len();
+        let single_item_groups = groups.values().filter(|items| items.len() == 1).count();
+        let multi_item_groups = groups.values().filter(|items| items.len() > 1).count();
+        let largest_group = groups.values().map(|items| items.len()).max().unwrap_or(0);
+        let total_items_grouped = groups.values().map(|items| items.len()).sum::<usize>();
+
         info!(
-            "AI grouping complete: processed {} items, created/updated {} groups",
-            total_ungrouped,
-            groups.len()
+            dao_id = %dao_id,
+            phase = "AI_GROUPING_COMPLETE",
+            processed_items = total_ungrouped,
+            total_groups = total_groups_final,
+            single_item_groups = single_item_groups,
+            multi_item_groups = multi_item_groups,
+            largest_group_size = largest_group,
+            total_items_grouped = total_items_grouped,
+            "[AI_GROUPING] AI grouping phase completed"
         );
 
         Ok(groups)
