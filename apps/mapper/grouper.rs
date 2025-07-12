@@ -131,7 +131,7 @@ impl NormalizedItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ItemType {
     Proposal,
-    Discussion,
+    Topic,
 }
 
 #[derive(Debug, Clone)]
@@ -147,13 +147,18 @@ pub struct Grouper {
 }
 
 impl Grouper {
+    // Helper function to check if a group can accept a topic item
+    fn group_can_accept_topic(group_items: &[NormalizedItem]) -> bool {
+        !group_items.iter().any(|item| matches!(item.item_type, ItemType::Topic))
+    }
+
     pub async fn new(db: DatabaseConnection) -> Result<Self> {
         // Initialize LLM client with proper error handling
         info!("Initializing LLM client for grouper");
 
         // Use Hugging Face URL to download the model automatically
-        // This is Qwen 2.5 32B Instruct with Q4_K_M quantization (~20GB)
-        let model_url = "https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF/blob/main/Qwen2.5-32B-Instruct-Q4_K_M.gguf";
+        // This is Llama 3.1 8B Instruct with Q4_K_M quantization (~4.9GB)
+        let model_url = "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf";
 
         info!("Downloading/using LLM model from: {}", model_url);
 
@@ -652,7 +657,7 @@ Scoring Guidelines (Adjusted for DAO Context):
 - Clear dependencies or complementary goals
 - Same author/team across related initiatives
 - Shared specific parameters but not same proposal
-- Examples: "Temperature Check: Fee Reduction" vs "Discussion: Fee Model Analysis", Grant request + progress report
+- Examples: "Temperature Check: Fee Reduction" vs "Topic: Fee Model Analysis", Grant request + progress report
 
 {}-{}: Strong Governance Continuity (APPROACHING GROUPING THRESHOLD)
 - Same initiative progressing through stages
@@ -971,6 +976,19 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                     "[AI_GROUPING] Checking against existing group"
                 );
 
+                // Skip this group if current item is a topic and group already has one
+                if matches!(current_item.item_type, ItemType::Topic) && !Self::group_can_accept_topic(items) {
+                    info!(
+                        dao_id = %dao_id,
+                        phase = "SKIP_GROUP_TOPIC_LIMIT",
+                        current_item_id = %current_item_id,
+                        group_id = %group_id,
+                        reason = "group_already_has_topic",
+                        "[AI_GROUPING] Skipping group - already contains a topic"
+                    );
+                    continue;
+                }
+
                 for grouped_item in items {
                     let score = self.match_score(&current_item, grouped_item).await?;
 
@@ -1034,6 +1052,22 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                         ungrouped_index = idx,
                         "[AI_GROUPING] Scored against ungrouped item"
                     );
+
+                    // Skip if both items are topics
+                    if matches!(current_item.item_type, ItemType::Topic) && 
+                       matches!(other_item.item_type, ItemType::Topic) && 
+                       score >= MATCH_THRESHOLD {
+                        info!(
+                            dao_id = %dao_id,
+                            phase = "SKIP_TOPIC_PAIR",
+                            current_item_id = %current_item_id,
+                            other_item_id = %other_item.id,
+                            score = score,
+                            reason = "both_items_are_topics",
+                            "[AI_GROUPING] Skipping match - both items are topics"
+                        );
+                        continue;
+                    }
 
                     if score >= MATCH_THRESHOLD
                         && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
@@ -1358,7 +1392,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             title: topic.title,
             body,
             created_at: Utc.from_utc_datetime(&topic.created_at),
-            item_type: ItemType::Discussion,
+            item_type: ItemType::Topic,
             keywords: vec![], // Will be filled by extract_keywords
             raw_data,
         })
