@@ -45,7 +45,7 @@ job "mapper" {
     }
 
     ephemeral_disk {
-      size    = 8000  # 8GB for model storage (5GB model + overhead)
+      size    = 30000  # 30GB for model storage (20GB model + overhead)
       sticky  = true   # Keep models between restarts
       migrate = true
     }
@@ -192,7 +192,7 @@ EOF
 
       resources {
         cpu    = 4000
-        memory = 2048   # 2GB RAM
+        memory = 8192   # 8GB RAM (increased for larger model)
 
         # Reserve additional resources for peak loads
         memory_max = 16384  # Allow bursting to 16GB

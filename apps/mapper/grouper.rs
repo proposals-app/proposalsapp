@@ -152,8 +152,8 @@ impl Grouper {
         info!("Initializing LLM client for grouper");
 
         // Use Hugging Face URL to download the model automatically
-        // This is Llama 3.1 8B Instruct with Q4_K_M quantization (~4.9GB)
-        let model_url = "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf";
+        // This is Qwen 2.5 32B Instruct with Q4_K_M quantization (~20GB)
+        let model_url = "https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF/blob/main/Qwen2.5-32B-Instruct-Q4_K_M.gguf";
 
         info!("Downloading/using LLM model from: {}", model_url);
 
