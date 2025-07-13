@@ -11,28 +11,24 @@ networks:
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
     max_block_range: 10000
-    compute_units_per_second: 660
     block_poll_frequency: optimized
 
   - name: optimism
     chain_id: 10
     rpc: ${OPTIMISM_NODE_URL}
     max_block_range: 10000
-    compute_units_per_second: 660
     block_poll_frequency: optimized
 
   - name: polygon
     chain_id: 137
     rpc: ${POLYGON_NODE_URL}
     max_block_range: 10000
-    compute_units_per_second: 660
     block_poll_frequency: optimized
 
   - name: avalanche
     chain_id: 43114
     rpc: ${AVALANCHE_NODE_URL}
     max_block_range: 10000
-    compute_units_per_second: 660
     block_poll_frequency: optimized
 
 storage:

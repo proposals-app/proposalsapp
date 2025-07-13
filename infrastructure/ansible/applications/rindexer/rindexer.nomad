@@ -179,12 +179,41 @@ DATABASE_URL=
 {{ end }}
 {{ end }}
 
-# Chain RPC endpoints from Consul KV
-ETHEREUM_NODE_URL={{ keyOrDefault "rindexer/ethereum_node_url" "" }}
-ARBITRUM_NODE_URL={{ keyOrDefault "rindexer/arbitrum_node_url" "" }}
-AVALANCHE_NODE_URL={{ keyOrDefault "rindexer/avalanche_node_url" "" }}
-POLYGON_NODE_URL={{ keyOrDefault "rindexer/polygon_node_url" "" }}
-OPTIMISM_NODE_URL={{ keyOrDefault "rindexer/optimism_node_url" "" }}
+# Chain RPC endpoints - always use local eRPC instance
+# eRPC runs on all datacenters, so we use the local instance for best performance
+{{ $erpcFound := false }}
+{{ range service "erpc" }}
+  {{ if eq .Node (env "node.unique.name") }}
+    {{ $erpcFound = true }}
+# Using local eRPC instance on same node
+ETHEREUM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/1
+ARBITRUM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/42161
+AVALANCHE_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/43114
+POLYGON_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/137
+OPTIMISM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/10
+  {{ end }}
+{{ end }}
+{{ if not $erpcFound }}
+  {{ range service "erpc" }}
+    {{ if not $erpcFound }}
+      {{ $erpcFound = true }}
+# No local eRPC found, using nearest available instance
+ETHEREUM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/1
+ARBITRUM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/42161
+AVALANCHE_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/43114
+POLYGON_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/137
+OPTIMISM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/10
+    {{ end }}
+  {{ end }}
+{{ end }}
+{{ if not $erpcFound }}
+# ERROR: No eRPC instances found! Deploy eRPC first.
+ETHEREUM_NODE_URL=
+ARBITRUM_NODE_URL=
+AVALANCHE_NODE_URL=
+POLYGON_NODE_URL=
+OPTIMISM_NODE_URL=
+{{ end }}
 
 # Block explorer API keys from Consul KV
 ARBISCAN_API_KEY={{ keyOrDefault "rindexer/arbiscan_api_key" "" }}

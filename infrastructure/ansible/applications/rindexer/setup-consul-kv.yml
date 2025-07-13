@@ -4,18 +4,6 @@
   become: true
   vars:
     consul_kv_values:
-      # Blockchain RPC endpoints
-      - key: "rindexer/ethereum_node_url"
-        value: "{{ vault_rindexer_ethereum_node_url }}"
-      - key: "rindexer/arbitrum_node_url"
-        value: "{{ vault_rindexer_arbitrum_node_url }}"
-      - key: "rindexer/optimism_node_url"
-        value: "{{ vault_rindexer_optimism_node_url }}"
-      - key: "rindexer/avalanche_node_url"
-        value: "{{ vault_rindexer_avalanche_node_url }}"
-      - key: "rindexer/polygon_node_url"
-        value: "{{ vault_rindexer_polygon_node_url }}"
-
       # Block explorer API keys
       - key: "rindexer/etherscan_api_key"
         value: "{{ vault_rindexer_etherscan_api_key }}"
@@ -89,15 +77,18 @@
           Feature branches are built and stored in ghcr.io but not automatically deployed.
 
           To verify the values in each datacenter:
-          - consul kv get rindexer/ethereum_node_url
+          - consul kv get rindexer/etherscan_api_key
           - consul kv get pgpool/connection_string/local
           - consul kv get rindexer/image/main
 
           The rindexer service will automatically:
           - Connect to the local pgpool instance using the connection string from Consul KV
-          - Use the configured RPC endpoints for blockchain indexing
+          - Route all RPC requests through the local eRPC instance
+          - Use eRPC's intelligent routing (Hypersync for logs/blocks, Ankr for other methods)
           - Send metrics to the observability stack
           - Pull the latest Docker image from the main branch
+          
+          IMPORTANT: eRPC must be deployed before rindexer for RPC connectivity
 
           Note: Database credentials are securely stored in Consul KV by the pgpool playbook
           ========================================

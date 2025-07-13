@@ -11,7 +11,8 @@ show_usage() {
     echo ""
     echo "Available applications:"
     echo "  all              - Deploy all applications in the correct order"
-    echo "  rindexer         - Blockchain indexer service"
+    echo "  erpc             - EVM RPC proxy with intelligent method routing (required for rindexer)"
+    echo "  rindexer         - Blockchain indexer service (requires eRPC)"
     echo "  discourse        - Discourse forum indexer service"
     echo "  mapper           - Data relationship engine for grouping proposals and karma calculation"
     echo "  cloudflared      - Cloudflare tunnel daemon for Zero Trust access"
@@ -47,7 +48,7 @@ if [ "$APP_NAME" = "all" ]; then
     echo "Deploying all applications in order"
     echo "=========================================="
 
-    DEPLOYMENT_ORDER="cloudflared consul-ingress homepage web rindexer discourse mapper email-service discourse-forum"
+    DEPLOYMENT_ORDER="cloudflared consul-ingress erpc homepage web rindexer discourse mapper email-service discourse-forum"
 
     # Check if we should continue on error
     CONTINUE_ON_ERROR=false
@@ -103,7 +104,7 @@ if [ "$APP_NAME" = "all" ]; then
 fi
 
 # List of valid applications
-VALID_APPS="rindexer discourse mapper email-service cloudflared consul-ingress web homepage discourse-forum"
+VALID_APPS="erpc rindexer discourse mapper email-service cloudflared consul-ingress web homepage discourse-forum"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then
@@ -190,6 +191,21 @@ run_setup() {
     fi
 }
 
+# Function to check if a service is healthy
+check_service_health() {
+    local service_name=$1
+    local consul_server=$2
+    
+    # Check if the service has any passing health checks
+    if ansible $consul_server -i inventory.yml -m uri -a \
+        "url=http://localhost:8500/v1/health/service/$service_name?passing method=GET" \
+        --vault-password-file .vault_pass 2>/dev/null | grep -q '"json": \['; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Function to deploy Nomad job
 run_deploy() {
     echo "Deploying Nomad job for $APP_NAME..."
@@ -198,6 +214,38 @@ run_deploy() {
     if [ ! -f "$NOMAD_FILE" ]; then
         echo "Warning: No Nomad job file found at $NOMAD_FILE"
         return
+    fi
+
+    # Special check for rindexer - verify eRPC is deployed and healthy
+    if [ "$APP_NAME" = "rindexer" ]; then
+        echo "Checking if eRPC is deployed and healthy..."
+        
+        # Try to check via any reachable Consul server
+        ERPC_HEALTHY=false
+        CONSUL_SERVERS=$(ansible-inventory -i inventory.yml --list | jq -r '.consul_servers.hosts[]' 2>/dev/null || echo "")
+        
+        for server in $CONSUL_SERVERS; do
+            if ansible $server -i inventory.yml -m ping --vault-password-file .vault_pass -o >/dev/null 2>&1; then
+                if check_service_health "erpc" "$server"; then
+                    echo "✓ eRPC service is healthy"
+                    ERPC_HEALTHY=true
+                    break
+                fi
+            fi
+        done
+        
+        if [ "$ERPC_HEALTHY" = false ]; then
+            echo "ERROR: eRPC is not deployed or not healthy!"
+            echo "Rindexer requires eRPC for all RPC connectivity."
+            echo ""
+            echo "To fix this:"
+            echo "1. Deploy eRPC first: ./deploy-application.sh erpc"
+            echo "2. Wait for eRPC to become healthy"
+            echo "3. Then deploy rindexer"
+            echo ""
+            echo "Aborting deployment to prevent job failures."
+            return 1
+        fi
     fi
 
     # Special check for cloudflared - verify Consul KV is set up

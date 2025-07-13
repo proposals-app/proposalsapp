@@ -1,0 +1,122 @@
+---
+- name: Setup Consul KV values for eRPC in all datacenters
+  hosts: consul_servers
+  become: true
+  vars:
+    consul_kv_values:
+      # Hypersync node URLs (per chain)
+      - key: "erpc/hypersync/ethereum"
+        value: "{{ vault_erpc_hypersync_ethereum_url }}"
+      - key: "erpc/hypersync/arbitrum"
+        value: "{{ vault_erpc_hypersync_arbitrum_url }}"
+      - key: "erpc/hypersync/optimism"
+        value: "{{ vault_erpc_hypersync_optimism_url }}"
+      - key: "erpc/hypersync/polygon"
+        value: "{{ vault_erpc_hypersync_polygon_url }}"
+      - key: "erpc/hypersync/avalanche"
+        value: "{{ vault_erpc_hypersync_avalanche_url }}"
+      
+      # Full node URLs (per chain)
+      - key: "erpc/full/ethereum"
+        value: "{{ vault_erpc_full_ethereum_url }}"
+      - key: "erpc/full/arbitrum"
+        value: "{{ vault_erpc_full_arbitrum_url }}"
+      - key: "erpc/full/optimism"
+        value: "{{ vault_erpc_full_optimism_url }}"
+      - key: "erpc/full/polygon"
+        value: "{{ vault_erpc_full_polygon_url }}"
+      - key: "erpc/full/avalanche"
+        value: "{{ vault_erpc_full_avalanche_url }}"
+
+  tasks:
+    - name: Ensure Consul is available
+      wait_for:
+        port: 8500
+        host: localhost
+        timeout: 60
+
+    - name: Get local Consul datacenter info
+      uri:
+        url: "http://localhost:8500/v1/agent/self"
+        method: GET
+      register: consul_info
+
+    - name: Set datacenter variable
+      set_fact:
+        current_datacenter: "{{ consul_info.json.Config.Datacenter }}"
+
+    - name: Store values in local datacenter's Consul KV
+      uri:
+        url: "http://localhost:8500/v1/kv/{{ item.key }}"
+        method: PUT
+        body: "{{ item.value }}"
+      loop: "{{ consul_kv_values }}"
+      loop_control:
+        label: "{{ item.key }} in {{ current_datacenter }}"
+      no_log: true # Don't log sensitive values
+
+    - name: Display setup information for this datacenter
+      debug:
+        msg: |
+          ========================================
+          Consul KV Setup Complete for {{ current_datacenter }}
+          ========================================
+
+          Environment variables have been stored in Consul KV
+          for datacenter: {{ current_datacenter }}
+
+          Run this playbook on all consul servers to replicate
+          the configuration across all datacenters.
+          ========================================
+      run_once: true
+
+- name: Display final deployment instructions
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Show deployment instructions
+      debug:
+        msg: |
+          ========================================
+          eRPC Setup Complete
+          ========================================
+
+          To deploy eRPC:
+          1. Ensure this playbook has been run on all consul servers
+          2. Run: nomad job run infrastructure/ansible/applications/erpc/erpc.nomad
+
+          eRPC provides RPC proxy with method-based routing:
+          - eth_getLogs and filter methods → Hypersync nodes
+          - All other methods → Full nodes
+
+          To verify the values in each datacenter:
+          - consul kv get erpc/hypersync/ethereum
+          - consul kv get erpc/full/arbitrum
+
+          The eRPC service will:
+          - Listen on port 8545 for RPC requests
+          - Expose metrics on port 4001 for Prometheus
+          - Route eth_getLogs, eth_blockNumber, eth_getBlockByNumber to Hypersync nodes
+          - Route all other methods to full nodes
+          - Support all chains: Ethereum, Arbitrum, Optimism, Polygon, Avalanche
+          - Provide automatic failover and retry logic
+          - Cache responses in memory for performance
+
+          Access the RPC endpoint:
+          - http://<node-ip>:8545/proposalsapp
+
+          Example requests:
+          # Ethereum mainnet (chainId: 1)
+          curl -X POST http://<node-ip>:8545/proposalsapp \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+
+          # Arbitrum (chainId: 42161) with automatic routing
+          curl -X POST http://<node-ip>:8545/proposalsapp \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"fromBlock":"0x0","toBlock":"latest"}],"id":1}'
+
+          Monitor the service:
+          - Health check: http://<node-ip>:8545/proposalsapp (with net_version RPC call)
+          - Metrics: http://<node-ip>:4001/metrics
+          ========================================
