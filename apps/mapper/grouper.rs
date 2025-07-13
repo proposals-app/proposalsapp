@@ -1,7 +1,6 @@
 use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
-use llm_client::DecisionTrait;
 use llm_client::InstructPromptTrait;
 use llm_client::LlmClient;
 use llm_client::RequestConfigTrait;
@@ -149,7 +148,9 @@ pub struct Grouper {
 impl Grouper {
     // Helper function to check if a group can accept a topic item
     fn group_can_accept_topic(group_items: &[NormalizedItem]) -> bool {
-        !group_items.iter().any(|item| matches!(item.item_type, ItemType::Topic))
+        !group_items
+            .iter()
+            .any(|item| matches!(item.item_type, ItemType::Topic))
     }
 
     pub async fn new(db: DatabaseConnection) -> Result<Self> {
@@ -609,29 +610,24 @@ Consider if they are:
             item_b.created_at.format("%Y-%m-%d")
         );
 
-        // Use reasoning workflow for more accurate scoring
-        let mut reason_request = self.llm_client.reason().integer();
+        // Use basic_primitive workflow for faster scoring (no reasoning overhead)
+        let mut primitive_request = self.llm_client.basic_primitive().integer();
 
         // Configure the integer bounds
-        reason_request.primitive.lower_bound(0).upper_bound(100);
+        primitive_request.primitive.lower_bound(0).upper_bound(100);
 
-        // Configure reasoning parameters
-        reason_request
-            .reasoning_sentences(3) // Allow 3 sentences for thinking through the comparison
-            .conclusion_sentences(1) // Concise conclusion
+        // Configure request parameters
+        primitive_request
             .temperature(0.3) // Lower temperature for consistent scoring
-            .max_tokens(300); // More tokens for reasoning process
+            .max_tokens(50); // Only need a number, so very few tokens
 
-        // Set the instructions
-        reason_request
+        // Set the instructions with full context
+        primitive_request
             .instructions()
-            .set_content("You are a DAO governance analyst specializing in proposal relationship mapping. Analyze whether these two governance items should be grouped together.");
-
-        // Set the supporting material with scoring guidelines
-        reason_request
-            .supporting_material()
             .set_content(format!(
-                r#"IMPORTANT BASELINE CONTEXT: All items being compared are already DAO governance topics, so they share ~20-30 points of inherent similarity from common governance vocabulary, procedures, and ecosystem context. Your scoring must differentiate BEYOND this baseline similarity.
+                r#"You are a DAO governance analyst specializing in proposal relationship mapping. Analyze whether these two governance items should be grouped together and provide a precise similarity score between 0 and 100.
+
+IMPORTANT BASELINE CONTEXT: All items being compared are already DAO governance topics, so they share ~20-30 points of inherent similarity from common governance vocabulary, procedures, and ecosystem context. Your scoring must differentiate BEYOND this baseline similarity.
 
 Scoring Guidelines (Adjusted for DAO Context):
 
@@ -706,10 +702,10 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
                 prompt
             ));
 
-        // Get the score using reasoning (non-optional)
+        // Get the score using basic_primitive (non-optional)
         let score = {
             let _suppressor = crate::llm_ops::OutputSuppressor::new();
-            match reason_request.return_primitive().await {
+            match primitive_request.return_primitive().await {
                 Ok(score) => score,
                 Err(e) => {
                     error!(
@@ -722,10 +718,10 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
                         item_b_type = ?item_b.item_type,
                         error = %e,
                         prompt_length = prompt.len(),
-                        "LLM reasoning failed to generate similarity score"
+                        "LLM basic_primitive failed to generate similarity score"
                     );
                     return Err(e).context(format!(
-                        "Failed to get similarity score from LLM reasoning for '{}' vs '{}'",
+                        "Failed to get similarity score from LLM basic_primitive for '{}' vs '{}'",
                         item_a.title, item_b.title
                     ));
                 }
@@ -825,29 +821,28 @@ Please carefully analyze whether these items should be grouped together."#,
             MATCH_THRESHOLD
         );
 
-        // Use decision workflow for consensus
-        let mut decision_request = self.llm_client.reason().integer().decision();
+        // Use basic_primitive workflow for faster consensus (no reasoning overhead)
+        // We'll run it 3 times manually to get consensus
+        let mut scores = Vec::new();
+        
+        for i in 0..3 {
+            let mut primitive_request = self.llm_client.basic_primitive().integer();
+            
+            // Configure the integer bounds
+            primitive_request.primitive.lower_bound(0).upper_bound(100);
+            
+            // Configure request parameters with temperature gradient for diversity
+            primitive_request
+                .temperature(0.3 + (i as f32 * 0.2)) // 0.3, 0.5, 0.7
+                .max_tokens(50); // Only need a number
+            
+            // Set the instructions with full context
+            primitive_request
+                .instructions()
+                .set_content(format!(
+                r#"You are a DAO governance analyst providing a final determination on whether these items should be grouped. Consider the initial score and provide your own assessment.
 
-        // Configure the decision parameters
-        decision_request.best_of_n_votes(3); // Get consensus from 3 votes
-        decision_request
-            .reason
-            .primitive
-            .lower_bound(0)
-            .upper_bound(100);
-
-        // Set the instructions
-        decision_request
-            .reason
-            .instructions()
-            .set_content("You are a DAO governance analyst providing a final determination on whether these items should be grouped. Consider the initial score and provide your own assessment.");
-
-        // Set the supporting material
-        decision_request
-            .reason
-            .supporting_material()
-            .set_content(format!(
-                r#"{}
+{}
 
 BASELINE CONTEXT: Remember that all items share ~20-30 points of inherent DAO governance similarity. Differentiate BEYOND this baseline.
 
@@ -868,29 +863,58 @@ Ignore: generic governance terms, standard procedures, common DAO vocabulary.
 
 Based on careful analysis, provide a final precise similarity score between 0 and 100. Do not round up the score, make it a precise integer, use the entire range from 0 to 100."#, prompt, MATCH_THRESHOLD - 5, MATCH_THRESHOLD - 5, MATCH_THRESHOLD, MATCH_THRESHOLD + 6, MATCH_THRESHOLD, MATCH_THRESHOLD, MATCH_THRESHOLD
             ));
-
-        // Get the consensus score
-        let consensus_score = {
-            let _suppressor = crate::llm_ops::OutputSuppressor::new();
-            match decision_request.return_primitive().await {
-                Ok(score) => score,
-                Err(e) => {
-                    error!(
-                        dao_id = %item_a.dao_id,
-                        item_a_id = %item_a.id,
-                        item_a_title = %item_a.title,
-                        item_b_id = %item_b.id,
-                        item_b_title = %item_b.title,
-                        initial_score = initial_score,
-                        error = %e,
-                        "Decision workflow failed to generate consensus score"
-                    );
-                    return Err(e).context("Failed to get consensus score from decision workflow");
+            
+            // Get the score
+            let score = {
+                let _suppressor = crate::llm_ops::OutputSuppressor::new();
+                match primitive_request.return_primitive().await {
+                    Ok(score) => score,
+                    Err(e) => {
+                        error!(
+                            dao_id = %item_a.dao_id,
+                            item_a_id = %item_a.id,
+                            item_b_id = %item_b.id,
+                            vote_number = i + 1,
+                            error = %e,
+                            "Basic primitive vote {} failed",
+                            i + 1
+                        );
+                        continue; // Skip failed votes
+                    }
                 }
-            }
+            };
+            
+            let vote_score = score.min(100) as u8;
+            scores.push(vote_score);
+            
+            info!(
+                dao_id = %item_a.dao_id,
+                item_a_id = %item_a.id,
+                item_b_id = %item_b.id,
+                vote_number = i + 1,
+                vote_score = vote_score,
+                temperature = 0.3 + (i as f32 * 0.2),
+                "Basic primitive vote completed"
+            );
+        }
+        
+        // Calculate consensus score (median of valid scores)
+        if scores.is_empty() {
+            error!(
+                dao_id = %item_a.dao_id,
+                item_a_id = %item_a.id,
+                item_b_id = %item_b.id,
+                "All basic_primitive votes failed"
+            );
+            return Err(anyhow::anyhow!("All basic_primitive votes failed"));
+        }
+        
+        scores.sort();
+        let consensus_score = if scores.len() % 2 == 0 {
+            (scores[scores.len() / 2 - 1] + scores[scores.len() / 2]) / 2
+        } else {
+            scores[scores.len() / 2]
         };
-
-        let consensus_score = (consensus_score as u8).min(100);
 
         // Log detailed decision information
         info!(
@@ -902,10 +926,12 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             item_b_title = %item_b.title,
             initial_score = initial_score,
             consensus_score = consensus_score,
+            individual_scores = ?scores,
+            valid_votes = scores.len(),
             score_change = (consensus_score as i16 - initial_score as i16),
             decision = if consensus_score >= MATCH_THRESHOLD { "CONFIRMED_MATCH" } else { "CONFIRMED_NO_MATCH" },
             threshold = MATCH_THRESHOLD,
-            "[AI_GROUPING] Decision workflow consensus reached"
+            "[AI_GROUPING] Basic primitive consensus reached"
         );
 
         Ok(consensus_score)
@@ -977,7 +1003,9 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 );
 
                 // Skip this group if current item is a topic and group already has one
-                if matches!(current_item.item_type, ItemType::Topic) && !Self::group_can_accept_topic(items) {
+                if matches!(current_item.item_type, ItemType::Topic)
+                    && !Self::group_can_accept_topic(items)
+                {
                     info!(
                         dao_id = %dao_id,
                         phase = "SKIP_GROUP_TOPIC_LIMIT",
@@ -1054,9 +1082,10 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                     );
 
                     // Skip if both items are topics
-                    if matches!(current_item.item_type, ItemType::Topic) && 
-                       matches!(other_item.item_type, ItemType::Topic) && 
-                       score >= MATCH_THRESHOLD {
+                    if matches!(current_item.item_type, ItemType::Topic)
+                        && matches!(other_item.item_type, ItemType::Topic)
+                        && score >= MATCH_THRESHOLD
+                    {
                         info!(
                             dao_id = %dao_id,
                             phase = "SKIP_TOPIC_PAIR",
@@ -1607,17 +1636,13 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         info!("Normalizing {} items...", total_items);
 
         for (idx, proposal) in proposals.iter().enumerate() {
-            if idx % 100 == 0 && idx > 0 {
-                info!("Normalized {}/{} proposals", idx, proposals.len());
-            }
+            info!("Normalized {}/{} proposals", idx, proposals.len());
             let normalized = self.normalize_proposal(proposal.clone()).await?;
             all_items.push(normalized);
         }
 
         for (idx, topic) in topics.iter().enumerate() {
-            if idx % 100 == 0 && idx > 0 {
-                info!("Normalized {}/{} topics", idx, topics.len());
-            }
+            info!("Normalized {}/{} topics", idx, topics.len());
             match self.normalize_topic(topic.clone(), dao_id).await {
                 Ok(normalized) => {
                     all_items.push(normalized);
