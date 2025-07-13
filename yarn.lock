@@ -2290,16 +2290,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/core@npm:^0.14.0":
-  version: 0.14.0
-  resolution: "@eslint/core@npm:0.14.0"
-  dependencies:
-    "@types/json-schema": "npm:^7.0.15"
-  checksum: 10c0/259f279445834ba2d2cbcc18e9d43202a4011fde22f29d5fb802181d66e0f6f0bd1f6b4b4b46663451f545d35134498231bd5e656e18d9034a457824b92b7741
-  languageName: node
-  linkType: hard
-
-"@eslint/core@npm:^0.15.1":
+"@eslint/core@npm:^0.15.0, @eslint/core@npm:^0.15.1":
   version: 0.15.1
   resolution: "@eslint/core@npm:0.15.1"
   dependencies:
@@ -2325,10 +2316,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.30.1, @eslint/js@npm:^9.30.1":
-  version: 9.30.1
-  resolution: "@eslint/js@npm:9.30.1"
-  checksum: 10c0/17fc382a0deafdb1cadac1269d9c2f2464f025bde6e4d12fc4f4775eb9886b41340d4650b72e85a53423644fdc89bf59c987a852f27379ad25feecf2c5bbc1c9
+"@eslint/js@npm:9.31.0, @eslint/js@npm:^9.31.0":
+  version: 9.31.0
+  resolution: "@eslint/js@npm:9.31.0"
+  checksum: 10c0/f9d4c73d0fafe70679a418cbb25ab7ebcc8f1dba6c32456d6f8ba5a137d583ecff233cfe10f61f41d7d4d2220e94cff1f39fc7ed1fa3819d1888dee1cad678ea
   languageName: node
   linkType: hard
 
@@ -4410,14 +4401,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/test@npm:^1.53.2":
-  version: 1.53.2
-  resolution: "@playwright/test@npm:1.53.2"
+"@playwright/test@npm:^1.54.1":
+  version: 1.54.1
+  resolution: "@playwright/test@npm:1.54.1"
   dependencies:
-    playwright: "npm:1.53.2"
+    playwright: "npm:1.54.1"
   bin:
     playwright: cli.js
-  checksum: 10c0/cdc718a94df00aaaff5489421a89286e006e9c7781c5e8294fd10aaffcf6558cfe3d0db2d76a447574b334329902659cd539756dfd12fafde03627e2013698ae
+  checksum: 10c0/1b414356bc1049927d7b9efc14d5b3bf000ef6483313926bb795b4f27fe3707e8e0acf0db59063a452bb4f7e34559758d17640401b6f3e2f5290f299a8d8d02f
   languageName: node
   linkType: hard
 
@@ -4484,7 +4475,7 @@ __metadata:
     "@types/node-cron": "npm:^3.0.11"
     date-fns: "npm:^4.1.0"
     dotenv: "npm:^17.2.0"
-    node-cron: "npm:^4.2.0"
+    node-cron: "npm:^4.2.1"
     resend: "npm:^4.6.0"
     tsx: "npm:^4.20.3"
     typescript: "npm:^5.8.3"
@@ -4495,9 +4486,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@proposalsapp/emails@workspace:libs/ts/emails"
   dependencies:
-    "@react-email/components": "npm:0.2.0"
+    "@react-email/components": "npm:0.3.1"
     "@react-email/render": "npm:1.1.3"
-    "@react-email/tailwind": "npm:1.1.0"
+    "@react-email/tailwind": "npm:1.2.1"
     "@tsconfig/recommended": "npm:^1.0.10"
     "@types/react": "npm:^19.1.8"
     dotenv: "npm:^17.2.0"
@@ -4509,7 +4500,7 @@ __metadata:
     prettier-plugin-tailwindcss: "npm:0.6.14"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
-    react-email: "npm:4.1.0"
+    react-email: "npm:4.1.3"
     resend: "npm:^4.6.0"
     tailwindcss: "npm:^4.1.11"
     typescript: "npm:^5.8.3"
@@ -4541,7 +4532,7 @@ __metadata:
     tslint: "npm:^6.1.3"
     tslint-config-prettier: "npm:^1.18.0"
     typescript: "npm:^5.8.3"
-    webpack: "npm:^5.100.0"
+    webpack: "npm:^5.100.1"
     webpack-cli: "npm:^6.0.1"
     webpack-dev-server: "npm:^5.2.2"
   languageName: unknown
@@ -4557,7 +4548,7 @@ __metadata:
     "@dnd-kit/sortable": "npm:^10.0.0"
     "@dnd-kit/utilities": "npm:^3.2.2"
     "@eslint/eslintrc": "npm:^3.3.1"
-    "@eslint/js": "npm:^9.30.1"
+    "@eslint/js": "npm:^9.31.0"
     "@neshca/cache-handler": "npm:^1.9.0"
     "@next/eslint-plugin-next": "npm:^15.3.5"
     "@opentelemetry/api": "npm:^1.9.0"
@@ -4567,7 +4558,7 @@ __metadata:
     "@opentelemetry/sdk-logs": "npm:^0.203.0"
     "@opentelemetry/sdk-metrics": "npm:^2.0.1"
     "@opentelemetry/sdk-trace-base": "npm:^2.0.1"
-    "@playwright/test": "npm:^1.53.2"
+    "@playwright/test": "npm:^1.54.1"
     "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/visual-dom-diff": "npm:0.7.2"
     "@radix-ui/react-checkbox": "npm:^1.3.2"
@@ -4587,11 +4578,11 @@ __metadata:
     "@synthetixio/synpress": "npm:^4.1.0"
     "@tailwindcss/postcss": "npm:^4.1.11"
     "@tailwindcss/typography": "npm:^0.5.16"
-    "@tanstack/react-query": "npm:^5.82.0"
+    "@tanstack/react-query": "npm:^5.83.0"
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
-    "@types/node": "npm:24.0.12"
+    "@types/node": "npm:24.0.13"
     "@types/path-browserify": "npm:^1"
     "@types/postcss-load-config": "npm:^3.0.1"
     "@types/prettier": "npm:^3.0.0"
@@ -4615,12 +4606,12 @@ __metadata:
     date-fns-tz: "npm:^3.2.0"
     diff-match-patch: "npm:^1.0.5"
     echarts: "npm:^5.6.0"
-    eslint: "npm:^9.30.1"
+    eslint: "npm:^9.31.0"
     eslint-config-next: "npm:^15.3.5"
     eslint-config-prettier: "npm:^10.1.5"
     eslint-plugin-prettier: "npm:^5.5.1"
     eslint-plugin-storybook: "npm:^9.0.16"
-    framer-motion: "npm:^12.23.2"
+    framer-motion: "npm:^12.23.3"
     fuse.js: "npm:^7.1.0"
     hast: "npm:^1.0.0"
     hast-util-to-dom: "npm:^4.0.1"
@@ -4642,7 +4633,7 @@ __metadata:
     pino-pretty: "npm:^13.0.0"
     postcss: "npm:^8.5.6"
     posthog-js: "npm:^1.257.0"
-    posthog-node: "npm:^5.4.0"
+    posthog-node: "npm:^5.5.0"
     prettier: "npm:^3.6.2"
     prettier-plugin-classnames: "npm:^0.8.1"
     prettier-plugin-merge: "npm:^0.8.0"
@@ -4679,8 +4670,8 @@ __metadata:
     viem: "npm:2.x"
     wagmi: "npm:^2.15.6"
     web-push: "npm:^3.6.7"
-    webpack: "npm:^5.100.0"
-    zod: "npm:^4.0.2"
+    webpack: "npm:^5.100.1"
+    zod: "npm:^4.0.5"
   languageName: unknown
   linkType: soft
 
@@ -5227,9 +5218,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-email/components@npm:0.2.0":
-  version: 0.2.0
-  resolution: "@react-email/components@npm:0.2.0"
+"@react-email/components@npm:0.3.1":
+  version: 0.3.1
+  resolution: "@react-email/components@npm:0.3.1"
   dependencies:
     "@react-email/body": "npm:0.0.11"
     "@react-email/button": "npm:0.2.0"
@@ -5249,11 +5240,11 @@ __metadata:
     "@react-email/render": "npm:1.1.3"
     "@react-email/row": "npm:0.0.12"
     "@react-email/section": "npm:0.0.16"
-    "@react-email/tailwind": "npm:1.1.0"
+    "@react-email/tailwind": "npm:1.2.1"
     "@react-email/text": "npm:0.1.5"
   peerDependencies:
     react: ^18.0 || ^19.0 || ^19.0.0-rc
-  checksum: 10c0/278b51b467149dbb45781776b14a5597b66c55500887ecf5d7bf86ce35b1193617aaa24741fa5204b081afe90bb95349a8a99e783f0cded60dfa34bfb273f94f
+  checksum: 10c0/84d36062015bf40c569d0244a5a1df8e85229c3921f78fde421632b21a61020fb2b1c741de573db91cc7480e08bec882d94c807b5e8891d9eb14b75c10bd2b0c
   languageName: node
   linkType: hard
 
@@ -5395,12 +5386,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-email/tailwind@npm:1.1.0":
-  version: 1.1.0
-  resolution: "@react-email/tailwind@npm:1.1.0"
+"@react-email/tailwind@npm:1.2.1":
+  version: 1.2.1
+  resolution: "@react-email/tailwind@npm:1.2.1"
   peerDependencies:
     react: ^18.0 || ^19.0 || ^19.0.0-rc
-  checksum: 10c0/818e119616e085ec7577098515b70553af27a06b4870fc33039d5b13542902e13325434844e015a1b434c7879f8da92190432a4eb545140ef7b36e2206f35773
+  checksum: 10c0/747f51d7cc146e3868b70cbca35290068e528a519b1394fdd18248bf338d05b4d4e54a53b6137482bce313ff48705d706af3c3e4d8aa6316a70e9e30466d74f2
   languageName: node
   linkType: hard
 
@@ -6805,21 +6796,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.82.0":
-  version: 5.82.0
-  resolution: "@tanstack/query-core@npm:5.82.0"
-  checksum: 10c0/8569830a34aad334842dec04338ddbb58a94a77ea7d75995486c4160d29cd1d4b2b4da6c6b82cdb2f8959096ab0b6b97736ade8a7868bfd9934decc0c4ce629f
+"@tanstack/query-core@npm:5.83.0":
+  version: 5.83.0
+  resolution: "@tanstack/query-core@npm:5.83.0"
+  checksum: 10c0/e6dc480bc99eaca552a9ad65423788b60368cf99308681252fc7dbe42a3f2c1c978db0d3471cc3349b9112cfb4d967ace4e192a1d7e987e30c5c1ff74809c77c
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.82.0":
-  version: 5.82.0
-  resolution: "@tanstack/react-query@npm:5.82.0"
+"@tanstack/react-query@npm:^5.83.0":
+  version: 5.83.0
+  resolution: "@tanstack/react-query@npm:5.83.0"
   dependencies:
-    "@tanstack/query-core": "npm:5.82.0"
+    "@tanstack/query-core": "npm:5.83.0"
   peerDependencies:
     react: ^18 || ^19
-  checksum: 10c0/c73f7974801e6be2833b6c85860c8c3ce86afbd581287497694f79f2d34f502abd7009b3bad141f56781a21cf071383429ae2110500c8d4f7fb5b57ae4fedb64
+  checksum: 10c0/883229f9219ca906a54d7caafd44d59b57db5dbe87e954f8a7027f460e9f8b97842dfbd0d676dc3111d577baf312c64f6c1fdd67cd1e4b0f0bf574e29670c606
   languageName: node
   linkType: hard
 
@@ -7280,12 +7271,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:24.0.12":
-  version: 24.0.12
-  resolution: "@types/node@npm:24.0.12"
+"@types/node@npm:24.0.13":
+  version: 24.0.13
+  resolution: "@types/node@npm:24.0.13"
   dependencies:
     undici-types: "npm:~7.8.0"
-  checksum: 10c0/333777c3416b758bbdb72a09e9db5599ff7789dca519d3fcf8150a1c56c79d808e0009e92d52016e80033b3c52724def08aad2c5b396e28f00dbdfe40a1756a4
+  checksum: 10c0/e1f3d4ea8973b1f2f987814ac5343d05ad8b56bf7fa41755295dee0ce0f7b4e2de4f3daef5296429180228970cef0d70f2ad873c61dbafc6f5eeca9d023aba76
   languageName: node
   linkType: hard
 
@@ -12937,17 +12928,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^9.30.1":
-  version: 9.30.1
-  resolution: "eslint@npm:9.30.1"
+"eslint@npm:^9.31.0":
+  version: 9.31.0
+  resolution: "eslint@npm:9.31.0"
   dependencies:
     "@eslint-community/eslint-utils": "npm:^4.2.0"
     "@eslint-community/regexpp": "npm:^4.12.1"
     "@eslint/config-array": "npm:^0.21.0"
     "@eslint/config-helpers": "npm:^0.3.0"
-    "@eslint/core": "npm:^0.14.0"
+    "@eslint/core": "npm:^0.15.0"
     "@eslint/eslintrc": "npm:^3.3.1"
-    "@eslint/js": "npm:9.30.1"
+    "@eslint/js": "npm:9.31.0"
     "@eslint/plugin-kit": "npm:^0.3.1"
     "@humanfs/node": "npm:^0.16.6"
     "@humanwhocodes/module-importer": "npm:^1.0.1"
@@ -12983,7 +12974,7 @@ __metadata:
       optional: true
   bin:
     eslint: bin/eslint.js
-  checksum: 10c0/5a5867078e03ea56a1b6d1ee1548659abc38a6d5136c7ef94e21c5dbeb28e3ed50b15d2e0da25fce85600f6cf7ea7715eae650c41e8ae826c34490e9ec73d5d6
+  checksum: 10c0/3fd1cd5b38b907ecb3f5e7537ab91204efb38bc1ad0ca6e46fc4112f13b594272ff56e641b41580049bc333fbcb5b1b99ca9a542e8406e7da5e951068cbaec77
   languageName: node
   linkType: hard
 
@@ -13764,9 +13755,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:^12.23.2":
-  version: 12.23.2
-  resolution: "framer-motion@npm:12.23.2"
+"framer-motion@npm:^12.23.3":
+  version: 12.23.3
+  resolution: "framer-motion@npm:12.23.3"
   dependencies:
     motion-dom: "npm:^12.23.2"
     motion-utils: "npm:^12.23.2"
@@ -13782,7 +13773,7 @@ __metadata:
       optional: true
     react-dom:
       optional: true
-  checksum: 10c0/99876d4140104c9d8fab02c236635d55c785e6c401e41704b93371bdaccc9e6f60dcb2d820ea30416eb4aaec0fef606a678ad2c41f4a554342cf0a904899bf77
+  checksum: 10c0/597c00de515426476b8f3eab656736415fe56d41dbfa6f87db5dddf93a47e7fee9d193c3da5c58bd07f6f4f36107915479456db950ce865fb85753e44b66a81c
   languageName: node
   linkType: hard
 
@@ -18510,10 +18501,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-cron@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "node-cron@npm:4.2.0"
-  checksum: 10c0/a1f886049df95c2331d4ed6c8b2045ab6552e8858c243d46eff71017eee7ae5714ff505a7aab38cb0275b3a0f049f19a0c5b762e2de9977b08d62bcabeccfc86
+"node-cron@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "node-cron@npm:4.2.1"
+  checksum: 10c0/804df01df230e96fd2f8ffcde004f4d5af953bccdf3ccf993dc450526dd65f553a2f2ad4bc0faf55c90c38cbc99c9ddbb88ee16cba3fc6bc74e606da6efb249e
   languageName: node
   linkType: hard
 
@@ -19994,27 +19985,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.53.2":
-  version: 1.53.2
-  resolution: "playwright-core@npm:1.53.2"
+"playwright-core@npm:1.54.1":
+  version: 1.54.1
+  resolution: "playwright-core@npm:1.54.1"
   bin:
     playwright-core: cli.js
-  checksum: 10c0/cd9434736687600943e749313e3d6166ef5d8614e64e74f440099f3a1b0fe56a9a462921c0ca9264aebc7bfc4ffeaec3fddf1c30731c0d60de3211d796f1be44
+  checksum: 10c0/b821262b024d7753b1bfa71eb2bc99f2dda12a869d175b2e1bc6ac2764bd661baf36d9d42f45caf622854ad7e4a6077b9b57014c74bb5a78fe339c9edf1c9019
   languageName: node
   linkType: hard
 
-"playwright@npm:1.53.2":
-  version: 1.53.2
-  resolution: "playwright@npm:1.53.2"
+"playwright@npm:1.54.1":
+  version: 1.54.1
+  resolution: "playwright@npm:1.54.1"
   dependencies:
     fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.53.2"
+    playwright-core: "npm:1.54.1"
   dependenciesMeta:
     fsevents:
       optional: true
   bin:
     playwright: cli.js
-  checksum: 10c0/4620bdb2bd341916cae50721336f628abc9d0b1a097fd74a93127feed8dede52be4fb789ac0d17aefac74e5d43a5832b1b79a0d3c2af5abc5a82491b72ebcf92
+  checksum: 10c0/c5fedae31a03a1f4c4846569aef3ffb98da23000a4d255abfc8c2ede15b43cc7cd87b80f6fa078666c030373de8103787cf77ef7653ae9458aabbbd4320c2599
   languageName: node
   linkType: hard
 
@@ -20250,10 +20241,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"posthog-node@npm:^5.4.0":
-  version: 5.4.0
-  resolution: "posthog-node@npm:5.4.0"
-  checksum: 10c0/b0fdac7541e485e3c2c74b6f9b289302cd78862855988be12f286a7884949a5993b1cfc2e6d30f5c2d655105ea914be6f67c71d190285c1f8b593a2536c9ca4d
+"posthog-node@npm:^5.5.0":
+  version: 5.5.0
+  resolution: "posthog-node@npm:5.5.0"
+  checksum: 10c0/295183488f0f364859b06bdcdc6224320f5a768098d45ed86fa1a1794e447c0ad022ff336ea89a7eaac8df2823e954babc8719f02acdc9e48540afb90846532d
   languageName: node
   linkType: hard
 
@@ -20885,9 +20876,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-email@npm:4.1.0":
-  version: 4.1.0
-  resolution: "react-email@npm:4.1.0"
+"react-email@npm:4.1.3":
+  version: 4.1.3
+  resolution: "react-email@npm:4.1.3"
   dependencies:
     "@babel/parser": "npm:^7.27.0"
     "@babel/traverse": "npm:^7.27.0"
@@ -20908,7 +20899,7 @@ __metadata:
     tsconfig-paths: "npm:4.2.0"
   bin:
     email: dist/index.js
-  checksum: 10c0/ac0f081a99e1132efdf6591bba06ecb73fe0de74c6c904232c66b39acd36c18b9ac81600dbd22584ecf6b01aa90632e6fb050ad4f0eef108fe2c9a7d218b096f
+  checksum: 10c0/5eb223bfa5443db8facc2baad4ebcb38f3215341c31f7f4401af426ea24780ca3f7f9eaa41804334fe26bcfc4e621c508a921ee3edc6bdc0f42b9cff94635b5c
   languageName: node
   linkType: hard
 
@@ -25130,9 +25121,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack@npm:^5.100.0":
-  version: 5.100.0
-  resolution: "webpack@npm:5.100.0"
+"webpack@npm:^5.100.1":
+  version: 5.100.1
+  resolution: "webpack@npm:5.100.1"
   dependencies:
     "@types/eslint-scope": "npm:^3.7.7"
     "@types/estree": "npm:^1.0.8"
@@ -25164,7 +25155,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: 10c0/65e93807985a469b683b6a089e994a3b61c64aa67fa60b4322f6e857cc9b3312080ba1f29041aacb5d382bd16bea1ab6384e149034cdd71ee138a17df295860a
+  checksum: 10c0/6dd8e286a5e361650c543dc6c4922b82276b0ed57ae545014bf4f6486d857d1c388dc8ec798f1dc3b77a765936357286910879fab65e6ff53e4cba1cc13db538
   languageName: node
   linkType: hard
 
@@ -25691,10 +25682,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "zod@npm:4.0.2"
-  checksum: 10c0/31d82196d5be1c8290a860e79b469c64934979a95533d6c7802cb164562a1584d03bc19fa349747f7c54e45fa85c10b2f731a2805626f96f8908bc94bccd38b8
+"zod@npm:^4.0.5":
+  version: 4.0.5
+  resolution: "zod@npm:4.0.5"
+  checksum: 10c0/59449d731ca63849b6bcb14300aa6e2f042d440b3ed294b45c248519aec78780f85a5d1939a62c2ce82e9dc60afca77c8005e0a98d7517b0c2586d6c76940424
   languageName: node
   linkType: hard
 

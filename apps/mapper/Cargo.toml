@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-alloy = { workspace = true, features = ["full"] }
+alloy = { workspace = true }
 anyhow = { workspace = true, features = ["backtrace"] }
 axum = { workspace = true }
 bincode = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
 fastembed = { workspace = true }
-gag = "1.0"  # Used by llm_ops module for output suppression
+gag = { workspace = true } # Used by llm_ops module for output suppression
 lazy_static = { workspace = true }
 llm_client = { workspace = true }
 llm_models = { workspace = true }

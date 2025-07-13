@@ -1,6 +1,7 @@
 # Email Service (Simplified)
 
 A streamlined email notification service for ProposalsApp that sends notifications for:
+
 - New proposals
 - Ending proposals
 - New discussions
@@ -69,6 +70,7 @@ yarn start
 ## Database Schema
 
 Uses the following tables:
+
 - `dao` - DAO information
 - `proposal` - Proposals
 - `discourseTopic` - Forum discussions
@@ -81,6 +83,7 @@ Uses the following tables:
 ## Type Safety
 
 The service is fully type-safe with:
+
 - Typed database queries via Kysely
 - Proper DAO database resolution
 - No `as any` casts

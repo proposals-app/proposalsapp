@@ -27,6 +27,9 @@ if (!RESEND_API_KEY) {
   process.exit(1);
 }
 
+// BetterStack monitoring configuration
+const BETTERSTACK_KEY = process.env.BETTERSTACK_KEY;
+
 const FROM_EMAIL =
   process.env.FROM_EMAIL || 'Proposals.app <no-reply@proposals.app>';
 const NEW_PROPOSAL_MINUTES = 5;
@@ -481,11 +484,13 @@ const PORT = process.env.PORT || 3000;
 const server = createServer((req, res) => {
   if (req.url === '/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      status: 'healthy',
-      service: 'email-service',
-      timestamp: new Date().toISOString()
-    }));
+    res.end(
+      JSON.stringify({
+        status: 'healthy',
+        service: 'email-service',
+        timestamp: new Date().toISOString(),
+      })
+    );
   } else {
     res.writeHead(404);
     res.end('Not Found');
@@ -496,6 +501,30 @@ const server = createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`Health check server listening on port ${PORT}`);
 });
+
+// Start BetterStack heartbeat monitoring
+let heartbeatInterval: NodeJS.Timeout | undefined;
+if (BETTERSTACK_KEY) {
+  console.log('BetterStack uptime monitoring enabled');
+
+  // Send heartbeat every 10 seconds
+  heartbeatInterval = setInterval(async () => {
+    try {
+      const response = await fetch(BETTERSTACK_KEY, { method: 'GET' });
+      if (response.ok) {
+        console.log('Uptime ping sent successfully');
+      } else {
+        console.warn(
+          `Failed to send uptime ping: ${response.status} ${response.statusText}`
+        );
+      }
+    } catch (error) {
+      console.warn('Failed to send uptime ping:', error);
+    }
+  }, 10000); // 10 seconds
+} else {
+  console.log('BETTERSTACK_KEY not set, uptime monitoring disabled');
+}
 
 // Schedule cron job - runs every minute
 cron.schedule('* * * * *', () => {
@@ -509,6 +538,11 @@ console.log('Email service started - checking for notifications every minute');
 // Handle shutdown
 process.on('SIGINT', async () => {
   console.log('\nShutting down...');
+
+  // Clear heartbeat interval if it exists
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+  }
 
   // Close HTTP server
   server.close();

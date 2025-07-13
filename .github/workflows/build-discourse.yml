@@ -55,17 +55,17 @@ jobs:
         run: |
           echo "=== Disk space before cleanup ==="
           df -h
-          
+
           echo "=== Cleaning Docker system ==="
           # Remove unused images (keeping ones used in last 2h)
           docker image prune -a --force --filter "until=2h" || true
-          
+
           # Clean build cache older than 6h
           docker buildx prune --force --filter "until=6h" || true
-          
+
           # Clean Docker system (containers, networks, etc)
           docker system prune --force --filter "until=2h" || true
-          
+
           echo "=== Disk space after cleanup ==="
           df -h
 
@@ -129,16 +129,16 @@ jobs:
         run: |
           echo "=== Cache size check ==="
           du -sh /var/cache/buildx/discourse || true
-          
+
           # Limit cache size to 20GB
           CACHE_SIZE=$(du -sb /var/cache/buildx/discourse 2>/dev/null | cut -f1 || echo 0)
           MAX_SIZE=$((20 * 1024 * 1024 * 1024)) # 20GB in bytes
-          
+
           if [ "$CACHE_SIZE" -gt "$MAX_SIZE" ]; then
             echo "Cache size ($CACHE_SIZE bytes) exceeds limit ($MAX_SIZE bytes), cleaning..."
             docker buildx prune --force --filter "until=1h" || true
           fi
-          
+
           # Also clean up dangling images
           docker image prune -f || true
 

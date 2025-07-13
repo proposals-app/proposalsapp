@@ -1221,7 +1221,6 @@ const SkeletonGroupItemDetailed = React.forwardRef<
 });
 SkeletonGroupItemDetailed.displayName = 'SkeletonGroupItemDetailed';
 
-
 // Enhanced Group Item Skeleton - for streaming group items with enhanced visual fidelity
 const SkeletonGroupItemEnhanced = React.forwardRef<
   HTMLDivElement,

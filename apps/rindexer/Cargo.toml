@@ -32,7 +32,11 @@ serde_json = { workspace = true }
 serial_test = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["fmt", "json", "env-filter"] }
+tracing-subscriber = { workspace = true, features = [
+    "fmt",
+    "json",
+    "env-filter",
+] }
 utils = { workspace = true }
 
 [dev-dependencies]
