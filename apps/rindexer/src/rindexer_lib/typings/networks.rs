@@ -82,7 +82,7 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("ARBITRUM_NODE_URL")
                     .unwrap_or("ARBITRUM_NODE_URL".to_string()),
                 42161,
-                None,
+                Some(660),
                 Some(U64::from(10000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
@@ -106,7 +106,7 @@ pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("OPTIMISM_NODE_URL")
                     .unwrap_or("OPTIMISM_NODE_URL".to_string()),
                 10,
-                None,
+                Some(660),
                 Some(U64::from(10000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
@@ -130,7 +130,7 @@ pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("POLYGON_NODE_URL")
                     .unwrap_or("POLYGON_NODE_URL".to_string()),
                 137,
-                None,
+                Some(660),
                 Some(U64::from(10000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),
@@ -154,7 +154,7 @@ pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("AVALANCHE_NODE_URL")
                     .unwrap_or("AVALANCHE_NODE_URL".to_string()),
                 43114,
-                None,
+                Some(660),
                 Some(U64::from(10000)),
                 Some(BlockPollFrequency::RpcOptimized),
                 HeaderMap::new(),

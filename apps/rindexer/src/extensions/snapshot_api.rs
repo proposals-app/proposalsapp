@@ -693,22 +693,24 @@ impl SnapshotApiHandler {
     #[instrument(name = "snapshot_api_update_rate_limit_info", skip(rate_limiter))]
     fn update_rate_limit_info(response: &reqwest::Response, rate_limiter: &RateLimiter) {
         if let Some(remaining) = response.headers().get("ratelimit-remaining")
-            && let Ok(remaining) = remaining.to_str().unwrap_or("0").parse::<u32>() {
-                rate_limiter
-                    .remaining
-                    .store(remaining, std::sync::atomic::Ordering::SeqCst);
-                debug!(
-                    remaining_requests = remaining,
-                    "Rate limit remaining updated"
-                );
-            }
+            && let Ok(remaining) = remaining.to_str().unwrap_or("0").parse::<u32>()
+        {
+            rate_limiter
+                .remaining
+                .store(remaining, std::sync::atomic::Ordering::SeqCst);
+            debug!(
+                remaining_requests = remaining,
+                "Rate limit remaining updated"
+            );
+        }
 
         if let Some(reset) = response.headers().get("ratelimit-reset")
             && let Ok(reset) = reset.to_str().unwrap_or("0").parse::<u64>()
-                && let Ok(mut reset_time) = rate_limiter.reset.try_lock() {
-                    *reset_time = Instant::now() + Duration::from_secs(reset);
-                    debug!(reset_seconds = reset, "Rate limit reset time updated");
-                }
+            && let Ok(mut reset_time) = rate_limiter.reset.try_lock()
+        {
+            *reset_time = Instant::now() + Duration::from_secs(reset);
+            debug!(reset_seconds = reset, "Rate limit reset time updated");
+        }
     }
 
     #[instrument(name = "snapshot_api_wait_for_rate_limit", skip(rate_limiter))]
