@@ -1,5 +1,15 @@
 name: rindexer
 project_type: rust
+
+config:
+  buffer: 1
+storage:
+  postgres:
+    enabled: true
+    disable_create_tables: true
+native_transfers:
+  enabled: false
+
 networks:
   - name: ethereum
     chain_id: 1
@@ -30,13 +40,6 @@ networks:
     rpc: ${AVALANCHE_NODE_URL}
     max_block_range: 1000000
     block_poll_frequency: optimized
-
-storage:
-  postgres:
-    enabled: true
-    disable_create_tables: true
-native_transfers:
-  enabled: false
 
 contracts:
   - name: ARBToken
