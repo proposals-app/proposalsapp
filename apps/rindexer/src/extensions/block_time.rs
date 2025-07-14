@@ -1,3 +1,4 @@
+use crate::rindexer_lib::typings::networks::get_provider_cache_for_network;
 use alloy::{eips::BlockId, providers::Provider};
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -11,8 +12,6 @@ use std::{
 };
 use tokio::sync::Mutex;
 use tracing::{debug, error, instrument, warn};
-
-use crate::rindexer_lib::typings::networks::get_provider_cache_for_network;
 
 // Configuration structures
 #[derive(Clone, Debug)]
@@ -183,12 +182,12 @@ pub async fn estimate_timestamp(network: &'static str, block_number: u64) -> Res
 // Job processor with retry and backoff logic
 #[instrument(name = "block_time_job_processor", skip_all)]
 async fn job_processor() {
-    let mut empty_iterations = 0;
+    let mut _empty_iterations = 0;
     loop {
         let mut job_queue = JOBS_QUEUE.lock().await;
         if let Some(mut job) = job_queue.pop_front() {
             drop(job_queue); // Release lock to allow other tasks to enqueue jobs
-            empty_iterations = 0; // Reset counter when we process a job
+            _empty_iterations = 0; // Reset counter when we process a job
 
             let config = match get_chain_config(job.network) {
                 Ok(config) => config,
@@ -226,7 +225,7 @@ async fn job_processor() {
                             block_number = job.block_number,
                             error = %e,
                             retry_count = job.retry_count,
-                            "Retrying after backoff"
+                            "Pushing back to queue. Failed to process timestamp estimation"
                         );
                         job.retry_count += 1;
                         let backoff_duration = Duration::from_secs(job.retry_count.min(5));
@@ -238,11 +237,11 @@ async fn job_processor() {
             }
         } else {
             tokio::time::sleep(Duration::from_millis(100)).await;
-            empty_iterations += 1;
+            _empty_iterations += 1;
 
             // In test mode, exit after 50 empty iterations (5 seconds)
             #[cfg(test)]
-            if empty_iterations > 50 {
+            if _empty_iterations > 50 {
                 debug!("Job processor exiting after 50 empty iterations in test mode");
                 break;
             }
@@ -297,6 +296,11 @@ async fn process_past_block_timestamp(
     block_number: u64,
     current_block: u64,
 ) -> Result<NaiveDateTime> {
+    #[allow(unused_assignments)]
+    let mut provider_error: Option<anyhow::Error> = None;
+    #[allow(unused_assignments)]
+    let mut rpc_error: Option<anyhow::Error> = None;
+    
     // Step 1: Try provider get_block
     match get_timestamp_from_provider(&provider, block_number, current_block).await {
         Ok(timestamp) => {
@@ -304,7 +308,8 @@ async fn process_past_block_timestamp(
             return Ok(timestamp);
         }
         Err(e) => {
-            debug!(error = ?e, "Provider get_block failed, trying raw RPC");
+            warn!(error = ?e, "Failed to get timestamp from provider, trying raw RPC");
+            provider_error = Some(e);
         }
     }
 
@@ -315,7 +320,8 @@ async fn process_past_block_timestamp(
             return Ok(timestamp);
         }
         Err(e) => {
-            debug!(error = ?e, "Raw RPC failed, trying scan API");
+            warn!(error = ?e, "Failed to get timestamp from raw RPC, trying scan API");
+            rpc_error = Some(e);
         }
     }
 
@@ -327,16 +333,33 @@ async fn process_past_block_timestamp(
                 Ok(timestamp)
             }
             Err(e) => {
-                error!(error = ?e, "All methods failed to get timestamp for past block");
+                error!(
+                    provider_error = ?provider_error,
+                    rpc_error = ?rpc_error,
+                    past_scan_api_error = ?e,
+                    "Failed to get timestamp from past scan API for past block"
+                );
                 Err(anyhow::anyhow!(
-                    "Failed to get timestamp for past block {}: all methods failed",
-                    block_number
+                    "Failed to estimate timestamp for past block {}. Provider error: {:?}, RPC error: {:?}, Past scan API error: {:?}",
+                    block_number,
+                    provider_error,
+                    rpc_error,
+                    e
                 ))
             }
         }
     } else {
+        error!(
+            provider_error = ?provider_error,
+            rpc_error = ?rpc_error,
+            network = config.network,
+            "Scan API not configured for network, all fallback methods failed"
+        );
         Err(anyhow::anyhow!(
-            "Scan API not configured for network {}",
+            "Failed to estimate timestamp for past block {}. Provider error: {:?}, RPC error: {:?}. Scan API not configured for network {}",
+            block_number,
+            provider_error,
+            rpc_error,
             config.network
         ))
     }
@@ -407,6 +430,7 @@ async fn get_timestamp_from_raw_rpc(
 
     debug!("Making raw RPC request for block {}", block_number);
 
+    // First try the typed request (existing behavior)
     match inner_provider
         .client()
         .request::<_, Option<BlockTimestamp>>(
@@ -427,12 +451,47 @@ async fn get_timestamp_from_raw_rpc(
             "Block {} not found via raw RPC",
             block_number
         )),
-        Err(e) => Err(anyhow::anyhow!("Raw RPC request failed: {}", e)),
+        Err(e) => {
+            // If the typed request fails (likely due to mixHash deserialization),
+            // try manual JSON parsing to bypass the issue
+            debug!("Typed request failed, attempting manual JSON parsing: {}", e);
+            
+            match inner_provider
+                .client()
+                .request::<_, Option<serde_json::Value>>(
+                    "eth_getBlockByNumber",
+                    (format!("0x{:x}", block_number), false),
+                )
+                .await
+            {
+                Ok(Some(block_json)) => {
+                    // Extract timestamp manually from the JSON response
+                    if let Some(timestamp_str) = block_json.get("timestamp").and_then(|v| v.as_str()) {
+                        let timestamp = i64::from_str_radix(timestamp_str.trim_start_matches("0x"), 16)
+                            .context("Failed to parse hex timestamp from manual JSON parsing")?;
+                        debug!(timestamp = timestamp, "Got timestamp from manual JSON parsing");
+                        DateTime::<Utc>::from_timestamp(timestamp, 0)
+                            .map(|dt| dt.naive_utc())
+                            .context("Timestamp from manual JSON parsing out of range")
+                    } else {
+                        Err(anyhow::anyhow!("Missing timestamp field in block response"))
+                    }
+                }
+                Ok(None) => Err(anyhow::anyhow!(
+                    "Block {} not found via manual JSON parsing",
+                    block_number
+                )),
+                Err(json_e) => Err(anyhow::anyhow!(
+                    "Both typed and manual JSON parsing failed. Typed: {}. Manual: {}", 
+                    e, json_e
+                )),
+            }
+        }
     }
 }
 
 // Step 3: Get timestamp from past scan API
-#[instrument(name = "block_time_past_scan_api", skip_all, fields(block_number = block_number))]
+#[instrument(name = "block_time_past_scan_api", skip_all, fields(block_number = block_number, scan_api = scan_api_url))]
 async fn get_timestamp_from_past_scan_api(
     scan_api_url: &str,
     scan_api_key: &str,
@@ -455,8 +514,15 @@ async fn get_timestamp_from_past_scan_api(
                     .context("Timestamp from past scan API out of range");
             }
         }
+        error!(
+            scan_api = scan_api_url,
+            block_number = block_number,
+            response_status = response.status,
+            response_message = response.message,
+            "Past scan API request failed with status"
+        );
         return Err(anyhow::anyhow!(
-            "Past scan API returned error: status={}, message={}",
+            "Past scan API request failed with status: {}, message: {}",
             response.status,
             response.message
         ));
