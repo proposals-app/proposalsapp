@@ -162,19 +162,57 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
         let inner_provider = provider.get_inner_provider();
 
         if block_number <= current_block {
-            let block = inner_provider
+            // First try the standard get_block method
+            match inner_provider
                 .get_block(BlockId::Number(block_number.into()))
                 .await
-                .context(format!(
-                    "Failed to get block {block_number} from provider"
-                ))?;
-
-            if let Some(block) = block {
-                let timestamp = block.header.timestamp as i64;
-                debug!(block_timestamp = timestamp, block_hash = ?block.header.hash, "Block found from provider");
-                return DateTime::<Utc>::from_timestamp(timestamp, 0)
-                    .map(|dt| dt.naive_utc())
-                    .context("Timestamp from provider out of range");
+            {
+                Ok(Some(block)) => {
+                    let timestamp = block.header.timestamp as i64;
+                    debug!(block_timestamp = timestamp, block_hash = ?block.header.hash, "Block found from provider");
+                    return DateTime::<Utc>::from_timestamp(timestamp, 0)
+                        .map(|dt| dt.naive_utc())
+                        .context("Timestamp from provider out of range");
+                }
+                Ok(None) => {
+                    debug!("Block not found by provider");
+                }
+                Err(e) => {
+                    // If deserialization fails (e.g., due to null mixHash on L2s), try raw RPC
+                    if e.to_string().contains("deserialization error") || e.to_string().contains("invalid type: null") {
+                        debug!("Standard get_block failed with deserialization error, trying raw RPC approach");
+                        
+                        // Define minimal structure just for timestamp
+                        #[derive(Debug, Deserialize)]
+                        struct BlockTimestamp {
+                            timestamp: String,
+                        }
+                        
+                        // Make raw JSON-RPC request
+                        match inner_provider
+                            .client()
+                            .request::<_, Option<BlockTimestamp>>("eth_getBlockByNumber", (format!("0x{:x}", block_number), false))
+                            .await
+                        {
+                            Ok(Some(block)) => {
+                                let timestamp = i64::from_str_radix(block.timestamp.trim_start_matches("0x"), 16)
+                                    .context("Failed to parse hex timestamp")?;
+                                debug!(block_timestamp = timestamp, "Block timestamp obtained via raw RPC");
+                                return DateTime::<Utc>::from_timestamp(timestamp, 0)
+                                    .map(|dt| dt.naive_utc())
+                                    .context("Timestamp from provider out of range");
+                            }
+                            Ok(None) => {
+                                debug!("Block not found via raw RPC");
+                            }
+                            Err(raw_err) => {
+                                debug!(error = ?raw_err, "Raw RPC request also failed");
+                            }
+                        }
+                    } else {
+                        debug!(error = ?e, "get_block failed with non-deserialization error");
+                    }
+                }
             }
         }
         error!("Block not found by provider or block number exceeds current block");
@@ -210,16 +248,16 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                                 .map(|dt| dt.naive_utc())
                                 .context("Timestamp from past scan api out of range");
                         } else if let Some(BlockRewardResult::Error(err_msg)) = response.result {
-                            error!(scan_api = %scan_api_url, block_number = block_number, error_message = err_msg, "Past scan API returned an error");
+                            warn!(scan_api = %scan_api_url, block_number = block_number, error_message = err_msg, "Past scan API returned an error");
                             return Err(anyhow::anyhow!("Past scan API error: {}", err_msg));
                         } else {
-                            error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, "Past scan API response result is None but status is success");
+                            warn!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, "Past scan API response result is None but status is success");
                             return Err(anyhow::anyhow!(
                                 "Past scan API response result is None but status is success"
                             ));
                         }
                     } else {
-                        error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, response_message = response.message, "Past scan API request failed with status");
+                        warn!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, response_message = response.message, "Past scan API request failed with status");
                         return Err(anyhow::anyhow!(
                             "Past scan API request failed with status: {}, message: {}",
                             response.status,
@@ -227,7 +265,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                         ));
                     }
                 } else {
-                    error!(scan_api = %scan_api_url, block_number = block_number, "Past scan API request returned None");
+                    warn!(scan_api = %scan_api_url, block_number = block_number, "Past scan API request returned None");
                     return Err(anyhow::anyhow!("Past scan API request returned None"));
                 }
             }
@@ -242,7 +280,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
             debug!("Timestamp obtained from past scan API");
             return Ok(timestamp);
         } else {
-            error!(error = ?past_scan_api_result.as_ref().err(), "Failed to get timestamp from past scan API for past block");
+            warn!(error = ?past_scan_api_result.as_ref().err(), "Failed to get timestamp from past scan API for past block - will use fallback estimation");
             return Err(anyhow::anyhow!(
                 "Failed to estimate timestamp for past block {}. Provider error: {:?}, Past scan API error: {:?}",
                 block_number,
@@ -271,16 +309,16 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                             .context("Failed to add duration to current time from future scan api")
                             .map(|dt| dt.naive_utc());
                     } else if let Some(EstimateTimestampResult::Error(err_msg)) = response.result {
-                        error!(scan_api = %scan_api_url, block_number = block_number, error_message = err_msg, "Future scan API returned an error");
+                        warn!(scan_api = %scan_api_url, block_number = block_number, error_message = err_msg, "Future scan API returned an error");
                         return Err(anyhow::anyhow!("Future scan API error: {}", err_msg));
                     } else {
-                        error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, "Future scan API response result is None but status is success");
+                        warn!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, "Future scan API response result is None but status is success");
                         return Err(anyhow::anyhow!(
                             "Future scan API response result is None but status is success"
                         ));
                     }
                 } else {
-                    error!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, response_message = response.message, "Future scan API request failed with status");
+                    warn!(scan_api = %scan_api_url, block_number = block_number, response_status = response.status, response_message = response.message, "Future scan API request failed with status");
                     return Err(anyhow::anyhow!(
                         "Future scan API request failed with status: {}, message: {}",
                         response.status,
@@ -288,7 +326,7 @@ async fn process_request_inner(config: ChainConfig, block_number: u64) -> Result
                     ));
                 }
             } else {
-                error!(scan_api = %scan_api_url, block_number = block_number, "Future scan API request returned None");
+                warn!(scan_api = %scan_api_url, block_number = block_number, "Future scan API request returned None");
                 return Err(anyhow::anyhow!("Future scan API request returned None"));
             }
         }
