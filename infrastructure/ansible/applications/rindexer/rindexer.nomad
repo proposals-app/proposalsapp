@@ -179,31 +179,17 @@ DATABASE_URL=
 {{ end }}
 {{ end }}
 
-# Chain RPC endpoints - always use local eRPC instance
-# eRPC runs on all datacenters, so we use the local instance for best performance
+# Chain RPC endpoints - use the single eRPC instance via Consul service discovery
 {{ $erpcFound := false }}
 {{ range service "erpc" }}
-  {{ if eq .Node (env "node.unique.name") }}
+  {{ if not $erpcFound }}
     {{ $erpcFound = true }}
-# Using local eRPC instance on same node
+# Using eRPC instance discovered via Consul (single instance deployment)
 ETHEREUM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/1
 ARBITRUM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/42161
 AVALANCHE_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/43114
 POLYGON_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/137
 OPTIMISM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/10
-  {{ end }}
-{{ end }}
-{{ if not $erpcFound }}
-  {{ range service "erpc" }}
-    {{ if not $erpcFound }}
-      {{ $erpcFound = true }}
-# No local eRPC found, using nearest available instance
-ETHEREUM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/1
-ARBITRUM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/42161
-AVALANCHE_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/43114
-POLYGON_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/137
-OPTIMISM_NODE_URL=http://{{ .Address }}:{{ .Port }}/proposalsapp/evm/10
-    {{ end }}
   {{ end }}
 {{ end }}
 {{ if not $erpcFound }}

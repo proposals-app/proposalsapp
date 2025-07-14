@@ -15,11 +15,14 @@ job "erpc" {
   }
 
   group "erpc" {
-    count = 3  # One instance per datacenter for high availability
+    count = 1  # Single instance to maximize cache hit rate and prevent OOM
+              # With 8GB RAM and 500 item cache, one instance is more efficient
+              # than multiple instances with fragmented caches
 
-    # Spread across datacenters
-    spread {
+    # Prefer to run in dc1 but can run anywhere if needed
+    affinity {
       attribute = "${node.datacenter}"
+      value     = "dc1"
       weight    = 100
     }
 
@@ -45,9 +48,9 @@ job "erpc" {
     }
 
     ephemeral_disk {
-      size    = 500
-      sticky  = false
-      migrate = true
+      size    = 10240  # 10GB for logs, temp files, and potential disk-based cache
+      sticky  = true   # Keep data on same host for better performance
+      migrate = true   # Migrate data if job moves
     }
 
     network {
@@ -94,9 +97,13 @@ job "erpc" {
       env {
         # Enable debug logging
         LOG_LEVEL = "debug"
-        
+
         # Performance tuning
-        GOMAXPROCS = "4"
+        GOMAXPROCS = "2"  # Match CPU allocation
+
+        # Balanced garbage collection for 4GB allocation
+        GOGC = "30"  # Trigger GC when heap grows by 30% (recommended by eRPC docs)
+        GOMEMLIMIT = "3500MiB"  # Set Go memory limit below container limit (4GB - overhead)
       }
 
       # eRPC configuration template with proper structure
@@ -120,13 +127,15 @@ database:
       - id: memory-cache
         driver: memory
         memory:
-          maxItems: 100000
+          maxItems: 2000  # Reasonable for 4GB RAM with typical 256MB base usage
     policies:
+      # Cache most methods for 5 seconds
       - network: "*"
         method: "*"
         finality: finalized
         connector: memory-cache
         ttl: 5s
+      # Cache getLogs and trace methods for 60 seconds (they're more expensive)
       - network: "*"
         method: "eth_getLogs|trace_*"
         finality: finalized
@@ -151,9 +160,9 @@ projects:
       - architecture: evm
         evm:
           chainId: 43114
-    
+
     rateLimitBudget: global
-    
+
     upstreams:
       # Ethereum Hypersync - for logs and block methods
       - id: hypersync-ethereum
@@ -162,28 +171,38 @@ projects:
         rateLimitBudget: hypersync-budget
         evm:
           chainId: 1
-        
-        # Only allow specific methods that Hypersync excels at
+
+        # HyperRPC only supports these specific methods
         allowMethods:
-          - "eth_getLogs"
+          # Chain data
+          - "eth_chainId"
           - "eth_blockNumber"
+
+          # Block data
           - "eth_getBlockByNumber"
           - "eth_getBlockByHash"
-          - "eth_newFilter"
-          - "eth_newBlockFilter"
-          - "eth_newPendingTransactionFilter"
-          - "eth_getFilterChanges"
-          - "eth_getFilterLogs"
-          - "eth_uninstallFilter"
-        
+          - "eth_getBlockReceipts"
+
+          # Transaction data
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+
+          # Event logs
+          - "eth_getLogs"
+
+          # Traces (only on select chains)
+          - "trace_block"
+
         ignoreMethods:
-          - "*"  # Ignore everything else
-        
+          - "*"  # Reject all methods not explicitly allowed above
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
           batchMaxWait: 50ms
-        
+
         failsafe:
           timeout:
             duration: 30s
@@ -201,22 +220,33 @@ projects:
         rateLimitBudget: hypersync-budget
         evm:
           chainId: 42161
-        
+
+        # HyperRPC only supports these specific methods
         allowMethods:
-          - "eth_getLogs"
+          # Chain data
+          - "eth_chainId"
           - "eth_blockNumber"
+
+          # Block data
           - "eth_getBlockByNumber"
           - "eth_getBlockByHash"
-          - "eth_newFilter"
-          - "eth_newBlockFilter"
-          - "eth_newPendingTransactionFilter"
-          - "eth_getFilterChanges"
-          - "eth_getFilterLogs"
-          - "eth_uninstallFilter"
-        
+          - "eth_getBlockReceipts"
+
+          # Transaction data
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+
+          # Event logs
+          - "eth_getLogs"
+
+          # Traces (only on select chains)
+          - "trace_block"
+
         ignoreMethods:
-          - "*"
-        
+          - "*"  # Reject all methods not explicitly allowed above
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
@@ -229,22 +259,33 @@ projects:
         rateLimitBudget: hypersync-budget
         evm:
           chainId: 10
-        
+
+        # HyperRPC only supports these specific methods
         allowMethods:
-          - "eth_getLogs"
+          # Chain data
+          - "eth_chainId"
           - "eth_blockNumber"
+
+          # Block data
           - "eth_getBlockByNumber"
           - "eth_getBlockByHash"
-          - "eth_newFilter"
-          - "eth_newBlockFilter"
-          - "eth_newPendingTransactionFilter"
-          - "eth_getFilterChanges"
-          - "eth_getFilterLogs"
-          - "eth_uninstallFilter"
-        
+          - "eth_getBlockReceipts"
+
+          # Transaction data
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+
+          # Event logs
+          - "eth_getLogs"
+
+          # Traces (only on select chains)
+          - "trace_block"
+
         ignoreMethods:
-          - "*"
-        
+          - "*"  # Reject all methods not explicitly allowed above
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
@@ -257,22 +298,33 @@ projects:
         rateLimitBudget: hypersync-budget
         evm:
           chainId: 137
-        
+
+        # HyperRPC only supports these specific methods
         allowMethods:
-          - "eth_getLogs"
+          # Chain data
+          - "eth_chainId"
           - "eth_blockNumber"
+
+          # Block data
           - "eth_getBlockByNumber"
           - "eth_getBlockByHash"
-          - "eth_newFilter"
-          - "eth_newBlockFilter"
-          - "eth_newPendingTransactionFilter"
-          - "eth_getFilterChanges"
-          - "eth_getFilterLogs"
-          - "eth_uninstallFilter"
-        
+          - "eth_getBlockReceipts"
+
+          # Transaction data
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+
+          # Event logs
+          - "eth_getLogs"
+
+          # Traces (only on select chains)
+          - "trace_block"
+
         ignoreMethods:
-          - "*"
-        
+          - "*"  # Reject all methods not explicitly allowed above
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
@@ -285,22 +337,33 @@ projects:
         rateLimitBudget: hypersync-budget
         evm:
           chainId: 43114
-        
+
+        # HyperRPC only supports these specific methods
         allowMethods:
-          - "eth_getLogs"
+          # Chain data
+          - "eth_chainId"
           - "eth_blockNumber"
+
+          # Block data
           - "eth_getBlockByNumber"
           - "eth_getBlockByHash"
-          - "eth_newFilter"
-          - "eth_newBlockFilter"
-          - "eth_newPendingTransactionFilter"
-          - "eth_getFilterChanges"
-          - "eth_getFilterLogs"
-          - "eth_uninstallFilter"
-        
+          - "eth_getBlockReceipts"
+
+          # Transaction data
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+
+          # Event logs
+          - "eth_getLogs"
+
+          # Traces (only on select chains)
+          - "trace_block"
+
         ignoreMethods:
-          - "*"
-        
+          - "*"  # Reject all methods not explicitly allowed above
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
@@ -313,31 +376,140 @@ projects:
         rateLimitBudget: full-budget
         evm:
           chainId: 1
-        
-        # Ignore methods handled by Hypersync
-        ignoreMethods:
-          - "eth_getLogs"
-          - "eth_blockNumber"
-          - "eth_getBlockByNumber"
-          - "eth_getBlockByHash"
+
+        # Full nodes handle all methods EXCEPT those handled by HyperRPC
+        # Explicitly list all methods to ensure exclusive routing
+        allowMethods:
+          # State queries
+          - "eth_getBalance"
+          - "eth_getCode"
+          - "eth_getStorageAt"
+          - "eth_getProof"
+          - "eth_getStateRoot"
+
+          # Smart contract execution
+          - "eth_call"
+
+          # Transaction operations
+          - "eth_sendTransaction"
+          - "eth_sendRawTransaction"
+          - "eth_getTransactionCount"
+          - "eth_sign"
+          - "eth_signTransaction"
+          - "eth_signTypedData"
+          - "eth_signTypedData_v3"
+          - "eth_signTypedData_v4"
+
+          # Gas estimation
+          - "eth_estimateGas"
+          - "eth_gasPrice"
+          - "eth_maxPriorityFeePerGas"
+          - "eth_feeHistory"
+          - "eth_createAccessList"
+
+          # Account management
+          - "eth_accounts"
+          - "eth_coinbase"
+
+          # Mining/Validator operations
+          - "eth_mining"
+          - "eth_hashrate"
+          - "eth_getWork"
+          - "eth_submitWork"
+          - "eth_submitHashrate"
+
+          # Uncle/Ommer blocks
+          - "eth_getUncleByBlockHashAndIndex"
+          - "eth_getUncleByBlockNumberAndIndex"
+          - "eth_getUncleCountByBlockHash"
+          - "eth_getUncleCountByBlockNumber"
+
+          # Filters (except getLogs which goes to hypersync)
           - "eth_newFilter"
           - "eth_newBlockFilter"
           - "eth_newPendingTransactionFilter"
           - "eth_getFilterChanges"
           - "eth_getFilterLogs"
           - "eth_uninstallFilter"
-        
-        # Allow all other standard methods
-        allowMethods:
-          - "eth_*"
-          - "net_*"
-          - "web3_*"
-        
+
+          # Sync and protocol info
+          - "eth_syncing"
+          - "eth_protocolVersion"
+
+          # Pending state
+          - "eth_pendingTransactions"
+
+          # Network methods
+          - "net_version"
+          - "net_peerCount"
+          - "net_listening"
+
+          # Web3 methods
+          - "web3_clientVersion"
+          - "web3_sha3"
+
+          # Debug methods
+          - "debug_traceTransaction"
+          - "debug_traceCall"
+          - "debug_traceBlockByNumber"
+          - "debug_traceBlockByHash"
+          - "debug_getBadBlocks"
+          - "debug_storageRangeAt"
+          - "debug_getBlockRlp"
+          - "debug_printBlock"
+          - "debug_chaindbProperty"
+          - "debug_chaindbCompact"
+          - "debug_verbosity"
+          - "debug_vmodule"
+          - "debug_backtraceAt"
+          - "debug_stacks"
+          - "debug_memStats"
+          - "debug_gcStats"
+          - "debug_cpuProfile"
+          - "debug_startCPUProfile"
+          - "debug_stopCPUProfile"
+          - "debug_goTrace"
+          - "debug_startGoTrace"
+          - "debug_stopGoTrace"
+          - "debug_blockProfile"
+          - "debug_setBlockProfileRate"
+          - "debug_writeBlockProfile"
+          - "debug_mutexProfile"
+          - "debug_setMutexProfileFraction"
+          - "debug_writeMutexProfile"
+          - "debug_writeMemProfile"
+          - "debug_freeOSMemory"
+          - "debug_setGCPercent"
+
+          # Trace methods (except trace_block which goes to hypersync)
+          - "trace_call"
+          - "trace_callMany"
+          - "trace_rawTransaction"
+          - "trace_replayTransaction"
+          - "trace_replayBlockTransactions"
+          - "trace_transaction"
+          - "trace_get"
+          - "trace_filter"
+
+        # Explicitly ignore all methods handled by HyperSync
+        ignoreMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
           batchMaxWait: 50ms
-        
+
         failsafe:
           timeout:
             duration: 15s
@@ -355,24 +527,135 @@ projects:
         rateLimitBudget: full-budget
         evm:
           chainId: 42161
-        
-        ignoreMethods:
-          - "eth_getLogs"
-          - "eth_blockNumber"
-          - "eth_getBlockByNumber"
-          - "eth_getBlockByHash"
+
+        # Full nodes handle all methods EXCEPT those handled by HyperRPC
+        # Explicitly list all methods to ensure exclusive routing
+        allowMethods:
+          # State queries
+          - "eth_getBalance"
+          - "eth_getCode"
+          - "eth_getStorageAt"
+          - "eth_getProof"
+          - "eth_getStateRoot"
+
+          # Smart contract execution
+          - "eth_call"
+
+          # Transaction operations
+          - "eth_sendTransaction"
+          - "eth_sendRawTransaction"
+          - "eth_getTransactionCount"
+          - "eth_sign"
+          - "eth_signTransaction"
+          - "eth_signTypedData"
+          - "eth_signTypedData_v3"
+          - "eth_signTypedData_v4"
+
+          # Gas estimation
+          - "eth_estimateGas"
+          - "eth_gasPrice"
+          - "eth_maxPriorityFeePerGas"
+          - "eth_feeHistory"
+          - "eth_createAccessList"
+
+          # Account management
+          - "eth_accounts"
+          - "eth_coinbase"
+
+          # Mining/Validator operations
+          - "eth_mining"
+          - "eth_hashrate"
+          - "eth_getWork"
+          - "eth_submitWork"
+          - "eth_submitHashrate"
+
+          # Uncle/Ommer blocks
+          - "eth_getUncleByBlockHashAndIndex"
+          - "eth_getUncleByBlockNumberAndIndex"
+          - "eth_getUncleCountByBlockHash"
+          - "eth_getUncleCountByBlockNumber"
+
+          # Filters (except getLogs which goes to hypersync)
           - "eth_newFilter"
           - "eth_newBlockFilter"
           - "eth_newPendingTransactionFilter"
           - "eth_getFilterChanges"
           - "eth_getFilterLogs"
           - "eth_uninstallFilter"
-        
-        allowMethods:
-          - "eth_*"
-          - "net_*"
-          - "web3_*"
-        
+
+          # Sync and protocol info
+          - "eth_syncing"
+          - "eth_protocolVersion"
+
+          # Pending state
+          - "eth_pendingTransactions"
+
+          # Network methods
+          - "net_version"
+          - "net_peerCount"
+          - "net_listening"
+
+          # Web3 methods
+          - "web3_clientVersion"
+          - "web3_sha3"
+
+          # Debug methods
+          - "debug_traceTransaction"
+          - "debug_traceCall"
+          - "debug_traceBlockByNumber"
+          - "debug_traceBlockByHash"
+          - "debug_getBadBlocks"
+          - "debug_storageRangeAt"
+          - "debug_getBlockRlp"
+          - "debug_printBlock"
+          - "debug_chaindbProperty"
+          - "debug_chaindbCompact"
+          - "debug_verbosity"
+          - "debug_vmodule"
+          - "debug_backtraceAt"
+          - "debug_stacks"
+          - "debug_memStats"
+          - "debug_gcStats"
+          - "debug_cpuProfile"
+          - "debug_startCPUProfile"
+          - "debug_stopCPUProfile"
+          - "debug_goTrace"
+          - "debug_startGoTrace"
+          - "debug_stopGoTrace"
+          - "debug_blockProfile"
+          - "debug_setBlockProfileRate"
+          - "debug_writeBlockProfile"
+          - "debug_mutexProfile"
+          - "debug_setMutexProfileFraction"
+          - "debug_writeMutexProfile"
+          - "debug_writeMemProfile"
+          - "debug_freeOSMemory"
+          - "debug_setGCPercent"
+
+          # Trace methods (except trace_block which goes to hypersync)
+          - "trace_call"
+          - "trace_callMany"
+          - "trace_rawTransaction"
+          - "trace_replayTransaction"
+          - "trace_replayBlockTransactions"
+          - "trace_transaction"
+          - "trace_get"
+          - "trace_filter"
+
+        # Explicitly ignore all methods handled by HyperSync
+        ignoreMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
@@ -385,24 +668,135 @@ projects:
         rateLimitBudget: full-budget
         evm:
           chainId: 10
-        
-        ignoreMethods:
-          - "eth_getLogs"
-          - "eth_blockNumber"
-          - "eth_getBlockByNumber"
-          - "eth_getBlockByHash"
+
+        # Full nodes handle all methods EXCEPT those handled by HyperRPC
+        # Explicitly list all methods to ensure exclusive routing
+        allowMethods:
+          # State queries
+          - "eth_getBalance"
+          - "eth_getCode"
+          - "eth_getStorageAt"
+          - "eth_getProof"
+          - "eth_getStateRoot"
+
+          # Smart contract execution
+          - "eth_call"
+
+          # Transaction operations
+          - "eth_sendTransaction"
+          - "eth_sendRawTransaction"
+          - "eth_getTransactionCount"
+          - "eth_sign"
+          - "eth_signTransaction"
+          - "eth_signTypedData"
+          - "eth_signTypedData_v3"
+          - "eth_signTypedData_v4"
+
+          # Gas estimation
+          - "eth_estimateGas"
+          - "eth_gasPrice"
+          - "eth_maxPriorityFeePerGas"
+          - "eth_feeHistory"
+          - "eth_createAccessList"
+
+          # Account management
+          - "eth_accounts"
+          - "eth_coinbase"
+
+          # Mining/Validator operations
+          - "eth_mining"
+          - "eth_hashrate"
+          - "eth_getWork"
+          - "eth_submitWork"
+          - "eth_submitHashrate"
+
+          # Uncle/Ommer blocks
+          - "eth_getUncleByBlockHashAndIndex"
+          - "eth_getUncleByBlockNumberAndIndex"
+          - "eth_getUncleCountByBlockHash"
+          - "eth_getUncleCountByBlockNumber"
+
+          # Filters (except getLogs which goes to hypersync)
           - "eth_newFilter"
           - "eth_newBlockFilter"
           - "eth_newPendingTransactionFilter"
           - "eth_getFilterChanges"
           - "eth_getFilterLogs"
           - "eth_uninstallFilter"
-        
-        allowMethods:
-          - "eth_*"
-          - "net_*"
-          - "web3_*"
-        
+
+          # Sync and protocol info
+          - "eth_syncing"
+          - "eth_protocolVersion"
+
+          # Pending state
+          - "eth_pendingTransactions"
+
+          # Network methods
+          - "net_version"
+          - "net_peerCount"
+          - "net_listening"
+
+          # Web3 methods
+          - "web3_clientVersion"
+          - "web3_sha3"
+
+          # Debug methods
+          - "debug_traceTransaction"
+          - "debug_traceCall"
+          - "debug_traceBlockByNumber"
+          - "debug_traceBlockByHash"
+          - "debug_getBadBlocks"
+          - "debug_storageRangeAt"
+          - "debug_getBlockRlp"
+          - "debug_printBlock"
+          - "debug_chaindbProperty"
+          - "debug_chaindbCompact"
+          - "debug_verbosity"
+          - "debug_vmodule"
+          - "debug_backtraceAt"
+          - "debug_stacks"
+          - "debug_memStats"
+          - "debug_gcStats"
+          - "debug_cpuProfile"
+          - "debug_startCPUProfile"
+          - "debug_stopCPUProfile"
+          - "debug_goTrace"
+          - "debug_startGoTrace"
+          - "debug_stopGoTrace"
+          - "debug_blockProfile"
+          - "debug_setBlockProfileRate"
+          - "debug_writeBlockProfile"
+          - "debug_mutexProfile"
+          - "debug_setMutexProfileFraction"
+          - "debug_writeMutexProfile"
+          - "debug_writeMemProfile"
+          - "debug_freeOSMemory"
+          - "debug_setGCPercent"
+
+          # Trace methods (except trace_block which goes to hypersync)
+          - "trace_call"
+          - "trace_callMany"
+          - "trace_rawTransaction"
+          - "trace_replayTransaction"
+          - "trace_replayBlockTransactions"
+          - "trace_transaction"
+          - "trace_get"
+          - "trace_filter"
+
+        # Explicitly ignore all methods handled by HyperSync
+        ignoreMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
@@ -415,24 +809,135 @@ projects:
         rateLimitBudget: full-budget
         evm:
           chainId: 137
-        
-        ignoreMethods:
-          - "eth_getLogs"
-          - "eth_blockNumber"
-          - "eth_getBlockByNumber"
-          - "eth_getBlockByHash"
+
+        # Full nodes handle all methods EXCEPT those handled by HyperRPC
+        # Explicitly list all methods to ensure exclusive routing
+        allowMethods:
+          # State queries
+          - "eth_getBalance"
+          - "eth_getCode"
+          - "eth_getStorageAt"
+          - "eth_getProof"
+          - "eth_getStateRoot"
+
+          # Smart contract execution
+          - "eth_call"
+
+          # Transaction operations
+          - "eth_sendTransaction"
+          - "eth_sendRawTransaction"
+          - "eth_getTransactionCount"
+          - "eth_sign"
+          - "eth_signTransaction"
+          - "eth_signTypedData"
+          - "eth_signTypedData_v3"
+          - "eth_signTypedData_v4"
+
+          # Gas estimation
+          - "eth_estimateGas"
+          - "eth_gasPrice"
+          - "eth_maxPriorityFeePerGas"
+          - "eth_feeHistory"
+          - "eth_createAccessList"
+
+          # Account management
+          - "eth_accounts"
+          - "eth_coinbase"
+
+          # Mining/Validator operations
+          - "eth_mining"
+          - "eth_hashrate"
+          - "eth_getWork"
+          - "eth_submitWork"
+          - "eth_submitHashrate"
+
+          # Uncle/Ommer blocks
+          - "eth_getUncleByBlockHashAndIndex"
+          - "eth_getUncleByBlockNumberAndIndex"
+          - "eth_getUncleCountByBlockHash"
+          - "eth_getUncleCountByBlockNumber"
+
+          # Filters (except getLogs which goes to hypersync)
           - "eth_newFilter"
           - "eth_newBlockFilter"
           - "eth_newPendingTransactionFilter"
           - "eth_getFilterChanges"
           - "eth_getFilterLogs"
           - "eth_uninstallFilter"
-        
-        allowMethods:
-          - "eth_*"
-          - "net_*"
-          - "web3_*"
-        
+
+          # Sync and protocol info
+          - "eth_syncing"
+          - "eth_protocolVersion"
+
+          # Pending state
+          - "eth_pendingTransactions"
+
+          # Network methods
+          - "net_version"
+          - "net_peerCount"
+          - "net_listening"
+
+          # Web3 methods
+          - "web3_clientVersion"
+          - "web3_sha3"
+
+          # Debug methods
+          - "debug_traceTransaction"
+          - "debug_traceCall"
+          - "debug_traceBlockByNumber"
+          - "debug_traceBlockByHash"
+          - "debug_getBadBlocks"
+          - "debug_storageRangeAt"
+          - "debug_getBlockRlp"
+          - "debug_printBlock"
+          - "debug_chaindbProperty"
+          - "debug_chaindbCompact"
+          - "debug_verbosity"
+          - "debug_vmodule"
+          - "debug_backtraceAt"
+          - "debug_stacks"
+          - "debug_memStats"
+          - "debug_gcStats"
+          - "debug_cpuProfile"
+          - "debug_startCPUProfile"
+          - "debug_stopCPUProfile"
+          - "debug_goTrace"
+          - "debug_startGoTrace"
+          - "debug_stopGoTrace"
+          - "debug_blockProfile"
+          - "debug_setBlockProfileRate"
+          - "debug_writeBlockProfile"
+          - "debug_mutexProfile"
+          - "debug_setMutexProfileFraction"
+          - "debug_writeMutexProfile"
+          - "debug_writeMemProfile"
+          - "debug_freeOSMemory"
+          - "debug_setGCPercent"
+
+          # Trace methods (except trace_block which goes to hypersync)
+          - "trace_call"
+          - "trace_callMany"
+          - "trace_rawTransaction"
+          - "trace_replayTransaction"
+          - "trace_replayBlockTransactions"
+          - "trace_transaction"
+          - "trace_get"
+          - "trace_filter"
+
+        # Explicitly ignore all methods handled by HyperSync
+        ignoreMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
@@ -445,24 +950,135 @@ projects:
         rateLimitBudget: full-budget
         evm:
           chainId: 43114
-        
-        ignoreMethods:
-          - "eth_getLogs"
-          - "eth_blockNumber"
-          - "eth_getBlockByNumber"
-          - "eth_getBlockByHash"
+
+        # Full nodes handle all methods EXCEPT those handled by HyperRPC
+        # Explicitly list all methods to ensure exclusive routing
+        allowMethods:
+          # State queries
+          - "eth_getBalance"
+          - "eth_getCode"
+          - "eth_getStorageAt"
+          - "eth_getProof"
+          - "eth_getStateRoot"
+
+          # Smart contract execution
+          - "eth_call"
+
+          # Transaction operations
+          - "eth_sendTransaction"
+          - "eth_sendRawTransaction"
+          - "eth_getTransactionCount"
+          - "eth_sign"
+          - "eth_signTransaction"
+          - "eth_signTypedData"
+          - "eth_signTypedData_v3"
+          - "eth_signTypedData_v4"
+
+          # Gas estimation
+          - "eth_estimateGas"
+          - "eth_gasPrice"
+          - "eth_maxPriorityFeePerGas"
+          - "eth_feeHistory"
+          - "eth_createAccessList"
+
+          # Account management
+          - "eth_accounts"
+          - "eth_coinbase"
+
+          # Mining/Validator operations
+          - "eth_mining"
+          - "eth_hashrate"
+          - "eth_getWork"
+          - "eth_submitWork"
+          - "eth_submitHashrate"
+
+          # Uncle/Ommer blocks
+          - "eth_getUncleByBlockHashAndIndex"
+          - "eth_getUncleByBlockNumberAndIndex"
+          - "eth_getUncleCountByBlockHash"
+          - "eth_getUncleCountByBlockNumber"
+
+          # Filters (except getLogs which goes to hypersync)
           - "eth_newFilter"
           - "eth_newBlockFilter"
           - "eth_newPendingTransactionFilter"
           - "eth_getFilterChanges"
           - "eth_getFilterLogs"
           - "eth_uninstallFilter"
-        
-        allowMethods:
-          - "eth_*"
-          - "net_*"
-          - "web3_*"
-        
+
+          # Sync and protocol info
+          - "eth_syncing"
+          - "eth_protocolVersion"
+
+          # Pending state
+          - "eth_pendingTransactions"
+
+          # Network methods
+          - "net_version"
+          - "net_peerCount"
+          - "net_listening"
+
+          # Web3 methods
+          - "web3_clientVersion"
+          - "web3_sha3"
+
+          # Debug methods
+          - "debug_traceTransaction"
+          - "debug_traceCall"
+          - "debug_traceBlockByNumber"
+          - "debug_traceBlockByHash"
+          - "debug_getBadBlocks"
+          - "debug_storageRangeAt"
+          - "debug_getBlockRlp"
+          - "debug_printBlock"
+          - "debug_chaindbProperty"
+          - "debug_chaindbCompact"
+          - "debug_verbosity"
+          - "debug_vmodule"
+          - "debug_backtraceAt"
+          - "debug_stacks"
+          - "debug_memStats"
+          - "debug_gcStats"
+          - "debug_cpuProfile"
+          - "debug_startCPUProfile"
+          - "debug_stopCPUProfile"
+          - "debug_goTrace"
+          - "debug_startGoTrace"
+          - "debug_stopGoTrace"
+          - "debug_blockProfile"
+          - "debug_setBlockProfileRate"
+          - "debug_writeBlockProfile"
+          - "debug_mutexProfile"
+          - "debug_setMutexProfileFraction"
+          - "debug_writeMutexProfile"
+          - "debug_writeMemProfile"
+          - "debug_freeOSMemory"
+          - "debug_setGCPercent"
+
+          # Trace methods (except trace_block which goes to hypersync)
+          - "trace_call"
+          - "trace_callMany"
+          - "trace_rawTransaction"
+          - "trace_replayTransaction"
+          - "trace_replayBlockTransactions"
+          - "trace_transaction"
+          - "trace_get"
+          - "trace_filter"
+
+        # Explicitly ignore all methods handled by HyperSync
+        ignoreMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+
         jsonRpc:
           supportsBatch: true
           batchMaxSize: 100
@@ -475,13 +1091,13 @@ rateLimiters:
         - method: "*"
           maxCount: 10000
           period: 1s
-    
+
     - id: hypersync-budget
       rules:
         - method: "*"
           maxCount: 10000
           period: 1s
-    
+
     - id: full-budget
       rules:
         - method: "*"
@@ -494,11 +1110,11 @@ EOF
       }
 
       resources {
-        cpu    = 1000  # 1 CPU core
-        memory = 2048  # 2GB RAM
-        
-        # Allow bursting
-        memory_max = 4096  # 4GB max
+        cpu    = 1000  # 1 CPU core (recommended for typical use)
+        memory = 4096  # 4GB RAM (generous for indexing workloads)
+
+        # Allow bursting for large responses (debug_traceTransaction can be 50MB+)
+        memory_max = 8192  # 8GB max for burst traffic
       }
 
       service {
@@ -512,7 +1128,7 @@ EOF
           port     = "rpc"
           interval = "10s"
           timeout  = "5s"
-          
+
           check_restart {
             limit = 3
             grace = "60s"

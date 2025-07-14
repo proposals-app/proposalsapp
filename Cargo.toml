@@ -55,6 +55,16 @@ tiktoken-rs = "0.6.0"
 uuid = "1.17"
 gag = "1.0"
 
+# Fix solar-parse version mismatch - use v0.1.4 tag to match rindexer
+[patch.crates-io]
+solar-parse = { git = "https://github.com/paradigmxyz/solar", tag = "v0.1.4" }
+solar-ast = { git = "https://github.com/paradigmxyz/solar", tag = "v0.1.4" }
+solar-sema = { git = "https://github.com/paradigmxyz/solar", tag = "v0.1.4" }
+solar-interface = { git = "https://github.com/paradigmxyz/solar", tag = "v0.1.4" }
+solar-data-structures = { git = "https://github.com/paradigmxyz/solar", tag = "v0.1.4" }
+solar-config = { git = "https://github.com/paradigmxyz/solar", tag = "v0.1.4" }
+solar-macros = { git = "https://github.com/paradigmxyz/solar", tag = "v0.1.4" }
+
 [profile.release]
 opt-level = 3
 codegen-units = 1
