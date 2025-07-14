@@ -586,6 +586,7 @@ async fn future_scan_api_request(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Datelike;
     use dotenv;
     use serial_test::serial;
     use std::sync::Once;
@@ -782,6 +783,330 @@ mod tests {
         assert!(timestamp > DateTime::UNIX_EPOCH.naive_utc());
         Ok(())
     }
+
+    // ERROR CASE TESTS
+
+    // Test provider future block rejection
+    #[tokio::test]
+    #[serial]
+    async fn test_provider_future_block_error() -> Result<()> {
+        ensure_test_env().await?;
+
+        let provider = get_provider_cache_for_network("ethereum").await;
+        let current_block = get_current_block_number(&provider).await?;
+        let future_block = current_block + 1000;
+
+        // This should fail because provider can't get future blocks
+        let result = get_timestamp_from_provider(&provider, future_block, current_block).await;
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("exceeds current block")
+        );
+        Ok(())
+    }
+
+    // Test block not found by provider
+    #[tokio::test]
+    #[serial]
+    async fn test_provider_block_not_found() -> Result<()> {
+        ensure_test_env().await?;
+
+        let provider = get_provider_cache_for_network("ethereum").await;
+
+        // Use a very specific old block that might not be in cache
+        // but is within the valid range
+        let result = get_timestamp_from_raw_rpc(&provider, 999999999999).await;
+
+        assert!(result.is_err());
+        // Error message might vary, just check it failed
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("not found") || err_msg.contains("error") || err_msg.contains("null")
+        );
+        Ok(())
+    }
+
+    // Test past scan API error response
+    #[tokio::test]
+    #[serial]
+    async fn test_past_scan_api_error_response() -> Result<()> {
+        ensure_test_env().await?;
+
+        let api_key = std::env::var("ETHERSCAN_API_KEY")?;
+
+        // Use a block number that's definitely in the future to trigger API error
+        let future_block = u64::MAX;
+
+        let response =
+            past_scan_api_request("https://api.etherscan.io/api", &api_key, future_block).await?;
+
+        // API should return error status for non-existent blocks
+        assert!(response.is_some());
+        let response = response.unwrap();
+        assert_eq!(response.status, "0"); // Error status
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        Ok(())
+    }
+
+    // Test future scan API with past block
+    #[tokio::test]
+    #[serial]
+    async fn test_future_scan_api_past_block() -> Result<()> {
+        ensure_test_env().await?;
+
+        let api_key = std::env::var("ETHERSCAN_API_KEY")?;
+        let provider = get_provider_cache_for_network("ethereum").await;
+        let current_block = get_current_block_number(&provider).await?;
+
+        // Use a recent past block
+        let past_block = current_block - 10;
+
+        let response =
+            future_scan_api_request("https://api.etherscan.io/api", &api_key, past_block).await?;
+
+        assert!(response.is_some());
+        let response = response.unwrap();
+
+        // API might handle past blocks differently
+        if response.status == "1" {
+            // If successful, the estimate should be negative or zero
+            if let Some(EstimateTimestampResult::Success(data)) = response.result {
+                let estimate: f64 = data.estimate_time_in_sec.parse()?;
+                assert!(estimate <= 0.0); // Past blocks should have negative or zero estimate
+            }
+        }
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        Ok(())
+    }
+
+    // Test with invalid API URL
+    #[tokio::test]
+    #[serial]
+    async fn test_invalid_api_url() -> Result<()> {
+        let result = past_scan_api_request(
+            "https://invalid-domain-that-does-not-exist.com/api",
+            "fake_key",
+            100,
+        )
+        .await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to send"));
+        Ok(())
+    }
+
+    // Test with wrong API endpoint
+    #[tokio::test]
+    #[serial]
+    async fn test_wrong_api_endpoint() -> Result<()> {
+        ensure_test_env().await?;
+
+        let api_key = std::env::var("ETHERSCAN_API_KEY")?;
+
+        let result =
+            past_scan_api_request("https://api.etherscan.io/wrong-endpoint", &api_key, 100).await;
+
+        assert!(result.is_err());
+        // Should get HTTP error
+        Ok(())
+    }
+
+    // FALLBACK CHAIN TESTS
+
+    // Test fallback from provider to scan API with very old block
+    #[tokio::test]
+    #[serial]
+    async fn test_fallback_to_scan_api() -> Result<()> {
+        ensure_test_env().await?;
+
+        let config = get_chain_config("ethereum")?;
+        let provider = get_provider_cache_for_network("ethereum").await;
+
+        // Use a very old block that provider might not have cached
+        // but scan API will have
+        let very_old_block = 1_000_000; // Block from 2016
+
+        let timestamp = process_past_block_timestamp(
+            config,
+            provider,
+            very_old_block,
+            20_000_000, // current block
+        )
+        .await?;
+
+        // Verify we got a valid 2016 timestamp
+        assert_eq!(timestamp.year(), 2016);
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        Ok(())
+    }
+
+    // EDGE CASE TESTS
+
+    // Test genesis block (block 0)
+    #[tokio::test]
+    #[serial]
+    async fn test_genesis_block() -> Result<()> {
+        ensure_test_env().await?;
+
+        // Some providers return epoch (1970) for block 0
+        // Let's test with the full processing flow instead
+        let config = get_chain_config("ethereum")?;
+        let timestamp = process_block_timestamp_request(config, 0).await?;
+
+        // The timestamp should either be 1970 (epoch) or 2015 (actual genesis)
+        // depending on the provider
+        assert!(
+            timestamp.year() == 1970 || timestamp.year() == 2015,
+            "Genesis block timestamp year was {}, expected 1970 or 2015",
+            timestamp.year()
+        );
+
+        Ok(())
+    }
+
+    // Test very large block numbers
+    #[tokio::test]
+    #[serial]
+    async fn test_very_large_block_number() -> Result<()> {
+        ensure_test_env().await?;
+
+        let config = get_chain_config("ethereum")?;
+        let result = process_block_timestamp_request(config, u64::MAX - 1000).await;
+
+        assert!(result.is_err());
+        // Should fail because block doesn't exist
+        Ok(())
+    }
+
+    // Test block at current boundary
+    #[tokio::test]
+    #[serial]
+    async fn test_current_block_boundary() -> Result<()> {
+        ensure_test_env().await?;
+
+        let provider = get_provider_cache_for_network("ethereum").await;
+        let current_block = get_current_block_number(&provider).await?;
+
+        // Test exactly at current block
+        let result = get_timestamp_from_provider(&provider, current_block, current_block).await;
+
+        // Current block should be available
+        assert!(result.is_ok());
+
+        // Test one block after current
+        let future_result =
+            get_timestamp_from_provider(&provider, current_block + 1, current_block).await;
+        assert!(future_result.is_err());
+
+        Ok(())
+    }
+
+    // Test provider vs scan API discrepancy for genesis block
+    #[tokio::test]
+    #[serial]
+    async fn test_genesis_block_provider_vs_scan_api() -> Result<()> {
+        ensure_test_env().await?;
+
+        let provider = get_provider_cache_for_network("ethereum").await;
+        let api_key = std::env::var("ETHERSCAN_API_KEY")?;
+
+        // Get timestamp from provider
+        let provider_result = get_timestamp_from_provider(&provider, 0, 1000).await;
+
+        // Get timestamp from scan API
+        let scan_result =
+            past_scan_api_request("https://api.etherscan.io/api", &api_key, 0).await?;
+
+        if let Ok(provider_timestamp) = provider_result {
+            println!(
+                "Provider returned genesis timestamp: {} (year: {})",
+                provider_timestamp,
+                provider_timestamp.year()
+            );
+        }
+
+        if let Some(scan_response) = scan_result {
+            if scan_response.status == "1" {
+                if let Some(BlockRewardResult::Success(result)) = scan_response.result {
+                    let timestamp: i64 = result.timestamp.parse()?;
+                    let scan_timestamp = DateTime::<Utc>::from_timestamp(timestamp, 0)
+                        .unwrap()
+                        .naive_utc();
+                    println!(
+                        "Scan API returned genesis timestamp: {} (year: {})",
+                        scan_timestamp,
+                        scan_timestamp.year()
+                    );
+                }
+            }
+        }
+
+        // This test is just for observation, not assertion
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        Ok(())
+    }
+
+    // PROPERTY-BASED TESTS
+
+    // Test that timestamps are always increasing
+    #[tokio::test]
+    #[serial]
+    async fn test_timestamp_ordering() -> Result<()> {
+        ensure_test_env().await?;
+
+        let provider = get_provider_cache_for_network("ethereum").await;
+        let current = get_current_block_number(&provider).await?;
+
+        let blocks = vec![current - 1000, current - 500, current - 100, current - 10];
+
+        let mut last_timestamp = DateTime::UNIX_EPOCH.naive_utc();
+
+        for block in blocks {
+            let timestamp = get_timestamp_from_provider(&provider, block, current).await?;
+            assert!(
+                timestamp > last_timestamp,
+                "Timestamps should increase with block number"
+            );
+            last_timestamp = timestamp;
+        }
+
+        Ok(())
+    }
+
+    // Test timestamp is within reasonable bounds
+    #[tokio::test]
+    #[serial]
+    async fn test_timestamp_bounds() -> Result<()> {
+        ensure_test_env().await?;
+
+        let provider = get_provider_cache_for_network("ethereum").await;
+        let current = get_current_block_number(&provider).await?;
+        let test_block = current - 100;
+
+        let timestamp = get_timestamp_from_provider(&provider, test_block, current).await?;
+
+        // Timestamp should be:
+        // - After Ethereum genesis (July 2015)
+        // - Before current time
+        // - Within last 24 hours for a block 100 blocks ago
+        let genesis = DateTime::parse_from_rfc3339("2015-07-30T00:00:00Z")
+            .unwrap()
+            .naive_utc();
+        let now = Utc::now().naive_utc();
+        let day_ago = now - chrono::Duration::days(1);
+
+        assert!(timestamp > genesis);
+        assert!(timestamp < now);
+        assert!(timestamp > day_ago); // Recent block should be within 24 hours
+
+        Ok(())
+    }
 }
 
 // Integration tests
@@ -901,6 +1226,207 @@ mod integration_tests {
                 .contains("Scan API not configured")
         );
 
+        Ok(())
+    }
+
+    // CONCURRENT ACCESS TESTS
+
+    // Test multiple simultaneous requests
+    #[tokio::test]
+    #[serial]
+    async fn test_concurrent_requests() -> Result<()> {
+        dotenv::dotenv().ok();
+
+        use futures::future::join_all;
+
+        let futures = vec![
+            estimate_timestamp("ethereum", 15000000),
+            estimate_timestamp("ethereum", 15000001),
+            estimate_timestamp("ethereum", 15000002),
+            estimate_timestamp("arbitrum", 100000000),
+        ];
+
+        let results = join_all(futures).await;
+
+        // All should succeed
+        for (i, result) in results.iter().enumerate() {
+            assert!(result.is_ok(), "Request {} failed: {:?}", i, result);
+        }
+
+        cleanup_processor().await;
+        Ok(())
+    }
+
+    // Test queue ordering with multiple requests
+    #[tokio::test]
+    #[serial]
+    async fn test_queue_ordering() -> Result<()> {
+        dotenv::dotenv().ok();
+
+        // Submit multiple requests rapidly
+        let mut handles = vec![];
+
+        for i in 0..5 {
+            let handle = tokio::spawn(async move {
+                let block = 15000000 + i;
+                let timestamp = estimate_timestamp("ethereum", block).await?;
+                Ok::<(u64, NaiveDateTime), anyhow::Error>((block, timestamp))
+            });
+            handles.push(handle);
+        }
+
+        // Collect results
+        let mut results = vec![];
+        for handle in handles {
+            results.push(handle.await??);
+        }
+
+        // Sort by block number
+        results.sort_by_key(|(block, _)| *block);
+
+        // Verify timestamps are in order
+        for i in 1..results.len() {
+            assert!(
+                results[i].1 >= results[i - 1].1,
+                "Timestamp for block {} is before block {}",
+                results[i].0,
+                results[i - 1].0
+            );
+        }
+
+        cleanup_processor().await;
+        Ok(())
+    }
+
+    // NETWORK-SPECIFIC BEHAVIOR TESTS
+
+    // Test each network's specific characteristics
+    #[tokio::test]
+    #[serial]
+    async fn test_network_specific_behaviors() -> Result<()> {
+        dotenv::dotenv().ok();
+
+        // Test Ethereum
+        let eth_config = get_chain_config("ethereum")?;
+        assert!(eth_config.scan_api_url.is_some());
+        assert_eq!(
+            eth_config.scan_api_url.unwrap(),
+            "https://api.etherscan.io/api"
+        );
+
+        // Test Arbitrum (L2 with potential null mixHash)
+        let arb_config = get_chain_config("arbitrum")?;
+        assert!(arb_config.scan_api_url.is_some());
+
+        // Test Optimism (another L2)
+        let opt_config = get_chain_config("optimism")?;
+        assert!(opt_config.scan_api_url.is_some());
+
+        // Test Polygon
+        let poly_config = get_chain_config("polygon")?;
+        assert!(poly_config.scan_api_url.is_some());
+
+        // Test Avalanche (no scan API)
+        let avax_config = get_chain_config("avalanche")?;
+        assert!(avax_config.scan_api_url.is_none());
+
+        Ok(())
+    }
+
+    // Test Arbitrum specific null mixHash handling
+    #[tokio::test]
+    #[serial]
+    async fn test_arbitrum_null_mixhash_handling() -> Result<()> {
+        dotenv::dotenv().ok();
+
+        let provider = get_provider_cache_for_network("arbitrum").await;
+        let current = get_current_block_number(&provider).await?;
+
+        // Test multiple recent blocks to find one with null mixHash
+        let mut found_fallback = false;
+
+        for offset in [10, 50, 100, 200] {
+            let block = current.saturating_sub(offset);
+
+            // Try provider first (might fail on null mixHash)
+            let provider_result = get_timestamp_from_provider(&provider, block, current).await;
+
+            // Try raw RPC (should succeed)
+            let rpc_result = get_timestamp_from_raw_rpc(&provider, block).await;
+
+            // At least one method should work
+            assert!(
+                provider_result.is_ok() || rpc_result.is_ok(),
+                "Both methods failed for block {}",
+                block
+            );
+
+            if provider_result.is_err() && rpc_result.is_ok() {
+                println!("Found null mixHash fallback at Arbitrum block {}", block);
+                found_fallback = true;
+                break;
+            }
+        }
+
+        // Note: We might not always find a null mixHash block, but the test
+        // verifies that at least one method works for each block
+        if found_fallback {
+            println!("Successfully tested Arbitrum null mixHash fallback");
+        }
+
+        Ok(())
+    }
+
+    // Test retry mechanism with rapid requests
+    #[tokio::test]
+    #[serial]
+    async fn test_retry_mechanism() -> Result<()> {
+        dotenv::dotenv().ok();
+
+        // Submit a request that might trigger retry
+        // Using an unsupported network will trigger retries
+        let result = estimate_timestamp("unsupported_network", 1000000).await;
+
+        // Should eventually fail after retries
+        assert!(result.is_err());
+
+        cleanup_processor().await;
+        Ok(())
+    }
+
+    // Test different networks in parallel
+    #[tokio::test]
+    #[serial]
+    async fn test_multi_network_parallel() -> Result<()> {
+        dotenv::dotenv().ok();
+
+        use futures::future::join_all;
+
+        let eth_provider = get_provider_cache_for_network("ethereum").await;
+        let eth_current = get_current_block_number(&eth_provider).await?;
+
+        let arb_provider = get_provider_cache_for_network("arbitrum").await;
+        let arb_current = get_current_block_number(&arb_provider).await?;
+
+        let futures = vec![
+            estimate_timestamp("ethereum", eth_current - 100),
+            estimate_timestamp("arbitrum", arb_current - 100),
+        ];
+
+        let results = join_all(futures).await;
+
+        // Both should succeed
+        assert!(results[0].is_ok(), "Ethereum request failed");
+        assert!(results[1].is_ok(), "Arbitrum request failed");
+
+        // Timestamps should be recent (within last day)
+        let now = Utc::now().naive_utc();
+        let day_ago = now - chrono::Duration::days(1);
+
+        assert!(results[0].as_ref().unwrap() > &day_ago);
+        assert!(results[1].as_ref().unwrap() > &day_ago);
+
+        cleanup_processor().await;
         Ok(())
     }
 }
