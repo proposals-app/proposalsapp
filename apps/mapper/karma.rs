@@ -18,7 +18,7 @@ use tokio::{
     sync::Mutex,
     time::{Instant, sleep},
 };
-use tracing::{info, instrument, warn};
+use tracing::{info, warn};
 
 #[derive(Debug, Deserialize)]
 struct KarmaFullApiResponse {
@@ -53,7 +53,6 @@ lazy_static::lazy_static! {
     };
 }
 
-#[instrument]
 pub async fn run_karma_task() -> Result<()> {
     let client = Client::new();
     let daos = fetch_daos_with_discourse().await?;
