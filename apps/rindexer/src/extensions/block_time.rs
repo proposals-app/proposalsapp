@@ -300,7 +300,7 @@ async fn process_past_block_timestamp(
     let mut provider_error: Option<anyhow::Error> = None;
     #[allow(unused_assignments)]
     let mut rpc_error: Option<anyhow::Error> = None;
-    
+
     // Step 1: Try provider get_block
     match get_timestamp_from_provider(&provider, block_number, current_block).await {
         Ok(timestamp) => {
@@ -308,7 +308,6 @@ async fn process_past_block_timestamp(
             return Ok(timestamp);
         }
         Err(e) => {
-            warn!(error = ?e, "Failed to get timestamp from provider, trying raw RPC");
             provider_error = Some(e);
         }
     }
@@ -454,7 +453,7 @@ async fn get_timestamp_from_raw_rpc(
         Err(e) => {
             // If the typed request fails (likely due to mixHash deserialization),
             // try manual JSON parsing to bypass the issue - don't log the error as it's expected for Arbitrum blocks
-            
+
             match inner_provider
                 .client()
                 .request::<_, Option<serde_json::Value>>(
@@ -465,10 +464,18 @@ async fn get_timestamp_from_raw_rpc(
             {
                 Ok(Some(block_json)) => {
                     // Extract timestamp manually from the JSON response
-                    if let Some(timestamp_str) = block_json.get("timestamp").and_then(|v| v.as_str()) {
-                        let timestamp = i64::from_str_radix(timestamp_str.trim_start_matches("0x"), 16)
-                            .context("Failed to parse hex timestamp from manual JSON parsing")?;
-                        debug!(timestamp = timestamp, "Got timestamp from manual JSON parsing");
+                    if let Some(timestamp_str) =
+                        block_json.get("timestamp").and_then(|v| v.as_str())
+                    {
+                        let timestamp =
+                            i64::from_str_radix(timestamp_str.trim_start_matches("0x"), 16)
+                                .context(
+                                    "Failed to parse hex timestamp from manual JSON parsing",
+                                )?;
+                        debug!(
+                            timestamp = timestamp,
+                            "Got timestamp from manual JSON parsing"
+                        );
                         DateTime::<Utc>::from_timestamp(timestamp, 0)
                             .map(|dt| dt.naive_utc())
                             .context("Timestamp from manual JSON parsing out of range")
@@ -481,8 +488,9 @@ async fn get_timestamp_from_raw_rpc(
                     block_number
                 )),
                 Err(json_e) => Err(anyhow::anyhow!(
-                    "Both typed and manual JSON parsing failed. Typed: {}. Manual: {}", 
-                    e, json_e
+                    "Both typed and manual JSON parsing failed. Typed: {}. Manual: {}",
+                    e,
+                    json_e
                 )),
             }
         }
