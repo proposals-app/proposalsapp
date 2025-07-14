@@ -453,8 +453,7 @@ async fn get_timestamp_from_raw_rpc(
         )),
         Err(e) => {
             // If the typed request fails (likely due to mixHash deserialization),
-            // try manual JSON parsing to bypass the issue
-            debug!("Typed request failed, attempting manual JSON parsing: {}", e);
+            // try manual JSON parsing to bypass the issue - don't log the error as it's expected for Arbitrum blocks
             
             match inner_provider
                 .client()
