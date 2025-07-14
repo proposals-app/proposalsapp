@@ -2,7 +2,7 @@ name: rindexer
 project_type: rust
 
 config:
-  buffer: 1
+  buffer: 100
 storage:
   postgres:
     enabled: true
