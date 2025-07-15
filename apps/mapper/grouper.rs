@@ -20,8 +20,7 @@ use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
 
 // Module-level constants
-const MATCH_THRESHOLD: u8 = 75;
-const DECISION_RANGE: u8 = 10;
+const MATCH_THRESHOLD: u8 = 85;
 const MAX_BODY_TOKENS_PER_ITEM: usize = 3000;
 const KEYWORD_EXTRACTION_MAX_TOKENS: usize = 3000;
 const KEYWORD_CACHE_TTL_BASE: u64 = 604800; // 7 days in seconds
@@ -764,7 +763,6 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
             item_b_title = %item_b.title,
             initial_score = initial_score,
             threshold = MATCH_THRESHOLD,
-            decision_range = DECISION_RANGE,
             "[AI_GROUPING] Score near threshold - running decision confirmation with 3 votes"
         );
 
