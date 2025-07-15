@@ -1077,6 +1077,23 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 }
 
                 for (idx, other_item) in ungrouped_items.iter().enumerate() {
+                    // Skip if both items are topics - never match topics together
+                    if matches!(current_item.item_type, ItemType::Topic)
+                        && matches!(other_item.item_type, ItemType::Topic)
+                    {
+                        info!(
+                            dao_id = %dao_id,
+                            phase = "SKIP_TOPIC_PAIR",
+                            current_item_id = %current_item_id,
+                            current_item_title = %current_item.title,
+                            other_item_id = %other_item.id,
+                            other_item_title = %other_item.title,
+                            reason = "both_items_are_topics",
+                            "[AI_GROUPING] Skipping match - both items are topics"
+                        );
+                        continue;
+                    }
+
                     let score = self.match_score(&current_item, other_item).await?;
 
                     info!(
@@ -1094,23 +1111,6 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                         ungrouped_index = idx,
                         "[AI_GROUPING] Scored against ungrouped item"
                     );
-
-                    // Skip if both items are topics
-                    if matches!(current_item.item_type, ItemType::Topic)
-                        && matches!(other_item.item_type, ItemType::Topic)
-                        && score >= MATCH_THRESHOLD
-                    {
-                        info!(
-                            dao_id = %dao_id,
-                            phase = "SKIP_TOPIC_PAIR",
-                            current_item_id = %current_item_id,
-                            other_item_id = %other_item.id,
-                            score = score,
-                            reason = "both_items_are_topics",
-                            "[AI_GROUPING] Skipping match - both items are topics"
-                        );
-                        continue;
-                    }
 
                     if score >= MATCH_THRESHOLD
                         && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
