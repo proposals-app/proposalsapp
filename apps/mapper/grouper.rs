@@ -278,7 +278,7 @@ impl Grouper {
 
     // Keyword extraction using LLM with Redis caching
     // Returns a vector of keywords, or ["insufficient-content"] if the content is too sparse
-    // Returns ["extraction-failed"] if the LLM extraction process fails
+    // or if the LLM extraction process fails
     async fn extract_keywords(&self, item: &NormalizedItem) -> Result<Vec<String>> {
         // Create a cache key based on item ID and a hash of title+body
         let cache_key = format!("mapper:keywords:{}-{}", item.id, item.dao_id);
@@ -319,10 +319,10 @@ impl Grouper {
                     item_title = %item.title,
                     item_type = ?item.item_type,
                     error = %e,
-                    "Failed to extract keywords - returning extraction-failed marker"
+                    "Failed to extract keywords - returning insufficient-content fallback"
                 );
-                // Return fallback for extraction failure
-                Ok(vec!["extraction-failed".to_string()])
+                // Return the same fallback as when content is insufficient
+                Ok(vec!["insufficient-content".to_string()])
             }
         }
     }
@@ -718,12 +718,11 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
                         item_b_type = ?item_b.item_type,
                         error = %e,
                         prompt_length = prompt.len(),
-                        "LLM basic_primitive failed to generate similarity score"
+                        "LLM basic_primitive failed to generate similarity score - returning default score of 0"
                     );
-                    return Err(e).context(format!(
-                        "Failed to get similarity score from LLM basic_primitive for '{}' vs '{}'",
-                        item_a.title, item_b.title
-                    ));
+                    // Return a low score (0) to indicate no match when LLM fails
+                    // This allows the grouping process to continue instead of failing
+                    0
                 }
             }
         };
@@ -824,18 +823,18 @@ Please carefully analyze whether these items should be grouped together."#,
         // Use basic_primitive workflow for faster consensus (no reasoning overhead)
         // We'll run it 3 times manually to get consensus
         let mut scores = Vec::new();
-        
+
         for i in 0..3 {
             let mut primitive_request = self.llm_client.basic_primitive().integer();
-            
+
             // Configure the integer bounds
             primitive_request.primitive.lower_bound(0).upper_bound(100);
-            
+
             // Configure request parameters with temperature gradient for diversity
             primitive_request
                 .temperature(0.3 + (i as f32 * 0.2)) // 0.3, 0.5, 0.7
                 .max_tokens(50); // Only need a number
-            
+
             // Set the instructions with full context
             primitive_request
                 .instructions()
@@ -863,7 +862,7 @@ Ignore: generic governance terms, standard procedures, common DAO vocabulary.
 
 Based on careful analysis, provide a final precise similarity score between 0 and 100. Do not round up the score, make it a precise integer, use the entire range from 0 to 100."#, prompt, MATCH_THRESHOLD - 5, MATCH_THRESHOLD - 5, MATCH_THRESHOLD, MATCH_THRESHOLD + 6, MATCH_THRESHOLD, MATCH_THRESHOLD, MATCH_THRESHOLD
             ));
-            
+
             // Get the score
             let score = {
                 let _suppressor = crate::llm_ops::OutputSuppressor::new();
@@ -883,10 +882,10 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                     }
                 }
             };
-            
+
             let vote_score = score.min(100) as u8;
             scores.push(vote_score);
-            
+
             info!(
                 dao_id = %item_a.dao_id,
                 item_a_id = %item_a.id,
@@ -897,7 +896,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 "Basic primitive vote completed"
             );
         }
-        
+
         // Calculate consensus score (median of valid scores)
         if scores.is_empty() {
             error!(
@@ -908,7 +907,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             );
             return Err(anyhow::anyhow!("All basic_primitive votes failed"));
         }
-        
+
         scores.sort();
         let consensus_score = if scores.len() % 2 == 0 {
             (scores[scores.len() / 2 - 1] + scores[scores.len() / 2]) / 2
