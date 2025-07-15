@@ -755,24 +755,6 @@ Based on the above items, provide a precise similarity score between 0 and 100. 
     ) -> Result<u8> {
         // Only use decision workflow if score is near threshold
 
-        // If score is clearly above or below threshold, just return it
-        if !(MATCH_THRESHOLD - DECISION_RANGE..=MATCH_THRESHOLD + DECISION_RANGE)
-            .contains(&initial_score)
-        {
-            info!(
-                dao_id = %item_a.dao_id,
-                phase = "CONFIRMATION_SKIPPED",
-                item_a_id = %item_a.id,
-                item_b_id = %item_b.id,
-                initial_score = initial_score,
-                threshold = MATCH_THRESHOLD,
-                decision_range = DECISION_RANGE,
-                reason = "score_outside_decision_range",
-                "[AI_GROUPING] Skipping confirmation - score clearly outside threshold range"
-            );
-            return Ok(initial_score);
-        }
-
         info!(
             dao_id = %item_a.dao_id,
             phase = "CONFIRMATION_START",
@@ -906,7 +888,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         }
 
         scores.sort();
-        let consensus_score = if scores.len() % 2 == 0 {
+        let consensus_score = if scores.len().is_multiple_of(2) {
             (scores[scores.len() / 2 - 1] + scores[scores.len() / 2]) / 2
         } else {
             scores[scores.len() / 2]
@@ -983,8 +965,6 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             // Score against all grouped items - iterate directly over groups to get fresh data
             let total_groups = groups.len();
             for (group_id, items) in groups.iter() {
-
-
                 // Skip this group if current item is a topic and group already has one
                 if matches!(current_item.item_type, ItemType::Topic)
                     && !Self::group_can_accept_topic(items)
@@ -1674,7 +1654,7 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         let total_items = all_items.len();
         info!("Extracting keywords for {} items", total_items);
         for (idx, item) in all_items.iter_mut().enumerate() {
-            if idx % 10 == 0 {
+            if idx.is_multiple_of(10) {
                 info!(
                     "Extracting keywords: {}/{} items processed",
                     idx, total_items
