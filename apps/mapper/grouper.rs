@@ -3,8 +3,8 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use llm_client::InstructPromptTrait;
 use llm_client::LlmClient;
-use llm_client::RequestConfigTrait;
 use llm_client::LoggingConfigTrait;
+use llm_client::RequestConfigTrait;
 use llm_models::GgufLoaderTrait;
 use proposalsapp_db::models::*;
 use rand::Rng;
@@ -144,11 +144,6 @@ struct MatchResult {
 pub struct Grouper {
     db: DatabaseConnection,
     llm_client: LlmClient,
-    /// Persistent output suppressor to prevent llm_client and its dependencies
-    /// from writing directly to stdout/stderr, which would bypass our JSON logging.
-    /// This must be kept alive for the lifetime of the Grouper to ensure all
-    /// LLM operations remain suppressed.
-    _output_suppressor: crate::llm_ops::OutputSuppressor,
 }
 
 impl Grouper {
@@ -172,15 +167,6 @@ impl Grouper {
         let mut builder = LlmClient::llama_cpp();
         builder.hf_quant_file_url(model_url);
 
-        // Initialize LLM client with output suppression
-        // The llm_client and its dependencies have multiple println! statements that
-        // would bypass our JSON logging:
-        // 1. "Starting llama_cpp Logger" from llm_devices
-        // 2. "LlamaCppBackend Initialized with model: ..." from llm_interface
-        // 3. "Llm Client Ready" from llm_client
-        // We create a persistent suppressor that will live as long as the Grouper instance
-        let output_suppressor = crate::llm_ops::OutputSuppressor::new();
-        
         let llm_client = builder
             .logging_enabled(false) // Disable llm_devices logging to prevent it from replacing our JSON logger
             .init()
@@ -198,11 +184,7 @@ impl Grouper {
             info!("LLM client initialized successfully");
         }
 
-        Ok(Self { 
-            db, 
-            llm_client,
-            _output_suppressor: output_suppressor,
-        })
+        Ok(Self { db, llm_client })
     }
 
     // Helper function to safely truncate text with middle ellipsis based on token count
