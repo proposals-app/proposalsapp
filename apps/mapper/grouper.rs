@@ -15,7 +15,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use tiktoken_rs::{CoreBPE, cl100k_base};
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
 
@@ -982,21 +982,8 @@ Based on careful analysis, provide a final precise similarity score between 0 an
 
             // Score against all grouped items - iterate directly over groups to get fresh data
             let total_groups = groups.len();
-            let mut groups_checked = 0;
-
             for (group_id, items) in groups.iter() {
-                groups_checked += 1;
 
-                debug!(
-                    dao_id = %dao_id,
-                    phase = "CHECK_GROUP",
-                    current_item_id = %current_item_id,
-                    group_id = %group_id,
-                    group_items_count = items.len(),
-                    groups_checked = groups_checked,
-                    total_groups = total_groups,
-                    "[AI_GROUPING] Checking against existing group"
-                );
 
                 // Skip this group if current item is a topic and group already has one
                 if matches!(current_item.item_type, ItemType::Topic)
