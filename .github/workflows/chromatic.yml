@@ -90,3 +90,13 @@ jobs:
             }
         env:
           CHROMATIC_URL: ${{ steps.chromatic.outputs.url }}
+
+  runner-cleanup:
+    name: Runner Cleanup
+    if: always()
+    needs: [chromatic]
+    uses: ./.github/workflows/runner-cleanup.yml
+    with:
+      aggressive: false
+      keep_workspace: false
+      registry_cleanup: false

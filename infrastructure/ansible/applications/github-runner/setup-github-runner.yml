@@ -264,37 +264,6 @@
         dest: /usr/local/bin/runner-healthcheck
         mode: '0755'
 
-    # Deploy cleanup system
-    - name: Deploy cleanup scripts
-      copy:
-        src: "files/{{ item }}"
-        dest: "/usr/local/bin/{{ item }}"
-        mode: '0755'
-        owner: root
-        group: root
-      loop:
-        - github-runner-cleanup.sh
-        - github-runner-disk-monitor.sh
-
-    - name: Deploy systemd units for cleanup
-      copy:
-        src: "files/{{ item }}"
-        dest: "/etc/systemd/system/{{ item }}"
-        mode: '0644'
-        owner: root
-        group: root
-      loop:
-        - github-runner-cleanup.service
-        - github-runner-disk-monitor.service
-        - github-runner-disk-monitor.timer
-      notify: reload systemd
-
-    - name: Enable and start disk monitor timer
-      systemd:
-        name: github-runner-disk-monitor.timer
-        enabled: yes
-        state: started
-        daemon_reload: yes
 
     - name: Display setup summary
       debug:
@@ -308,10 +277,6 @@
           - Labels: linux,self-hosted,{{ datacenter }},tailscale
           - Docker and buildx configured
           - Rust toolchain installed
-          - Automatic disk space monitoring (checks every 10 minutes)
-          - Cleanup runs automatically when disk usage exceeds 65%
-          - Buildx cache cleaned when over 10GB or disk usage high
-          - Cargo caches cleaned (rustup preserved)
           {% else %}
           WARNING: GitHub PAT not configured!
           

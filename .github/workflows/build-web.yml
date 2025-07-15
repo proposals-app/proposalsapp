@@ -50,23 +50,6 @@ jobs:
           sudo mkdir -p /var/cache/buildx/web
           sudo chown -R runner:runner /var/cache/buildx || true
 
-      - name: Cleanup Docker system and old caches
-        run: |
-          echo "=== Disk space before cleanup ==="
-          df -h
-
-          echo "=== Cleaning Docker system ==="
-          # Remove unused images (keeping ones used in last 2h)
-          docker image prune -a --force --filter "until=2h" || true
-
-          # Clean build cache older than 6h
-          docker buildx prune --force --filter "until=6h" || true
-
-          # Clean Docker system (containers, networks, etc)
-          docker system prune --force --filter "until=2h" || true
-
-          echo "=== Disk space after cleanup ==="
-          df -h
 
       - name: Set up Docker Buildx
         id: buildx
@@ -124,23 +107,6 @@ jobs:
             VERSION=${{ github.ref_name }}-${{ github.sha }}
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
 
-      - name: Post-build cache cleanup
-        if: always()
-        run: |
-          echo "=== Cache size check ==="
-          du -sh /var/cache/buildx/web || true
-
-          # Limit cache size to 20GB
-          CACHE_SIZE=$(du -sb /var/cache/buildx/web 2>/dev/null | cut -f1 || echo 0)
-          MAX_SIZE=$((20 * 1024 * 1024 * 1024)) # 20GB in bytes
-
-          if [ "$CACHE_SIZE" -gt "$MAX_SIZE" ]; then
-            echo "Cache size ($CACHE_SIZE bytes) exceeds limit ($MAX_SIZE bytes), cleaning..."
-            docker buildx prune --force --filter "until=1h" || true
-          fi
-
-          # Also clean up dangling images
-          docker image prune -f || true
 
       - name: Generate deployment webhook payload
         id: webhook
@@ -216,23 +182,16 @@ jobs:
           echo "This image is available in ghcr.io but will not be automatically deployed."
           echo "Only pushes to the main branch trigger automatic deployments to Nomad."
 
-  cleanup:
-    name: Cleanup old images
-    runs-on: [self-hosted, linux, sibiu]
-    needs: build
-    if: success()
+  # Comprehensive runner cleanup after all jobs
+  runner-cleanup:
+    name: Clean Runner Environment
+    needs: [build]
+    if: always() # Always run cleanup, even if previous jobs failed
+    uses: ./.github/workflows/runner-cleanup.yml
+    with:
+      aggressive: false # Use normal cleanup
+      keep_workspace: false # Clean the workspace
+      package_name: "proposalsapp/web" # For registry cleanup
+      registry_cleanup: true # Enable registry cleanup
     permissions:
-      packages: write
-    continue-on-error: true # Don't fail the workflow if cleanup fails
-
-    steps:
-      - name: Delete old container images
-        uses: actions/delete-package-versions@v4
-        with:
-          package-name: "proposalsapp/web"
-          package-type: "container"
-          min-versions-to-keep: 10
-          delete-only-untagged-versions: "false"
-          # Keep last 5 versions per branch
-          ignore-versions: "^(main|master|develop)-(.*)"
-        continue-on-error: true # Continue even if package doesn't exist yet
+      packages: write # Required for registry cleanup
