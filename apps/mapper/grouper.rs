@@ -1016,22 +1016,6 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                 for grouped_item in items {
                     let score = self.match_score(&current_item, grouped_item).await?;
 
-                    info!(
-                        dao_id = %dao_id,
-                        phase = "SCORE_GROUPED_ITEM",
-                        current_item_id = %current_item_id,
-                        current_item_title = %current_item.title,
-                        compared_item_id = %grouped_item.id,
-                        compared_item_title = %grouped_item.title,
-                        compared_item_type = ?grouped_item.item_type,
-                        group_id = %group_id,
-                        score = score,
-                        above_threshold = score >= MATCH_THRESHOLD,
-                        threshold = MATCH_THRESHOLD,
-                        is_new_best = score >= MATCH_THRESHOLD && (best_match.is_none() || score > best_match.as_ref().unwrap().score),
-                        "[AI_GROUPING] Scored against grouped item"
-                    );
-
                     if score >= MATCH_THRESHOLD
                         && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
                     {
@@ -1077,22 +1061,6 @@ Based on careful analysis, provide a final precise similarity score between 0 an
                     }
 
                     let score = self.match_score(&current_item, other_item).await?;
-
-                    info!(
-                        dao_id = %dao_id,
-                        phase = "SCORE_UNGROUPED_ITEM",
-                        current_item_id = %current_item_id,
-                        current_item_title = %current_item.title,
-                        compared_item_id = %other_item.id,
-                        compared_item_title = %other_item.title,
-                        compared_item_type = ?other_item.item_type,
-                        score = score,
-                        above_threshold = score >= MATCH_THRESHOLD,
-                        threshold = MATCH_THRESHOLD,
-                        is_new_best = score >= MATCH_THRESHOLD && (best_match.is_none() || score > best_match.as_ref().unwrap().score),
-                        ungrouped_index = idx,
-                        "[AI_GROUPING] Scored against ungrouped item"
-                    );
 
                     if score >= MATCH_THRESHOLD
                         && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
