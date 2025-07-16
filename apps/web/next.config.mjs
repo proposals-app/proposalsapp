@@ -71,7 +71,7 @@ const nextConfig = {
     ],
   },
 
-  webpack(config, { isServer }) {
+  webpack(config, { isServer, webpack }) {
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack'],
@@ -82,10 +82,39 @@ const nextConfig = {
       config.externals.push({
         '@resvg/resvg-js': '@resvg/resvg-js',
       });
+
+      // Polyfill indexedDB for server-side to prevent WalletConnect errors
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          global: {},
+          globalThis: {},
+          indexedDB: '{}',
+          IDBTransaction: '{}',
+          IDBDatabase: '{}',
+          IDBObjectStore: '{}',
+          IDBIndex: '{}',
+          IDBCursor: '{}',
+          IDBRequest: '{}',
+          IDBOpenDBRequest: '{}',
+          IDBVersionChangeEvent: '{}',
+          IDBKeyRange: '{}',
+        })
+      );
     } else {
       // For client-side, exclude the entire package
       config.resolve.alias['@resvg/resvg-js'] = false;
+
+      // Add fallbacks for client-side
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
     }
+
+    // Externalize pino-pretty and lokijs to prevent bundling issues with WalletConnect
+    config.externals.push('pino-pretty', 'lokijs', 'encoding');
 
     return config;
   },

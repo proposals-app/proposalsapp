@@ -71,7 +71,6 @@ Once set up, you can access:
 For production:
 
 1. **DNS Configuration**:
-
    - Configure your domain's DNS to point wildcard subdomains to your server
    - Example: `*.domain.com` points to your server IP
 

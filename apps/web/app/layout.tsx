@@ -8,6 +8,7 @@ import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/providers/posthog-provider';
 import { SafariViewportProvider } from './components/providers/safari-viewport-provider';
+import { headers } from 'next/headers';
 
 const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';
 
@@ -39,6 +40,10 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
+  // Extract cookie from headers for SSR hydration
+  const headersList = await headers();
+  const cookie = headersList.get('cookie');
+
   return (
     <html
       lang='en'
@@ -58,7 +63,7 @@ export default async function Layout({
               </Suspense>
               <Suspense>
                 <NuqsAdapter>
-                  <WalletProvider>
+                  <WalletProvider cookie={cookie}>
                     <main>{children}</main>
                     <Toaster />
                   </WalletProvider>

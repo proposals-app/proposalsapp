@@ -4,7 +4,7 @@ const config = {
   theme: {
     extend: {
       screens: {
-        'xs': '475px',
+        xs: '475px',
       },
       fontFamily: {
         sans: ['Fira Sans', 'sans-serif'],
