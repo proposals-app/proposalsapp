@@ -39,8 +39,8 @@ async function HeaderContainer({ daoSlug }: { daoSlug: string }) {
 
   return (
     <PageHeader
-      title={`Proposal Group Management for ${dao.name}`}
-      description={`Create and manage proposal groups to better organize and map proposals within ${dao.name}.`}
+      title={`Proposal Group Management for ${dao?.name || 'Unknown DAO'}`}
+      description={`Create and manage proposal groups to better organize and map proposals within ${dao?.name || 'the DAO'}.`}
       actionLinks={[
         {
           href: '/mapping/delegates',
@@ -136,7 +136,7 @@ async function GroupManagementContainer({ daoSlug }: { daoSlug: string }) {
   const serializedProps = superjson.stringify({
     proposalGroups,
     daoSlug,
-    daoId: dao.id,
+    daoId: dao?.id || '',
   });
 
   return (

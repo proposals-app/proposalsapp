@@ -78,13 +78,21 @@ export async function GET(
       .selectFrom('dao')
       .where('dao.slug', '=', daoSlug)
       .selectAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+
+    if (!dao) {
+      return emptyResponse;
+    }
 
     const daoDiscourse = await db.public
       .selectFrom('daoDiscourse')
       .where('daoDiscourse.daoId', '=', dao.id)
       .selectAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+
+    if (!daoDiscourse) {
+      return emptyResponse;
+    }
 
     const discourseUser = await db.public
       .selectFrom('discourseUser')

@@ -65,7 +65,9 @@ export async function getGroupsData(daoSlug: string) {
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!dao) return { dao: null, proposals: [], topics: [], proposalGroups: [] };
 
   const proposalGroups = await db.public
     .selectFrom('proposalGroup')
@@ -136,7 +138,9 @@ export async function getUngroupedProposals(
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!dao) return [];
 
   const allProposals = await db.public
     .selectFrom('proposal')
@@ -220,7 +224,12 @@ export async function fuzzySearchItems(
         .selectFrom('dao')
         .where('slug', '=', daoSlug)
         .selectAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+
+      if (!dao) {
+        console.error(`DAO not found: ${daoSlug}`);
+        return [];
+      }
 
       const daoDiscourse = await db.public
         .selectFrom('daoDiscourse')
@@ -364,6 +373,10 @@ export async function createGroup(
   return handleVoidServerAction(async () => {
     const dao = await getDao(daoSlug);
 
+    if (!dao) {
+      throw new Error(`DAO not found: ${daoSlug}`);
+    }
+
     const newGroup: ProposalGroup = {
       id: crypto.randomUUID(),
       name: `New Group ${new Date().toLocaleString()}`,
@@ -412,7 +425,7 @@ export async function getDao(daoSlug: string) {
     .selectFrom('dao')
     .selectAll()
     .where('slug', '=', daoSlug)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
 
   return dao;
 }

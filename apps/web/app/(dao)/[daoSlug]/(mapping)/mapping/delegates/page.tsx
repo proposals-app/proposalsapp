@@ -26,8 +26,8 @@ async function HeaderContainer({ daoSlug }: { daoSlug: string }) {
 
   return (
     <PageHeader
-      title={`Delegate Mappings for ${dao.name}`}
-      description={`Manage delegate mappings for Discourse users and Voters in ${dao.name}.`}
+      title={`Delegate Mappings for ${dao?.name || 'Unknown DAO'}`}
+      description={`Manage delegate mappings for Discourse users and Voters in ${dao?.name || 'the DAO'}.`}
       actionLinks={[
         {
           href: '/mapping',

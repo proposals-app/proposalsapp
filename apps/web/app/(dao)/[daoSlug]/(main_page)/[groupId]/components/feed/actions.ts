@@ -41,13 +41,17 @@ export async function getDelegateByDiscourseUser(
     .selectFrom('dao')
     .selectAll()
     .where('dao.slug', '=', daoSlug)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!dao) return null;
 
   const daoDiscourse = await db.public
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', dao.id)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!daoDiscourse) return null;
 
   // Fetch the discourse user
   const discourseUser = await db.public

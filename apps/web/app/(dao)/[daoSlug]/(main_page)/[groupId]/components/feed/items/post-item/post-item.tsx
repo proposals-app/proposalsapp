@@ -92,7 +92,7 @@ export async function PostItem({
           contentLength={item.cooked?.length || 0}
           currentVotingPower={currentVotingPower}
           item={item}
-          discourseBaseUrl={group.daoDiscourse.discourseBaseUrl}
+          discourseBaseUrl={group.daoDiscourse?.discourseBaseUrl || ''}
         />
       )}
     </div>

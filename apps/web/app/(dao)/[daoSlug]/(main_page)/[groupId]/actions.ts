@@ -130,7 +130,7 @@ export async function getGroup(groupId: string) {
     .selectFrom('daoDiscourse')
     .where('daoId', '=', dao.id)
     .selectAll()
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
 
   if (group) {
     const items = group.items as ProposalGroupItem[];
@@ -172,7 +172,9 @@ export async function getGroup(groupId: string) {
             ])
             .where('externalId', '=', proposalItem.externalId)
             .where('governorId', '=', proposalItem.governorId)
-            .executeTakeFirstOrThrow()) as SelectableProposalWithGovernor; // Cast to new type
+            .executeTakeFirst()) as SelectableProposalWithGovernor | null; // Cast to new type
+
+          if (!p) continue;
 
           proposals.push(p);
         } catch (error) {
@@ -190,9 +192,9 @@ export async function getGroup(groupId: string) {
             .where('externalId', '=', parseInt(topicItem.externalId, 10))
             .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
             .selectAll()
-            .executeTakeFirstOrThrow();
+            .executeTakeFirst();
 
-          topics.push(t);
+          if (t) topics.push(t);
         } catch (error) {
           console.error('Error fetching:', topicItem, error);
         }
@@ -242,7 +244,7 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
     .selectFrom('proposalGroup')
     .selectAll()
     .where('id', '=', groupId)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
 
   if (!group) {
     return null;
@@ -262,9 +264,9 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
           .selectAll()
           .where('externalId', '=', proposalItem.externalId)
           .where('governorId', '=', proposalItem.governorId)
-          .executeTakeFirstOrThrow();
+          .executeTakeFirst();
 
-        proposals.push(p);
+        if (p) proposals.push(p);
       } catch (error) {
         console.error('Error fetching:', proposalItem, error);
       }
@@ -291,9 +293,9 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
           .where('externalId', '=', parseInt(topicItem.externalId, 10))
           .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
           .selectAll()
-          .executeTakeFirstOrThrow();
+          .executeTakeFirst();
 
-        discourseTopics.push(t);
+        if (t) discourseTopics.push(t);
       } catch (error) {
         console.error('Error fetching:', topicItem, error);
       }
@@ -307,14 +309,18 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
       .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
       .where('discoursePost.postNumber', '=', 1)
       .selectAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+
+    if (!discourseFirstPost) return null;
 
     const discourseFirstPostAuthor = await db.public
       .selectFrom('discourseUser')
       .where('discourseUser.externalId', '=', discourseFirstPost.userId)
       .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
       .selectAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+
+    if (!discourseFirstPostAuthor) return null;
 
     const discourseFirstPostRevisions = await db.public
       .selectFrom('discoursePostRevision')
@@ -481,7 +487,9 @@ async function getAuthor(groupId: string) {
     .selectFrom('proposalGroup')
     .selectAll()
     .where('id', '=', groupId)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!group) return null;
 
   const items = group.items as ProposalGroupItem[];
   const proposalItems: { externalId: string; governorId: string }[] = [];
@@ -723,21 +731,25 @@ export async function getFeed(
     .selectFrom('proposalGroup')
     .selectAll()
     .where('id', '=', groupId)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!group) return { votes: [], posts: [], events: [] };
 
   const dao = await db.public
     .selectFrom('dao')
     .selectAll()
     .where('dao.id', '=', group.daoId)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!dao) return { votes: [], posts: [], events: [] };
 
   const daoDiscourse = await db.public
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', group.daoId)
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
 
-  if (!group) {
+  if (!daoDiscourse || !group) {
     return { votes: [], posts: [], events: [] };
   }
 
@@ -948,7 +960,9 @@ export async function getFeed(
           .selectFrom('daoGovernor')
           .selectAll()
           .where('id', '=', proposal.governorId)
-          .executeTakeFirstOrThrow();
+          .executeTakeFirst();
+
+        if (!daoGovernor) continue;
 
         const offchain = daoGovernor.type.includes('SNAPSHOT');
 
@@ -1333,14 +1347,18 @@ export async function getGroupHeader(groupId: string): Promise<{
         .where('daoDiscourseId', '=', topic.daoDiscourseId)
         .where('discoursePost.postNumber', '=', 1)
         .selectAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+
+      if (!discourseFirstPost) return null;
 
       const discourseFirstPostAuthor = await db.public
         .selectFrom('discourseUser')
         .where('discourseUser.externalId', '=', discourseFirstPost.userId)
         .where('daoDiscourseId', '=', topic.daoDiscourseId)
         .selectAll()
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+
+      if (!discourseFirstPostAuthor) return null;
 
       return {
         originalAuthorName:

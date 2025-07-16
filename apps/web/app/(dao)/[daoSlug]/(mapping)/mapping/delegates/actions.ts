@@ -23,7 +23,9 @@ export async function getDelegatesWithMappings(daoSlug: string) {
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!dao) return [];
 
   const delegates = await db.public
     .selectFrom('delegate')
@@ -147,7 +149,12 @@ export async function fuzzySearchDiscourseUsers(
       .selectFrom('dao')
       .where('slug', '=', daoSlug)
       .selectAll()
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
+
+    if (!dao) {
+      console.error(`DAO not found: ${daoSlug}`);
+      return [];
+    }
 
     const daoDiscourse = await db.public
       .selectFrom('daoDiscourse')
@@ -296,7 +303,12 @@ export async function createDelegate(daoSlug: string) {
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
-    .executeTakeFirstOrThrow();
+    .executeTakeFirst();
+
+  if (!dao) {
+    console.error(`DAO not found: ${daoSlug}`);
+    return;
+  }
 
   await db.public
     .insertInto('delegate')
