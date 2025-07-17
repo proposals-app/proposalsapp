@@ -15,6 +15,7 @@ use super::super::super::super::typings::networks::get_provider_cache_for_networ
 use super::arbitrum_treasury_governor_abi_gen::RindexerArbitrumTreasuryGovernorGen::{
     self, RindexerArbitrumTreasuryGovernorGenEvents, RindexerArbitrumTreasuryGovernorGenInstance,
 };
+use alloy::network::AnyNetwork;
 use alloy::primitives::{Address, B256, Bytes};
 use alloy::sol_types::{SolEvent, SolEventInterface, SolType};
 use rindexer::{
@@ -674,7 +675,7 @@ where
 
 pub async fn arbitrum_treasury_governor_contract(
     network: &str,
-) -> RindexerArbitrumTreasuryGovernorGenInstance<Arc<RindexerProvider>> {
+) -> RindexerArbitrumTreasuryGovernorGenInstance<Arc<RindexerProvider>, AnyNetwork> {
     let address: Address = "0x789fc99093b09ad01c34dc7251d0c89ce743e5a4"
         .parse()
         .expect("Invalid address");
@@ -688,7 +689,7 @@ pub async fn arbitrum_treasury_governor_contract(
 
 pub async fn decoder_contract(
     network: &str,
-) -> RindexerArbitrumTreasuryGovernorGenInstance<Arc<RindexerProvider>> {
+) -> RindexerArbitrumTreasuryGovernorGenInstance<Arc<RindexerProvider>, AnyNetwork> {
     if network == "arbitrum" {
         RindexerArbitrumTreasuryGovernorGen::new(
             // do not care about address here its decoding makes it easier to handle ValueOrArray
@@ -809,7 +810,8 @@ where
             .find(|c| c.name == contract_name)
             .unwrap_or_else(|| {
                 panic!(
-                    "Contract {contract_name} not found please make sure its defined in the rindexer.yaml"
+                    "Contract {} not found please make sure its defined in the rindexer.yaml",
+                    contract_name
                 )
             })
             .clone();
@@ -817,7 +819,7 @@ where
         let index_event_in_order = contract_details
             .index_event_in_order
             .as_ref()
-            .is_some_and(|vec| vec.contains(&event_name.to_string()));
+            .map_or(false, |vec| vec.contains(&event_name.to_string()));
 
         // Expect providers to have been initialized, but it's an async init so this should
         // be fast but for correctness we must await each future.
@@ -849,7 +851,7 @@ where
                         .networks
                         .iter()
                         .find(|n| n.name == c.network)
-                        .is_some_and(|n| n.disable_logs_bloom_checks.unwrap_or_default()),
+                        .map_or(false, |n| n.disable_logs_bloom_checks.unwrap_or_default()),
                 })
                 .collect(),
             abi: contract_details.abi,
