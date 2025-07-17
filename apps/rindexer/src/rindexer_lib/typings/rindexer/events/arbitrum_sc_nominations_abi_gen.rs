@@ -1,4 +1,3 @@
-
 use alloy::sol;
 use crate::rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations_abi_gen::RindexerArbitrumSCNominationsGen::Date;
 

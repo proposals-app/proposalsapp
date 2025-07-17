@@ -4595,7 +4595,7 @@ __metadata:
     "@radix-ui/react-slot": "npm:^1.2.3"
     "@rainbow-me/rainbowkit": "npm:^2.2.8"
     "@serwist/next": "npm:^9.1.0"
-    "@snapshot-labs/snapshot.js": "npm:^0.14.4"
+    "@snapshot-labs/snapshot.js": "npm:^0.14.5"
     "@storybook/addon-docs": "npm:^9.0.17"
     "@storybook/addon-onboarding": "npm:^9.0.17"
     "@storybook/nextjs": "npm:^9.0.17"
@@ -6125,9 +6125,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@snapshot-labs/snapshot.js@npm:^0.14.4":
-  version: 0.14.4
-  resolution: "@snapshot-labs/snapshot.js@npm:0.14.4"
+"@snapshot-labs/snapshot.js@npm:^0.14.5":
+  version: 0.14.5
+  resolution: "@snapshot-labs/snapshot.js@npm:0.14.5"
   dependencies:
     "@ensdomains/eth-ens-namehash": "npm:^2.0.15"
     "@ethersproject/abi": "npm:^5.6.4"
@@ -6146,7 +6146,7 @@ __metadata:
     json-to-graphql-query: "npm:^2.2.4"
     lodash.set: "npm:^4.3.2"
     starknet: "npm:^6.11.0"
-  checksum: 10c0/d6fc78de45a01bf535105cbfdd55153e41a6f6352abb53320bd88f7142803bbe91843f0dc4d9a78d91c10d7af23c41ba8fa0e4532d66fe045321bee0d1b070cb
+  checksum: 10c0/4e9e363c10e240c4a12f876483ba464f0f5d6e24bbc74c2ed5757e6e3cabab96eaa7b58bf95f5a04396c27acf43b8d6ad66696c789715bcdda07f9b8b681aef5
   languageName: node
   linkType: hard
 

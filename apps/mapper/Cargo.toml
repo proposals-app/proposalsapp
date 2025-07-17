@@ -3,6 +3,10 @@ name = "mapper"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "mapper"
+path = "main.rs"
+
 [dependencies]
 alloy = { workspace = true }
 anyhow = { workspace = true, features = ["backtrace"] }
@@ -42,7 +46,3 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 utils = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
-
-[[bin]]
-name = "mapper"
-path = "main.rs"

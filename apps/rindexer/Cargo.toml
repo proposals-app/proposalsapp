@@ -3,6 +3,10 @@ name = "proposalsapp-rindexer"
 version = "1.0.0"
 edition = "2024"
 
+[[bin]]
+name = "proposalsapp-rindexer"
+path = "src/main.rs"
+
 [dependencies]
 alloy = { workspace = true, features = ["full"] }
 alloy-ens = { workspace = true, features = ["contract", "provider"] }
@@ -44,7 +48,3 @@ utils = { workspace = true }
 dotenv = { workspace = true }
 mockito = { workspace = true }
 proptest = { workspace = true }
-
-[[bin]]
-name = "proposalsapp-rindexer"
-path = "src/main.rs"
