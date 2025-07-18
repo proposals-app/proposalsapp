@@ -15,115 +15,29 @@ import {
   SkeletonActionBar,
 } from '@/app/components/ui/skeleton';
 
-async function fetchBalanceForAddress(address: string): Promise<number> {
-  interface TokenBalance {
-    balance: string;
-    decimals: number;
-    quoteRate: number | null;
-  }
-
-  interface TallyResponse {
-    data: {
-      balances: TokenBalance[];
-    };
-  }
-
-  const TALLY_API_KEY = process.env.TALLY_API_KEY;
-  if (!TALLY_API_KEY) {
-    console.warn(
-      `[fetchBalanceForAddress] TALLY_API_KEY not set, cannot fetch balance for ${address}`
-    );
-    return 0;
-  }
-
+const getTreasuryBalance = async () => {
   try {
-    const response = await fetch('https://api.tally.xyz/query', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Api-Key': TALLY_API_KEY,
-      },
-      body: JSON.stringify({
-        query: `
-          query TokenBalances($input: AccountID!) {
-            balances(accountID: $input) {
-              decimals
-              balance
-              quoteRate
-            }
-          }
-        `,
-        variables: {
-          input: address,
-        },
-      }),
-      next: { revalidate: 86400 }, // Revalidate daily
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000');
+    const response = await fetch(`${baseUrl}/api/financial/uniswap/treasury`, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
     });
 
     if (!response.ok) {
       console.error(
-        `[fetchBalanceForAddress] Failed to fetch balance for address ${address} (${response.status} ${response.statusText})`
+        `[getTreasuryBalance] Failed to fetch treasury balance (${response.status} ${response.statusText})`
       );
-      return 0;
+      return null;
     }
 
-    const data = (await response.json()) as TallyResponse;
-
-    if (!data?.data?.balances) {
-      console.warn(
-        `[fetchBalanceForAddress] Invalid response structure for ${address}`
-      );
-      return 0;
-    }
-
-    return data.data.balances.reduce((total, token) => {
-      if (token.quoteRate && token.balance && token.decimals != null) {
-        // Add explicit checks for null/undefined if necessary
-        const balance = Number(token.balance) / Math.pow(10, token.decimals);
-        return total + balance * token.quoteRate;
-      }
-      return total;
-    }, 0);
+    const data = await response.json();
+    return data.totalBalanceUsd;
   } catch (error) {
     console.error(
-      `[fetchBalanceForAddress] Error fetching balance for address ${address}:`,
-      error
-    );
-    return 0;
-  }
-}
-
-const getTreasuryBalance = async () => {
-  // 'use cache';
-  // cacheLife('days');
-  // cacheTag(`treasury-uniswap`);
-
-  const TREASURY_ADDRESSES = [
-    'eip155:1:0x1a9C8182C09F50C8318d769245beA52c32BE35BC',
-    'eip155:1:0xe571dC7A558bb6D68FfE264c3d7BB98B0C6C73fC',
-  ];
-
-  try {
-    // Use Promise.allSettled to handle potential failures for individual addresses
-    const results = await Promise.allSettled(
-      TREASURY_ADDRESSES.map(fetchBalanceForAddress)
-    );
-
-    const totalBalance = results.reduce((sum, result) => {
-      if (result.status === 'fulfilled') {
-        return sum + result.value;
-      } else {
-        console.error(
-          `[getTreasuryBalance] Failed to fetch balance for an address: ${result.reason}`
-        );
-        return sum; // Exclude failed fetches from the total
-      }
-    }, 0);
-
-    return totalBalance;
-  } catch (error) {
-    console.error(
-      `[getTreasuryBalance] Error calculating total treasury balance for uniswap:`,
+      `[getTreasuryBalance] Error fetching treasury balance:`,
       error
     );
     return null;
@@ -131,33 +45,27 @@ const getTreasuryBalance = async () => {
 };
 
 const getTokenPrice = async () => {
-  // 'use cache';
-  // cacheLife('hours');
-  // cacheTag(`token-price-uniswap`);
-
   try {
-    const url = `https://api.coingecko.com/api/v3/coins/uniswap/market_chart?vs_currency=usd&days=1`;
-    const res = await fetch(url, { next: { revalidate: 3600 } }); // Revalidate hourly
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000');
+    const response = await fetch(`${baseUrl}/api/financial/uniswap/price`, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+    });
 
-    if (!res.ok) {
+    if (!response.ok) {
       console.error(
-        `[getTokenPrice] Failed to fetch price data (${res.status} ${res.statusText}) for uniswap from ${url}`
+        `[getTokenPrice] Failed to fetch token price (${response.status} ${response.statusText})`
       );
       return null;
     }
 
-    const data = await res.json();
-    if (data?.prices?.length > 0) {
-      const latestPrice = data.prices[data.prices.length - 1][1];
-      return latestPrice as number;
-    }
-    console.warn(`[getTokenPrice] No price data found for uniswap`);
-    return null;
+    const data = await response.json();
+    return data.price;
   } catch (error) {
-    console.error(
-      `[getTokenPrice] Error fetching token price for uniswap:`,
-      error
-    );
+    console.error(`[getTokenPrice] Error fetching token price:`, error);
     return null;
   }
 };

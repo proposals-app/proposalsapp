@@ -29,7 +29,7 @@ jobs:
     name: Clean Runner Environment
     runs-on: [self-hosted, linux, sibiu]
     if: always()
-    
+
     steps:
       - name: Disk Usage Before Cleanup
         run: |
@@ -48,13 +48,13 @@ jobs:
       - name: Clean Docker System
         run: |
           echo "=== Cleaning Docker system ==="
-          
+
           # Stop all running containers
           docker stop $(docker ps -q) 2>/dev/null || true
-          
+
           # Remove all stopped containers
           docker rm $(docker ps -aq) 2>/dev/null || true
-          
+
           # Remove unused images
           if [[ "${{ inputs.aggressive }}" == "true" ]]; then
             echo "Aggressive cleanup: removing all images except base ones"
@@ -63,7 +63,7 @@ jobs:
             echo "Normal cleanup: removing images older than 2h"
             docker image prune -a --force --filter "until=2h" || true
           fi
-          
+
           # Clean build cache
           if [[ "${{ inputs.aggressive }}" == "true" ]]; then
             echo "Aggressive cleanup: removing all build cache"
@@ -72,13 +72,13 @@ jobs:
             echo "Normal cleanup: removing build cache older than 6h"
             docker buildx prune --force --filter "until=6h" || true
           fi
-          
+
           # Remove unused volumes
           docker volume prune -f || true
-          
+
           # Remove unused networks
           docker network prune -f || true
-          
+
           # Final system prune
           docker system prune --force --filter "until=2h" || true
 
@@ -87,7 +87,7 @@ jobs:
           echo "=== Cleaning buildx builders ==="
           # List all builders
           docker buildx ls || true
-          
+
           # Remove unused builders (keep default)
           for builder in $(docker buildx ls | grep -v 'default' | grep -v 'NAME' | awk '{print $1}' | grep -v '^$'); do
             echo "Checking builder: $builder"
@@ -101,7 +101,7 @@ jobs:
       - name: Clean Build Cache Directories
         run: |
           echo "=== Cleaning build cache directories ==="
-          
+
           # Clean buildx cache directories
           CACHE_DIRS="/var/cache/buildx"
           if [ -d "$CACHE_DIRS" ]; then
@@ -119,11 +119,11 @@ jobs:
               fi
             done
           fi
-          
+
           # Clean npm/yarn caches if they're too large
           NPM_CACHE="$HOME/.npm"
           YARN_CACHE="$HOME/.cache/yarn"
-          
+
           for cache_dir in "$NPM_CACHE" "$YARN_CACHE"; do
             if [ -d "$cache_dir" ]; then
               CACHE_SIZE=$(du -sb "$cache_dir" 2>/dev/null | cut -f1 || echo 0)
@@ -139,7 +139,7 @@ jobs:
               fi
             fi
           done
-          
+
           # Clean cargo cache if too large
           CARGO_CACHE="$HOME/.cargo"
           if [ -d "$CARGO_CACHE" ]; then
@@ -161,10 +161,10 @@ jobs:
         run: |
           echo "=== Cleaning runner workspace ==="
           cd ${{ github.workspace }}
-          
+
           # First, try to clean git to avoid permission issues
           git clean -ffdx || true
-          
+
           # Remove all files including hidden ones
           # Using find to handle files with special permissions
           find . -mindepth 1 -delete 2>/dev/null || {
@@ -184,7 +184,7 @@ jobs:
           # Clean system temp files older than 1 day
           find /tmp -type f -atime +1 -delete 2>/dev/null || true
           find /var/tmp -type f -atime +1 -delete 2>/dev/null || true
-          
+
           # Clean runner temp directory
           if [ -d "$RUNNER_TEMP" ]; then
             rm -rf "$RUNNER_TEMP"/* 2>/dev/null || true
@@ -210,25 +210,25 @@ jobs:
         if: always()
         run: |
           echo "=== Runner health check ==="
-          
+
           # Check available disk space
           AVAILABLE=$(df / | tail -1 | awk '{print $4}')
           THRESHOLD=$((20 * 1024 * 1024)) # 20GB in KB
-          
+
           if [ "$AVAILABLE" -lt "$THRESHOLD" ]; then
             echo "⚠️ WARNING: Low disk space! Available: $(df -h / | tail -1 | awk '{print $4}')"
             echo "Consider more aggressive cleanup or manual intervention"
           else
             echo "✅ Disk space OK: $(df -h / | tail -1 | awk '{print $4}') available"
           fi
-          
+
           # Check if Docker is responsive
           if docker ps >/dev/null 2>&1; then
             echo "✅ Docker daemon is responsive"
           else
             echo "❌ Docker daemon is not responsive!"
           fi
-          
+
           # Check buildx
           if docker buildx version >/dev/null 2>&1; then
             echo "✅ Docker buildx is available"
@@ -244,7 +244,7 @@ jobs:
     permissions:
       packages: write
     continue-on-error: true # Don't fail the workflow if cleanup fails
-    
+
     steps:
       - name: Delete old container images
         uses: actions/delete-package-versions@v5
@@ -259,7 +259,7 @@ jobs:
           delete-only-pre-release-versions: "false"
           token: ${{ github.token }}
         continue-on-error: true # Continue even if package doesn't exist yet
-      
+
       - name: Log registry cleanup result
         if: always()
         run: |
