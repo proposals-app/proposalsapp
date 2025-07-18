@@ -1,15 +1,11 @@
 import { db, ProposalState } from '@proposalsapp/db';
-import {
-  unstable_cacheLife as cacheLife,
-  unstable_cacheTag as cacheTag,
-} from 'next/cache';
 
 export async function getLandingPageStats() {
   // 'use cache';
 
   // Cache for 5 minutes and tag for landing page stats
-  cacheTag('landing-page-stats');
-  cacheLife('minutes');
+  // cacheTag('landing-page-stats');
+  // cacheLife('minutes');
 
   try {
     // Get count of active DAOs

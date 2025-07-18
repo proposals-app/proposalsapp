@@ -4392,7 +4392,7 @@ __metadata:
     "@types/dotenv": "npm:^8.2.3"
     "@types/pg": "npm:8"
     dotenv: "npm:^17.2.0"
-    kysely: "npm:0.28.2"
+    kysely: "npm:^0.28.3"
     kysely-codegen: "npm:0.18.5"
     kysely-ctl: "npm:^0.13.1"
     pg: "npm:8.16.3"
@@ -4411,7 +4411,7 @@ __metadata:
     date-fns: "npm:^4.1.0"
     dotenv: "npm:^17.2.0"
     node-cron: "npm:^4.2.1"
-    resend: "npm:^4.6.0"
+    resend: "npm:^4.7.0"
     tsx: "npm:^4.20.3"
     typescript: "npm:^5.8.3"
   languageName: unknown
@@ -4435,8 +4435,8 @@ __metadata:
     prettier-plugin-tailwindcss: "npm:0.6.14"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
-    react-email: "npm:4.2.1"
-    resend: "npm:^4.6.0"
+    react-email: "npm:4.2.3"
+    resend: "npm:^4.7.0"
     tailwindcss: "npm:^4.1.11"
     typescript: "npm:^5.8.3"
   languageName: unknown
@@ -16494,10 +16494,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kysely@npm:0.28.2, kysely@npm:^0.28.2":
+"kysely@npm:^0.28.2":
   version: 0.28.2
   resolution: "kysely@npm:0.28.2"
   checksum: 10c0/66eccd19e6476a10f3b004835c4a966516968003075aa0c217db48ecd0f9679a2efa812f797063540cdb4e3e81fbf5afe876e1f7a08a1550e1fd99acc2a6dbb9
+  languageName: node
+  linkType: hard
+
+"kysely@npm:^0.28.3":
+  version: 0.28.3
+  resolution: "kysely@npm:0.28.3"
+  checksum: 10c0/ded46427497085b572528610087de6c5f142aa4d9661e50706771ecb51bc8fd35afeab1b79f96b80e8f678423871857b3c8ced73b0eab9c89c08da42e8c17785
   languageName: node
   linkType: hard
 
@@ -20777,9 +20784,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-email@npm:4.2.1":
-  version: 4.2.1
-  resolution: "react-email@npm:4.2.1"
+"react-email@npm:4.2.3":
+  version: 4.2.3
+  resolution: "react-email@npm:4.2.3"
   dependencies:
     "@babel/parser": "npm:^7.27.0"
     "@babel/traverse": "npm:^7.27.0"
@@ -20800,7 +20807,7 @@ __metadata:
     tsconfig-paths: "npm:4.2.0"
   bin:
     email: dist/index.js
-  checksum: 10c0/41a7edd0e5ade1439acc1c98b5de3b47df77d4514be26bc6e9f7ed79ca321c97881474ab39259d6b0808bfccc98f2fe7d4d0a7166fd878d4dd7ff1cd8f5b3d49
+  checksum: 10c0/3051f348d07bb96c2f02c0e04aa4dc57696a9c2443d03a549c490186997dd14cc3bcd8ecb9ec3f5a0c3479010b91cbb4ad9af9c019237a0d5172e7340c6cb804
   languageName: node
   linkType: hard
 
@@ -21372,12 +21379,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"resend@npm:^4.6.0":
-  version: 4.6.0
-  resolution: "resend@npm:4.6.0"
+"resend@npm:^4.7.0":
+  version: 4.7.0
+  resolution: "resend@npm:4.7.0"
   dependencies:
     "@react-email/render": "npm:1.1.2"
-  checksum: 10c0/ffd82d406fff0ebf7b66078df8bb5348a8aa01f0dadb8b3700184a2c4104e193cb8ed63902e0034d0492d3bbb318a67504d6cb826ef60fe67c753ffa9f800799
+  checksum: 10c0/c5bdb06670097dcbf49c012f5ccfe290c15a9d5cb2ddc97de4d6fde201edaac7037f03b0f1f09b87a054e6097b7c104dafa1c85f981615962fd2b5220a2a5e96
   languageName: node
   linkType: hard
 

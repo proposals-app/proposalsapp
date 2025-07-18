@@ -8,7 +8,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.0",
     "node-cron": "^4.2.1",
-    "resend": "^4.6.0"
+    "resend": "^4.7.0"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
