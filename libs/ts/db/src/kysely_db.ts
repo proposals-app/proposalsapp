@@ -273,6 +273,11 @@ export interface ProposalGroup {
   name: string;
 }
 
+export interface RindexerInternalLatestBlock {
+  block: Numeric | null;
+  network: string;
+}
+
 export interface RindexerInternalRindexerArbitrumCoreGovernorProposalCreated {
   lastSyncedBlock: Numeric | null;
   network: string;
@@ -480,6 +485,7 @@ export interface DB {
   jobQueue: JobQueue;
   proposal: Proposal;
   proposalGroup: ProposalGroup;
+  "rindexerInternal.latestBlock": RindexerInternalLatestBlock;
   "rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated": RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
   "rindexerInternal.rindexerArbitrumCoreGovernorProposalExecuted": RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted;
   "rindexerInternal.rindexerArbitrumCoreGovernorProposalExtended": RindexerInternalRindexerArbitrumCoreGovernorProposalExtended;

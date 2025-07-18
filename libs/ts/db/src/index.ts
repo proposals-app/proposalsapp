@@ -10,6 +10,7 @@ import {
 } from 'kysely';
 import { config as dotenv_config } from 'dotenv';
 import type { DB } from './kysely_db';
+import type { MaterializedViews } from './materialized-views';
 import pg from 'pg';
 
 dotenv_config();
@@ -67,8 +68,11 @@ db_pool_uniswap.on('connect', (client) => {
   client.query(`SET search_path TO uniswap`);
 });
 
+// Extend DB type with materialized views
+type ExtendedDB = DB & MaterializedViews;
+
 const createDbPublicInstance = () => {
-  return new Kysely<DB>({
+  return new Kysely<ExtendedDB>({
     dialect: new PostgresDialect({
       pool: db_pool_public,
     }),
@@ -107,7 +111,7 @@ const createDbUniswapInstance = () => {
 };
 
 declare global {
-  var dbPublicInternal: Kysely<DB> | undefined;
+  var dbPublicInternal: Kysely<ExtendedDB> | undefined;
   var dbArbitrumInternal: Kysely<DB> | undefined;
   var dbUniswapInternal: Kysely<DB> | undefined;
 }
@@ -122,10 +126,17 @@ export const dbPool = {
   uniswap: db_pool_uniswap,
 };
 
-export const db = {
+// Type for the db export
+type DatabaseInstances = {
+  public: Kysely<ExtendedDB>;
+  arbitrum: Kysely<DB>;
+  uniswap: Kysely<DB>;
+};
+
+export const db: DatabaseInstances = {
   public: dbPublic,
-  arbitrum: dbArbitrum.withSchema('arbitrum'),
-  uniswap: dbUniswap.withSchema('uniswap'),
+  arbitrum: dbArbitrum.withSchema('arbitrum') as Kysely<DB>,
+  uniswap: dbUniswap.withSchema('uniswap') as Kysely<DB>,
 };
 
 //if (process.env.NODE_ENV !== "production") global.dbPublic = dbPublic;
