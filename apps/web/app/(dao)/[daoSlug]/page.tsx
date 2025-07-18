@@ -84,7 +84,7 @@ async function GroupsContent({ daoSlug }: { daoSlug: string }) {
     .map((group) => group.id);
 
   // Fetch all active group feeds in parallel
-  const activeGroupsFeeds = await getActiveGroupsFeeds(activeGroupIds, daoSlug);
+  const activeGroupsFeeds = await getActiveGroupsFeeds(activeGroupIds);
 
   // Transform data with pre-fetched feed data
   const groupsWithInfo = groups.map((group) => {

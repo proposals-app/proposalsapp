@@ -5,11 +5,10 @@ import {
   voterAddressSchema,
 } from '@/lib/validations';
 import { db, type DiscourseUser, type Selectable } from '@proposalsapp/db';
-import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getProposalGovernor(proposalId: string) {
-  'use cache';
-  cacheLife('days');
+  // 'use cache';
+  // cacheLife('days');
 
   proposalIdSchema.parse(proposalId);
 
@@ -41,8 +40,8 @@ export async function getProposalGovernor(proposalId: string) {
 }
 
 export async function getNonVoters(proposalId: string) {
-  'use cache';
-  cacheLife('minutes');
+  // 'use cache';
+  // cacheLife('minutes');
 
   const NON_VOTER_SELECT_LIMIT = 50000; //50k VP
 
@@ -291,8 +290,8 @@ export async function getNonVoters(proposalId: string) {
 export type NonVotersData = AsyncReturnType<typeof getNonVoters>;
 
 export async function getVotesWithVoters(proposalId: string) {
-  'use cache';
-  cacheLife('minutes');
+  // 'use cache';
+  // cacheLife('minutes');
 
   // Validate proposalId
   try {
@@ -493,8 +492,8 @@ export type DelegateInfo = {
 } | null;
 
 export async function getVoter(voterAddress: string): Promise<DelegateInfo> {
-  'use cache';
-  cacheLife('hours');
+  // 'use cache';
+  // cacheLife('hours');
 
   voterAddressSchema.parse(voterAddress);
 
@@ -529,8 +528,8 @@ export async function getDelegateVotingPower(
   daoSlug: string,
   proposalId: string
 ): Promise<DelegateVotingPower | null> {
-  'use cache';
-  cacheLife('hours');
+  // 'use cache';
+  // cacheLife('hours');
 
   // Validate all parameters
   try {
@@ -602,8 +601,8 @@ export async function getDelegateVotingPower(
 export type VotesWithVoters = AsyncReturnType<typeof getVotesWithVoters>;
 
 export async function getVotesWithVotersForProposals(proposalIds: string[]) {
-  'use cache';
-  cacheLife('minutes');
+  // 'use cache';
+  // cacheLife('minutes');
 
   // Validate all proposalIds
   const validProposalIds = proposalIds.filter((id) => {

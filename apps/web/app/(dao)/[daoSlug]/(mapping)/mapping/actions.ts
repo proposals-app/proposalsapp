@@ -3,8 +3,6 @@
 import Fuse from 'fuse.js';
 import { db } from '@proposalsapp/db';
 import type { AsyncReturnType } from '@/lib/utils';
-import { cacheLife } from 'next/dist/server/use-cache/cache-life';
-import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 import { revalidateTag } from 'next/cache';
 import {
   type ServerActionVoidResult,
@@ -58,8 +56,8 @@ export interface FuzzySearchResult {
  * Fetches all proposal groups for a given DAO
  */
 export async function getGroupsData(daoSlug: string) {
-  'use cache';
-  cacheTag('groupsData');
+  // 'use cache';
+  // cacheTag('groupsData');
 
   const dao = await db.public
     .selectFrom('dao')
@@ -131,8 +129,8 @@ export async function getGroupsData(daoSlug: string) {
 export async function getUngroupedProposals(
   daoSlug: string
 ): Promise<ProposalItem[]> {
-  'use cache';
-  cacheTag('ungroupedProposals');
+  // 'use cache';
+  // cacheTag('ungroupedProposals');
 
   const dao = await db.public
     .selectFrom('dao')
@@ -418,8 +416,8 @@ export async function deleteGroup(groupId: string) {
  * Fetches DAO details by slug
  */
 export async function getDao(daoSlug: string) {
-  'use cache';
-  cacheLife('hours');
+  // 'use cache';
+  // cacheLife('hours');
 
   const dao = await db.public
     .selectFrom('dao')

@@ -11,7 +11,7 @@ async function getGroupIdFromTopicSlug(
   daoSlug: string,
   topicSlug: string
 ): Promise<string | null> {
-  'use cache';
+  // 'use cache';
 
   // First, get the DAO
   const dao = await db.public

@@ -14,8 +14,6 @@ import {
   LoadingHeader,
   SkeletonActionBar,
 } from '@/app/components/ui/skeleton';
-import { cacheLife } from 'next/dist/server/use-cache/cache-life';
-import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 
 async function fetchBalanceForAddress(address: string): Promise<number> {
   interface TokenBalance {
@@ -96,9 +94,9 @@ async function fetchBalanceForAddress(address: string): Promise<number> {
 }
 
 const getTreasuryBalance = async () => {
-  'use cache';
-  cacheLife('days');
-  cacheTag(`treasury-uniswap`);
+  // 'use cache';
+  // cacheLife('days');
+  // cacheTag(`treasury-uniswap`);
 
   const TREASURY_ADDRESSES = [
     'eip155:1:0x1a9C8182C09F50C8318d769245beA52c32BE35BC',
@@ -133,9 +131,9 @@ const getTreasuryBalance = async () => {
 };
 
 const getTokenPrice = async () => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag(`token-price-uniswap`);
+  // 'use cache';
+  // cacheLife('hours');
+  // cacheTag(`token-price-uniswap`);
 
   try {
     const url = `https://api.coingecko.com/api/v3/coins/uniswap/market_chart?vs_currency=usd&days=1`;
@@ -282,7 +280,7 @@ async function GroupsContainer({
 
   const activeGroupsFeeds =
     activeGroupIds.length > 0
-      ? await getActiveGroupsFeeds(activeGroupIds, daoSlug)
+      ? await getActiveGroupsFeeds(activeGroupIds)
       : new Map();
 
   // Transform data with pre-fetched feed data

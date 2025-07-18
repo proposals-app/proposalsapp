@@ -29,11 +29,9 @@ import { validate } from 'uuid';
 import { getDelegateByDiscourseUser } from './components/feed/actions';
 import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
-
 import { requireAuth } from '@/lib/server-actions-utils';
-import { cacheLife } from 'next/dist/server/use-cache/cache-life';
-import { groupIdSchema } from '@/lib/validations';
 import { revalidateTag } from 'next/cache';
+import { groupIdSchema } from '@/lib/validations';
 
 export async function updateLastReadAt(groupId: string, daoSlug: string) {
   try {
@@ -74,8 +72,8 @@ export type SelectableProposalWithGovernor = Selectable<Proposal> & {
 };
 
 export async function getGroup(groupId: string) {
-  'use cache';
-  cacheLife('hours');
+  // 'use cache';
+  // cacheLife('hours');
 
   // Handle special cases first
   if (
@@ -227,8 +225,8 @@ export type BodyVersionNoContentType = Omit<BodyVersionType, 'content'>;
 export type VersionType = 'topic' | 'onchain' | 'offchain';
 
 export async function getBodyVersions(groupId: string, withContent: boolean) {
-  'use cache';
-  cacheLife('minutes');
+  // 'use cache';
+  // cacheLife('minutes');
 
   // Validate groupId
   try {
@@ -472,8 +470,8 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
 }
 
 async function getAuthor(groupId: string) {
-  'use cache';
-  cacheLife('hours');
+  // 'use cache';
+  // cacheLife('hours');
 
   // Validate groupId
   try {
@@ -711,8 +709,8 @@ export async function getFeed(
   posts: Selectable<DiscoursePost>[];
   events: FeedEvent[];
 }> {
-  'use cache';
-  cacheLife('minutes');
+  // 'use cache';
+  // cacheLife('minutes');
 
   // Validate groupId
   try {
@@ -1234,8 +1232,8 @@ export async function getGroupHeader(groupId: string): Promise<{
   originalAuthorPicture: string;
   groupName: string;
 }> {
-  'use cache';
-  cacheLife('hours');
+  // 'use cache';
+  // cacheLife('hours');
 
   // Validate groupId
   try {

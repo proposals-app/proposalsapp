@@ -5,11 +5,10 @@ import {
   discourseUserIdSchema,
 } from '@/lib/validations';
 import { db, sql } from '@proposalsapp/db';
-import { cacheLife } from 'next/dist/server/use-cache/cache-life';
 
 export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
-  'use cache';
-  cacheLife('hours');
+  // 'use cache';
+  // cacheLife('hours');
 
   discourseUserIdSchema.parse(userId);
   daoDiscourseIdSchema.parse(daoDiscourseId);
@@ -31,8 +30,8 @@ export async function getDelegateByDiscourseUser(
   topicIds?: string[],
   proposalIds?: string[]
 ) {
-  'use cache';
-  cacheLife('hours');
+  // 'use cache';
+  // cacheLife('hours');
 
   discourseUserIdSchema.parse(discourseUserId);
   daoSlugSchema.parse(daoSlug);
@@ -198,8 +197,8 @@ export async function getPostLikesCount(
   externalPostId: number,
   daoDiscourseId: string
 ) {
-  'use cache';
-  cacheLife('minutes');
+  // 'use cache';
+  // cacheLife('minutes');
 
   daoDiscourseIdSchema.parse(daoDiscourseId);
 

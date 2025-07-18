@@ -13,6 +13,7 @@ export const auth = betterAuth({
   appName: 'proposals.app',
   database: dbPool.uniswap,
   trustedOrigins: [`https://uniswap.proposals.app`],
+  secret: process.env.BETTER_AUTH_SECRET,
 
   plugins: [
     emailOTP({

@@ -216,7 +216,7 @@ async function fetchLatestSnapshotProposal(
 ): Promise<MockProposal | null> {
   // Build proper GraphQL query with variables
   let query: string;
-  let variables: any;
+  let variables: { spaceId: string; proposalType?: VoteType };
 
   if (proposalType) {
     console.log(

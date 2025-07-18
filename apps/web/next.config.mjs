@@ -1,5 +1,5 @@
 import withSerwistInit from '@serwist/next';
-import { resolve } from 'path';
+// import { resolve } from 'path';
 
 const _withSerwist = withSerwistInit({
   swSrc: 'app/sw.ts',
@@ -9,10 +9,6 @@ const _withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  eslint: {
-    // Disable ESLint during builds since we handle linting separately with monorepo config
-    ignoreDuringBuilds: true,
-  },
   turbopack: {
     rules: {
       '*.svg': {
@@ -50,8 +46,8 @@ const nextConfig = {
     reactCompiler: true,
     // viewTransition: true,
     // dynamicIO: true,
-    useCache: true,
-    cacheHandlers: { default: resolve('./cache-handler.mjs') },
+    // useCache: true,
+    // cacheHandlers: { default: resolve('./cache-handler.mjs') },
     serverActions: {
       bodySizeLimit: '10mb',
     },

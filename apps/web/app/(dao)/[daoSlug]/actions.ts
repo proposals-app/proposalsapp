@@ -3,11 +3,9 @@
 import type { AsyncReturnType } from '@/lib/utils';
 import { db, sql } from '@proposalsapp/db';
 import type { ProposalGroupItem } from '@/lib/types';
-import { revalidateTag } from 'next/cache';
 import { daoIdSchema, daoSlugSchema } from '@/lib/validations';
 import { requireAuthAndDao } from '@/lib/server-actions-utils';
-import { cacheLife } from 'next/dist/server/use-cache/cache-life';
-import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
+import { revalidateTag } from 'next/cache';
 import { getFeed } from './(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 
@@ -83,10 +81,10 @@ interface GroupAuthorInfo {
 async function getCoreGroupsData(
   daoId: string
 ): Promise<GroupCoreData[] | null> {
-  'use cache';
+  // 'use cache';
   // Cache this data longer and tag it non-user-specifically
-  cacheTag(`groups-data-${daoId}`);
-  cacheLife('minutes');
+  // cacheTag(`groups-data-${daoId}`);
+  // cacheLife('minutes');
 
   const coreGroups = await db.public
     .selectFrom('proposalGroup')
@@ -112,10 +110,10 @@ async function getActivityAndAuthorData(groups: GroupCoreData[]): Promise<{
   activityMap: Map<string, GroupActivityData>;
   authorMap: Map<string, GroupAuthorInfo>;
 }> {
-  'use cache';
+  // 'use cache';
   // Shorter cache life for activity data
-  cacheTag(`groups-activity-${groups[0]?.daoId || 'unknown'}`); // Tag by daoId if possible
-  cacheLife('minutes');
+  // cacheTag(`groups-activity-${groups[0]?.daoId || 'unknown'}`); // Tag by daoId if possible
+  // cacheLife('minutes');
 
   if (!groups || groups.length === 0) {
     return { activityMap: new Map(), authorMap: new Map() };
@@ -373,10 +371,10 @@ async function getUserLastReadData(
   userId: string,
   daoSlug: string
 ): Promise<Map<string, Date | null>> {
-  'use cache';
+  // 'use cache';
   // User-specific tag
-  cacheTag(`groups-user-${userId}-${daoSlug}`);
-  cacheLife('minutes'); // Shorter life for user-specific data
+  // cacheTag(`groups-user-${userId}-${daoSlug}`);
+  // cacheLife('minutes'); // Shorter life for user-specific data
 
   const lastReadMap = new Map<string, Date | null>();
   if (groupIds.length === 0) return lastReadMap;
@@ -479,12 +477,11 @@ export async function getGroups(daoSlug: string, userId?: string) {
  * This eliminates the N+1 query problem when rendering active groups
  */
 export async function getActiveGroupsFeeds(
-  groupIds: string[],
-  daoSlug: string
+  groupIds: string[]
 ): Promise<Map<string, FeedData | null>> {
-  'use cache';
-  cacheTag(`active-feeds-${daoSlug}`);
-  cacheLife('minutes');
+  // 'use cache';
+  // cacheTag(`active-feeds-${daoSlug}`);
+  // cacheLife('minutes');
 
   if (!groupIds.length) return new Map();
 
@@ -527,9 +524,9 @@ export type FeedData = Awaited<
 // Keeping them as they are unless specific issues arise.
 
 export async function getTotalVotingPower(daoId: string): Promise<number> {
-  'use cache';
-  cacheLife('hours');
-  cacheTag(`total-vp-${daoId}`); // Add tag
+  // 'use cache';
+  // cacheLife('hours');
+  // cacheTag(`total-vp-${daoId}`); // Add tag
 
   // Validate daoId
   try {

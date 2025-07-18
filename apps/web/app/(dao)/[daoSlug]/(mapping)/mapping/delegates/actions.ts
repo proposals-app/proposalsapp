@@ -6,18 +6,17 @@ import {
   type Selectable,
   type Voter,
 } from '@proposalsapp/db';
-import { revalidateTag } from 'next/cache';
 import Fuse from 'fuse.js';
 import type { AsyncReturnType } from '@/lib/utils';
-import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
+import { revalidateTag } from 'next/cache';
 
 export type DelegatesWithMappingsReturnType = AsyncReturnType<
   typeof getDelegatesWithMappings
 >;
 
 export async function getDelegatesWithMappings(daoSlug: string) {
-  'use cache';
-  cacheTag('delegatesWithMappings');
+  // 'use cache';
+  // cacheTag('delegatesWithMappings');
 
   const dao = await db.public
     .selectFrom('dao')
