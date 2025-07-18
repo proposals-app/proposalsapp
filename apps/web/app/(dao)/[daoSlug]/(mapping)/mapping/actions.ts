@@ -62,7 +62,7 @@ export async function getGroupsData(daoSlug: string) {
   const dao = await db.public
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
-    .selectAll()
+    .select(['id', 'name', 'slug'])
     .executeTakeFirst();
 
   if (!dao) return { dao: null, proposals: [], topics: [], proposalGroups: [] };
@@ -70,7 +70,7 @@ export async function getGroupsData(daoSlug: string) {
   const proposalGroups = await db.public
     .selectFrom('proposalGroup')
     .where('daoId', '=', dao.id)
-    .selectAll()
+    .select(['id', 'name', 'items', 'createdAt', 'daoId'])
     .orderBy('createdAt', 'desc')
     .execute();
 
@@ -159,32 +159,39 @@ export async function getUngroupedProposals(
     .select('items')
     .execute();
 
-  // Extract all proposal IDs that are already in groups
-  const groupedProposalIds = (
-    await Promise.all(
-      groups.map(async (group) => {
-        const items = group.items as ProposalGroupItem[];
-        const proposalsIds = await Promise.all(
-          items.map(async (item) => {
-            if (item.type === 'proposal') {
-              const proposal = await db.public
-                .selectFrom('proposal')
-                .select(['id', 'proposal.governorId'])
-                .where('proposal.externalId', '=', item.externalId)
-                .where('proposal.governorId', '=', item.governorId)
-                .executeTakeFirst();
-              return proposal?.id;
-            }
-            return undefined;
-          })
-        );
+  // Extract all proposal items from groups
+  const allGroupedProposalItems: { externalId: string; governorId: string }[] =
+    [];
+  groups.forEach((group) => {
+    const items = group.items as ProposalGroupItem[];
+    items.forEach((item) => {
+      if (item.type === 'proposal') {
+        allGroupedProposalItems.push({
+          externalId: item.externalId,
+          governorId: item.governorId,
+        });
+      }
+    });
+  });
 
-        return proposalsIds.filter(
-          (proposalId): proposalId is string => proposalId !== undefined
-        );
-      })
-    )
-  ).flat();
+  // Fetch all grouped proposal IDs in a single query
+  const groupedProposalIds =
+    allGroupedProposalItems.length > 0
+      ? await db.public
+          .selectFrom('proposal')
+          .select(['id'])
+          .where((eb) => {
+            const conditions = allGroupedProposalItems.map((item) =>
+              eb.and([
+                eb('externalId', '=', item.externalId),
+                eb('governorId', '=', item.governorId),
+              ])
+            );
+            return conditions.length === 1 ? conditions[0] : eb.or(conditions);
+          })
+          .execute()
+          .then((results) => results.map((r) => r.id))
+      : [];
 
   const uniqueGroupedIds = [...new Set(groupedProposalIds)];
 

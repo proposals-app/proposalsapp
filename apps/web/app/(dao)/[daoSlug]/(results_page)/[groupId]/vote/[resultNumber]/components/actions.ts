@@ -119,25 +119,43 @@ export async function getNonVoters(proposalId: string) {
   const eligibleVoterAddresses = eligibleVoters.map((v) => v.voter);
   const eligibleVoterIds = eligibleVoters.map((v) => v.voterId);
 
-  // 3. Get the *current* (latest) voting power for all eligible voters in CHUNKS
-  const CHUNK_SIZE = 1000;
+  // 3. Get the *current* (latest) voting power for all eligible voters
+  // Use a more efficient approach with a single query when possible
+  const CHUNK_SIZE = 5000; // Increased chunk size for better performance
   const currentPowerMap = new Map<string, number>();
 
-  for (let i = 0; i < eligibleVoterAddresses.length; i += CHUNK_SIZE) {
-    const chunk = eligibleVoterAddresses.slice(i, i + CHUNK_SIZE);
-    if (chunk.length === 0) continue;
-    const chunkPowers = await db.public
+  if (eligibleVoterAddresses.length <= CHUNK_SIZE) {
+    // Single query for smaller datasets
+    const currentPowers = await db.public
       .selectFrom('votingPower')
       .where('daoId', '=', daoId)
-      .where('voter', 'in', chunk)
+      .where('voter', 'in', eligibleVoterAddresses)
       .select(['voter', 'votingPower'])
+      .distinctOn('voter')
       .orderBy('voter', 'asc')
       .orderBy('timestamp', 'desc')
-      .distinctOn('voter')
       .execute();
-    chunkPowers.forEach((cp) => {
+    currentPowers.forEach((cp) => {
       currentPowerMap.set(cp.voter, cp.votingPower);
     });
+  } else {
+    // Chunked processing for large datasets
+    for (let i = 0; i < eligibleVoterAddresses.length; i += CHUNK_SIZE) {
+      const chunk = eligibleVoterAddresses.slice(i, i + CHUNK_SIZE);
+      if (chunk.length === 0) continue;
+      const chunkPowers = await db.public
+        .selectFrom('votingPower')
+        .where('daoId', '=', daoId)
+        .where('voter', 'in', chunk)
+        .select(['voter', 'votingPower'])
+        .distinctOn('voter')
+        .orderBy('voter', 'asc')
+        .orderBy('timestamp', 'desc')
+        .execute();
+      chunkPowers.forEach((cp) => {
+        currentPowerMap.set(cp.voter, cp.votingPower);
+      });
+    }
   }
 
   // --- Steps to fetch Discourse User Info (CHUNKED) ---
@@ -313,65 +331,49 @@ export async function getVotesWithVoters(proposalId: string) {
   }
   const { daoId } = proposal;
 
-  const votes = await db.public
+  // Optimized single query with all necessary joins
+  const votesWithAllData = await db.public
     .selectFrom('vote')
-    .distinctOn('voterAddress')
+    .innerJoin('voter', 'voter.address', 'vote.voterAddress')
+    .leftJoin(
+      db.public
+        .selectFrom('votingPower')
+        .select(['voter', 'votingPower', 'daoId'])
+        .where('daoId', '=', daoId)
+        .distinctOn('voter')
+        .orderBy('voter', 'asc')
+        .orderBy('timestamp', 'desc')
+        .as('latestVp'),
+      'latestVp.voter',
+      'vote.voterAddress'
+    )
+    .distinctOn('vote.voterAddress')
     .select([
-      'id',
-      'choice',
-      'createdAt',
-      'proposalId',
-      'reason',
-      'voterAddress',
-      'votingPower',
+      'vote.id',
+      'vote.choice',
+      'vote.createdAt',
+      'vote.proposalId',
+      'vote.reason',
+      'vote.voterAddress',
+      'vote.votingPower',
+      'voter.id as voterId',
+      'voter.ens',
+      'voter.avatar',
+      'latestVp.votingPower as latestVotingPower',
     ])
-    .where('proposalId', '=', proposalId)
-    .orderBy('voterAddress', 'asc')
-    .orderBy('createdAt', 'desc')
+    .where('vote.proposalId', '=', proposalId)
+    .orderBy('vote.voterAddress', 'asc')
+    .orderBy('vote.createdAt', 'desc')
     .execute();
 
-  // 2. Optimize: Fetch all unique voter addresses at once
-  const voterAddresses = [...new Set(votes.map((vote) => vote.voterAddress))];
-
-  if (voterAddresses.length === 0) {
-    // If no voters, map votes and add default/null values
-    return votes.map((vote) => ({
-      ...vote,
-      ens: null,
-      avatar: `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
-      latestVotingPower: null,
-      discourseUsername: null,
-      discourseAvatarUrl: null,
-      voterAddress: vote.voterAddress,
-    }));
+  if (votesWithAllData.length === 0) {
+    return [];
   }
 
-  // 3. Fetch all voters in a single query, including their ID
-  const voters = await db.public
-    .selectFrom('voter')
-    .select(['id', 'address', 'ens', 'avatar'])
-    .where('address', 'in', voterAddresses)
-    .execute();
+  // Extract voter IDs for delegate lookup
+  const voterIds = votesWithAllData.map((v) => v.voterId);
 
-  // Create maps for efficient voter lookup by address and ID
-  const voterMap = new Map(voters.map((voter) => [voter.address, voter]));
-  const voterIds = voters.map((v) => v.id);
-
-  // 4. Fetch latest voting power for each voter (optimized)
-  const latestVotingPowers = await db.public
-    .selectFrom('votingPower')
-    .select(['voter', 'votingPower'])
-    .where('voter', 'in', voterAddresses)
-    .where('daoId', '=', daoId) // Ensure VP is for the correct DAO
-    .orderBy('voter', 'asc')
-    .orderBy('timestamp', 'desc')
-    .distinctOn('voter') // Corrected: Use 'voter' here, not 'votingPower.voter'
-    .execute();
-
-  // Create a map for efficient latest voting power lookup
-  const latestVotingPowerMap = new Map(
-    latestVotingPowers.map((vp) => [vp.voter, vp.votingPower])
-  );
+  // Latest voting power is already included in the join
 
   // --- New Steps for Discourse User ---
 
@@ -449,35 +451,34 @@ export async function getVotesWithVoters(proposalId: string) {
   // --- Combine all data ---
 
   // 9. Combine vote data with voter, voting power, and discourse user info
-  const votesWithVoters = votes.map((vote) => {
-    const voter = voterMap.get(vote.voterAddress);
-    const latestVotingPower = latestVotingPowerMap.get(vote.voterAddress);
-
+  const votesWithVoters = votesWithAllData.map((vote) => {
     // Find the discourse user
     let discourseUser: Selectable<DiscourseUser> | null = null;
-    if (voter) {
-      const delegateId = delegateIdByVoterId.get(voter.id);
-      if (delegateId) {
-        // *** Now this lookup should work ***
-        const discourseUserId = discourseUserIdByDelegateId.get(delegateId);
-        if (discourseUserId) {
-          discourseUser = discourseUserMap.get(discourseUserId) || null;
-        }
+    const delegateId = delegateIdByVoterId.get(vote.voterId);
+    if (delegateId) {
+      const discourseUserId = discourseUserIdByDelegateId.get(delegateId);
+      if (discourseUserId) {
+        discourseUser = discourseUserMap.get(discourseUserId) || null;
       }
     }
 
     // Construct the final object for this vote
     return {
-      ...vote,
-      ens: voter?.ens || null,
+      id: vote.id,
+      choice: vote.choice,
+      createdAt: vote.createdAt,
+      proposalId: vote.proposalId,
+      reason: vote.reason,
+      voterAddress: vote.voterAddress,
+      votingPower: vote.votingPower,
+      ens: vote.ens || null,
       avatar:
-        voter?.avatar ||
+        vote.avatar ||
         discourseUser?.avatarTemplate ||
         `https://api.dicebear.com/9.x/pixel-art/png?seed=${vote.voterAddress}`,
-      latestVotingPower: latestVotingPower ?? null, // Use nullish coalescing for clarity
+      latestVotingPower: vote.latestVotingPower ?? null,
       discourseUsername: discourseUser?.username || null,
       discourseAvatarUrl: discourseUser?.avatarTemplate || null,
-      voterAddress: vote.voterAddress, // Explicitly ensure voterAddress is included
     };
   });
 

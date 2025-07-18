@@ -796,10 +796,11 @@ export async function getFeed(
 
     let votesQuery = db.public
       .selectFrom('vote')
-      .distinctOn('voterAddress')
+      .distinctOn(['voterAddress', 'proposalId'])
       .selectAll()
       .where('proposalId', 'in', proposalIds)
       .orderBy('voterAddress', 'asc')
+      .orderBy('proposalId', 'asc')
       .orderBy('createdAt', 'desc');
 
     // Apply filtering at database level
@@ -811,7 +812,9 @@ export async function getFeed(
       votesQuery = votesQuery.where('votingPower', '>', 5000000);
     } else if (fromFilter === FromFilterEnum.AUTHOR && author?.voters) {
       const authorAddresses = author.voters.map((av) => av.address);
-      votesQuery = votesQuery.where('voterAddress', 'in', authorAddresses);
+      if (authorAddresses.length > 0) {
+        votesQuery = votesQuery.where('voterAddress', 'in', authorAddresses);
+      }
     }
 
     const allVotesForProposals = await votesQuery.execute();

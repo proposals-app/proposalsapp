@@ -161,15 +161,15 @@ async function getActivityAndAuthorData(groups: GroupCoreData[]): Promise<{
             'proposal.endAt',
             db.public.fn.count('vote.id').as('voteCount'),
           ])
-          .where(
-            sql`(proposal."external_id", proposal."governor_id")`,
-            'in',
-            sql`(${sql.join(
-              allProposalItems.map(
-                (item) => sql`(${item.externalId}, ${item.governorId})`
-              )
-            )})`
-          )
+          .where((eb) => {
+            const conditions = allProposalItems.map((item) =>
+              eb.and([
+                eb('proposal.externalId', '=', item.externalId),
+                eb('proposal.governorId', '=', item.governorId),
+              ])
+            );
+            return conditions.length === 1 ? conditions[0] : eb.or(conditions);
+          })
           .groupBy(['proposal.id'])
           .execute()
       : Promise.resolve([]);
