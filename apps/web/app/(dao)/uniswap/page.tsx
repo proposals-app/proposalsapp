@@ -65,7 +65,8 @@ async function fetchBalanceForAddress(
     });
 
     if (!response.ok) {
-      throw new Error(`Tally API error: ${response.status}`);
+      console.error(`Tally API error for ${accountAddress}: ${response.status}`);
+      return 0;
     }
 
     const data = await response.json();
@@ -133,7 +134,8 @@ const getTokenPrice = async () => {
     });
 
     if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status}`);
+      console.error(`CoinGecko API error: ${response.status}`);
+      return null;
     }
 
     const data = await response.json();
