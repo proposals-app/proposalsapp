@@ -105,8 +105,6 @@ jobs:
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.ref_name }}-${{ github.sha }}
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
-            NEXT_PUBLIC_ROOT_DOMAIN=proposals.app
-            NEXT_PUBLIC_SPECIAL_SUBDOMAINS=arbitrum,uniswap
 
       - name: Generate deployment webhook payload
         id: webhook
