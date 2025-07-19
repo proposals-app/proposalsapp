@@ -18,7 +18,7 @@ import {
 const getTreasuryBalance = async () => {
   try {
     const baseUrl =
-      process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+      process.env.NEXT_PUBLIC_APP_URL ||
       (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : 'http://localhost:3000');
@@ -47,7 +47,7 @@ const getTreasuryBalance = async () => {
 const getTokenPrice = async () => {
   try {
     const baseUrl =
-      process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+      process.env.NEXT_PUBLIC_APP_URL ||
       (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : 'http://localhost:3000');
