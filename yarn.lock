@@ -3801,12 +3801,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/eslint-plugin-next@npm:15.4.1, @next/eslint-plugin-next@npm:^15.4.1":
-  version: 15.4.1
-  resolution: "@next/eslint-plugin-next@npm:15.4.1"
+"@next/eslint-plugin-next@npm:15.4.2, @next/eslint-plugin-next@npm:^15.4.2":
+  version: 15.4.2
+  resolution: "@next/eslint-plugin-next@npm:15.4.2"
   dependencies:
     fast-glob: "npm:3.3.1"
-  checksum: 10c0/81b7fefc62b2163cfaca8e5cf9ba58c0fb0e84b306e528b53de09dfbe593717c178b85aa5c44d9fd254a1b5d2c7ff4036c1d0a1188190937d1e05a9e0bb676c2
+  checksum: 10c0/53806f57e776e83acf86490269b3f2370cbf1bf7e80f744974911227313f8f373a1d6ead4ee41c6a8e535f703b33ca6c8c03ad5abc0580ae30b38c474ec44b3d
   languageName: node
   linkType: hard
 
@@ -4485,7 +4485,7 @@ __metadata:
     "@eslint/eslintrc": "npm:^3.3.1"
     "@eslint/js": "npm:^9.31.0"
     "@neshca/cache-handler": "npm:^1.9.0"
-    "@next/eslint-plugin-next": "npm:^15.4.1"
+    "@next/eslint-plugin-next": "npm:^15.4.2"
     "@playwright/test": "npm:^1.54.1"
     "@proposalsapp/db": "npm:1.0.0"
     "@proposalsapp/visual-dom-diff": "npm:0.7.2"
@@ -4510,7 +4510,7 @@ __metadata:
     "@types/diff-match-patch": "npm:^1.0.36"
     "@types/eslint": "npm:^9.6.1"
     "@types/jsdom": "npm:^21.1.7"
-    "@types/node": "npm:24.0.14"
+    "@types/node": "npm:24.0.15"
     "@types/path-browserify": "npm:^1"
     "@types/postcss-load-config": "npm:^3.0.1"
     "@types/prettier": "npm:^3.0.0"
@@ -4534,9 +4534,9 @@ __metadata:
     diff-match-patch: "npm:^1.0.5"
     echarts: "npm:^5.6.0"
     eslint: "npm:^9.31.0"
-    eslint-config-next: "npm:^15.4.1"
-    eslint-config-prettier: "npm:^10.1.5"
-    eslint-plugin-prettier: "npm:^5.5.1"
+    eslint-config-next: "npm:^15.4.2"
+    eslint-config-prettier: "npm:^10.1.8"
+    eslint-plugin-prettier: "npm:^5.5.3"
     eslint-plugin-storybook: "npm:^9.0.17"
     framer-motion: "npm:^12.23.6"
     fuse.js: "npm:^7.1.0"
@@ -7191,12 +7191,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:24.0.14":
-  version: 24.0.14
-  resolution: "@types/node@npm:24.0.14"
+"@types/node@npm:24.0.15":
+  version: 24.0.15
+  resolution: "@types/node@npm:24.0.15"
   dependencies:
     undici-types: "npm:~7.8.0"
-  checksum: 10c0/536b5a816554ad1522e9e0c1d517b317f8478798bd76a332d83690aa42b19b5b263eb295ee25f9d0badb430ee6e36412ee9070cb5e3359f6bdcf7e08f94302f1
+  checksum: 10c0/39ead0c0ff25dde29357630b5eaa7dd73cf3af796dbd0f01ed439a8af01cbddfa6b68aa9d67fb3243962836170a4463ff856c47fa822250c585987f707eb42b3
   languageName: node
   linkType: hard
 
@@ -12577,11 +12577,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-next@npm:^15.4.1":
-  version: 15.4.1
-  resolution: "eslint-config-next@npm:15.4.1"
+"eslint-config-next@npm:^15.4.2":
+  version: 15.4.2
+  resolution: "eslint-config-next@npm:15.4.2"
   dependencies:
-    "@next/eslint-plugin-next": "npm:15.4.1"
+    "@next/eslint-plugin-next": "npm:15.4.2"
     "@rushstack/eslint-patch": "npm:^1.10.3"
     "@typescript-eslint/eslint-plugin": "npm:^5.4.2 || ^6.0.0 || ^7.0.0 || ^8.0.0"
     "@typescript-eslint/parser": "npm:^5.4.2 || ^6.0.0 || ^7.0.0 || ^8.0.0"
@@ -12597,18 +12597,18 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/2920bd1513d66ce27c7b96ed3a398450bb3d82f85f4407f4b1654530b9c157f760b3dd813e56391eb8df52496c3c849728206f4b53dc84c765086fcfb08527d3
+  checksum: 10c0/c42723d1f61a645df0955dd58d0763fcf6b26dae317eec13b65748bf76067d37d6536a1484b722279fd21d99026d39e7fc05b6da6d4e4fe6f8e9daa436d51515
   languageName: node
   linkType: hard
 
-"eslint-config-prettier@npm:^10.1.5":
-  version: 10.1.5
-  resolution: "eslint-config-prettier@npm:10.1.5"
+"eslint-config-prettier@npm:^10.1.8":
+  version: 10.1.8
+  resolution: "eslint-config-prettier@npm:10.1.8"
   peerDependencies:
     eslint: ">=7.0.0"
   bin:
     eslint-config-prettier: bin/cli.js
-  checksum: 10c0/5486255428e4577e8064b40f27db299faf7312b8e43d7b4bc913a6426e6c0f5950cd519cad81ae24e9aecb4002c502bc665c02e3b52efde57af2debcf27dd6e0
+  checksum: 10c0/e1bcfadc9eccd526c240056b1e59c5cd26544fe59feb85f38f4f1f116caed96aea0b3b87868e68b3099e55caaac3f2e5b9f58110f85db893e83a332751192682
   languageName: node
   linkType: hard
 
@@ -12713,9 +12713,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-prettier@npm:^5.5.1":
-  version: 5.5.1
-  resolution: "eslint-plugin-prettier@npm:5.5.1"
+"eslint-plugin-prettier@npm:^5.5.3":
+  version: 5.5.3
+  resolution: "eslint-plugin-prettier@npm:5.5.3"
   dependencies:
     prettier-linter-helpers: "npm:^1.0.0"
     synckit: "npm:^0.11.7"
@@ -12729,7 +12729,7 @@ __metadata:
       optional: true
     eslint-config-prettier:
       optional: true
-  checksum: 10c0/6ed93faa7d885af2a987d732f7e716e7aaba55e2da2b091e1b16bacf68425bffe91d784803597bd3f3e6201499fabb89ae28a51ac3986659a46e55e729ed2d55
+  checksum: 10c0/7524e381b400fec67dd2bd1a71779c220a5410f0063cd220d144431f291ec800bee1985709ef0dd38d666d01e0e53bec93824063912784d4021db8473fafe73e
   languageName: node
   linkType: hard
 
