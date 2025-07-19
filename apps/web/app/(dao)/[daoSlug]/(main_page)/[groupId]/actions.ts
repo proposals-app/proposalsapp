@@ -46,19 +46,7 @@ export async function updateLastReadAt(groupId: string, daoSlug: string) {
 
     const now = new Date();
 
-    const targetDb =
-      daoSlug === 'arbitrum'
-        ? db.arbitrum
-        : daoSlug === 'uniswap'
-          ? db.uniswap
-          : null;
-
-    if (!targetDb) {
-      console.error(`[markAsRead] Invalid daoSlug: ${daoSlug}`);
-      return;
-    }
-
-    await targetDb
+    await (daoSlug in db ? db[daoSlug as keyof typeof db] : db.public)
       .insertInto('userProposalGroupLastRead')
       .values({
         userId,
