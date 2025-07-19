@@ -62,7 +62,7 @@ const nextConfig = {
       },
       {
         protocol: 'http',
-        hostname: process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost',
+        hostname: '**',
       },
     ],
   },

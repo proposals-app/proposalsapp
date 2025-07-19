@@ -10,16 +10,14 @@ import { PostHogProvider } from './components/providers/posthog-provider';
 import { SafariViewportProvider } from './components/providers/safari-viewport-provider';
 import { headers } from 'next/headers';
 
-const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';
-
 export const metadata: Metadata = {
-  metadataBase: new URL(`https://${rootDomain}`),
-  title: rootDomain,
-  applicationName: rootDomain,
+  metadataBase: new URL(`https://proposals.app`),
+  title: 'proposals.app',
+  applicationName: 'proposals.app',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: rootDomain,
+    title: 'proposals.app',
   },
   description:
     'The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.',

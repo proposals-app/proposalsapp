@@ -15,24 +15,17 @@ import {
   SkeletonActionBar,
 } from '@/app/components/ui/skeleton';
 
-async function fetchBalanceForAddress(address: string): Promise<number> {
-  interface TokenBalance {
-    balance: string;
-    decimals: number;
-    quoteRate: number | null;
-  }
+const TREASURY_ADDRESSES = [
+  { address: '0x1a9C8182C09F50C8318d769245beA52c32BE35BC', chainId: 1 },
+  { address: '0x4B4e140D1f131fdaD6fb59C13AF796fD194e4135', chainId: 1 },
+];
 
-  interface TallyResponse {
-    data: {
-      balances: TokenBalance[];
-    };
-  }
-
+async function fetchBalanceForAddress(
+  accountAddress: string,
+  chainId: number
+): Promise<number> {
   const TALLY_API_KEY = process.env.TALLY_API_KEY;
   if (!TALLY_API_KEY) {
-    console.warn(
-      `[fetchBalanceForAddress] TALLY_API_KEY not set, cannot fetch balance for ${address}`
-    );
     return 0;
   }
 
@@ -41,52 +34,65 @@ async function fetchBalanceForAddress(address: string): Promise<number> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Api-Key': TALLY_API_KEY,
+        'Api-key': TALLY_API_KEY,
       },
       body: JSON.stringify({
         query: `
-          query TokenBalances($input: AccountID!) {
-            balances(accountID: $input) {
-              decimals
-              balance
-              quoteRate
+          query AccountBalances($accountAddress: Address!, $chainId: ChainID!) {
+            account(address: $accountAddress, chainId: $chainId) {
+              address
+              balances {
+                aggregate {
+                  amount
+                }
+                token {
+                  symbol
+                  decimals
+                }
+                quote {
+                  quoteRate
+                }
+              }
             }
           }
         `,
         variables: {
-          input: address,
+          accountAddress,
+          chainId: chainId.toString(),
         },
       }),
-      next: { revalidate: 86400 }, // Revalidate daily
+      next: { revalidate: 3600 }, // Cache for 1 hour
     });
 
     if (!response.ok) {
-      console.error(
-        `[fetchBalanceForAddress] Failed to fetch balance for address ${address} (${response.status} ${response.statusText})`
-      );
-      return 0;
+      throw new Error(`Tally API error: ${response.status}`);
     }
 
-    const data = (await response.json()) as TallyResponse;
+    const data = await response.json();
+    const balances = data.data?.account?.balances || [];
 
-    if (!data?.data?.balances) {
-      console.warn(
-        `[fetchBalanceForAddress] Invalid response structure for ${address}`
-      );
-      return 0;
-    }
+    const totalUsd = balances.reduce(
+      (
+        sum: number,
+        balance: {
+          aggregate: { amount?: string };
+          token: { decimals: number; symbol?: string };
+          quote?: { quoteRate?: number };
+        }
+      ) => {
+        const amount = parseFloat(balance.aggregate.amount || '0');
+        const decimals = balance.token.decimals;
+        const quoteRate = balance.quote?.quoteRate || 0;
+        const value = (amount / Math.pow(10, decimals)) * quoteRate;
+        return sum + value;
+      },
+      0
+    );
 
-    return data.data.balances.reduce((total, token) => {
-      if (token.quoteRate && token.balance && token.decimals != null) {
-        // Add explicit checks for null/undefined if necessary
-        const balance = Number(token.balance) / Math.pow(10, token.decimals);
-        return total + balance * token.quoteRate;
-      }
-      return total;
-    }, 0);
+    return totalUsd;
   } catch (error) {
     console.error(
-      `[fetchBalanceForAddress] Error fetching balance for address ${address}:`,
+      `Error fetching balance for ${accountAddress} on chain ${chainId}:`,
       error
     );
     return 0;
@@ -94,36 +100,24 @@ async function fetchBalanceForAddress(address: string): Promise<number> {
 }
 
 const getTreasuryBalance = async () => {
-  // 'use cache';
-  // cacheLife('days');
-  // cacheTag(`treasury-uniswap`);
-
-  const TREASURY_ADDRESSES = [
-    'eip155:1:0x1a9C8182C09F50C8318d769245beA52c32BE35BC',
-    'eip155:1:0xe571dC7A558bb6D68FfE264c3d7BB98B0C6C73fC',
-  ];
-
   try {
-    // Use Promise.allSettled to handle potential failures for individual addresses
     const results = await Promise.allSettled(
-      TREASURY_ADDRESSES.map(fetchBalanceForAddress)
+      TREASURY_ADDRESSES.map(({ address, chainId }) =>
+        fetchBalanceForAddress(address, chainId)
+      )
     );
 
-    const totalBalance = results.reduce((sum, result) => {
-      if (result.status === 'fulfilled') {
-        return sum + result.value;
-      } else {
-        console.error(
-          `[getTreasuryBalance] Failed to fetch balance for an address: ${result.reason}`
-        );
-        return sum; // Exclude failed fetches from the total
+    let totalBalanceUsd = 0;
+    results.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value > 0) {
+        totalBalanceUsd += result.value;
       }
-    }, 0);
+    });
 
-    return totalBalance;
+    return totalBalanceUsd;
   } catch (error) {
     console.error(
-      `[getTreasuryBalance] Error calculating total treasury balance for uniswap:`,
+      `[getTreasuryBalance] Error fetching treasury balance:`,
       error
     );
     return null;
@@ -131,33 +125,24 @@ const getTreasuryBalance = async () => {
 };
 
 const getTokenPrice = async () => {
-  // 'use cache';
-  // cacheLife('hours');
-  // cacheTag(`token-price-uniswap`);
-
   try {
-    const url = `https://api.coingecko.com/api/v3/coins/uniswap/market_chart?vs_currency=usd&days=1`;
-    const res = await fetch(url, { next: { revalidate: 3600 } }); // Revalidate hourly
+    const url =
+      'https://api.coingecko.com/api/v3/coins/uniswap/market_chart?vs_currency=usd&days=1';
+    const response = await fetch(url, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+    });
 
-    if (!res.ok) {
-      console.error(
-        `[getTokenPrice] Failed to fetch price data (${res.status} ${res.statusText}) for uniswap from ${url}`
-      );
-      return null;
+    if (!response.ok) {
+      throw new Error(`CoinGecko API error: ${response.status}`);
     }
 
-    const data = await res.json();
-    if (data?.prices?.length > 0) {
-      const latestPrice = data.prices[data.prices.length - 1][1];
-      return latestPrice as number;
+    const data = await response.json();
+    if (data.prices && data.prices.length > 0) {
+      return data.prices[data.prices.length - 1][1];
     }
-    console.warn(`[getTokenPrice] No price data found for uniswap`);
     return null;
   } catch (error) {
-    console.error(
-      `[getTokenPrice] Error fetching token price for uniswap:`,
-      error
-    );
+    console.error(`[getTokenPrice] Error fetching token price:`, error);
     return null;
   }
 };
