@@ -23,22 +23,16 @@ export default function middleware(request: NextRequest) {
     ? 'localhost:3000'
     : 'proposals.app';
 
-  // In Edge Runtime, environment variables need to be accessed carefully
-  // Using try-catch to handle cases where process might be undefined
-  let configuredRootDomain = defaultDomain;
-  let specialSubdomains = ['arbitrum', 'uniswap'];
+  // In Edge Runtime, NEXT_PUBLIC_ environment variables are replaced at build time
+  const configuredRootDomain =
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
 
-  try {
-    // Access environment variables - these are replaced at build time
-    configuredRootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
-    const specialSubdomainsEnv = process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS;
-    if (specialSubdomainsEnv) {
-      specialSubdomains = specialSubdomainsEnv.split(',');
-    }
-  } catch (e) {
-    // Fallback to defaults if process.env is not available
-    console.warn('Environment variables not available in middleware:', e);
-  }
+  // Special subdomains with custom implementations
+  const specialSubdomainsEnv = process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS;
+  const specialSubdomains = specialSubdomainsEnv?.split(',') || [
+    'arbitrum',
+    'uniswap',
+  ];
 
   // Remove protocol and trailing slashes
   const rootDomain = configuredRootDomain
