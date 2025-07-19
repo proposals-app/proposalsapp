@@ -18,7 +18,10 @@ import {
 const getTreasuryBalance = async () => {
   try {
     const baseUrl =
-      process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'http://localhost:3000';
+      process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000');
     const response = await fetch(`${baseUrl}/api/financial/uniswap/treasury`, {
       next: { revalidate: 3600 }, // Cache for 1 hour
     });
@@ -44,7 +47,10 @@ const getTreasuryBalance = async () => {
 const getTokenPrice = async () => {
   try {
     const baseUrl =
-      process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'http://localhost:3000';
+      process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000');
     const response = await fetch(`${baseUrl}/api/financial/uniswap/price`, {
       next: { revalidate: 3600 }, // Cache for 1 hour
     });
