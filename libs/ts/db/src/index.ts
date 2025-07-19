@@ -25,20 +25,29 @@ if (!isBuildPhase) {
   }
 
   if (!process.env.ARBITRUM_DATABASE_URL) {
-    throw new Error('ARBITRUM_DATABASE_URL environment variable is not defined.');
+    throw new Error(
+      'ARBITRUM_DATABASE_URL environment variable is not defined.'
+    );
   }
 
   if (!process.env.UNISWAP_DATABASE_URL) {
-    throw new Error('UNISWAP_DATABASE_URL environment variable is not defined.');
+    throw new Error(
+      'UNISWAP_DATABASE_URL environment variable is not defined.'
+    );
   }
 }
 
 const { Pool } = pg;
 
 // Use dummy connection strings during build phase
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://build:build@localhost:5432/build';
-const ARBITRUM_DATABASE_URL = process.env.ARBITRUM_DATABASE_URL || 'postgresql://build:build@localhost:5432/build';
-const UNISWAP_DATABASE_URL = process.env.UNISWAP_DATABASE_URL || 'postgresql://build:build@localhost:5432/build';
+const DATABASE_URL =
+  process.env.DATABASE_URL || 'postgresql://build:build@localhost:5432/build';
+const ARBITRUM_DATABASE_URL =
+  process.env.ARBITRUM_DATABASE_URL ||
+  'postgresql://build:build@localhost:5432/build';
+const UNISWAP_DATABASE_URL =
+  process.env.UNISWAP_DATABASE_URL ||
+  'postgresql://build:build@localhost:5432/build';
 
 export const db_pool_public = new Pool({
   connectionString: DATABASE_URL,

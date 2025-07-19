@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 export const config = {
+  runtime: 'nodejs', // Specify the runtime environment as Node.js
   matcher: [
     /*
      * Match all paths except for:

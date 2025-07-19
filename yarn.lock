@@ -1739,11 +1739,11 @@ __metadata:
   linkType: hard
 
 "@emnapi/runtime@npm:^1.4.4":
-  version: 1.4.4
-  resolution: "@emnapi/runtime@npm:1.4.4"
+  version: 1.4.5
+  resolution: "@emnapi/runtime@npm:1.4.5"
   dependencies:
     tslib: "npm:^2.4.0"
-  checksum: 10c0/ec91747af3104ac34d4767fab922c8fe78ddc8ec83af3e3fb0edbf63cdb683fb8582be36afda7d48249fe729d4a31c34752c6e051770a762a68bce67a7408189
+  checksum: 10c0/37a0278be5ac81e918efe36f1449875cbafba947039c53c65a1f8fc238001b866446fc66041513b286baaff5d6f9bec667f5164b3ca481373a8d9cb65bfc984b
   languageName: node
   linkType: hard
 
@@ -3794,10 +3794,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/env@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/env@npm:15.4.2"
-  checksum: 10c0/8ee793035f0a7fb55335ea2bc2794ccd68747e6ab8c591001662dbf1ba328f43b04d02bb3a6c9d6a60ed18b55d44cc157b724121ce8dbea8584ca41272eb90a4
+"@next/env@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/env@npm:15.4.2-canary.9"
+  checksum: 10c0/23ab010963c4a30aabd1fffe7f0d5d87f914a742dfc131325c69bc3003e81206569c1ee0147d730ded06341d9d86edfbe0a3eb99daa5d86d3100e3c638905192
   languageName: node
   linkType: hard
 
@@ -3810,58 +3810,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-arm64@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/swc-darwin-arm64@npm:15.4.2"
+"@next/swc-darwin-arm64@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/swc-darwin-arm64@npm:15.4.2-canary.9"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-x64@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/swc-darwin-x64@npm:15.4.2"
+"@next/swc-darwin-x64@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/swc-darwin-x64@npm:15.4.2-canary.9"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-gnu@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/swc-linux-arm64-gnu@npm:15.4.2"
+"@next/swc-linux-arm64-gnu@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/swc-linux-arm64-gnu@npm:15.4.2-canary.9"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-musl@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/swc-linux-arm64-musl@npm:15.4.2"
+"@next/swc-linux-arm64-musl@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/swc-linux-arm64-musl@npm:15.4.2-canary.9"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-gnu@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/swc-linux-x64-gnu@npm:15.4.2"
+"@next/swc-linux-x64-gnu@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/swc-linux-x64-gnu@npm:15.4.2-canary.9"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-musl@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/swc-linux-x64-musl@npm:15.4.2"
+"@next/swc-linux-x64-musl@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/swc-linux-x64-musl@npm:15.4.2-canary.9"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@next/swc-win32-arm64-msvc@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/swc-win32-arm64-msvc@npm:15.4.2"
+"@next/swc-win32-arm64-msvc@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/swc-win32-arm64-msvc@npm:15.4.2-canary.9"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@next/swc-win32-x64-msvc@npm:15.4.2":
-  version: 15.4.2
-  resolution: "@next/swc-win32-x64-msvc@npm:15.4.2"
+"@next/swc-win32-x64-msvc@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "@next/swc-win32-x64-msvc@npm:15.4.2-canary.9"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -4550,7 +4550,7 @@ __metadata:
     mdast-util-to-hast: "npm:^13.2.0"
     micromark-extension-gfm: "npm:^3.0.0"
     micromark-extension-gfm-table: "npm:^2.1.1"
-    next: "npm:^15.4.2"
+    next: "npm:15.4.2-canary.9"
     next-themes: "npm:^0.4.6"
     npm-run-all: "npm:^4.1.5"
     null-loader: "npm:^4.0.1"
@@ -9995,7 +9995,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"caniuse-lite@npm:^1.0.30001579, caniuse-lite@npm:^1.0.30001726":
+"caniuse-lite@npm:^1.0.30001579":
+  version: 1.0.30001727
+  resolution: "caniuse-lite@npm:1.0.30001727"
+  checksum: 10c0/f0a441c05d8925d728c2d02ce23b001935f52183a3bf669556f302568fe258d1657940c7ac0b998f92bc41383e185b390279a7d779e6d96a2b47881f56400221
+  languageName: node
+  linkType: hard
+
+"caniuse-lite@npm:^1.0.30001726":
   version: 1.0.30001726
   resolution: "caniuse-lite@npm:1.0.30001726"
   checksum: 10c0/2c5f91da7fd9ebf8c6b432818b1498ea28aca8de22b30dafabe2a2a6da1e014f10e67e14f8e68e872a0867b6b4cd6001558dde04e3ab9770c9252ca5c8849d0e
@@ -18290,19 +18297,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:^15.4.2":
-  version: 15.4.2
-  resolution: "next@npm:15.4.2"
+"next@npm:15.4.2-canary.9":
+  version: 15.4.2-canary.9
+  resolution: "next@npm:15.4.2-canary.9"
   dependencies:
-    "@next/env": "npm:15.4.2"
-    "@next/swc-darwin-arm64": "npm:15.4.2"
-    "@next/swc-darwin-x64": "npm:15.4.2"
-    "@next/swc-linux-arm64-gnu": "npm:15.4.2"
-    "@next/swc-linux-arm64-musl": "npm:15.4.2"
-    "@next/swc-linux-x64-gnu": "npm:15.4.2"
-    "@next/swc-linux-x64-musl": "npm:15.4.2"
-    "@next/swc-win32-arm64-msvc": "npm:15.4.2"
-    "@next/swc-win32-x64-msvc": "npm:15.4.2"
+    "@next/env": "npm:15.4.2-canary.9"
+    "@next/swc-darwin-arm64": "npm:15.4.2-canary.9"
+    "@next/swc-darwin-x64": "npm:15.4.2-canary.9"
+    "@next/swc-linux-arm64-gnu": "npm:15.4.2-canary.9"
+    "@next/swc-linux-arm64-musl": "npm:15.4.2-canary.9"
+    "@next/swc-linux-x64-gnu": "npm:15.4.2-canary.9"
+    "@next/swc-linux-x64-musl": "npm:15.4.2-canary.9"
+    "@next/swc-win32-arm64-msvc": "npm:15.4.2-canary.9"
+    "@next/swc-win32-x64-msvc": "npm:15.4.2-canary.9"
     "@swc/helpers": "npm:0.5.15"
     caniuse-lite: "npm:^1.0.30001579"
     postcss: "npm:8.4.31"
@@ -18345,7 +18352,7 @@ __metadata:
       optional: true
   bin:
     next: dist/bin/next
-  checksum: 10c0/eac6b27e480b45c0441b18d3c1cadf0373847e407e8b032e1d72f87bd22642fbc31b7a9ba99a7d3cbb3e37d1cadc4e5999b0c14844aa6d3e0be6f7291dfe96b0
+  checksum: 10c0/074f5140b564c9fceaad00c026161cdf4dc450770ad7e7a940e0f5eb21906a2138a2f55b9254979c3ef1b71378eddb7f199bfb40b5142a3d42f6422f76c2657e
   languageName: node
   linkType: hard
 
