@@ -22,13 +22,23 @@ export default function middleware(request: NextRequest) {
   const defaultDomain = hostname.includes('localhost')
     ? 'localhost:3000'
     : 'proposals.app';
-  const configuredRootDomain =
-    process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
 
-  // Special subdomains with custom implementations
-  const specialSubdomains = process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS?.split(
-    ','
-  ) || ['arbitrum', 'uniswap'];
+  // In Edge Runtime, environment variables need to be accessed carefully
+  // Using try-catch to handle cases where process might be undefined
+  let configuredRootDomain = defaultDomain;
+  let specialSubdomains = ['arbitrum', 'uniswap'];
+  
+  try {
+    // Access environment variables - these are replaced at build time
+    configuredRootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
+    const specialSubdomainsEnv = process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS;
+    if (specialSubdomainsEnv) {
+      specialSubdomains = specialSubdomainsEnv.split(',');
+    }
+  } catch (e) {
+    // Fallback to defaults if process.env is not available
+    console.warn('Environment variables not available in middleware:', e);
+  }
 
   // Remove protocol and trailing slashes
   const rootDomain = configuredRootDomain
@@ -58,9 +68,11 @@ export default function middleware(request: NextRequest) {
   // BLOCK DIRECT PATH ACCESS: If accessing root domain with /arbitrum or /uniswap paths, redirect to subdomain
   if (
     !subdomain &&
-    specialSubdomains.some((special) => url.pathname.startsWith(`/${special}`))
+    specialSubdomains.some((special: string) =>
+      url.pathname.startsWith(`/${special}`)
+    )
   ) {
-    const detectedDao = specialSubdomains.find((special) =>
+    const detectedDao = specialSubdomains.find((special: string) =>
       url.pathname.startsWith(`/${special}`)
     );
     if (detectedDao) {
