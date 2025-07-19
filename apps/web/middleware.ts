@@ -27,7 +27,7 @@ export default function middleware(request: NextRequest) {
   // Using try-catch to handle cases where process might be undefined
   let configuredRootDomain = defaultDomain;
   let specialSubdomains = ['arbitrum', 'uniswap'];
-
+  
   try {
     // Access environment variables - these are replaced at build time
     configuredRootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
