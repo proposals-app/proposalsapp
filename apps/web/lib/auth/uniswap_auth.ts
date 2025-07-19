@@ -8,6 +8,9 @@ import {
   OTPEmail,
   resend,
 } from '@proposalsapp/emails';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export const auth = betterAuth({
   appName: 'proposals.app',
