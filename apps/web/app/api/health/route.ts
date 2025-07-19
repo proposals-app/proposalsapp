@@ -11,30 +11,28 @@ export async function GET() {
   };
 
   // If any critical checks fail, return 503
-  const hasFailures = Object.values(checks.checks).some(check => 
-    typeof check === 'object' && 'status' in check && check.status === 'error'
+  const hasFailures = Object.values(checks.checks).some(
+    (check) =>
+      typeof check === 'object' && 'status' in check && check.status === 'error'
   );
 
-  return NextResponse.json(checks, { 
-    status: hasFailures ? 503 : 200 
+  return NextResponse.json(checks, {
+    status: hasFailures ? 503 : 200,
   });
 }
 
 function checkEnvironment() {
-  const required = [
-    'DATABASE_URL',
-    'BETTER_AUTH_SECRET',
-  ];
-  
-  const missing = required.filter(key => !process.env[key]);
-  
+  const required = ['DATABASE_URL', 'BETTER_AUTH_SECRET'];
+
+  const missing = required.filter((key) => !process.env[key]);
+
   if (missing.length > 0) {
     return {
       status: 'error',
       message: `Missing required environment variables: ${missing.join(', ')}`,
     };
   }
-  
+
   return {
     status: 'ok',
     message: 'All required environment variables are set',

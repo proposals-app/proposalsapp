@@ -73,7 +73,9 @@ async function fetchBalanceForAddress(
     });
 
     if (!response.ok) {
-      console.error(`Tally API error for ${accountAddress}: ${response.status}`);
+      console.error(
+        `Tally API error for ${accountAddress}: ${response.status}`
+      );
       return 0;
     }
 
