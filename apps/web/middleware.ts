@@ -22,13 +22,10 @@ export default function middleware(request: NextRequest) {
   const defaultDomain = hostname.includes('localhost')
     ? 'localhost:3000'
     : 'proposals.app';
-  const configuredRootDomain =
-    process.env.NEXT_PUBLIC_ROOT_DOMAIN || defaultDomain;
+  const configuredRootDomain = defaultDomain;
 
   // Special subdomains with custom implementations
-  const specialSubdomains = process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS?.split(
-    ','
-  ) || ['arbitrum', 'uniswap'];
+  const specialSubdomains = ['arbitrum', 'uniswap'];
 
   // Remove protocol and trailing slashes
   const rootDomain = configuredRootDomain
