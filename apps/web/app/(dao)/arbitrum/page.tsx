@@ -15,17 +15,25 @@ import {
   SkeletonActionBar,
 } from '@/app/components/ui/skeleton';
 
+// Treasury addresses from Tally's actual implementation
 const TREASURY_ADDRESSES = [
-  { address: '0xE2C07B0c39e9B7307c963670C3A55f8E35C9cfC5', chainId: 42161 },
-  { address: '0x0527613b4f5b8Ac56Fb8a5cb30D3dEF83251C6aF', chainId: 42161 },
-  { address: '0x0b4288A14FC983b5e89AED4cEad6E2Ca85E83c8a', chainId: 42161 },
-  { address: '0xBdBEB046507DC75a813f80001510D4E8C78D45ed', chainId: 42161 },
-  { address: '0xAF35A5F39F49e73a96991CAfc2c8F47A09dAa4Aa', chainId: 42161 },
-  { address: '0x6ACf15E01f7848Ae8F2A9b837e4D9463CfCe8F85', chainId: 42161 },
-  { address: '0x7b1247f443359d1447Cf25e73380Bc9b99F2628f', chainId: 42161 },
-  { address: '0x39039Fc96ec8237f7f91A96d58DfbaB0B3F62a67', chainId: 42161 },
-  { address: '0x9577E88aBB7fF96FD8Bf4e1cdFfd19663F2b33f8', chainId: 42170 },
-  { address: '0x2FAee64bb5CfB12DE5C5E93f00b0BAD30016d6Ec', chainId: 42170 },
+  // Arbitrum One (Chain 42161)
+  { address: '0x34d45e99f7D8c45ed05B5cA72D54bbD1fb3F98f0', chainId: 42161 },
+  { address: '0xbFc1FECa8B09A5c5D3EFfE7429eBE24b9c09EF58', chainId: 42161 },
+  { address: '0xF3FC178157fb3c87548bAA86F9d24BA38E649B58', chainId: 42161 },
+  { address: '0x2E041280627800801E90E9Ac83532fadb6cAd99A', chainId: 42161 },
+  { address: '0x32e7AF5A8151934F3787d0cD59EB6EDd0a736b1d', chainId: 42161 },
+  { address: '0xbF5041Fc07E1c866D15c749156657B8eEd0fb649', chainId: 42161 },
+  { address: '0x5fcb496a31b7AE91e7c9078Ec662bd7A55cd3079', chainId: 42161 },
+
+  // Arbitrum Nova (Chain 42170)
+  { address: '0x509386DbF5C0BE6fd68Df97A05fdB375136c32De', chainId: 42170 },
+  { address: '0x3B68a689c929327224dBfCe31C1bf72Ffd2559Ce', chainId: 42170 },
+  { address: '0x9fCB6F75D99029f28F6F4a1d277bae49c5CAC79f', chainId: 42170 },
+  { address: '0xf7951d92b0c345144506576ec13ecf5103ac905a', chainId: 42170 },
+
+  // Ethereum Mainnet (Chain 1)
+  { address: '0xF06E95eF589D9c38af242a8AAee8375f14023F85', chainId: 1 },
 ];
 
 async function fetchBalanceForAddress(
@@ -38,35 +46,37 @@ async function fetchBalanceForAddress(
   }
 
   try {
+    // Format the accountID in the format Tally expects: eip155:chainId:address
+    const accountId = `eip155:${chainId}:${accountAddress}`;
+
     const response = await fetch('https://api.tally.xyz/query', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Api-key': TALLY_API_KEY,
+        'Api-Key': TALLY_API_KEY, // Changed from 'Api-key' to 'Api-Key'
       },
       body: JSON.stringify({
         query: `
-          query AccountBalances($accountAddress: Address!, $chainId: ChainID!) {
-            account(address: $accountAddress, chainId: $chainId) {
+          query TokenBalances($input: AccountID!) {
+            balances(accountID: $input) {
+              name
+              symbol
               address
-              balances {
-                aggregate {
-                  amount
-                }
-                token {
-                  symbol
-                  decimals
-                }
-                quote {
-                  quoteRate
-                }
-              }
+              logo
+              nativeToken
+              type
+              decimals
+              balance
+              balance24H
+              quoteRate
+              quoteRate24H
+              quote
+              quote24H
             }
           }
         `,
         variables: {
-          accountAddress,
-          chainId: chainId.toString(),
+          input: accountId,
         },
       }),
       next: { revalidate: 3600 }, // Cache for 1 hour
@@ -80,22 +90,20 @@ async function fetchBalanceForAddress(
     }
 
     const data = await response.json();
-    const balances = data.data?.account?.balances || [];
+    const balances = data.data?.balances || [];
 
     const totalUsd = balances.reduce(
       (
         sum: number,
         balance: {
-          aggregate: { amount?: string };
-          token: { decimals: number; symbol?: string };
-          quote?: { quoteRate?: number };
+          balance?: string;
+          decimals?: number;
+          quote?: number;
         }
       ) => {
-        const amount = parseFloat(balance.aggregate.amount || '0');
-        const decimals = balance.token.decimals;
-        const quoteRate = balance.quote?.quoteRate || 0;
-        const value = (amount / Math.pow(10, decimals)) * quoteRate;
-        return sum + value;
+        const quoteUsd = balance.quote || 0;
+        // The quote field already contains the USD value
+        return sum + quoteUsd;
       },
       0
     );

@@ -30,35 +30,37 @@ async function fetchBalanceForAddress(
   }
 
   try {
+    // Format the accountID in the format Tally expects: eip155:chainId:address
+    const accountId = `eip155:${chainId}:${accountAddress}`;
+
     const response = await fetch('https://api.tally.xyz/query', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Api-key': TALLY_API_KEY,
+        'Api-Key': TALLY_API_KEY, // Changed from 'Api-key' to 'Api-Key'
       },
       body: JSON.stringify({
         query: `
-          query AccountBalances($accountAddress: Address!, $chainId: ChainID!) {
-            account(address: $accountAddress, chainId: $chainId) {
+          query TokenBalances($input: AccountID!) {
+            balances(accountID: $input) {
+              name
+              symbol
               address
-              balances {
-                aggregate {
-                  amount
-                }
-                token {
-                  symbol
-                  decimals
-                }
-                quote {
-                  quoteRate
-                }
-              }
+              logo
+              nativeToken
+              type
+              decimals
+              balance
+              balance24H
+              quoteRate
+              quoteRate24H
+              quote
+              quote24H
             }
           }
         `,
         variables: {
-          accountAddress,
-          chainId: chainId.toString(),
+          input: accountId,
         },
       }),
       next: { revalidate: 3600 }, // Cache for 1 hour
@@ -72,22 +74,20 @@ async function fetchBalanceForAddress(
     }
 
     const data = await response.json();
-    const balances = data.data?.account?.balances || [];
+    const balances = data.data?.balances || [];
 
     const totalUsd = balances.reduce(
       (
         sum: number,
         balance: {
-          aggregate: { amount?: string };
-          token: { decimals: number; symbol?: string };
-          quote?: { quoteRate?: number };
+          balance?: string;
+          decimals?: number;
+          quote?: number;
         }
       ) => {
-        const amount = parseFloat(balance.aggregate.amount || '0');
-        const decimals = balance.token.decimals;
-        const quoteRate = balance.quote?.quoteRate || 0;
-        const value = (amount / Math.pow(10, decimals)) * quoteRate;
-        return sum + value;
+        const quoteUsd = balance.quote || 0;
+        // The quote field already contains the USD value
+        return sum + quoteUsd;
       },
       0
     );
