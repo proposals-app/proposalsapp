@@ -147,7 +147,7 @@ COPY . .
 RUN cargo build --release --bin ${APP_NAME} --jobs $(nproc)
 
 # Stage 4: Final runtime with CUDA
-FROM nvidia/cuda:12.3.2-base-ubuntu22.04
+FROM nvidia/cuda:12.3.2-runtime-ubuntu22.04
 WORKDIR /app
 ARG APP_NAME
 
