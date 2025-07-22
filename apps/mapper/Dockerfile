@@ -41,6 +41,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     && rm -rf /var/lib/apt/lists/*
 
+# Create minimal NVML stub for build-time CUDA detection
+# This allows llm_devices to detect "CUDA" and add GGML_CUDA=1 to the build
+RUN echo '#include <stddef.h>' > /tmp/nvml_stub.c && \
+    echo 'void* nvmlInit() { return NULL; }' >> /tmp/nvml_stub.c && \
+    gcc -shared -fPIC -o /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 /tmp/nvml_stub.c && \
+    ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 /usr/lib/x86_64-linux-gnu/libnvidia-ml.so && \
+    rm /tmp/nvml_stub.c
+
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${RUST_VERSION}
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -65,6 +73,9 @@ ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-
 ENV GGML_CUDA=1
 ENV CUDA_DOCKER_ARCH=all-major
 ENV FORCE_CMAKE=1
+# Force CUDA build even without runtime GPU detection
+ENV CUDA_VISIBLE_DEVICES=0
+ENV LLAMA_CUDA=1
 # Use portable CPU flags that work everywhere
 # x86-64-v2 includes SSE3, SSSE3, SSE4.1, SSE4.2 which are available on all modern CPUs
 ENV CFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
@@ -94,6 +105,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     && rm -rf /var/lib/apt/lists/*
 
+# Create minimal NVML stub for build-time CUDA detection
+# This allows llm_devices to detect "CUDA" and add GGML_CUDA=1 to the build
+RUN echo '#include <stddef.h>' > /tmp/nvml_stub.c && \
+    echo 'void* nvmlInit() { return NULL; }' >> /tmp/nvml_stub.c && \
+    gcc -shared -fPIC -o /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 /tmp/nvml_stub.c && \
+    ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 /usr/lib/x86_64-linux-gnu/libnvidia-ml.so && \
+    rm /tmp/nvml_stub.c
+
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${RUST_VERSION}
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -118,6 +137,9 @@ ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-
 ENV GGML_CUDA=1
 ENV CUDA_DOCKER_ARCH=all-major
 ENV FORCE_CMAKE=1
+# Force CUDA build even without runtime GPU detection
+ENV CUDA_VISIBLE_DEVICES=0
+ENV LLAMA_CUDA=1
 # Use portable CPU flags that work everywhere
 # x86-64-v2 includes SSE3, SSSE3, SSE4.1, SSE4.2 which are available on all modern CPUs
 ENV CFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
