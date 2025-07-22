@@ -361,8 +361,8 @@ run_deploy() {
         # Define Consul servers
         CONSUL_SERVERS=(
             "consul-nomad-sib-01"
+            "consul-nomad-sib-02"
             "consul-nomad-sib-03"
-            "consul-nomad-fsn-01"
         )
 
         # Get latest image tag from GitHub Container Registry

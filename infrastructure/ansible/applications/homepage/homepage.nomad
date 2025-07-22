@@ -224,21 +224,21 @@ EOH
     
     - Sibiu DC2:
         icon: mdi-server
-        href: https://sib-03:8006
+        href: https://sib-02:8006
         description: Secondary datacenter (Romania) - Proxmox
         widget:
           type: customapi
-          url: http://consul-nomad-sib-03:8500/v1/agent/self
+          url: http://consul-nomad-sib-02:8500/v1/agent/self
           display: |
             return data.Config.Datacenter + " - " + data.Stats.consul.leader;
     
-    - Falkenstein DC:
+    - Sibiu DC3:
         icon: mdi-server
-        href: https://fsn-01:8006
-        description: Tertiary datacenter (Germany) - Proxmox
+        href: https://sib-03:8006
+        description: Tertiary datacenter (Romania) - Proxmox
         widget:
           type: customapi
-          url: http://consul-nomad-fsn-01:8500/v1/agent/self
+          url: http://consul-nomad-sib-03:8500/v1/agent/self
           display: |
             return data.Config.Datacenter + " - " + data.Stats.consul.leader;
 EOH

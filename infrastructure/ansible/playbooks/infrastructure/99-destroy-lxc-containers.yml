@@ -202,7 +202,7 @@
           {%- set runners = [] -%}
           {%- if github_runners_api.json is defined and github_runners_api.json.runners is defined -%}
             {%- for runner in github_runners_api.json.runners -%}
-              {%- if runner.name in ['github-runner-sib-01', 'github-runner-sib-03', 'github-runner-fsn-01'] -%}
+              {%- if runner.name in ['github-runner-sib-01', 'github-runner-sib-03', 'github-runner-sib-02'] -%}
                 {%- set _ = runners.append({'id': runner.id, 'name': runner.name, 'status': runner.status}) -%}
               {%- endif -%}
             {%- endfor -%}
@@ -356,7 +356,7 @@
           mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts 2>/dev/null || true
 
           # Remove known container hostnames
-          for host in apps-sib-01 apps-sib-03 apps-fsn-01 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-fsn-01 db-sib-01 db-sib-03 db-fsn-01 github-runner-sib-01 github-runner-sib-03 github-runner-fsn-01; do
+          for host in apps-sib-01 apps-sib-03 apps-sib-02 consul-nomad-sib-01 consul-nomad-sib-03 consul-nomad-sib-02 db-sib-01 db-sib-03 db-sib-02 redis-sib-01 redis-sib-03 redis-sib-02 github-runner-sib-01 github-runner-sib-03 github-runner-sib-02 pgbackweb-sib-01; do
             ssh-keygen -f ~/.ssh/known_hosts -R "$host" 2>/dev/null || true
           done
         fi

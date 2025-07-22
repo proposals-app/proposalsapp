@@ -1,5 +1,5 @@
 job "mapper" {
-  datacenters = ["dc2"]
+  datacenters = ["dc3"]
   type = "service"
 
   update {
@@ -17,7 +17,7 @@ job "mapper" {
   group "mapper" {
     count = 1  # Single instance service
 
-    # Ensure it runs on apps-sib-03 (dc2) to match the GitHub runner CPU
+    # Ensure it runs on apps-sib-03 (dc3) to match the GitHub runner CPU
     constraint {
       attribute = "${node.unique.name}"
       value     = "apps-sib-03"
@@ -45,7 +45,7 @@ job "mapper" {
     }
 
     ephemeral_disk {
-      size    = 30000  # 30GB for model storage (20GB model + overhead)
+      size    = 24000  # 24GB for model storage (reduced to fit available space)
       sticky  = true   # Keep models between restarts
       migrate = true
     }
@@ -91,6 +91,9 @@ job "mapper" {
         # Set Hugging Face cache to use the ephemeral disk so models persist between restarts
         HF_HOME = "/alloc/data/huggingface"
         HUGGING_FACE_HUB_CACHE = "/alloc/data/huggingface/hub"
+
+        # Add CUDA compat library path for llama-server
+        LD_LIBRARY_PATH = "/usr/local/cuda-12.3/compat:/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
       }
 
       # Deployment metadata template for visibility

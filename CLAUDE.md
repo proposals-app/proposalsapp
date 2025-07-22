@@ -157,8 +157,8 @@ cargo run --bin rindexer        # Run blockchain indexer
 ProposalsApp runs on a highly available, geographically distributed infrastructure:
 
 - **DC1** (`sib-01`) - Sibiu, Romania - Primary datacenter
-- **DC2** (`sib-03`) - Sibiu, Romania - Different building/network  
-- **DC3** (`fsn-01`) - Falkenstein, Germany - Geographic redundancy
+- **DC2** (`sib-02`) - Sibiu, Romania - Different building/network  
+- **DC3** (`sib-03`) - Sibiu, Romania - Geographic redundancy
 
 Each datacenter runs on Proxmox with 5 LXC containers:
 - `consul-nomad-xxx`: Control plane (Consul server, Nomad server)
@@ -327,7 +327,7 @@ etcdctl endpoint health --endpoints=<all-nodes>
 
 ### Physical Architecture
 
-- **Three datacenters**: Sibiu DC1 (Romania), Sibiu DC2 (Romania), Falkenstein (Germany)
+- **Three datacenters**: Sibiu DC1 (Romania), Sibiu DC2 (Romania), Sibiu DC3 (Romania)
 - **Virtualization**: Proxmox with LXC containers
 - **Networking**: Tailscale VPN for secure inter-datacenter communication
 - **Service mesh**: Consul for service discovery and health checking

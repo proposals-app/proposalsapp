@@ -68,16 +68,21 @@ job "grafana" {
 
       env {
         GF_PATHS_DATA = "/alloc/data"
+        GF_SERVER_ROOT_URL = "https://grafana.proposals.app"
+        GF_SERVER_SERVE_FROM_SUB_PATH = "false"
       }
 
       template {
         data = <<EOF
 [server]
+protocol = http
 http_addr = 0.0.0.0
 http_port = 3300
-root_url = https://grafana.proposals.app
 domain = grafana.proposals.app
 enforce_domain = false
+root_url = https://grafana.proposals.app
+serve_from_sub_path = false
+enable_gzip = true
 
 [database]
 type = sqlite3
@@ -88,9 +93,10 @@ admin_user = admin
 admin_password = admin
 secret_key = KqloarKUwr9NrTecjZEnWJXFkiM5PwDI
 disable_gravatar = true
-cookie_secure = false
+cookie_secure = true
 cookie_samesite = lax
 strict_transport_security = false
+allow_embedding = false
 
 [users]
 allow_sign_up = false
@@ -103,6 +109,12 @@ disable_login_form = false
 
 [auth.anonymous]
 enabled = false
+
+[auth.proxy]
+enabled = false
+header_name = X-WEBAUTH-USER
+header_property = username
+auto_sign_up = false
 
 [analytics]
 reporting_enabled = false

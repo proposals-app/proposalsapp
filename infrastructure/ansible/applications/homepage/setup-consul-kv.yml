@@ -32,8 +32,8 @@
       delegate_to: localhost
       loop:
         - { key: "consul_dc1", value: "http://consul-nomad-sib-01:8500" }
-        - { key: "consul_dc2", value: "http://consul-nomad-sib-03:8500" }
-        - { key: "consul_dc3", value: "http://consul-nomad-fsn-01:8500" }
+        - { key: "consul_dc2", value: "http://consul-nomad-sib-02:8500" }
+        - { key: "consul_dc3", value: "http://consul-nomad-sib-03:8500" }
         - { key: "nomad", value: "http://consul-nomad-sib-01:4646" }
         - { key: "prometheus", value: "http://prometheus.service.consul:9090" }
         - { key: "grafana", value: "http://grafana.service.consul:3000" }

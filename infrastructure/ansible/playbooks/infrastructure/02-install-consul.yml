@@ -616,8 +616,8 @@
           exit 1
         fi
 
-        # Count datacenters
-        dc_count=$(echo "$wan_members" | grep -c "server.*alive")
+        # Count datacenters (count lines with both "alive" and "server")
+        dc_count=$(echo "$wan_members" | grep -c "alive.*server")
         expected_dcs={{ groups['consul_servers'] | map('extract', hostvars, 'datacenter') | unique | list | length }}
 
         if [ $dc_count -ne $expected_dcs ]; then

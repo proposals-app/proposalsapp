@@ -111,7 +111,7 @@ bootstrap:
         hot_standby_feedback: "on"            # Prevent query conflicts on replicas
         
         # Synchronous Replication
-        synchronous_commit: "on"              # Wait for replica confirmation
+        synchronous_commit: "off"             # Async replication - don't wait for replica confirmation
         synchronous_standby_names: ""         # Patroni manages this dynamically
         
         # Extensions and Security

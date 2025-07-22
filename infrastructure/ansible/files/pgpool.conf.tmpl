@@ -153,7 +153,7 @@ backend_data_directory0 = '/var/lib/postgresql/17/main'
 backend_flag0 = 'ALLOW_TO_FAILOVER'
 backend_application_name0 = 'pgpool_dc1'
 
-# Backend 1 - db-sib-03
+# Backend 1 - db-sib-02
 backend_hostname1 = '{{getv "/local/ips/dc2" ""}}'
 backend_port1 = 5432
 {{if eq $local_dc "dc2"}}
@@ -165,7 +165,7 @@ backend_data_directory1 = '/var/lib/postgresql/17/main'
 backend_flag1 = 'ALLOW_TO_FAILOVER'
 backend_application_name1 = 'pgpool_dc2'
 
-# Backend 2 - db-fsn-01
+# Backend 2 - db-sib-03
 backend_hostname2 = '{{getv "/local/ips/dc3" ""}}'
 backend_port2 = 5432
 {{if eq $local_dc "dc3"}}
