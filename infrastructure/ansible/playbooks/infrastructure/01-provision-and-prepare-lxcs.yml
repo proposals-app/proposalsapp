@@ -310,12 +310,22 @@
             echo ""
             echo "# Mount NVIDIA libraries for Nomad GPU plugin"
             echo "lxc.mount.entry: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 none bind,optional,create=file"
-            echo "lxc.mount.entry: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.575.57.08 usr/lib/x86_64-linux-gnu/libnvidia-ml.so.575.57.08 none bind,optional,create=file"
+            # Mount actual versioned libraries found on the host
+            for lib in /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.[0-9]*; do
+              if [ -f "$lib" ]; then
+                echo "lxc.mount.entry: $lib ${lib#/} none bind,optional,create=file"
+              fi
+            done
             echo ""
             echo "# Mount CUDA libraries for GPU compute"
             echo "lxc.mount.entry: /usr/lib/x86_64-linux-gnu/libcuda.so.1 usr/lib/x86_64-linux-gnu/libcuda.so.1 none bind,optional,create=file"
             echo "lxc.mount.entry: /usr/lib/x86_64-linux-gnu/libcuda.so usr/lib/x86_64-linux-gnu/libcuda.so none bind,optional,create=file"
-            echo "lxc.mount.entry: /usr/lib/x86_64-linux-gnu/libcuda.so.575.57.08 usr/lib/x86_64-linux-gnu/libcuda.so.575.57.08 none bind,optional,create=file"
+            # Mount actual versioned libraries found on the host
+            for lib in /usr/lib/x86_64-linux-gnu/libcuda.so.[0-9]*; do
+              if [ -f "$lib" ]; then
+                echo "lxc.mount.entry: $lib ${lib#/} none bind,optional,create=file"
+              fi
+            done
           } >> /etc/pve/lxc/{{ item.0.id }}.conf
           echo "GPU passthrough configuration added"
         fi
@@ -433,7 +443,7 @@
           apt:
             name:
               - cuda-drivers
-              - nvidia-driver-575
+              - nvidia-utils
               - cuda-toolkit-12-0
               - nvidia-settings
               - nvidia-modprobe
@@ -1193,21 +1203,27 @@
 
         - name: Set default driver version if detection failed
           set_fact:
-            nvidia_driver_version_clean: "{{ nvidia_driver_version.stdout | default('575.85.01') | trim }}"
+            nvidia_driver_version_clean: "{{ nvidia_driver_version.stdout | default('latest') | trim }}"
 
         - name: Install NVIDIA drivers in container
           shell: |
             DRIVER_VERSION="{{ nvidia_driver_version_clean }}"
             echo "Installing NVIDIA driver version: ${DRIVER_VERSION}"
 
-            # Download and install the driver with --no-kernel-modules flag
-            cd /tmp
-            wget -q "https://us.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run" || \
-            wget -q "https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
+            if [ "${DRIVER_VERSION}" = "latest" ]; then
+              # Use package manager for latest version
+              apt-get update
+              apt-get install -y nvidia-utils nvidia-driver
+            else
+              # Download and install specific version
+              cd /tmp
+              wget -q "https://us.download.nvidia.com/tesla/${DRIVER_VERSION}/NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run" || \
+              wget -q "https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
 
-            chmod +x "NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
-            ./NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run --no-kernel-modules --silent || true
-            rm -f "NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
+              chmod +x "NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
+              ./NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run --no-kernel-modules --silent || true
+              rm -f "NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
+            fi
           args:
             creates: /usr/bin/nvidia-smi
 

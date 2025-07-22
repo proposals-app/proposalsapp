@@ -222,8 +222,8 @@
         - name: Install NVIDIA libraries
           apt:
             name:
-              - cuda-drivers-575
-              - libnvidia-ml-575
+              - cuda-drivers
+              - libnvidia-ml-dev
             state: latest
           ignore_errors: yes  # May partially fail but installs needed libraries
 

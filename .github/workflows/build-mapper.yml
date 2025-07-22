@@ -25,9 +25,9 @@ env:
 jobs:
   build:
     name: Build and Push Docker Image
-    # Use only dc2 runner to ensure CPU compatibility with runtime environment
-    # Mapper will run on apps-sib-03 which has the same CPU as github-runner-sib-03
-    runs-on: [self-hosted, linux, dc2]
+    # Use dc3 runner for GPU/CUDA support during build
+    # Mapper runs on apps-sib-03 which has GPU access
+    runs-on: [self-hosted, linux, dc3]
     permissions:
       contents: read
       packages: write

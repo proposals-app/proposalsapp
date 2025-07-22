@@ -84,3 +84,4 @@ gpu_enabled_hosts:
   sib-03: true # Has 2x RTX 3090 + 1x RTX 4070
 gpu_passthrough_containers:
   - apps-sib-03 # Container that will receive GPU access
+  - github-runner-sib-03 # GitHub runner needs GPU for building CUDA-enabled binaries
