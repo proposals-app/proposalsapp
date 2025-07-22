@@ -23,7 +23,7 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 2: Cacher with CUDA support
-FROM nvidia/cuda:12.3.2-devel-ubuntu22.04 AS cacher
+FROM nvidia/cuda:12.6.2-devel-ubuntu22.04 AS cacher
 WORKDIR /app
 ARG APP_NAME
 ARG RUST_VERSION
@@ -82,7 +82,7 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 3: Builder with CUDA support
-FROM nvidia/cuda:12.3.2-devel-ubuntu22.04 AS builder
+FROM nvidia/cuda:12.6.2-devel-ubuntu22.04 AS builder
 WORKDIR /app
 ARG APP_NAME
 ARG RUST_VERSION
@@ -147,7 +147,7 @@ COPY . .
 RUN cargo build --release --bin ${APP_NAME} --jobs $(nproc)
 
 # Stage 4: Final runtime with CUDA
-FROM nvidia/cuda:12.3.2-runtime-ubuntu22.04
+FROM nvidia/cuda:12.6.2-runtime-ubuntu22.04
 WORKDIR /app
 ARG APP_NAME
 
