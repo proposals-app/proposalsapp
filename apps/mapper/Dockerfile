@@ -174,6 +174,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy NVIDIA Management Library from CUDA devel image
+# This is required for llama.cpp to detect GPU capabilities at runtime
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libnvidia-ml.so* /usr/lib/x86_64-linux-gnu/
+
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
