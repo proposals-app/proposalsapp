@@ -176,6 +176,9 @@ stop_and_purge_job "grafana"
 stop_and_purge_job "alloy"
 stop_and_purge_job "prometheus"
 stop_and_purge_job "loki"
+# Also stop unified jobs if they exist
+stop_and_purge_job "observability-core"
+stop_and_purge_job "observability-agents"
 
 echo ""
 echo "========================================"
@@ -219,62 +222,38 @@ echo "========================================"
 echo "Step 3: Deploying fresh observability stack"
 echo "========================================"
 
-# Deploy Loki first
+# Deploy unified observability core (Prometheus, Loki, Grafana)
 echo ""
-echo "Deploying Loki (log aggregation)..."
-if ! nomad job run "$SCRIPT_DIR/applications/observability/loki.nomad"; then
-    echo "WARNING: Failed to deploy Loki"
+echo "Deploying Observability Core (Prometheus, Loki, Grafana)..."
+echo "Note: Single unified job with all core observability services"
+if ! nomad job run "$SCRIPT_DIR/applications/observability/observability-core.nomad"; then
+    echo "WARNING: Failed to deploy Observability Core"
     echo "Continuing with other services..."
-    LOKI_FAILED=true
+    CORE_FAILED=true
 else
-    wait_for_job_healthy "loki" 120
-    LOKI_FAILED=false
-fi
-
-# Deploy Prometheus second
-echo ""
-echo "Deploying Prometheus (metrics collection)..."
-if ! nomad job run "$SCRIPT_DIR/applications/observability/prometheus.nomad"; then
-    echo "WARNING: Failed to deploy Prometheus"
-    echo "Continuing with other services..."
-    PROMETHEUS_FAILED=true
-else
-    wait_for_job_healthy "prometheus" 120
-    PROMETHEUS_FAILED=false
+    wait_for_job_healthy "observability-core" 180  # Give time for all services to start
+    CORE_FAILED=false
 fi
 
 # Give core services time to register in Consul
-if [ "$LOKI_FAILED" != "true" ] || [ "$PROMETHEUS_FAILED" != "true" ]; then
+if [ "$CORE_FAILED" != "true" ]; then
     echo "Waiting for core services to register in Consul..."
     sleep 15
 fi
 
-# Deploy Alloy after core services are up
+# Deploy Alloy agents after core services are up
 echo ""
-echo "Deploying Alloy (log & metrics collection)..."
-echo "Note: Alloy will connect to Loki and Prometheus services"
-if ! nomad job run "$SCRIPT_DIR/applications/observability/alloy.nomad"; then
-    echo "WARNING: Failed to deploy Alloy"
-    echo "Continuing with other services..."
-    ALLOY_FAILED=true
+echo "Deploying Observability Agents (Alloy)..."
+echo "Note: Alloy agents will connect to core services via Consul discovery"
+if ! nomad job run "$SCRIPT_DIR/applications/observability/observability-agents.nomad"; then
+    echo "WARNING: Failed to deploy Observability Agents"
+    echo "Continuing with deployment summary..."
+    AGENTS_FAILED=true
 else
     # Alloy is a system job, so we just wait a bit for it to start on all nodes
-    echo "Waiting for Alloy to start on all nodes..."
+    echo "Waiting for Alloy agents to start on all nodes..."
     sleep 20
-    ALLOY_FAILED=false
-fi
-
-# Deploy Grafana
-echo ""
-echo "Deploying Grafana (visualization)..."
-echo "Note: Grafana includes a new 'ProposalsApp Logs Overview' dashboard"
-if ! nomad job run "$SCRIPT_DIR/applications/observability/grafana.nomad"; then
-    echo "WARNING: Failed to deploy Grafana"
-    echo "Continuing with deployment summary..."
-    GRAFANA_FAILED=true
-else
-    wait_for_job_healthy "grafana" 180  # Grafana takes longer due to plugin installation
-    GRAFANA_FAILED=false
+    AGENTS_FAILED=false
 fi
 
 echo ""
@@ -284,25 +263,17 @@ echo "========================================"
 echo ""
 
 # Count successes and failures
-TOTAL_SERVICES=4
+TOTAL_SERVICES=2
 FAILED_COUNT=0
 FAILED_SERVICES=""
 
-if [ "$LOKI_FAILED" = "true" ]; then
+if [ "$CORE_FAILED" = "true" ]; then
     FAILED_COUNT=$((FAILED_COUNT + 1))
-    FAILED_SERVICES="$FAILED_SERVICES Loki"
+    FAILED_SERVICES="$FAILED_SERVICES ObservabilityCore"
 fi
-if [ "$ALLOY_FAILED" = "true" ]; then
+if [ "$AGENTS_FAILED" = "true" ]; then
     FAILED_COUNT=$((FAILED_COUNT + 1))
-    FAILED_SERVICES="$FAILED_SERVICES Alloy"
-fi
-if [ "$PROMETHEUS_FAILED" = "true" ]; then
-    FAILED_COUNT=$((FAILED_COUNT + 1))
-    FAILED_SERVICES="$FAILED_SERVICES Prometheus"
-fi
-if [ "$GRAFANA_FAILED" = "true" ]; then
-    FAILED_COUNT=$((FAILED_COUNT + 1))
-    FAILED_SERVICES="$FAILED_SERVICES Grafana"
+    FAILED_SERVICES="$FAILED_SERVICES ObservabilityAgents"
 fi
 
 SUCCESS_COUNT=$((TOTAL_SERVICES - FAILED_COUNT))
@@ -352,18 +323,18 @@ show_job_status() {
 # Function to get port for each service
 get_job_port() {
     case $1 in
-        grafana) echo "3000" ;;
+        grafana) echo "3300" ;;
         prometheus) echo "9090" ;;
         loki) echo "3100" ;;
         alloy) echo "12345" ;;
+        observability-core) echo "multiple" ;;
+        observability-agents) echo "12345" ;;
         *) echo "unknown" ;;
     esac
 }
 
-show_job_status "loki"
-show_job_status "alloy"
-show_job_status "prometheus"
-show_job_status "grafana"
+show_job_status "observability-core"
+show_job_status "observability-agents"
 
 echo "========================================"
 echo "Access Points:"
@@ -374,43 +345,51 @@ GRAFANA_IP=""
 PROMETHEUS_IP=""
 LOKI_IP=""
 
-# Only get IPs for successfully deployed services
-if [ "$GRAFANA_FAILED" != "true" ]; then
-    GRAFANA_NODE=$(nomad job status grafana 2>/dev/null | grep -A 5 "Allocations" | grep "running" | awk '{print $2}' | head -n 1)
-    if [ -n "$GRAFANA_NODE" ]; then
-        GRAFANA_IP=$(nomad node status "$GRAFANA_NODE" 2>/dev/null | grep "Address" | head -1 | awk '{print $3}')
-    fi
-fi
-
-if [ "$PROMETHEUS_FAILED" != "true" ]; then
-    PROMETHEUS_NODE=$(nomad job status prometheus 2>/dev/null | grep -A 5 "Allocations" | grep "running" | awk '{print $2}' | head -n 1)
-    if [ -n "$PROMETHEUS_NODE" ]; then
-        PROMETHEUS_IP=$(nomad node status "$PROMETHEUS_NODE" 2>/dev/null | grep "Address" | head -1 | awk '{print $3}')
-    fi
-fi
-
-if [ "$LOKI_FAILED" != "true" ]; then
-    LOKI_NODE=$(nomad job status loki 2>/dev/null | grep -A 5 "Allocations" | grep "running" | awk '{print $2}' | head -n 1)
-    if [ -n "$LOKI_NODE" ]; then
-        LOKI_IP=$(nomad node status "$LOKI_NODE" 2>/dev/null | grep "Address" | head -1 | awk '{print $3}')
+# Only get IPs for successfully deployed services from unified jobs
+if [ "$CORE_FAILED" != "true" ]; then
+    # Extract different service IPs from the unified observability-core job
+    CORE_ALLOCS=$(nomad job status observability-core 2>/dev/null | grep -A 10 "Allocations" | grep "running" || true)
+    
+    if [ -n "$CORE_ALLOCS" ]; then
+        # Get node IDs for each allocation (we need to identify which service is which)
+        GRAFANA_NODE=$(echo "$CORE_ALLOCS" | grep grafana | awk '{print $2}' | head -n 1)
+        PROMETHEUS_NODE=$(echo "$CORE_ALLOCS" | grep prometheus | awk '{print $2}' | head -n 1)
+        LOKI_NODE=$(echo "$CORE_ALLOCS" | grep loki | awk '{print $2}' | head -n 1)
+        
+        # If we can't distinguish, just use the same node for all
+        if [ -z "$GRAFANA_NODE" ] && [ -z "$PROMETHEUS_NODE" ] && [ -z "$LOKI_NODE" ]; then
+            COMMON_NODE=$(echo "$CORE_ALLOCS" | awk '{print $2}' | head -n 1)
+            GRAFANA_NODE="$COMMON_NODE"
+            PROMETHEUS_NODE="$COMMON_NODE"
+            LOKI_NODE="$COMMON_NODE"
+        fi
+        
+        # Get IP addresses
+        if [ -n "$GRAFANA_NODE" ]; then
+            GRAFANA_IP=$(nomad node status "$GRAFANA_NODE" 2>/dev/null | grep "Address" | head -1 | awk '{print $3}')
+        fi
+        if [ -n "$PROMETHEUS_NODE" ]; then
+            PROMETHEUS_IP=$(nomad node status "$PROMETHEUS_NODE" 2>/dev/null | grep "Address" | head -1 | awk '{print $3}')
+        fi
+        if [ -n "$LOKI_NODE" ]; then
+            LOKI_IP=$(nomad node status "$LOKI_NODE" 2>/dev/null | grep "Address" | head -1 | awk '{print $3}')
+        fi
     fi
 fi
 
 echo "Direct Access (via Tailscale):"
-echo "- Grafana: http://${GRAFANA_IP:-<not-deployed>}:3000"
+echo "- Grafana: http://${GRAFANA_IP:-<not-deployed>}:3300"
 echo "- Prometheus: http://${PROMETHEUS_IP:-<not-deployed>}:9090"
 echo "- Loki: http://${LOKI_IP:-<not-deployed>}:3100"
-if [ "$ALLOY_FAILED" != "true" ]; then
+if [ "$AGENTS_FAILED" != "true" ]; then
     echo "- Alloy: http://<any-node>:12345 (running on all nodes)"
 else
     echo "- Alloy: <not-deployed>"
 fi
 echo ""
 echo "Public Access (via Traefik):"
-if [ "$GRAFANA_FAILED" != "true" ]; then
+if [ "$CORE_FAILED" != "true" ]; then
     echo "- Grafana: https://grafana.proposals.app"
-fi
-if [ "$PROMETHEUS_FAILED" != "true" ]; then
     echo "- Prometheus: https://prometheus.proposals.app"
 fi
 echo ""
@@ -419,7 +398,7 @@ echo "  ./deploy-application.sh traefik"
 echo ""
 
 # Only show Grafana info if it was deployed successfully
-if [ "$GRAFANA_FAILED" != "true" ] && [ -n "$GRAFANA_IP" ]; then
+if [ "$CORE_FAILED" != "true" ] && [ -n "$GRAFANA_IP" ]; then
     echo "Default Grafana credentials:"
     echo "- Username: admin"
     echo "- Password: admin"
@@ -436,7 +415,7 @@ if [ $SUCCESS_COUNT -gt 0 ]; then
     echo "- Optimized Loki configuration for performance"
     echo ""
     
-    if [ "$ALLOY_FAILED" != "true" ] && [ "$LOKI_FAILED" != "true" ]; then
+    if [ "$AGENTS_FAILED" != "true" ] && [ "$CORE_FAILED" != "true" ]; then
         echo "Logs are being collected from all Nomad allocations automatically."
         echo "Services detected: rindexer, discourse, mapper, web, email-service"
         echo ""
@@ -449,7 +428,7 @@ if [ $SUCCESS_COUNT -gt 0 ]; then
     echo ""
 fi
 
-if [ "$GRAFANA_FAILED" != "true" ] && [ "$LOKI_FAILED" != "true" ] && [ -n "$GRAFANA_IP" ]; then
+if [ "$CORE_FAILED" != "true" ] && [ -n "$GRAFANA_IP" ]; then
     echo "To view logs in Grafana:"
     echo "1. Open Grafana at the URL above"
     echo "2. Navigate to 'Dashboards' → 'ProposalsApp Logs Overview'"

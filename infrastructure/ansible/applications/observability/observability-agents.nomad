@@ -1,4 +1,4 @@
-job "alloy" {
+job "observability-agents" {
   region      = "global"
   datacenters = ["dc1", "dc2", "dc3"]
   type        = "system"  # Runs on every node
@@ -8,6 +8,8 @@ job "alloy" {
     value     = "linux"
   }
 
+  # Alloy agents for log and metrics collection
+  # Runs on all nodes to collect logs and forward to core observability services
   group "alloy" {
     network {
       mode = "host"
