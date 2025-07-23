@@ -23,16 +23,35 @@ export default async function Page({
 
   const daoSlug = resolvedSearchParams.daoSlug || routeParams.daoSlug;
 
+  // Validate daoSlug early to prevent rendering with invalid data
+  if (!daoSlug || (daoSlug !== 'arbitrum' && daoSlug !== 'uniswap')) {
+    return (
+      <div className='flex min-h-screen w-full items-center justify-center bg-neutral-50 dark:bg-neutral-900'>
+        <div className='text-center'>
+          <h1 className='text-2xl font-semibold text-neutral-700 dark:text-neutral-300'>
+            Invalid DAO
+          </h1>
+          <p className='mt-2 text-neutral-500 dark:text-neutral-400'>
+            Please visit arbitrum.localhost:3000 or uniswap.localhost:3000
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        {/* Header with title and mark all as read button */}
-        <Suspense fallback={<HeaderSkeleton />}>
+        {/* Single Suspense boundary for better Safari compatibility */}
+        <Suspense
+          fallback={
+            <>
+              <HeaderSkeleton />
+              <LoadingGroupList />
+            </>
+          }
+        >
           <GroupsHeader daoSlug={daoSlug} />
-        </Suspense>
-
-        {/* Groups List */}
-        <Suspense fallback={<LoadingGroupList />}>
           <GroupsContent daoSlug={daoSlug} />
         </Suspense>
       </div>

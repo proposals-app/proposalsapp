@@ -118,11 +118,33 @@
   }
 }
 
+/* Skeleton loading animation with Safari support */
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Safari-specific animation fix */
+@-webkit-keyframes skeleton-shimmer {
+  0% {
+    -webkit-transform: translateX(-100%);
+  }
+  100% {
+    -webkit-transform: translateX(100%);
+  }
+}
+
 /* Blueprint/Wireframe skeleton styling */
 .skeleton-blueprint {
   position: relative;
   background: transparent;
   border: 1px dashed rgb(209 213 219 / 0.8);
+  /* Add will-change for Safari rendering optimization */
+  will-change: contents;
 }
 
 .dark .skeleton-blueprint {

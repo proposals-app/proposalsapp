@@ -106,6 +106,11 @@ async function getUserLastReadData(
 }
 
 export async function getGroups(daoSlug: string, userId?: string) {
+  // Add early validation with better error message
+  if (!daoSlug) {
+    throw new Error('daoSlug is required but was not provided');
+  }
+
   daoSlugSchema.parse(daoSlug);
 
   const dao = await db.public
