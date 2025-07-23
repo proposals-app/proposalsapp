@@ -70,6 +70,17 @@ job "mapper" {
         # Enable NVIDIA runtime for GPU support
         runtime = "nvidia"
 
+        # Mount NVIDIA driver libraries from host
+        # Required for GPU support in LXC containers
+        volumes = [
+          "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so:/usr/lib/x86_64-linux-gnu/libnvidia-ml.so:ro",
+          "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:ro",
+          "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.575.57.08:/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.575.57.08:ro",
+          "/usr/lib/x86_64-linux-gnu/libcuda.so:/usr/lib/x86_64-linux-gnu/libcuda.so:ro",
+          "/usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/lib/x86_64-linux-gnu/libcuda.so.1:ro",
+          "/usr/lib/x86_64-linux-gnu/libcuda.so.575.57.08:/usr/lib/x86_64-linux-gnu/libcuda.so.575.57.08:ro"
+        ]
+
         # Add logging configuration
         logging {
           type = "json-file"
