@@ -82,7 +82,7 @@ async function checkRedis() {
 
     // Ping Redis to check connectivity
     const pong = await redis.ping();
-    
+
     return {
       status: 'ok',
       message: `Redis connection is healthy (${pong})`,
