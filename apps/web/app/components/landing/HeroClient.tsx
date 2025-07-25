@@ -18,15 +18,10 @@ interface DaoLogo {
 
 interface HeroClientProps {
   activeProposals: number;
-  daosCount: number;
   daoLogos: DaoLogo[];
 }
 
-export function HeroClient({
-  activeProposals,
-  daosCount,
-  daoLogos,
-}: HeroClientProps) {
+export function HeroClient({ activeProposals, daoLogos }: HeroClientProps) {
   return (
     <div className='relative flex h-full items-center justify-center pb-[env(safe-area-inset-bottom)]'>
       {/* Hero Content */}
@@ -92,7 +87,7 @@ export function HeroClient({
           <span className='inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1'>
             <span className='text-primary font-bold'>{activeProposals}</span>
             <span className='text-stone-600'>Active Proposals Across</span>
-            <span className='text-primary font-bold'>{daosCount}</span>
+            <span className='text-primary font-bold'>{daoLogos.length}</span>
             <span className='text-stone-600'>DAOs Right Now</span>
           </span>
         </motion.div>
