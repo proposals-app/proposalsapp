@@ -51,7 +51,7 @@ job "mapper" {
     }
 
     network {
-      port "health" {
+      port "http" {
         static = 3002
         to = 3000
         host_network = "tailscale"
@@ -62,23 +62,19 @@ job "mapper" {
       driver = "docker"
 
       config {
-        # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/mapper:latest"
-        ports = ["health"]
+        ports = ["http"]
         force_pull = true
 
         # Enable NVIDIA runtime for GPU support
         runtime = "nvidia"
 
-        # Mount NVIDIA driver libraries from host
-        # Required for GPU support in LXC containers
+        # Mount NVIDIA driver libraries from host for GPU support
         volumes = [
           "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so:/usr/lib/x86_64-linux-gnu/libnvidia-ml.so:ro",
           "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:ro",
-          "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.575.57.08:/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.575.57.08:ro",
           "/usr/lib/x86_64-linux-gnu/libcuda.so:/usr/lib/x86_64-linux-gnu/libcuda.so:ro",
-          "/usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/lib/x86_64-linux-gnu/libcuda.so.1:ro",
-          "/usr/lib/x86_64-linux-gnu/libcuda.so.575.57.08:/usr/lib/x86_64-linux-gnu/libcuda.so.575.57.08:ro"
+          "/usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/lib/x86_64-linux-gnu/libcuda.so.1:ro"
         ]
 
         # Add logging configuration
@@ -107,29 +103,7 @@ job "mapper" {
         LD_LIBRARY_PATH = "/usr/local/cuda-12.3/compat:/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
       }
 
-      # Deployment metadata template for visibility
-      # Does not trigger restarts - deployment is handled by automation
-      template {
-        destination = "local/deployment-info.txt"
-        change_mode = "noop"
-        data = <<EOF
-{{ $deploymentJson := keyOrDefault "mapper/deployment/main" "{}" }}
-{{ if $deploymentJson }}
-{{ $deployment := $deploymentJson | parseJSON }}
-Current deployment target:
-  Image: {{ if $deployment.image }}{{ $deployment.image }}{{ else }}unknown{{ end }}
-  Tag: {{ if $deployment.tag }}{{ $deployment.tag }}{{ else }}unknown{{ end }}
-  SHA: {{ if $deployment.sha }}{{ $deployment.sha }}{{ else }}unknown{{ end }}
-  Time: {{ if $deployment.timestamp }}{{ $deployment.timestamp }}{{ else }}unknown{{ end }}
-  Author: {{ if $deployment.author }}{{ $deployment.author }}{{ else }}unknown{{ end }}
-{{ else }}
-No deployment information available
-{{ end }}
-EOF
-      }
-
       # Environment configuration template
-      # Does not trigger restarts to avoid loops
       template {
         data = <<EOF
 # Deployment metadata from Consul
@@ -224,7 +198,7 @@ EOF
           "rust",
           "data-processing"
         ]
-        port = "health"
+        port = "http"
         address_mode = "host"
 
         check {

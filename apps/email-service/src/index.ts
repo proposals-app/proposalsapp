@@ -17,13 +17,19 @@ import {
   EndingProposalEmailTemplate,
 } from '@proposalsapp/emails';
 import { createServer } from 'http';
+import pino from 'pino';
 
 dotenv_config();
+
+// Create logger instance
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+});
 
 // Configuration - only what we actually need
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 if (!RESEND_API_KEY) {
-  console.error('Missing required environment variable: RESEND_API_KEY');
+  logger.error('Missing required environment variable: RESEND_API_KEY');
   process.exit(1);
 }
 
@@ -52,7 +58,7 @@ const resend = new Resend(RESEND_API_KEY);
 
 // Main process
 async function processNotifications(): Promise<void> {
-  console.log('Starting notification processing...');
+  logger.info('Starting notification processing...');
 
   try {
     // Get enabled DAOs (those with at least one enabled governor)
@@ -68,26 +74,29 @@ async function processNotifications(): Promise<void> {
       try {
         await processDao(dao);
       } catch (error) {
-        console.error(`Error processing ${dao.name}:`, error);
+        logger.error({ err: error }, `Error processing ${dao.name}`);
       }
     }
 
-    console.log('Notification processing completed');
+    logger.info('Notification processing completed');
   } catch (error) {
-    console.error('Error during notification processing:', error);
+    logger.error({ err: error }, 'Error during notification processing');
   }
 }
 
 // Process notifications for a DAO
 async function processDao(dao: Selectable<Dao>): Promise<void> {
-  console.log(`\nProcessing ${dao.name}`);
+  logger.info(`Processing ${dao.name}`);
 
   try {
     await processNewProposals(dao);
     await processEndingProposals(dao);
     await processNewDiscussions(dao);
   } catch (error) {
-    console.error(`Error processing notifications for ${dao.name}:`, error);
+    logger.error(
+      { err: error },
+      `Error processing notifications for ${dao.name}`
+    );
   }
 }
 
@@ -99,7 +108,7 @@ async function processDao(dao: Selectable<Dao>): Promise<void> {
 async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
   const daoDb = getDaoDb(dao.slug);
   if (!daoDb) {
-    console.error(`Database for DAO ${dao.slug} not found`);
+    logger.error(`Database for DAO ${dao.slug} not found`);
     return;
   }
 
@@ -118,7 +127,7 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
     .execute();
 
   if (newProposals.length === 0) {
-    console.log(`No new proposals found for ${dao.name}`);
+    logger.debug(`No new proposals found for ${dao.name}`);
     return;
   }
 
@@ -129,7 +138,7 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
     .where('emailSettingsNewProposals', '=', true)
     .execute();
 
-  console.log(
+  logger.info(
     `Found ${newProposals.length} new proposals and ${users.length} users for ${dao.name}`
   );
 
@@ -152,6 +161,7 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
           proposalName: proposal.name,
           proposalUrl: proposal.url,
           daoName: dao.name,
+          daoSlug: dao.slug,
           authorAddress:
             proposal.author || '0x0000000000000000000000000000000000000000',
           authorEns: voter?.ens || undefined,
@@ -179,7 +189,7 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
 async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
   const daoDb = getDaoDb(dao.slug);
   if (!daoDb) {
-    console.error(`Database for DAO ${dao.slug} not found`);
+    logger.error(`Database for DAO ${dao.slug} not found`);
     return;
   }
 
@@ -199,7 +209,7 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
     .execute();
 
   if (endingProposals.length === 0) {
-    console.log(`No ending proposals found for ${dao.name}`);
+    logger.debug(`No ending proposals found for ${dao.name}`);
     return;
   }
 
@@ -210,7 +220,7 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
     .where('emailSettingsEndingProposals', '=', true)
     .execute();
 
-  console.log(
+  logger.info(
     `Found ${endingProposals.length} ending proposals and ${users.length} users for ${dao.name}`
   );
 
@@ -230,6 +240,7 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
           proposalName: proposal.name,
           proposalUrl: proposal.url,
           daoName: dao.name,
+          daoSlug: dao.slug,
           endTime,
         })
       );
@@ -260,7 +271,7 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
 async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
   const daoDb = getDaoDb(dao.slug);
   if (!daoDb) {
-    console.error(`Database for DAO ${dao.slug} not found`);
+    logger.error(`Database for DAO ${dao.slug} not found`);
     return;
   }
 
@@ -273,7 +284,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
     .executeTakeFirst();
 
   if (!daoDiscourse) {
-    console.log(`Discourse not enabled for ${dao.name}`);
+    logger.debug(`Discourse not enabled for ${dao.name}`);
     return;
   }
 
@@ -324,7 +335,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
   const newTopics = await query.execute();
 
   if (newTopics.length === 0) {
-    console.log(`No new discussions found for ${dao.name}`);
+    logger.debug(`No new discussions found for ${dao.name}`);
     return;
   }
 
@@ -335,7 +346,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
     .where('emailSettingsNewDiscussions', '=', true)
     .execute();
 
-  console.log(
+  logger.info(
     `Found ${newTopics.length} new discussions and ${users.length} users for ${dao.name}`
   );
 
@@ -351,6 +362,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
           discussionTitle: topic.title,
           discussionUrl: topicUrl,
           daoName: dao.name,
+          daoSlug: dao.slug,
           authorUsername: topic.username || '',
           authorProfilePicture: topic.avatarTemplate || '',
         })
@@ -400,9 +412,9 @@ async function sendEmail(
       { from: FROM_EMAIL, to, subject, html },
       { idempotencyKey }
     );
-    console.log(`Email sent to ${to}: ${subject}`);
+    logger.info(`Email sent to ${to}: ${subject}`);
   } catch (error) {
-    console.error(`Failed to send email to ${to}:`, error);
+    logger.error({ err: error }, `Failed to send email to ${to}`);
   }
 }
 
@@ -431,7 +443,7 @@ async function alreadySent(
 
   const daoDb = getDaoDb(daoSlug);
   if (!daoDb) {
-    console.error(`Database for DAO ${daoSlug} not found`);
+    logger.error(`Database for DAO ${daoSlug} not found`);
     return false;
   }
 
@@ -457,7 +469,7 @@ async function recordNotification(
   try {
     const daoDb = getDaoDb(daoSlug);
     if (!daoDb) {
-      console.error(`Database for DAO ${daoSlug} not found`);
+      logger.error(`Database for DAO ${daoSlug} not found`);
       return;
     }
 
@@ -471,7 +483,7 @@ async function recordNotification(
       })
       .execute();
   } catch (error) {
-    console.error('Failed to record notification:', error);
+    logger.error({ err: error }, 'Failed to record notification');
   }
 }
 
@@ -499,45 +511,45 @@ const server = createServer((req, res) => {
 
 // Start HTTP server
 server.listen(PORT, () => {
-  console.log(`Health check server listening on port ${PORT}`);
+  logger.info(`Health check server listening on port ${PORT}`);
 });
 
 // Start BetterStack heartbeat monitoring
 let heartbeatInterval: NodeJS.Timeout | undefined;
 if (BETTERSTACK_KEY) {
-  console.log('BetterStack uptime monitoring enabled');
+  logger.info('BetterStack uptime monitoring enabled');
 
   // Send heartbeat every 10 seconds
   heartbeatInterval = setInterval(async () => {
     try {
       const response = await fetch(BETTERSTACK_KEY, { method: 'GET' });
       if (response.ok) {
-        console.log('Uptime ping sent successfully');
+        logger.debug('Uptime ping sent successfully');
       } else {
-        console.warn(
+        logger.warn(
           `Failed to send uptime ping: ${response.status} ${response.statusText}`
         );
       }
     } catch (error) {
-      console.warn('Failed to send uptime ping:', error);
+      logger.warn({ err: error }, 'Failed to send uptime ping');
     }
   }, 10000); // 10 seconds
 } else {
-  console.log('BETTERSTACK_KEY not set, uptime monitoring disabled');
+  logger.info('BETTERSTACK_KEY not set, uptime monitoring disabled');
 }
 
 // Schedule cron job - runs every minute
 cron.schedule('* * * * *', () => {
-  console.log('\n--- Running notification check ---');
+  logger.info('Running notification check');
   void processNotifications();
 });
 
 // Start the service
-console.log('Email service started - checking for notifications every minute');
+logger.info('Email service started - checking for notifications every minute');
 
 // Handle shutdown
 process.on('SIGINT', async () => {
-  console.log('\nShutting down...');
+  logger.info('Shutting down...');
 
   // Clear heartbeat interval if it exists
   if (heartbeatInterval) {
@@ -552,18 +564,20 @@ process.on('SIGINT', async () => {
     db.public.destroy(),
     db.arbitrum.destroy(),
     db.uniswap.destroy(),
-  ]).catch(console.error);
+  ]).catch((err) =>
+    logger.error({ err }, 'Error closing database connections')
+  );
 
   process.exit(0);
 });
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
+  logger.fatal({ err: error }, 'Uncaught exception');
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection at:', promise, 'reason:', reason);
+  logger.fatal({ promise, reason }, 'Unhandled rejection');
   process.exit(1);
 });

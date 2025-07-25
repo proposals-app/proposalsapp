@@ -40,70 +40,9 @@
         label: "{{ item.key }} in {{ current_datacenter }}"
       no_log: true # Don't log sensitive values
 
-    - name: Display setup information for this datacenter
+    - name: Display setup completion
       debug:
-        msg: |
-          ========================================
-          Observability Stack Setup Complete for {{ current_datacenter }}
-          ========================================
-
-          Configuration has been stored in Consul KV
-          for datacenter: {{ current_datacenter }}
-
-          Run this playbook on all consul servers to replicate
-          the configuration across all datacenters.
-          ========================================
+        msg: "Consul KV setup complete for observability stack in {{ current_datacenter }}"
       run_once: true
 
 
-- name: Display final deployment instructions
-  hosts: localhost
-  connection: local
-  tasks:
-    - name: Show deployment instructions
-      debug:
-        msg: |
-          ========================================
-          Observability Stack Setup Complete
-          ========================================
-
-          To deploy the observability stack:
-          1. Deploy in this order:
-             a. nomad job run applications/observability/loki.nomad
-             b. nomad job run applications/observability/promtail.nomad
-             c. nomad job run applications/observability/prometheus.nomad
-             d. nomad job run applications/observability/grafana.nomad
-
-          Stack Components:
-          - Loki: Log aggregation (port 3100)
-          - Promtail: Log collection (system job on all nodes)
-          - Prometheus: Metrics collection (port 9090)
-          - Grafana: Visualization (port 3000)
-
-          Access Points:
-          - Grafana UI: https://grafana.proposals.app
-          - Prometheus UI: http://<node>:9090
-          - Loki API: http://<node>:3100
-
-          Default Credentials:
-          - Grafana admin user: admin
-          - Grafana admin password: (set in consul kv or 'admin')
-
-          To verify the deployment:
-          - Check Nomad: nomad job status <job-name>
-          - Check Grafana: curl http://<node>:3000/api/health
-          - Check Loki: curl http://<node>:3100/ready
-          - Check Prometheus: curl http://<node>:9090/-/ready
-
-          Log Collection:
-          - Promtail will automatically collect logs from:
-            * All Nomad allocation logs
-            * System logs (/var/log/syslog)
-          - Logs are parsed as JSON when possible
-          - Labels are extracted for filtering
-
-          Next Steps:
-          1. Update Rust applications to use stdout-only logging
-          2. Add Prometheus metrics endpoints to applications
-          3. Configure additional dashboards in Grafana
-          ========================================

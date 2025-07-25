@@ -1,12 +1,12 @@
 ---
-- name: Setup Homepage Configuration in Consul KV
+- name: Setup Dashboard Configuration in Consul KV
   hosts: consul_servers[0]
   gather_facts: no
   
   tasks:
-    - name: Set Homepage configuration in Consul KV
+    - name: Set Dashboard configuration in Consul KV
       uri:
-        url: "http://{{ inventory_hostname }}:8500/v1/kv/homepage/config"
+        url: "http://{{ inventory_hostname }}:8500/v1/kv/dashboard/config"
         method: PUT
         body: |
           {
@@ -26,7 +26,7 @@
 
     - name: Set service endpoints in Consul KV
       uri:
-        url: "http://{{ inventory_hostname }}:8500/v1/kv/homepage/endpoints/{{ item.key }}"
+        url: "http://{{ inventory_hostname }}:8500/v1/kv/dashboard/endpoints/{{ item.key }}"
         method: PUT
         body: "{{ item.value }}"
       delegate_to: localhost

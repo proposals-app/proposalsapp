@@ -52,7 +52,7 @@ job "discourse" {
     }
 
     network {
-      port "health" {
+      port "http" {
         static = 3003
         to = 3000
         host_network = "tailscale"
@@ -63,9 +63,8 @@ job "discourse" {
       driver = "docker"
 
       config {
-        # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/discourse:latest"
-        ports = ["health"]
+        ports = ["http"]
         force_pull = true
 
         # Add logging configuration
@@ -79,7 +78,6 @@ job "discourse" {
       }
 
       env {
-        # Removed RUST_LOG to allow JSON formatting from code
         RUST_BACKTRACE = "1"
 
         # Database
@@ -90,29 +88,7 @@ job "discourse" {
 
       }
 
-      # Deployment metadata template for visibility
-      # Does not trigger restarts - deployment is handled by automation
-      template {
-        destination = "local/deployment-info.txt"
-        change_mode = "noop"
-        data = <<EOF
-{{ $deploymentJson := keyOrDefault "discourse/deployment/main" "{}" }}
-{{ if $deploymentJson }}
-{{ $deployment := $deploymentJson | parseJSON }}
-Current deployment target:
-  Image: {{ if $deployment.image }}{{ $deployment.image }}{{ else }}unknown{{ end }}
-  Tag: {{ if $deployment.tag }}{{ $deployment.tag }}{{ else }}unknown{{ end }}
-  SHA: {{ if $deployment.sha }}{{ $deployment.sha }}{{ else }}unknown{{ end }}
-  Time: {{ if $deployment.timestamp }}{{ $deployment.timestamp }}{{ else }}unknown{{ end }}
-  Author: {{ if $deployment.author }}{{ $deployment.author }}{{ else }}unknown{{ end }}
-{{ else }}
-No deployment information available
-{{ end }}
-EOF
-      }
-
       # Environment configuration template
-      # Does not trigger restarts to avoid loops
       template {
         data = <<EOF
 # Deployment metadata from Consul
@@ -175,7 +151,7 @@ EOF
       service {
         name = "discourse"
         tags = ["indexer", "forum"]
-        port = "health"
+        port = "http"
         address_mode = "host"
 
         check {

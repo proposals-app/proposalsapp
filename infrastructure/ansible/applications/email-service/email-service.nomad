@@ -59,7 +59,6 @@ job "email-service" {
       driver = "docker"
 
       config {
-        # Image will be replaced during deployment
         image = "ghcr.io/proposals-app/proposalsapp/email-service:latest"
         ports = ["http"]
         force_pull = true
@@ -79,29 +78,7 @@ job "email-service" {
         NODE_ENV = "production"
       }
 
-      # Deployment metadata template for visibility
-      # Does not trigger restarts - deployment is handled by automation
-      template {
-        destination = "local/deployment-info.txt"
-        change_mode = "noop"
-        data = <<EOF
-{{ $deploymentJson := keyOrDefault "email-service/deployment/main" "{}" }}
-{{ if $deploymentJson }}
-{{ $deployment := $deploymentJson | parseJSON }}
-Current deployment target:
-  Image: {{ if $deployment.image }}{{ $deployment.image }}{{ else }}unknown{{ end }}
-  Tag: {{ if $deployment.tag }}{{ $deployment.tag }}{{ else }}unknown{{ end }}
-  SHA: {{ if $deployment.sha }}{{ $deployment.sha }}{{ else }}unknown{{ end }}
-  Time: {{ if $deployment.timestamp }}{{ $deployment.timestamp }}{{ else }}unknown{{ end }}
-  Author: {{ if $deployment.author }}{{ $deployment.author }}{{ else }}unknown{{ end }}
-{{ else }}
-No deployment information available
-{{ end }}
-EOF
-      }
-
       # Environment configuration template
-      # Does not trigger restarts to avoid loops
       template {
         data = <<EOF
 # Deployment metadata from Consul
@@ -155,9 +132,6 @@ UNISWAP_DATABASE_URL=
 
 # Email service configuration
 RESEND_API_KEY={{ keyOrDefault "email-service/resend_api_key" "" }}
-
-# Application URL
-WEB_URL={{ keyOrDefault "email-service/web_url" "https://proposals.app" }}
 
 EOF
         destination = "secrets/env"

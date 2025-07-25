@@ -21,6 +21,7 @@ export interface EndingProposalEmailProps {
   proposalName: string;
   proposalUrl: string;
   daoName: string;
+  daoSlug: string;
   endTime: string;
 }
 
@@ -28,6 +29,7 @@ export default function EndingProposalEmailTemplate({
   proposalName = 'Example Proposal',
   proposalUrl = 'https://proposals.app/proposal/123',
   daoName = 'Example DAO',
+  daoSlug = 'example',
   endTime = '2024-03-20 15:00 UTC',
 }: EndingProposalEmailProps) {
   return (
@@ -85,7 +87,7 @@ export default function EndingProposalEmailTemplate({
               </Text>
             </Section>
 
-            <Unsubscribe />
+            <Unsubscribe daoSlug={daoSlug} />
             <Footer />
           </Container>
         </Body>

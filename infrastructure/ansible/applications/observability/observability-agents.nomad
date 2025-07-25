@@ -13,7 +13,7 @@ job "observability-agents" {
   group "alloy" {
     network {
       mode = "host"
-      
+
       port "http" {
         static = 12345
         host_network = "tailscale"
@@ -24,9 +24,9 @@ job "observability-agents" {
       driver = "docker"
 
       config {
-        image        = "grafana/alloy:v1.9.2"
+        image        = "grafana/alloy:v1.10.0"
         network_mode = "host"
-        
+
         args = [
           "run",
           "/etc/alloy/config.alloy",
@@ -56,7 +56,7 @@ job "observability-agents" {
           max = "10s"
         }
         error_on_missing_key = false
-        
+
         data = <<EOF
 // Simple Alloy configuration for ProposalsApp logs
 
@@ -194,7 +194,7 @@ loki.write "loki" {
     batch_size = "4MiB"
     batch_wait = "2s"
   }
-  
+
   external_labels = {
     cluster = "proposalsapp",
     datacenter = "{{ env "node.datacenter" }}",

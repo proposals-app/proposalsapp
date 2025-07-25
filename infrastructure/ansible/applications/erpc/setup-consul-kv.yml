@@ -55,68 +55,7 @@
         label: "{{ item.key }} in {{ current_datacenter }}"
       no_log: true # Don't log sensitive values
 
-    - name: Display setup information for this datacenter
+    - name: Display setup completion
       debug:
-        msg: |
-          ========================================
-          Consul KV Setup Complete for {{ current_datacenter }}
-          ========================================
-
-          Environment variables have been stored in Consul KV
-          for datacenter: {{ current_datacenter }}
-
-          Run this playbook on all consul servers to replicate
-          the configuration across all datacenters.
-          ========================================
+        msg: "Consul KV setup complete for eRPC in {{ current_datacenter }}"
       run_once: true
-
-- name: Display final deployment instructions
-  hosts: localhost
-  connection: local
-  tasks:
-    - name: Show deployment instructions
-      debug:
-        msg: |
-          ========================================
-          eRPC Setup Complete
-          ========================================
-
-          To deploy eRPC:
-          1. Ensure this playbook has been run on all consul servers
-          2. Run: nomad job run infrastructure/ansible/applications/erpc/erpc.nomad
-
-          eRPC provides RPC proxy with method-based routing:
-          - eth_getLogs and filter methods → Hypersync nodes
-          - All other methods → Full nodes
-
-          To verify the values in each datacenter:
-          - consul kv get erpc/hypersync/ethereum
-          - consul kv get erpc/full/arbitrum
-
-          The eRPC service will:
-          - Listen on port 8545 for RPC requests
-          - Expose metrics on port 4001 for Prometheus
-          - Route eth_getLogs, eth_blockNumber, eth_getBlockByNumber to Hypersync nodes
-          - Route all other methods to full nodes
-          - Support all chains: Ethereum, Arbitrum, Optimism, Polygon, Avalanche
-          - Provide automatic failover and retry logic
-          - Cache responses in memory for performance
-
-          Access the RPC endpoint:
-          - http://<node-ip>:8545/proposalsapp
-
-          Example requests:
-          # Ethereum mainnet (chainId: 1)
-          curl -X POST http://<node-ip>:8545/proposalsapp \
-            -H 'Content-Type: application/json' \
-            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
-
-          # Arbitrum (chainId: 42161) with automatic routing
-          curl -X POST http://<node-ip>:8545/proposalsapp \
-            -H 'Content-Type: application/json' \
-            -d '{"jsonrpc":"2.0","method":"eth_getLogs","params":[{"fromBlock":"0x0","toBlock":"latest"}],"id":1}'
-
-          Monitor the service:
-          - Health check: http://<node-ip>:8545/proposalsapp (with net_version RPC call)
-          - Metrics: http://<node-ip>:4001/metrics
-          ========================================

@@ -12,10 +12,6 @@
       - key: "email-service/resend_api_key"
         value: "{{ vault_email_service_resend_api_key }}"
 
-      # Application URL
-      - key: "email-service/web_url"
-        value: "{{ vault_email_service_web_url }}"
-
   tasks:
     - name: Ensure Consul is available
       wait_for:
@@ -43,65 +39,7 @@
         label: "{{ item.key }} in {{ current_datacenter }}"
       no_log: true # Don't log sensitive values
 
-    - name: Display setup information for this datacenter
+    - name: Display setup completion
       debug:
-        msg: |
-          ========================================
-          Consul KV Setup Complete for {{ current_datacenter }}
-          ========================================
-
-          Environment variables have been stored in Consul KV
-          for datacenter: {{ current_datacenter }}
-
-          Run this playbook on all consul servers to replicate
-          the configuration across all datacenters.
-          ========================================
+        msg: "Consul KV setup complete for email-service in {{ current_datacenter }}"
       run_once: true
-
-- name: Display final deployment instructions
-  hosts: localhost
-  connection: local
-  tasks:
-    - name: Show deployment instructions
-      debug:
-        msg: |
-          ========================================
-          Email Service Setup Complete
-          ========================================
-
-          To deploy the email service:
-          1. Ensure this playbook has been run on all consul servers
-          2. Run: nomad job run infrastructure/ansible/applications/email-service/email-service.nomad
-
-          The email service always deploys from the main branch.
-          Feature branches are built and stored in ghcr.io but not automatically deployed.
-
-          To verify the values in each datacenter:
-          - consul kv get email-service/resend_api_key
-          - consul kv get email-service/betterstack_key
-          - consul kv get email-service/web_url
-          - consul kv get pgpool/connection_string/local
-
-          The email service will:
-          - Run a single instance in any available datacenter
-          - Automatically migrate between datacenters if needed
-          - Connect to the local pgpool instance using the connection string from Consul KV
-          - Send email notifications via Resend API
-          - Report health to BetterStack for monitoring
-          - Pull the latest Docker image from the main branch
-
-          Service details:
-          - Internal port: 3001
-          - Health check endpoint: /health
-          - Memory: 512MB (can burst to 768MB)
-          - CPU: 0.5 cores
-          - Logs: JSON format with 10MB rotation
-
-          The service handles:
-          - Sending proposal notification emails
-          - User preference management
-          - Email delivery tracking
-          - Queue processing for scheduled emails
-
-          Note: Database credentials are securely stored in Consul KV by the pgpool playbook
-          ========================================

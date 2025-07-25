@@ -11,6 +11,8 @@
         value: "{{ vault_rindexer_arbiscan_api_key }}"
       - key: "rindexer/optimistic_scan_api_key"
         value: "{{ vault_rindexer_optimistic_scan_api_key }}"
+      - key: "rindexer/polygonscan_api_key"
+        value: "{{ vault_rindexer_polygonscan_api_key | default('') }}"
 
       # BetterStack monitoring
       - key: "rindexer/betterstack_key"
@@ -43,52 +45,7 @@
         label: "{{ item.key }} in {{ current_datacenter }}"
       no_log: true # Don't log sensitive values
 
-    - name: Display setup information for this datacenter
+    - name: Display setup completion
       debug:
-        msg: |
-          ========================================
-          Consul KV Setup Complete for {{ current_datacenter }}
-          ========================================
-
-          Environment variables have been stored in Consul KV
-          for datacenter: {{ current_datacenter }}
-
-          Run this playbook on all consul servers to replicate
-          the configuration across all datacenters.
-          ========================================
+        msg: "Consul KV setup complete for rindexer in {{ current_datacenter }}"
       run_once: true
-
-- name: Display final deployment instructions
-  hosts: localhost
-  connection: local
-  tasks:
-    - name: Show deployment instructions
-      debug:
-        msg: |
-          ========================================
-          Rindexer Setup Complete
-          ========================================
-
-          To deploy rindexer:
-          1. Ensure this playbook has been run on all consul servers
-          2. Run: nomad job run infrastructure/ansible/applications/rindexer/rindexer.nomad
-
-          Rindexer always deploys from the main branch.
-          Feature branches are built and stored in ghcr.io but not automatically deployed.
-
-          To verify the values in each datacenter:
-          - consul kv get rindexer/etherscan_api_key
-          - consul kv get pgpool/connection_string/local
-          - consul kv get rindexer/image/main
-
-          The rindexer service will automatically:
-          - Connect to the local pgpool instance using the connection string from Consul KV
-          - Route all RPC requests through the local eRPC instance
-          - Use eRPC's intelligent routing (Hypersync for logs/blocks, Ankr for other methods)
-          - Send metrics to the observability stack
-          - Pull the latest Docker image from the main branch
-          
-          IMPORTANT: eRPC must be deployed before rindexer for RPC connectivity
-
-          Note: Database credentials are securely stored in Consul KV by the pgpool playbook
-          ========================================

@@ -186,6 +186,33 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
+  }, // Email service configuration
+  {
+    files: ['apps/email-service/**/*.{js,ts}'],
+    languageOptions: {
+      globals: {
+        // Node.js globals
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        global: 'readonly',
+        setInterval: 'readonly',
+        setTimeout: 'readonly',
+        clearInterval: 'readonly',
+        clearTimeout: 'readonly',
+        setImmediate: 'readonly',
+        clearImmediate: 'readonly',
+        NodeJS: 'readonly',
+        fetch: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        Headers: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+      },
+    },
   }, // Next.js web app configuration
   {
     files: ['apps/web/**/*.{js,jsx,ts,tsx,mjs}'],

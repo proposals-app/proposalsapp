@@ -22,6 +22,7 @@ export interface NewProposalEmailProps {
   proposalName: string;
   proposalUrl: string;
   daoName: string;
+  daoSlug: string;
   authorAddress: string;
   authorEns?: string;
 }
@@ -30,6 +31,7 @@ export default function NewProposalEmailTemplate({
   proposalName = 'This is a proposal title example',
   proposalUrl = 'https://proposals.app/proposal/123',
   daoName = 'Example DAO',
+  daoSlug = 'example',
   authorAddress = '0x0000000000000000000000000000000000000000',
   authorEns = 'delegate.eth',
 }: NewProposalEmailProps) {
@@ -92,7 +94,7 @@ export default function NewProposalEmailTemplate({
               </Text>
             </Section>
 
-            <Unsubscribe />
+            <Unsubscribe daoSlug={daoSlug} />
             <Footer />
           </Container>
         </Body>

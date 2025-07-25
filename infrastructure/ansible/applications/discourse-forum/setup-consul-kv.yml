@@ -79,60 +79,7 @@
         label: "{{ item.key }} in {{ current_datacenter }}"
       no_log: true # Don't log sensitive values
 
-    - name: Display setup information for this datacenter
+    - name: Display setup completion
       debug:
-        msg: |
-          ========================================
-          Consul KV Setup Complete for {{ current_datacenter }}
-          ========================================
-
-          Environment variables have been stored in Consul KV
-          for datacenter: {{ current_datacenter }}
-
-          Run this playbook on all consul servers to replicate
-          the configuration across all datacenters.
-          ========================================
+        msg: "Consul KV setup complete for discourse-forum in {{ current_datacenter }}"
       run_once: true
-
-- name: Display final deployment instructions
-  hosts: localhost
-  connection: local
-  tasks:
-    - name: Show deployment instructions
-      debug:
-        msg: |
-          ========================================
-          Discourse Forum Setup Complete
-          ========================================
-
-          To deploy the Discourse forum application:
-          1. Ensure this playbook has been run on all consul servers
-          2. Run: nomad job run infrastructure/ansible/applications/discourse-forum/discourse-forum.nomad
-
-          The Discourse forum is a self-contained deployment that includes:
-          - PostgreSQL 17 database
-          - Redis 7 cache
-          - Discourse application (Bitnami image)
-          - Sidekiq background job processor
-
-          To verify the values in each datacenter:
-          - consul kv get discourse-forum/admin_username
-          - consul kv get discourse-forum/hostname
-          - consul kv get discourse-forum/db_name
-
-          The forum will be available at:
-          - https://forum.proposals.app (after configuring ingress)
-
-          Important notes:
-          - The forum uses 20GB of persistent storage
-          - All data is stored in the Nomad allocation directory
-          - PostgreSQL and Redis are only accessible within the job
-          - Initial setup wizard will run on first access
-          - SMTP must be configured for email functionality
-
-          Post-deployment steps:
-          1. Update consul-ingress.nomad to add forum.proposals.app routing
-          2. Access the forum and complete the setup wizard
-          3. Configure categories, permissions, and SSO if needed
-          4. Set up regular backups of the /alloc/data directory
-          ========================================

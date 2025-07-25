@@ -38,57 +38,7 @@
         label: "{{ item.key }} in {{ current_datacenter }}"
       no_log: true # Don't log sensitive values
 
-    - name: Display setup information for this datacenter
+    - name: Display setup completion
       debug:
-        msg: |
-          ========================================
-          Consul KV Setup Complete for {{ current_datacenter }}
-          ========================================
-
-          Environment variables have been stored in Consul KV
-          for datacenter: {{ current_datacenter }}
-
-          Run this playbook on all consul servers to replicate
-          the configuration across all datacenters.
-          ========================================
+        msg: "Consul KV setup complete for mapper in {{ current_datacenter }}"
       run_once: true
-
-- name: Display final deployment instructions
-  hosts: localhost
-  connection: local
-  tasks:
-    - name: Show deployment instructions
-      debug:
-        msg: |
-          ========================================
-          Mapper Application Setup Complete
-          ========================================
-
-          To deploy the mapper application:
-          1. Ensure this playbook has been run on all consul servers
-          2. Run: nomad job run infrastructure/ansible/applications/mapper/mapper.nomad
-
-          The mapper application always deploys from the main branch.
-          Feature branches are built and stored in ghcr.io but not automatically deployed.
-
-          To verify the values in each datacenter:
-          - consul kv get mapper/betterstack_key
-          - consul kv get pgpool/connection_string/local
-          - consul kv get mapper/image/main
-
-          The mapper service will:
-          - Run a single instance that can migrate between datacenters
-          - Process proposal groupings and calculate karma scores
-          - Connect to the local pgpool instance using the connection string from Consul KV
-          - Send heartbeats to BetterStack for monitoring
-          - Send metrics to the observability stack
-          - Pull the latest Docker image from the main branch
-
-          Service responsibilities:
-          1. Group related proposals across different platforms
-          2. Calculate and update karma scores for users
-          3. Maintain relationships between proposals, discussions, and votes
-          4. Run periodically to process new data
-
-          Note: Database credentials are securely stored in Consul KV by the pgpool playbook
-          ========================================

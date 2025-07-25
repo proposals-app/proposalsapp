@@ -52,7 +52,7 @@ job "rindexer" {
     }
 
     network {
-      port "health" {
+      port "http" {
         static = 3004
         to = 3000
         host_network = "tailscale"
@@ -63,9 +63,8 @@ job "rindexer" {
       driver = "docker"
 
       config {
-        # Image is hardcoded here, but will be overridden by job updates
         image = "ghcr.io/proposals-app/proposalsapp/rindexer:latest"
-        ports = ["health"]
+        ports = ["http"]
         force_pull = true
 
         # DNS configuration for better host resolution
@@ -84,60 +83,9 @@ job "rindexer" {
       env {
         RUST_LOG = "info,rindexer=debug"
         RUST_BACKTRACE = "1"
-
-        # Service configuration
-        # Health check is on port 3000
-
-        # Database
-        DATABASE_URL = "${DATABASE_URL}"
-
-        # Chain RPC endpoints
-
-        ETHEREUM_NODE_URL = "${ETHEREUM_NODE_URL}"
-        ARBITRUM_NODE_URL = "${ARBITRUM_NODE_URL}"
-        AVALANCHE_NODE_URL = "${AVALANCHE_NODE_URL}"
-        POLYGON_NODE_URL = "${POLYGON_NODE_URL}"
-        OPTIMISM_NODE_URL = "${OPTIMISM_NODE_URL}"
-
-        # Block explorer API keys
-        ARBISCAN_API_KEY = "${ARBISCAN_API_KEY}"
-        ETHERSCAN_API_KEY = "${ETHERSCAN_API_KEY}"
-        OPTIMISTIC_SCAN_API_KEY = "${OPTIMISTIC_SCAN_API_KEY}"
-
-        # Indexer settings
-        INDEXER_BATCH_SIZE = "100"
-        INDEXER_RETRY_LIMIT = "3"
-        INDEXER_RETRY_DELAY = "5"
-
-        # Performance tuning
-        TOKIO_WORKER_THREADS = "4"
-        DATABASE_POOL_SIZE = "10"
-        DATABASE_TIMEOUT = "30"
-      }
-
-      # Deployment metadata template for visibility
-      # Does not trigger restarts - deployment is handled by automation
-      template {
-        destination = "local/deployment-info.txt"
-        change_mode = "noop"
-        data = <<EOF
-{{ $deploymentJson := keyOrDefault "rindexer/deployment/main" "{}" }}
-{{ if $deploymentJson }}
-{{ $deployment := $deploymentJson | parseJSON }}
-Current deployment target:
-  Image: {{ if $deployment.image }}{{ $deployment.image }}{{ else }}unknown{{ end }}
-  Tag: {{ if $deployment.tag }}{{ $deployment.tag }}{{ else }}unknown{{ end }}
-  SHA: {{ if $deployment.sha }}{{ $deployment.sha }}{{ else }}unknown{{ end }}
-  Time: {{ if $deployment.timestamp }}{{ $deployment.timestamp }}{{ else }}unknown{{ end }}
-  Author: {{ if $deployment.author }}{{ $deployment.author }}{{ else }}unknown{{ end }}
-{{ else }}
-No deployment information available
-{{ end }}
-EOF
       }
 
       # Environment configuration template
-      # Does not trigger restarts to avoid loops
       template {
         data = <<EOF
 # Deployment metadata from Consul
@@ -205,6 +153,7 @@ OPTIMISM_NODE_URL=
 ARBISCAN_API_KEY={{ keyOrDefault "rindexer/arbiscan_api_key" "" }}
 ETHERSCAN_API_KEY={{ keyOrDefault "rindexer/etherscan_api_key" "" }}
 OPTIMISTIC_SCAN_API_KEY={{ keyOrDefault "rindexer/optimistic_scan_api_key" "" }}
+POLYGONSCAN_API_KEY={{ keyOrDefault "rindexer/polygonscan_api_key" "" }}
 
 # BetterStack monitoring
 BETTERSTACK_KEY={{ keyOrDefault "rindexer/betterstack_key" "" }}
@@ -227,7 +176,7 @@ EOF
       service {
         name = "rindexer"
         tags = ["indexer", "blockchain"]
-        port = "health"
+        port = "http"
         address_mode = "host"
 
         check {

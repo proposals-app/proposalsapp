@@ -1,12 +1,12 @@
-job "homepage" {
+job "dashboard" {
   datacenters = ["dc1", "dc2", "dc3"]
   type        = "service"
 
-  group "homepage" {
+  group "dashboard" {
     count = 1
 
     # No constraint needed - deploy to any available node
-    
+
     reschedule {
       delay          = "5s"      # Fast recovery
       delay_function = "constant"
@@ -23,7 +23,7 @@ job "homepage" {
 
     network {
       mode = "host"
-      
+
       port "http" {
         static = 3200
         to = 3000
@@ -32,18 +32,18 @@ job "homepage" {
     }
 
     service {
-      name = "homepage"
+      name = "dashboard"
       port = "http"
       address_mode = "host"
       tags = ["dashboard", "ui"]
 
       check {
-        name     = "homepage-health"
+        name     = "dashboard-health"
         type     = "http"
         path     = "/"
         interval = "5s"    # Reduced from 10s
         timeout  = "2s"
-        
+
         check_restart {
           limit = 3
           grace = "30s"
@@ -52,13 +52,13 @@ job "homepage" {
       }
     }
 
-    task "homepage" {
+    task "dashboard" {
       driver = "docker"
 
       config {
         image = "ghcr.io/gethomepage/homepage:latest"
         ports = ["http"]
-        
+
         volumes = [
           "local/config:/app/config"
         ]
@@ -118,19 +118,19 @@ EOH
         description: Main DAO governance platform
         siteMonitor: https://proposals.app
         # Widget disabled - service port needs verification
-    
+
     - Arbitrum DAO:
         icon: si-ethereum
         href: https://arbitrum.proposals.app
         description: Arbitrum governance portal
         siteMonitor: https://arbitrum.proposals.app
-    
+
     - Uniswap DAO:
         icon: si-ethereum
         href: https://uniswap.proposals.app
         description: Uniswap governance portal
         siteMonitor: https://uniswap.proposals.app
-    
+
     - Email Service:
         icon: mdi-email-newsletter
         description: Notification service
@@ -149,7 +149,7 @@ EOH
               return "✓ Leader elected";
             }
             return "✗ No leader";
-    
+
     - Nomad Cluster:
         icon: si-hashicorp
         href: http://consul-nomad-sib-01:4646/ui
@@ -160,7 +160,7 @@ EOH
           display: |
             const ready = data.filter(n => n.Status === "ready").length;
             return ready + "/" + data.length + " nodes ready";
-    
+
     - Cloudflare Tunnel:
         icon: si-cloudflare
         description: Secure external access
@@ -172,13 +172,13 @@ EOH
         href: http://grafana.proposals.app
         description: Metrics visualization & dashboards
         # Access via Traefik ingress
-    
+
     - Prometheus:
         icon: prometheus
         href: http://prometheus.proposals.app
         description: Metrics collection & alerting
         # Access via Traefik ingress
-    
+
     - Loki:
         icon: grafana
         href: http://grafana.proposals.app/explore?orgId=1&left=%7B%22datasource%22:%22loki%22%7D
@@ -199,13 +199,13 @@ EOH
               return primary ? primary.name + " + " + replicas + " replicas" : "No primary";
             }
             return "✓ Cluster active";
-    
+
     - pgbackweb:
         icon: postgres
         href: http://pgbackweb-sib-01:8085
         description: PostgreSQL backup management
         siteMonitor: http://pgbackweb-sib-01:8085
-    
+
     - Redis Cluster:
         icon: redis
         description: High-availability cache
@@ -221,7 +221,7 @@ EOH
           url: http://consul-nomad-sib-01:8500/v1/agent/self
           display: |
             return data.Config.Datacenter + " - " + data.Stats.consul.leader;
-    
+
     - Sibiu DC2:
         icon: mdi-server
         href: https://sib-02:8006
@@ -231,7 +231,7 @@ EOH
           url: http://consul-nomad-sib-02:8500/v1/agent/self
           display: |
             return data.Config.Datacenter + " - " + data.Stats.consul.leader;
-    
+
     - Sibiu DC3:
         icon: mdi-server
         href: https://sib-03:8006
@@ -250,22 +250,22 @@ EOH
 ---
 - logo:
     icon: mdi-view-dashboard
-    
+
 - greeting:
     text_size: 3xl
     text: Infrastructure Dashboard
-    
+
 - datetime:
     text_size: xl
     format:
       dateStyle: long
       timeStyle: short
       hourCycle: h23
-      
+
 - search:
     provider: duckduckgo
     target: _blank
-    
+
 - openmeteo:
     label: Sibiu # Primary datacenter location
     latitude: 45.7983
@@ -278,7 +278,7 @@ EOH
     cpu: true
     memory: true
     disk: /
-    
+
 EOH
       }
 

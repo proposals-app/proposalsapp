@@ -19,8 +19,9 @@ show_usage() {
     echo "  consul-ingress   - Consul mesh gateway ingress for service routing"
     echo "  web              - Next.js frontend application"
     echo "  email-service    - Email notification service for proposals"
-    echo "  homepage         - Infrastructure dashboard with service discovery"
-    echo "  discourse-forum  - Self-contained Discourse forum instance"
+    echo "  dashboard        - Infrastructure dashboard with service discovery"
+    echo ""
+    echo "For the self-contained Discourse forum, use ./deploy-discourse-forum.sh"
     echo ""
     echo "Note: For observability stack (Prometheus, Grafana, Loki), use ./deploy-observability.sh"
     echo ""
@@ -48,7 +49,7 @@ if [ "$APP_NAME" = "all" ]; then
     echo "Deploying all applications in order"
     echo "=========================================="
 
-    DEPLOYMENT_ORDER="cloudflared consul-ingress erpc homepage web rindexer discourse mapper email-service discourse-forum"
+    DEPLOYMENT_ORDER="cloudflared consul-ingress erpc dashboard web rindexer discourse mapper email-service"
 
     # Check if we should continue on error
     CONTINUE_ON_ERROR=false
@@ -104,7 +105,7 @@ if [ "$APP_NAME" = "all" ]; then
 fi
 
 # List of valid applications
-VALID_APPS="erpc rindexer discourse mapper email-service cloudflared consul-ingress web homepage discourse-forum"
+VALID_APPS="erpc rindexer discourse mapper email-service cloudflared consul-ingress web dashboard"
 
 # Check if app is valid
 if ! echo "$VALID_APPS" | grep -q "\b$APP_NAME\b"; then

@@ -59,63 +59,7 @@
         label: "{{ item.key }} in {{ current_datacenter }}"
       no_log: true # Don't log sensitive values
 
-    - name: Display setup information for this datacenter
+    - name: Display setup completion
       debug:
-        msg: |
-          ========================================
-          Consul KV Setup Complete for {{ current_datacenter }}
-          ========================================
-
-          Environment variables have been stored in Consul KV
-          for datacenter: {{ current_datacenter }}
-
-          Run this playbook on all consul servers to replicate
-          the configuration across all datacenters.
-          ========================================
+        msg: "Consul KV setup complete for web application in {{ current_datacenter }}"
       run_once: true
-
-- name: Display final deployment instructions
-  hosts: localhost
-  connection: local
-  tasks:
-    - name: Show deployment instructions
-      debug:
-        msg: |
-          ========================================
-          Web Application Setup Complete
-          ========================================
-
-          To deploy the web application:
-          1. Ensure this playbook has been run on all consul servers
-          2. Run: nomad job run infrastructure/ansible/applications/web/web.nomad
-
-          The web application always deploys from the main branch.
-          Feature branches are built and stored in ghcr.io but not automatically deployed.
-
-          To verify the values in each datacenter:
-          - consul kv get web/root_domain
-          - consul kv get pgpool/connection_string/local
-          - consul kv get web/image/main
-
-          The web service will:
-          - Run 3 instances spread across datacenters
-          - Connect to the local pgpool instance using the connection string from Consul KV
-          - Serve the Next.js application on port 3000
-          - Send metrics to the observability stack
-          - Pull the latest Docker image from the main branch
-
-          Traffic flow:
-          1. Cloudflare Edge → Cloudflared tunnel → Traefik → Web app
-          2. Main domain: https://proposals.app
-          3. Subdomains: https://arbitrum.proposals.app, https://uniswap.proposals.app
-          4. All HTTP traffic automatically redirected to HTTPS by Traefik
-
-          Cloudflare tunnel configuration (done in Cloudflare dashboard):
-          - Create a tunnel and get the token
-          - Configure public hostname: *.proposals.app → http://traefik:8443
-          - Configure public hostname: proposals.app → http://traefik:8443
-          - The tunnel should point to any Traefik instance (port 8443)
-          - Enable "No TLS Verify" in advanced settings
-
-          Note: Database credentials are securely stored in Consul KV by the pgpool playbook
-          ========================================

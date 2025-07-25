@@ -22,6 +22,7 @@ export interface NewDiscussionEmailProps {
   discussionTitle: string;
   discussionUrl: string;
   daoName: string;
+  daoSlug: string;
   authorUsername: string;
   authorProfilePicture: string;
 }
@@ -30,6 +31,7 @@ export default function NewDiscussionEmailTemplate({
   discussionTitle = 'This is a discussion title example',
   discussionUrl = 'https://proposals.app/discussion/123',
   daoName = 'Example DAO',
+  daoSlug = 'example',
   authorUsername = 'example_user',
   authorProfilePicture = 'https://api.dicebear.com/9.x/pixel-art/png?seed=test',
 }: NewDiscussionEmailProps) {
@@ -92,7 +94,7 @@ export default function NewDiscussionEmailTemplate({
               </Text>
             </Section>
 
-            <Unsubscribe />
+            <Unsubscribe daoSlug={daoSlug} />
             <Footer />
           </Container>
         </Body>

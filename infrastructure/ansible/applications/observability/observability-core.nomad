@@ -15,13 +15,13 @@ job "observability-core" {
 
     network {
       mode = "host"
-      
+
       port "http" {
         static = 9090
         host_network = "tailscale"
       }
     }
-    
+
     # Use ephemeral disk for storage
     ephemeral_disk {
       size = 10000  # 10GB
@@ -50,9 +50,9 @@ job "observability-core" {
       driver = "docker"
 
       config {
-        image        = "prom/prometheus:v3.4.2"
+        image        = "prom/prometheus:v3.5.0"
         network_mode = "host"
-        
+
         args = [
           "--config.file=/etc/prometheus/prometheus.yml",
           "--storage.tsdb.path=/alloc/data",
@@ -128,7 +128,7 @@ scrape_configs:
         datacenter: 'dc1'
         services: ['erpc-metrics']
       - server: '{{ env "attr.unique.network.ip-address" }}:8500'
-        datacenter: 'dc2' 
+        datacenter: 'dc2'
         services: ['erpc-metrics']
       - server: '{{ env "attr.unique.network.ip-address" }}:8500'
         datacenter: 'dc3'
@@ -160,7 +160,7 @@ scrape_configs:
   - job_name: 'applications'
     consul_sd_configs:
       - server: '{{ env "attr.unique.network.ip-address" }}:8500'
-        services: 
+        services:
           - 'rindexer'
           - 'discourse'
           - 'mapper'
@@ -330,7 +330,7 @@ EOF
     constraint {
       distinct_hosts = true
     }
-    
+
     reschedule {
       delay          = "5s"      # Fast recovery
       delay_function = "constant"
@@ -347,18 +347,18 @@ EOF
 
     network {
       mode = "host"
-      
+
       port "http" {
         static = 3100
         host_network = "tailscale"
       }
-      
+
       port "grpc" {
         static = 9095
         host_network = "tailscale"
       }
     }
-    
+
     # Use ephemeral disk for storage
     ephemeral_disk {
       size = 10000  # 10GB - More space for caching
@@ -370,9 +370,9 @@ EOF
       driver = "docker"
 
       config {
-        image        = "grafana/loki:3.5.1"
+        image        = "grafana/loki:3.5.3"
         network_mode = "host"
-        
+
         args = [
           "-config.file=/etc/loki/loki.yaml",
         ]
@@ -496,7 +496,7 @@ frontend:
   max_outstanding_per_tenant: 4096  # Handle more concurrent queries
   compress_responses: true
   log_queries_longer_than: 10s  # Identify slow queries
-  
+
 ingester:
   wal:
     enabled: true
@@ -532,7 +532,7 @@ EOF
           path     = "/ready"
           interval = "5s"    # Reduced from 10s
           timeout  = "2s"
-          
+
           check_restart {
             limit = 3
             grace = "60s"     # Longer grace for Loki startup
@@ -562,7 +562,7 @@ EOF
 
     # No constraint - let Nomad place it optimally
     # This allows Grafana to move to any available node
-    
+
     reschedule {
       delay          = "5s"      # Fast recovery
       delay_function = "constant"
@@ -579,13 +579,13 @@ EOF
 
     network {
       mode = "host"
-      
+
       port "http" {
         static = 3300
         host_network = "tailscale"
       }
     }
-    
+
     # Use ephemeral disk for storage
     ephemeral_disk {
       size = 1000  # 1GB
@@ -597,9 +597,9 @@ EOF
       driver = "docker"
 
       config {
-        image        = "grafana/grafana:12.0.2"
+        image        = "grafana/grafana:12.1.0"
         network_mode = "host"
-        
+
         volumes = [
           "local/grafana.ini:/etc/grafana/grafana.ini",
           "local/provisioning:/etc/grafana/provisioning",
@@ -764,7 +764,7 @@ EOF
           path     = "/api/health"
           interval = "5s"    # Reduced from 10s
           timeout  = "2s"
-          
+
           check_restart {
             limit = 3
             grace = "30s"

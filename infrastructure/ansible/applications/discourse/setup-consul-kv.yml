@@ -35,50 +35,7 @@
         label: "{{ item.key }} in {{ current_datacenter }}"
       no_log: true # Don't log sensitive values
 
-    - name: Display setup information for this datacenter
+    - name: Display setup completion
       debug:
-        msg: |
-          ========================================
-          Consul KV Setup Complete for {{ current_datacenter }}
-          ========================================
-
-          Environment variables have been stored in Consul KV
-          for datacenter: {{ current_datacenter }}
-
-          Run this playbook on all consul servers to replicate
-          the configuration across all datacenters.
-          ========================================
+        msg: "Consul KV setup complete for discourse in {{ current_datacenter }}"
       run_once: true
-
-- name: Display final deployment instructions
-  hosts: localhost
-  connection: local
-  tasks:
-    - name: Show deployment instructions
-      debug:
-        msg: |
-          ========================================
-          Discourse Setup Complete
-          ========================================
-
-          To deploy discourse:
-          1. Ensure this playbook has been run on all consul servers
-          2. Run: nomad job run infrastructure/ansible/applications/discourse/discourse.nomad
-
-          Discourse always deploys from the main branch.
-          Feature branches are built and stored in ghcr.io but not automatically deployed.
-
-          To verify the values in each datacenter:
-          - consul kv get discourse/betterstack_key
-          - consul kv get pgpool/connection_string/local
-          - consul kv get discourse/image/main
-
-          The discourse service will automatically:
-          - Connect to the local pgpool instance using the connection string from Consul KV
-          - Index Discourse forums based on the daoDiscourse table configuration
-          - Send metrics to the observability stack
-          - Send uptime pings to BetterStack (if configured)
-          - Pull the latest Docker image from the main branch
-
-          Note: Database credentials are securely stored in Consul KV by the pgpool playbook
-          ========================================

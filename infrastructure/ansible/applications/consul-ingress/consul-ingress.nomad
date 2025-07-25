@@ -19,9 +19,9 @@ job "consul-ingress" {
       driver = "docker"
 
       config {
-        image = "envoyproxy/envoy:v1.28.0"
+        image = "envoyproxy/envoy:v1.35.0"
         network_mode = "host"
-        
+
         args = [
           "-c", "/local/envoy.yaml",
           "-l", "info"
@@ -66,13 +66,13 @@ static_resources:
                 route:
                   cluster: web_cluster
                   timeout: 30s
-            - name: homepage_service
+            - name: dashboard_service
               domains: ["dashboard.proposals.app"]
               routes:
               - match:
                   prefix: "/"
                 route:
-                  cluster: homepage_cluster
+                  cluster: dashboard_cluster
                   timeout: 30s
             - name: grafana_service
               domains: ["grafana.proposals.app"]
@@ -142,15 +142,15 @@ static_resources:
                 port_value: {{ .Port }}
       {{- end }}
 
-  - name: homepage_cluster
+  - name: dashboard_cluster
     connect_timeout: 5s
     type: STRICT_DNS
     lb_policy: ROUND_ROBIN
     load_assignment:
-      cluster_name: homepage_cluster
+      cluster_name: dashboard_cluster
       endpoints:
       # Query all datacenters for single-instance services
-      {{- range service "homepage" }}
+      {{- range service "dashboard" }}
       - lb_endpoints:
         - endpoint:
             address:
@@ -161,7 +161,7 @@ static_resources:
       {{- range datacenters }}
       {{- if ne . (env "DATACENTER") }}
       {{- $dc := . }}
-      {{- range service (printf "homepage@%s" $dc) }}
+      {{- range service (printf "dashboard@%s" $dc) }}
       - lb_endpoints:
         - endpoint:
             address:
@@ -273,7 +273,7 @@ EOF
         name = "consul-ingress"
         port = "http"
         address_mode = "host"
-        
+
         check {
           type     = "http"
           path     = "/clusters"
