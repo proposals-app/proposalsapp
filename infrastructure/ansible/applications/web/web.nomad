@@ -5,12 +5,12 @@ job "web" {
   update {
     max_parallel      = 1
     health_check      = "checks"
-    min_healthy_time  = "10s"
-    healthy_deadline  = "2m"
-    progress_deadline = "5m"
+    min_healthy_time  = "30s"    # Increased to ensure app is truly ready
+    healthy_deadline  = "5m"      # Increased to allow for slow starts
+    progress_deadline = "10m"     # Increased for deployment completion
     auto_revert       = true
-    auto_promote      = false
-    canary            = 0
+    auto_promote      = true      # Enable auto-promote for faster deployments
+    canary            = 1         # Use canary deployments for safety
     stagger           = "30s"
   }
 
@@ -196,18 +196,43 @@ EOF
         port = "http"
         address_mode = "host"
 
+        # Readiness check - used during deployments
         check {
+          name     = "web-ready"
+          type     = "http"
+          path     = "/api/ready"
+          interval = "5s"
+          timeout  = "5s"
+          
+          # This is the primary check for deployments
+          check_restart {
+            limit = 10         # More lenient for readiness
+            grace = "120s"     # 2 minutes grace for full startup
+            ignore_warnings = true
+          }
+        }
+        
+        # Liveness check - lightweight health check
+        check {
+          name     = "web-alive"
           type     = "http"
           path     = "/api/health"
-          interval = "5s"
-          timeout  = "2s"
+          interval = "30s"     # Less frequent for established instances
+          timeout  = "5s"
           
-          # Additional health check configuration
           check_restart {
             limit = 3          # Restart after 3 consecutive failures
-            grace = "30s"     # Grace period before health checks start
+            grace = "300s"     # 5 minutes grace after readiness
             ignore_warnings = false
           }
+        }
+        
+        # TCP check for basic connectivity
+        check {
+          name     = "web-tcp"
+          type     = "tcp"
+          interval = "10s"
+          timeout  = "2s"
         }
       }
     }
