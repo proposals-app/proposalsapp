@@ -24,6 +24,19 @@ dotenv_config();
 // Create logger instance
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
+  formatters: {
+    level: (label) => {
+      return { level: label.toUpperCase() };
+    },
+    bindings: (bindings) => {
+      return {
+        ...bindings,
+        service: 'email-service',
+      };
+    },
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+  messageKey: 'message',
 });
 
 // Configuration - only what we actually need
