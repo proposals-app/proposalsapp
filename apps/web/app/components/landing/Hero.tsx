@@ -8,7 +8,6 @@ export async function Hero() {
   return (
     <HeroClient
       activeProposals={stats.activeProposals}
-      daosCount={stats.daosCount}
       daoLogos={SUPPORTED_DAOS}
     />
   );
