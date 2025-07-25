@@ -31,7 +31,6 @@ const logger = pino({
     bindings: (bindings) => {
       return {
         ...bindings,
-        service: 'email-service',
       };
     },
   },
