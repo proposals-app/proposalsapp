@@ -1,6 +1,6 @@
 import type { Proposal, Selectable } from '@proposalsapp/db';
 import {
-  getNonVoters,
+  // getNonVoters,
   getProposalGovernor,
   getVoter,
   getVotesWithVoters,
@@ -78,9 +78,9 @@ async function ResultsContent({ proposal }: ResultsProps) {
         </Suspense>
 
         <div className='flex flex-col'>
-          {/*<Suspense fallback={<LoadingNonVotersTable />}>
+          <Suspense fallback={<LoadingNonVotersTable />}>
             <NonVotersTableLazy proposalId={proposal.id} />
-          </Suspense>*/}
+          </Suspense>
 
           <Suspense fallback={<LoadingTable />}>
             <ResultsTable results={serializedResults} votes={serializedVotes} />
@@ -99,7 +99,15 @@ async function ResultsContent({ proposal }: ResultsProps) {
 }
 
 async function NonVotersTableLazy({ proposalId }: { proposalId: string }) {
-  const nonVoters = await getNonVoters(proposalId);
+  // const nonVoters = await getNonVoters(proposalId);
+
+  const nonVoters = {
+    totalNumberOfNonVoters: 0,
+    totalVotingPower: 0,
+    nonVoters: [],
+    pid: proposalId,
+  };
+
   return <NonVotersTable nonVoters={nonVoters} />;
 }
 
