@@ -78,9 +78,9 @@ async function ResultsContent({ proposal }: ResultsProps) {
         </Suspense>
 
         <div className='flex flex-col'>
-          <Suspense fallback={<LoadingNonVotersTable />}>
+          {/*<Suspense fallback={<LoadingNonVotersTable />}>
             <NonVotersTableLazy proposalId={proposal.id} />
-          </Suspense>
+          </Suspense>*/}
 
           <Suspense fallback={<LoadingTable />}>
             <ResultsTable results={serializedResults} votes={serializedVotes} />
