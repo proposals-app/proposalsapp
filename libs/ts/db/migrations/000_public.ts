@@ -46,24 +46,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addColumn('slug', 'text', (col) => col.notNull())
     .addColumn('picture', 'text', (col) => col.notNull())
     .execute();
-  // Indexes for dao
-  await db.schema
-    .createIndex('dao_name_key')
-    .on('public.dao')
-    .column('name')
-    .unique()
-    .execute();
-  await db.schema
-    .createIndex('dao_slug_key')
-    .on('public.dao')
-    .column('slug')
-    .unique()
-    .execute();
-  await db.schema
-    .createIndex('idx_dao_slug')
-    .on('public.dao')
-    .column('slug')
-    .execute();
 
   await db.schema
     .createTable('public.dao_discourse')
@@ -72,10 +54,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
     )
     .addColumn('dao_id', 'uuid', (col) => col.notNull())
     .addColumn('discourse_base_url', 'text', (col) => col.notNull())
-    .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
-    .addColumn('with_user_agent', 'boolean', (col) =>
-      col.notNull().defaultTo(false)
-    )
     .addForeignKeyConstraint(
       'fk_dao_discourse_dao_id',
       ['dao_id'],
@@ -93,8 +71,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addColumn('dao_id', 'uuid', (col) => col.notNull())
     .addColumn('name', 'text', (col) => col.notNull())
     .addColumn('type', 'text', (col) => col.notNull())
-    .addColumn('metadata', 'jsonb', (col) => col.notNull().defaultTo('{}'))
-    .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
     .addColumn('portal_url', 'text')
     .addForeignKeyConstraint(
       'fk_dao_governor_dao_id',
@@ -103,18 +79,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
-    .execute();
-  // Indexes for dao_governor
-  await db.schema
-    .createIndex('governor_new_pkey')
-    .on('public.dao_governor')
-    .column('id')
-    .unique()
-    .execute();
-  await db.schema
-    .createIndex('idx_governor_new_dao_id')
-    .on('public.dao_governor')
-    .column('dao_id')
     .execute();
 
   await db.schema
@@ -158,18 +122,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       (cb) => cb.onDelete('cascade')
     )
     .execute();
-  // Indexes for discourse_user
-  await db.schema
-    .createIndex('idx_discourse_user_external_id')
-    .on('public.discourse_user')
-    .column('external_id')
-    .execute();
-  await db.schema
-    .createIndex('uq_discourse_user_external_id_dao_discourse_id')
-    .on('public.discourse_user')
-    .columns(['external_id', 'dao_discourse_id'])
-    .unique()
-    .execute();
 
   await db.schema
     .createTable('public.delegate_to_discourse_user')
@@ -200,22 +152,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       (cb) => cb.onDelete('cascade')
     )
     .execute();
-  // Indexes for delegate_to_discourse_user
-  await db.schema
-    .createIndex('idx_delegate_to_discourse_user_delegate_id')
-    .on('public.delegate_to_discourse_user')
-    .column('delegate_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_delegate_to_discourse_user_discourse_user_id')
-    .on('public.delegate_to_discourse_user')
-    .column('discourse_user_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_delegate_to_discourse_user_period')
-    .on('public.delegate_to_discourse_user')
-    .columns(['period_start', 'period_end'])
-    .execute();
 
   await db.schema
     .createTable('public.voter')
@@ -228,18 +164,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addColumn('updated_at', 'timestamp', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
     )
-    .execute();
-  // Indexes for voter
-  await db.schema
-    .createIndex('idx_voter_address')
-    .on('public.voter')
-    .column('address')
-    .execute();
-  await db.schema
-    .createIndex('voter_address_key')
-    .on('public.voter')
-    .column('address')
-    .unique()
     .execute();
 
   await db.schema
@@ -271,22 +195,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       (cb) => cb.onDelete('cascade')
     )
     .execute();
-  // Indexes for delegate_to_voter
-  await db.schema
-    .createIndex('idx_delegate_to_voter_delegate_id')
-    .on('public.delegate_to_voter')
-    .column('delegate_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_delegate_to_voter_period')
-    .on('public.delegate_to_voter')
-    .columns(['period_start', 'period_end'])
-    .execute();
-  await db.schema
-    .createIndex('idx_delegate_to_voter_voter_id')
-    .on('public.delegate_to_voter')
-    .column('voter_id')
-    .execute();
 
   await db.schema
     .createTable('public.delegation')
@@ -308,43 +216,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
-    .execute();
-  // Indexes for delegation
-  await db.schema
-    .createIndex('idx_delegation_block')
-    .on('public.delegation')
-    .column('block')
-    .execute();
-  await db.schema
-    .createIndex('idx_delegation_delegate')
-    .on('public.delegation')
-    .column('delegate')
-    .execute();
-  await db.schema
-    .createIndex('idx_delegation_delegate_block')
-    .on('public.delegation')
-    .columns(['delegate', 'block'])
-    .execute();
-  await db.schema
-    .createIndex('idx_delegation_delegate_timestamp')
-    .on('public.delegation')
-    .columns(['delegate', 'timestamp'])
-    .execute();
-  await db.schema
-    .createIndex('idx_delegation_delegator')
-    .on('public.delegation')
-    .column('delegator')
-    .execute();
-  await db.schema
-    .createIndex('idx_delegation_timestamp')
-    .on('public.delegation')
-    .column('timestamp')
-    .execute();
-  await db.schema
-    .createIndex('uq_delegation_txid')
-    .on('public.delegation')
-    .column('txid')
-    .unique()
     .execute();
 
   await db.schema
@@ -374,18 +245,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
-    .execute();
-  // Indexes for discourse_category
-  await db.schema
-    .createIndex('idx_discourse_category_external_id')
-    .on('public.discourse_category')
-    .column('external_id')
-    .execute();
-  await db.schema
-    .createIndex('uq_discourse_category_external_id_dao_discourse_id')
-    .on('public.discourse_category')
-    .columns(['external_id', 'dao_discourse_id'])
-    .unique()
     .execute();
 
   await db.schema
@@ -431,38 +290,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       (cb) => cb.onDelete('cascade')
     )
     .execute();
-  // Indexes for discourse_post
-  await db.schema
-    .createIndex('idx_discourse_post_external_id')
-    .on('public.discourse_post')
-    .column('external_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_post_topic_dao_discourse_post_number')
-    .on('public.discourse_post')
-    .columns(['topic_id', 'dao_discourse_id', 'post_number'])
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_post_topic_id')
-    .on('public.discourse_post')
-    .column('topic_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_post_user_id')
-    .on('public.discourse_post')
-    .column('user_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_post_version')
-    .on('public.discourse_post')
-    .column('version')
-    .execute();
-  await db.schema
-    .createIndex('uq_discourse_post_external_id_dao_discourse_id')
-    .on('public.discourse_post')
-    .columns(['external_id', 'dao_discourse_id'])
-    .unique()
-    .execute();
 
   await db.schema
     .createTable('public.discourse_post_like')
@@ -480,32 +307,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
-    .execute();
-  // Indexes for discourse_post_like
-  await db.schema
-    .createIndex('idx_discourse_post_like_created_at')
-    .on('public.discourse_post_like')
-    .column('created_at')
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_post_like_external_user_id')
-    .on('public.discourse_post_like')
-    .column('external_user_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_external_discourse_post_like_post_id')
-    .on('public.discourse_post_like')
-    .column('external_discourse_post_id')
-    .execute();
-  await db.schema
-    .createIndex('uq_external_discourse_post_like_post_user_dao')
-    .on('public.discourse_post_like')
-    .columns([
-      'external_discourse_post_id',
-      'external_user_id',
-      'dao_discourse_id',
-    ])
-    .unique()
     .execute();
 
   await db.schema
@@ -541,36 +342,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       (cb) => cb.onDelete('cascade')
     )
     .execute();
-  // Indexes for discourse_post_revision
-  await db.schema
-    .createIndex('idx_discourse_post_revision_discourse_post_id')
-    .on('public.discourse_post_revision')
-    .column('discourse_post_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_post_revision_external_post_id')
-    .on('public.discourse_post_revision')
-    .column('external_post_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_post_revision_version')
-    .on('public.discourse_post_revision')
-    .column('version')
-    .execute();
-  await db.schema
-    .createIndex(
-      'uq_discourse_post_revision_external_post_id_version_dao_discour'
-    )
-    .on('public.discourse_post_revision')
-    .columns(['external_post_id', 'version', 'dao_discourse_id'])
-    .unique()
-    .execute();
-  await db.schema
-    .createIndex('uq_discourse_post_revision_post_version')
-    .on('public.discourse_post_revision')
-    .columns(['discourse_post_id', 'version'])
-    .unique()
-    .execute();
 
   await db.schema
     .createTable('public.discourse_topic')
@@ -602,28 +373,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
-    .execute();
-  // Indexes for discourse_topic
-  await db.schema
-    .createIndex('idx_discourse_topic_category_id')
-    .on('public.discourse_topic')
-    .column('category_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_topic_external_id')
-    .on('public.discourse_topic')
-    .column('external_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_discourse_topic_external_id_dao_discourse_id')
-    .on('public.discourse_topic')
-    .columns(['external_id', 'dao_discourse_id'])
-    .execute();
-  await db.schema
-    .createIndex('uq_discourse_topic_external_id_dao_discourse_id')
-    .on('public.discourse_topic')
-    .columns(['external_id', 'dao_discourse_id'])
-    .unique()
     .execute();
 
   await db.schema
@@ -670,59 +419,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       (cb) => cb.onDelete('cascade')
     )
     .execute();
-  // Indexes for proposal
-  await db.schema
-    .createIndex('idx_proposal_block_end_at')
-    .on('public.proposal')
-    .column('block_end_at')
-    .execute();
-  await db.schema
-    .createIndex('idx_proposal_block_start_at')
-    .on('public.proposal')
-    .column('block_start_at')
-    .execute();
-  await db.schema
-    .createIndex('idx_proposal_external_id_governor_id')
-    .on('public.proposal')
-    .columns(['external_id', 'governor_id'])
-    .execute();
-  await db.schema
-    .createIndex('idx_proposal_new_dao_id')
-    .on('public.proposal')
-    .column('dao_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_proposal_new_governor_id')
-    .on('public.proposal')
-    .column('governor_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_proposal_new_proposal_state')
-    .on('public.proposal')
-    .column('proposal_state')
-    .execute();
-  await db.schema
-    .createIndex('idx_proposal_new_time_end')
-    .on('public.proposal')
-    .column('end_at')
-    .execute();
-  await db.schema
-    .createIndex('idx_proposal_new_time_start')
-    .on('public.proposal')
-    .column('start_at')
-    .execute();
-  await db.schema
-    .createIndex('proposal_new_pkey')
-    .on('public.proposal')
-    .column('id')
-    .unique()
-    .execute();
-  await db.schema
-    .createIndex('proposal_new_txid_key')
-    .on('public.proposal')
-    .column('txid')
-    .unique()
-    .execute();
 
   await db.schema
     .createTable('public.proposal_group')
@@ -742,17 +438,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
-    .execute();
-  // Indexes for proposal_group
-  await db.schema
-    .createIndex('idx_proposal_group_dao_id')
-    .on('public.proposal_group')
-    .column('dao_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_proposal_group_items')
-    .on('public.proposal_group')
-    .column('items')
     .execute();
 
   await db.schema
@@ -802,54 +487,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       (cb) => cb.onDelete('cascade')
     )
     .execute();
-  // Indexes for vote
-  await db.schema
-    .createIndex('idx_vote_created_at')
-    .on('public.vote')
-    .column('created_at')
-    .execute();
-  await db.schema
-    .createIndex('idx_vote_external_id_governor_id')
-    .on('public.vote')
-    .columns(['proposal_external_id', 'governor_id'])
-    .execute();
-  await db.schema
-    .createIndex('idx_vote_new_dao_id')
-    .on('public.vote')
-    .column('dao_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_vote_new_governor_id')
-    .on('public.vote')
-    .column('governor_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_vote_new_proposal_id')
-    .on('public.vote')
-    .column('proposal_id')
-    .execute();
-  await db.schema
-    .createIndex('idx_vote_new_voter_address')
-    .on('public.vote')
-    .column('voter_address')
-    .execute();
-  await db.schema
-    .createIndex('idx_vote_proposal_id_voter_address')
-    .on('public.vote')
-    .columns(['proposal_id', 'voter_address'])
-    .execute();
-  await db.schema
-    .createIndex('unique_vote_new')
-    .on('public.vote')
-    .columns(['proposal_id', 'voter_address', 'created_at'])
-    .unique()
-    .execute();
-  await db.schema
-    .createIndex('vote_new_pkey')
-    .on('public.vote')
-    .column('id')
-    .unique()
-    .execute();
 
   await db.schema
     .createTable('public.voting_power')
@@ -871,48 +508,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
-    .execute();
-  // Indexes for voting_power
-  await db.schema
-    .createIndex('idx_voting_power_block')
-    .on('public.voting_power')
-    .column('block')
-    .execute();
-  await db.schema
-    .createIndex('idx_voting_power_dao_id_voter_timestamp_voting_power')
-    .on('public.voting_power')
-    .columns(['dao_id', 'voter', 'timestamp', 'voting_power'])
-    .execute();
-  await db.schema
-    .createIndex('idx_voting_power_dao_voter_ts_desc')
-    .on('public.voting_power')
-    .columns(['dao_id', 'voter', 'timestamp desc'])
-    .execute();
-  await db.schema
-    .createIndex('idx_voting_power_timestamp')
-    .on('public.voting_power')
-    .column('timestamp')
-    .execute();
-  await db.schema
-    .createIndex('idx_voting_power_voter')
-    .on('public.voting_power')
-    .column('voter')
-    .execute();
-  await db.schema
-    .createIndex('idx_voting_power_voter_block')
-    .on('public.voting_power')
-    .columns(['voter', 'block'])
-    .execute();
-  await db.schema
-    .createIndex('idx_voting_power_voter_timestamp')
-    .on('public.voting_power')
-    .columns(['voter', 'timestamp'])
-    .execute();
-  await db.schema
-    .createIndex('uq_voting_power_txid')
-    .on('public.voting_power')
-    .column('txid')
-    .unique()
     .execute();
 }
 

@@ -61,7 +61,318 @@ export async function markAllAsRead(daoSlug: string) {
   }
 }
 
-// Removed unused interfaces and helper functions since we now use the materialized view
+interface ProposalGroupItem {
+  type: 'proposal' | 'topic';
+  externalId: string;
+  governorId: string;
+  daoDiscourseId: string;
+}
+
+interface GroupCoreData {
+  id: string;
+  name: string;
+  items: ProposalGroupItem[];
+  daoId: string;
+}
+
+interface GroupActivityData {
+  id: string; // Group ID
+  newestActivityTimestamp: number;
+  hasActiveProposal: boolean;
+  earliestEndTime: number;
+  votesCount: number;
+  postsCount: number;
+  proposalsCount: number;
+  topicsCount: number;
+}
+
+interface GroupAuthorInfo {
+  id: string; // Group ID
+  originalAuthorName: string;
+  originalAuthorPicture: string;
+  earliestItemCreatedAt: Date;
+}
+
+/**
+ * Fetches core group data (ID, name, items). This can be cached more broadly.
+ */
+async function getCoreGroupsData(
+  daoId: string
+): Promise<GroupCoreData[] | null> {
+  // 'use cache';
+  // Cache this data longer and tag it non-user-specifically
+  // cacheTag(`groups-data-${daoId}`);
+  // cacheLife('minutes');
+
+  const coreGroups = await db.public
+    .selectFrom('proposalGroup')
+    .select(['id', 'name', 'items', 'daoId'])
+    .where('daoId', '=', daoId)
+    .where('name', '!=', 'UNGROUPED')
+    .execute();
+
+  if (!coreGroups) return null;
+
+  // Ensure items is parsed correctly
+  return coreGroups.map((group) => ({
+    ...group,
+    items: group.items as unknown as ProposalGroupItem[],
+  }));
+}
+
+/**
+ * Fetches activity and author-related data for groups based on their items.
+ * This involves more lookups and might change more often.
+ */
+async function getActivityAndAuthorData(groups: GroupCoreData[]): Promise<{
+  activityMap: Map<string, GroupActivityData>;
+  authorMap: Map<string, GroupAuthorInfo>;
+}> {
+  // 'use cache';
+  // Shorter cache life for activity data
+  // cacheTag(`groups-activity-${groups[0]?.daoId || 'unknown'}`); // Tag by daoId if possible
+  // cacheLife('minutes');
+
+  if (!groups || groups.length === 0) {
+    return { activityMap: new Map(), authorMap: new Map() };
+  }
+
+  const allProposalItems: { externalId: string; governorId: string }[] = [];
+  const allTopicItems: { externalId: string; daoDiscourseId: string }[] = [];
+  const allTopicIdsForPosts: {
+    topicExternalId: number;
+    daoDiscourseId: string;
+  }[] = [];
+
+  groups.forEach((group) => {
+    group.items.forEach((item) => {
+      if (item.type === 'proposal') {
+        allProposalItems.push({
+          externalId: item.externalId,
+          governorId: item.governorId,
+        });
+      } else if (item.type === 'topic') {
+        allTopicItems.push({
+          externalId: item.externalId,
+          daoDiscourseId: item.daoDiscourseId,
+        });
+        allTopicIdsForPosts.push({
+          topicExternalId: parseInt(item.externalId, 10),
+          daoDiscourseId: item.daoDiscourseId,
+        });
+      }
+    });
+  });
+
+  // --- Optimized Bulk Queries ---
+  const proposalsPromise =
+    allProposalItems.length > 0
+      ? db.public
+          .selectFrom('proposal')
+          .leftJoin('vote', 'vote.proposalId', 'proposal.id')
+          .select([
+            'proposal.id',
+            'proposal.externalId',
+            'proposal.governorId',
+            'proposal.author',
+            'proposal.createdAt',
+            'proposal.endAt',
+            db.public.fn.count('vote.id').as('voteCount'),
+          ])
+          .where(
+            sql`(proposal."external_id", proposal."governor_id")`,
+            'in',
+            sql`(${sql.join(
+              allProposalItems.map(
+                (item) => sql`(${item.externalId}, ${item.governorId})`
+              )
+            )})`
+          )
+          .groupBy(['proposal.id'])
+          .execute()
+      : Promise.resolve([]);
+
+  const topicsPromise =
+    allTopicItems.length > 0
+      ? db.public
+          .selectFrom('discourseTopic')
+          .select([
+            'discourseTopic.id as topicId', // Select the internal topic ID too
+            'discourseTopic.externalId',
+            'discourseTopic.daoDiscourseId',
+            'discourseTopic.bumpedAt',
+            'discourseTopic.postsCount',
+            'discourseTopic.createdAt',
+          ])
+          .where((eb) =>
+            eb.or(
+              allTopicItems.map((item) =>
+                eb('externalId', '=', parseInt(item.externalId, 10)).and(
+                  'daoDiscourseId',
+                  '=',
+                  item.daoDiscourseId
+                )
+              )
+            )
+          )
+          .execute()
+      : Promise.resolve([]);
+
+  // Fetch first post authors more efficiently
+  const firstPostsAuthorsPromise =
+    allTopicIdsForPosts.length > 0
+      ? db.public
+          .selectFrom('discoursePost as dp')
+          .innerJoin('discourseUser as du', (join) =>
+            join
+              .onRef('du.externalId', '=', 'dp.userId')
+              .onRef('du.daoDiscourseId', '=', 'dp.daoDiscourseId')
+          )
+          .select([
+            'dp.topicId',
+            'dp.daoDiscourseId',
+            'du.username',
+            'du.name',
+            'du.avatarTemplate',
+          ])
+          .where('dp.postNumber', '=', 1)
+          .where((eb) =>
+            eb.or(
+              allTopicIdsForPosts.map((item) =>
+                eb('dp.topicId', '=', item.topicExternalId).and(
+                  'dp.daoDiscourseId',
+                  '=',
+                  item.daoDiscourseId
+                )
+              )
+            )
+          )
+          .execute()
+      : Promise.resolve([]);
+
+  const [proposals, topics, firstPostsAuthors] = await Promise.all([
+    proposalsPromise,
+    topicsPromise,
+    firstPostsAuthorsPromise,
+  ]);
+
+  // --- Maps for Efficient Lookups ---
+  const proposalsMap = new Map(
+    proposals.map((p) => [
+      `${p.externalId}-${p.governorId}`,
+      { ...p, voteCount: Number(p.voteCount) },
+    ])
+  );
+  const topicsMap = new Map(
+    topics.map((t) => [`${t.externalId}-${t.daoDiscourseId}`, t])
+  );
+  const firstPostsAuthorsMap = new Map(
+    firstPostsAuthors.map((p) => [
+      `${p.topicId}-${p.daoDiscourseId}`,
+      {
+        username: p.username,
+        name: p.name,
+        avatarTemplate: p.avatarTemplate,
+      },
+    ])
+  );
+
+  // --- Process Each Group ---
+  const activityMap = new Map<string, GroupActivityData>();
+  const authorMap = new Map<string, GroupAuthorInfo>();
+
+  groups.forEach((group) => {
+    let newestActivityTimestamp = 0;
+    let hasActiveProposal = false;
+    let earliestEndTime = Infinity;
+    let votesCount = 0;
+    let postsCount = 0;
+    let proposalsCount = 0;
+    let topicsCount = 0;
+
+    let earliestAuthorName = 'Unknown';
+    let earliestAuthorPicture =
+      'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app';
+    let earliestItemCreatedAt = new Date();
+
+    group.items.forEach((item) => {
+      if (item.type === 'proposal') {
+        const key = `${item.externalId}-${item.governorId}`;
+        const proposal = proposalsMap.get(key);
+        if (proposal) {
+          proposalsCount++;
+          newestActivityTimestamp = Math.max(
+            newestActivityTimestamp,
+            proposal.createdAt.getTime()
+          );
+          votesCount += proposal.voteCount;
+
+          const now = Date.now();
+          if (
+            proposal.endAt.getTime() > now &&
+            proposal.endAt.getTime() < earliestEndTime
+          ) {
+            hasActiveProposal = true;
+            earliestEndTime = proposal.endAt.getTime();
+          }
+
+          if (proposal.createdAt < earliestItemCreatedAt) {
+            earliestItemCreatedAt = proposal.createdAt;
+            earliestAuthorName = proposal.author || 'Unknown';
+            earliestAuthorPicture = `https://api.dicebear.com/9.x/pixel-art/png?seed=${proposal.author || 'unknown'}`;
+          }
+        }
+      } else if (item.type === 'topic') {
+        const key = `${item.externalId}-${item.daoDiscourseId}`;
+        const topic = topicsMap.get(key);
+        if (topic) {
+          topicsCount++;
+          const topicActivity = topic.bumpedAt
+            ? topic.bumpedAt.getTime()
+            : topic.createdAt.getTime();
+          newestActivityTimestamp = Math.max(
+            newestActivityTimestamp,
+            topicActivity
+          );
+          postsCount += topic.postsCount;
+
+          if (topic.createdAt < earliestItemCreatedAt) {
+            earliestItemCreatedAt = topic.createdAt;
+            const authorData = firstPostsAuthorsMap.get(
+              `${topic.externalId}-${topic.daoDiscourseId}`
+            );
+            if (authorData) {
+              earliestAuthorName = authorData.username;
+              earliestAuthorPicture =
+                authorData.avatarTemplate ||
+                `https://api.dicebear.com/9.x/pixel-art/png?seed=${authorData.username}`;
+            }
+          }
+        }
+      }
+    });
+
+    activityMap.set(group.id, {
+      id: group.id,
+      newestActivityTimestamp,
+      hasActiveProposal,
+      earliestEndTime,
+      votesCount,
+      postsCount,
+      proposalsCount,
+      topicsCount,
+    });
+
+    authorMap.set(group.id, {
+      id: group.id,
+      originalAuthorName: earliestAuthorName,
+      originalAuthorPicture: earliestAuthorPicture,
+      earliestItemCreatedAt,
+    });
+  });
+
+  return { activityMap, authorMap };
+}
 
 /**
  * Fetches user-specific last read data for groups.
@@ -106,11 +417,6 @@ async function getUserLastReadData(
 }
 
 export async function getGroups(daoSlug: string, userId?: string) {
-  // Add early validation with better error message
-  if (!daoSlug) {
-    throw new Error('daoSlug is required but was not provided');
-  }
-
   daoSlugSchema.parse(daoSlug);
 
   const dao = await db.public
@@ -121,25 +427,26 @@ export async function getGroups(daoSlug: string, userId?: string) {
 
   if (!dao) return null;
 
-  // Fetch data from materialized view
-  const groupsData = await db.public
-    .selectFrom('proposalGroupSummary')
-    .where('daoId', '=', dao.id)
-    .selectAll()
-    .execute();
+  // 1. Fetch Core Group Data (Cached separately)
+  const coreGroups = await getCoreGroupsData(dao.id);
+  if (!coreGroups) return null;
 
-  if (!groupsData || groupsData.length === 0) return null;
+  // 2. Fetch Activity and Author Data (Cached separately, shorter TTL)
+  const { activityMap, authorMap } = await getActivityAndAuthorData(coreGroups);
 
-  // Fetch User-Specific Last Read Data (Cached per user, shortest TTL)
-  const groupIds = groupsData.map((g) => g.id);
+  // 3. Fetch User-Specific Last Read Data (Cached per user, shortest TTL)
+  const groupIds = coreGroups.map((g) => g.id);
   const lastReadMap = userId
     ? await getUserLastReadData(groupIds, userId, daoSlug)
     : new Map<string, Date | null>();
 
   // --- Combine Data and Sort ---
-  const combinedGroups = groupsData.map((group) => {
+  const combinedGroups = coreGroups.map((group) => {
+    const activityData = activityMap.get(group.id);
+    const authorData = authorMap.get(group.id);
     const lastReadAt = lastReadMap.get(group.id);
-    const newestActivityTimestamp = group.latestActivityAt.getTime();
+
+    const newestActivityTimestamp = activityData?.newestActivityTimestamp || 0;
     const hasNewActivity = userId
       ? lastReadAt
         ? newestActivityTimestamp > lastReadAt.getTime()
@@ -151,17 +458,20 @@ export async function getGroups(daoSlug: string, userId?: string) {
       name: group.name,
       slug: `${group.id}`, // Assuming slug is just the ID for routing
       daoId: group.daoId,
-      votesCount: Number(group.votesCount),
-      postsCount: Number(group.postsCount),
-      proposalsCount: Number(group.proposalsCount),
-      topicsCount: Number(group.topicsCount),
+      votesCount: activityData?.votesCount || 0,
+      postsCount: activityData?.postsCount || 0,
+      proposalsCount: activityData?.proposalsCount || 0,
+      topicsCount: activityData?.topicsCount || 0,
       newestActivityTimestamp,
       hasNewActivity,
-      hasActiveProposal: group.hasActiveProposal,
-      earliestEndTime: group.earliestEndTime?.getTime() || Infinity,
-      originalAuthorName: group.authorName,
-      originalAuthorPicture: group.authorAvatarUrl,
+      hasActiveProposal: activityData?.hasActiveProposal || false,
+      earliestEndTime: activityData?.earliestEndTime || Infinity,
+      originalAuthorName: authorData?.originalAuthorName || 'Unknown',
+      originalAuthorPicture:
+        authorData?.originalAuthorPicture ||
+        'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app',
       groupName: group.name,
+      // Items are no longer needed here
     };
   });
 

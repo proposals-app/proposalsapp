@@ -1,16 +1,15 @@
-import { type Kysely, sql } from 'kysely';
-import type { DB } from '../src/kysely_db';
+import { sql, type Kysely } from 'kysely';
+import type { DB } from '../src';
 
-export async function up(db: Kysely<DB>): Promise<void> {
-  // --- SCHEMAS ---
-  await sql`CREATE SCHEMA IF NOT EXISTS "arbitrum";`.execute(db);
+export async function seed(db: Kysely<DB>): Promise<void> {
+  await sql`CREATE SCHEMA IF NOT EXISTS "uniswap";`.execute(db);
 
-  // --- TABLES IN arbitrum SCHEMA ---
+  // --- TABLES IN uniswap SCHEMA ---
   await db.schema
-    .createTable('arbitrum.user')
+    .createTable('uniswap.user')
     .addColumn('id', 'text', (col) => col.primaryKey())
     .addColumn('name', 'text', (col) => col.notNull())
-    .addColumn('email', 'text', (col) => col.notNull()) // Unique constraint added below
+    .addColumn('email', 'text', (col) => col.unique().notNull())
     .addColumn('email_verified', 'boolean', (col) => col.notNull())
     .addColumn('image', 'text')
     .addColumn('created_at', 'timestamp', (col) => col.notNull())
@@ -27,11 +26,10 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addColumn('email_settings_ending_proposals', 'boolean', (col) =>
       col.notNull().defaultTo(true)
     )
-    .addUniqueConstraint('user_email_key', ['email']) // From your SQL
     .execute();
 
   await db.schema
-    .createTable('arbitrum.verification')
+    .createTable('uniswap.verification')
     .addColumn('id', 'text', (col) => col.primaryKey())
     .addColumn('identifier', 'text', (col) => col.notNull())
     .addColumn('value', 'text', (col) => col.notNull())
@@ -41,9 +39,9 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .execute();
 
   await db.schema
-    .createTable('arbitrum.account')
+    .createTable('uniswap.account')
     .addColumn('id', 'text', (col) => col.primaryKey())
-    .addColumn('account_id', 'text', (col) => col.notNull()) // Renamed from accountId to account_id to match SQL
+    .addColumn('account_id', 'text', (col) => col.notNull())
     .addColumn('provider_id', 'text', (col) => col.notNull())
     .addColumn('user_id', 'text', (col) => col.notNull())
     .addColumn('access_token', 'text')
@@ -58,38 +56,37 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addForeignKeyConstraint(
       'account_userId_fkey',
       ['user_id'],
-      'arbitrum.user',
+      'uniswap.user',
       ['id']
     ) // ON UPDATE NO ACTION ON DELETE NO ACTION is default
     .execute();
 
   await db.schema
-    .createTable('arbitrum.session')
+    .createTable('uniswap.session')
     .addColumn('id', 'text', (col) => col.primaryKey())
     .addColumn('expires_at', 'timestamp', (col) => col.notNull())
-    .addColumn('token', 'text', (col) => col.notNull()) // Unique constraint added below
+    .addColumn('token', 'text', (col) => col.unique().notNull())
     .addColumn('created_at', 'timestamp', (col) => col.notNull())
     .addColumn('updated_at', 'timestamp', (col) => col.notNull())
-    .addColumn('ip_address', 'text') // Renamed from ipAddress
+    .addColumn('ip_address', 'text')
     .addColumn('user_agent', 'text')
     .addColumn('user_id', 'text', (col) => col.notNull())
-    .addUniqueConstraint('session_token_key', ['token']) // From your SQL
     .addForeignKeyConstraint(
       'session_userId_fkey',
       ['user_id'],
-      'arbitrum.user',
+      'uniswap.user',
       ['id']
     )
     .execute();
 
   await db.schema
-    .createTable('arbitrum.user_notification')
+    .createTable('uniswap.user_notification')
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`)
     )
-    .addColumn('user_id', 'text', (col) => col.notNull()) // Renamed from userId
+    .addColumn('user_id', 'text', (col) => col.notNull())
     .addColumn('type', 'text', (col) => col.notNull())
-    .addColumn('target_id', 'text', (col) => col.notNull()) // Renamed from targetId
+    .addColumn('target_id', 'text', (col) => col.notNull())
     .addColumn('sent_at', 'timestamp', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
     )
@@ -101,14 +98,14 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addForeignKeyConstraint(
       'user_notification_userId_fkey',
       ['user_id'],
-      'arbitrum.user',
+      'uniswap.user',
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
     .execute();
 
   await db.schema
-    .createTable('arbitrum.user_proposal_group_last_read')
+    .createTable('uniswap.user_proposal_group_last_read')
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`)
     )
@@ -122,36 +119,56 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addForeignKeyConstraint(
       'user_proposal_group_last_read_user_id_fkey',
       ['user_id'],
-      'arbitrum.user',
+      'uniswap.user',
       ['id'],
       (cb) => cb.onDelete('cascade')
     )
     .execute();
-  // Index for user_proposal_group_last_read.proposal_group_id
-  await db.schema
-    .createIndex('idx_user_proposal_group_last_read_proposal_group_id')
-    .on('arbitrum.user_proposal_group_last_read')
-    .column('proposal_group_id')
+
+  await db
+    .insertInto('dao')
+    .values({
+      name: 'Uniswap',
+      slug: 'uniswap',
+      picture: 'assets/project-logos/uniswap',
+    })
     .execute();
-}
 
-export async function down(db: Kysely<DB>): Promise<void> {
-  // --- DROP TABLES (Reverse order of creation, considering dependencies) ---
+  const uniswapDao = await db
+    .selectFrom('dao')
+    .where('slug', '=', 'uniswap')
+    .selectAll()
+    .executeTakeFirstOrThrow();
 
-  // arbitrum schema tables (children first)
-  await db.schema
-    .dropTable('arbitrum.user_proposal_group_last_read')
-    .ifExists()
+  await db
+    .insertInto('daoDiscourse')
+    .values({
+      daoId: uniswapDao.id,
+      discourseBaseUrl: 'https://gov.uniswap.org',
+      enabled: true,
+      withUserAgent: false,
+    })
     .execute();
-  await db.schema.dropTable('arbitrum.user_notification').ifExists().execute();
-  await db.schema.dropTable('arbitrum.session').ifExists().execute();
-  await db.schema.dropTable('arbitrum.account').ifExists().execute();
-  await db.schema.dropTable('arbitrum.verification').ifExists().execute();
-  await db.schema.dropTable('arbitrum.user').ifExists().execute();
 
-  // --- DROP SCHEMAS (if they are truly empty and you want Kysely to manage them fully) ---
-  // Be cautious with dropping schemas, especially 'public'.
-  await sql`DROP SCHEMA IF EXISTS "arbitrum" CASCADE;`.execute(db);
-  // It's generally not recommended to drop the 'public' schema unless you are absolutely sure.
-  // await sql`DROP SCHEMA IF EXISTS "public" CASCADE;`.execute(db);
+  await db
+    .insertInto('daoGovernor')
+    .values([
+      {
+        daoId: uniswapDao.id,
+        name: 'Snapshot',
+        type: 'UNISWAP_SNAPSHOT',
+        metadata: {},
+        enabled: true,
+        portalUrl: 'https://snapshot.org/#/uniswapgovernance.eth',
+      },
+      {
+        daoId: uniswapDao.id,
+        name: 'Uniswap Governor',
+        type: 'UNISWAP_GOVERNOR',
+        metadata: {},
+        enabled: true,
+        portalUrl: 'https://www.tally.xyz/gov/uniswap',
+      },
+    ])
+    .execute();
 }

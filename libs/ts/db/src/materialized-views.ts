@@ -60,7 +60,7 @@ export interface ProposalNonVoters {
 
 // Extended database interface that includes materialized views
 export interface MaterializedViews {
-  proposalGroupSummary: ProposalGroupSummary;
-  proposalVotesWithVoters: ProposalVotesWithVoters;
-  proposalNonVoters: ProposalNonVoters;
+  // proposalGroupSummary: ProposalGroupSummary;
+  // proposalVotesWithVoters: ProposalVotesWithVoters;
+  // proposalNonVoters: ProposalNonVoters;
 }
