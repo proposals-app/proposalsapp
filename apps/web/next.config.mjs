@@ -51,8 +51,6 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
-    // Use Node.js runtime for middleware in self-hosted deployments
-    nodeMiddleware: true,
   },
 
   images: {
