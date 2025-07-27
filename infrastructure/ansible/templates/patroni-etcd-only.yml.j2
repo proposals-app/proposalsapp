@@ -115,8 +115,16 @@ bootstrap:
         synchronous_standby_names: ""         # Patroni manages this dynamically
         
         # Extensions and Security
-        shared_preload_libraries: 'pg_stat_statements'  # Query performance monitoring
+        shared_preload_libraries: 'pg_stat_statements,pg_cron,pg_background'  # Query monitoring, scheduling, background jobs
         password_encryption: scram-sha-256              # Modern password encryption
+        
+        # pg_stat_statements configuration
+        pg_stat_statements.max: 5000
+        pg_stat_statements.track: all
+        pg_stat_statements.track_io_timing: on
+        
+        # pg_cron configuration
+        cron.database_name: 'proposalsapp'
 
   # Database Initialization Options
   # Applied when creating a new PostgreSQL cluster

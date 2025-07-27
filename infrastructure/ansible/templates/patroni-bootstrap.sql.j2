@@ -52,3 +52,20 @@ GRANT pg_monitor TO proposalsapp;             -- Access monitoring views
 -- The actual proposalsapp database is created later in the Ansible playbook
 -- after the cluster is fully initialized and stable. This ensures proper
 -- ownership and allows for database-specific configuration.
+
+-- Create Extensions in postgres database
+-- pg_stat_statements needs to be available in the postgres database for global statistics
+-- Note: This will only work if pg_stat_statements is in shared_preload_libraries
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_stat_statements') THEN
+        CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+        RAISE NOTICE 'Created extension: pg_stat_statements in postgres database';
+    ELSE
+        RAISE WARNING 'pg_stat_statements extension not available - ensure it is installed and in shared_preload_libraries';
+    END IF;
+END
+$$;
+
+-- Note: pg_cron and pg_background will be created in the proposalsapp database
+-- after it's created, as they are database-specific extensions

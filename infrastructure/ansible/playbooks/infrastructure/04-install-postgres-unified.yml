@@ -227,6 +227,8 @@
           - "postgresql-{{ postgresql_version }}"
           - "postgresql-contrib-{{ postgresql_version }}"
           - "postgresql-{{ postgresql_version }}-repack"
+          - "postgresql-{{ postgresql_version }}-cron"
+          - "postgresql-{{ postgresql_version }}-pg-background"
           - python3-pip
           - python3-psycopg2
           - libpq-dev
@@ -391,7 +393,7 @@
           DO \$\$
           BEGIN
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'proposalsapp') THEN
-              CREATE ROLE proposalsapp WITH LOGIN PASSWORD '{{ postgres_password }}' CREATEDB CREATEROLE;
+              CREATE ROLE proposalsapp WITH LOGIN PASSWORD '{{ proposalsapp_password }}' CREATEDB CREATEROLE;
             END IF;
           END
           \$\$;
@@ -406,9 +408,55 @@
         psql -h localhost -U postgres -d proposalsapp -c "
           GRANT ALL PRIVILEGES ON DATABASE proposalsapp TO proposalsapp;
           GRANT ALL ON SCHEMA public TO proposalsapp;
+          GRANT pg_read_all_settings TO proposalsapp;
+          GRANT pg_monitor TO proposalsapp;
         "
+        
+        # Create extensions in proposalsapp database as superuser
+        echo "Creating extensions..."
+        
+        # pg_stat_statements should already be in shared_preload_libraries
+        psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
+        
+        # Check if pg_cron is available and create it
+        if psql -h localhost -U postgres -d proposalsapp -c "SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron';" | grep -q 1; then
+          psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_cron;"
+          # Grant usage permissions on cron schema
+          psql -h localhost -U postgres -d proposalsapp -c "
+            GRANT USAGE ON SCHEMA cron TO proposalsapp;
+            GRANT ALL ON ALL TABLES IN SCHEMA cron TO proposalsapp;
+            GRANT ALL ON ALL FUNCTIONS IN SCHEMA cron TO proposalsapp;
+            GRANT ALL ON ALL SEQUENCES IN SCHEMA cron TO proposalsapp;
+          "
+        else
+          echo "Warning: pg_cron extension not available"
+        fi
+        
+        # Check if pg_background is available and create it
+        if psql -h localhost -U postgres -d proposalsapp -c "SELECT 1 FROM pg_available_extensions WHERE name = 'pg_background';" | grep -q 1; then
+          psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_background;"
+        else
+          echo "Warning: pg_background extension not available"
+        fi
       run_once: true
       delegate_to: "{{ groups['postgres_nodes'] | select('match', '.*sib-01') | first }}"
+
+    - name: Verify extensions are installed
+      shell: |
+        export PGPASSWORD="{{ postgres_password }}"
+        echo "=== Checking extensions in proposalsapp database ==="
+        psql -h localhost -U postgres -d proposalsapp -c "\dx"
+        echo ""
+        echo "=== Checking available extensions ==="
+        psql -h localhost -U postgres -d proposalsapp -c "SELECT name, installed_version FROM pg_available_extensions WHERE name IN ('pg_stat_statements', 'pg_cron', 'pg_background') ORDER BY name;"
+      register: extension_check
+      run_once: true
+      delegate_to: "{{ groups['postgres_nodes'] | select('match', '.*sib-01') | first }}"
+
+    - name: Display extension status
+      debug:
+        msg: "{{ extension_check.stdout_lines }}"
+      run_once: true
 
     - name: Register PostgreSQL in Consul
       uri:
