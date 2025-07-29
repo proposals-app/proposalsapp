@@ -78,7 +78,7 @@ async function processNotifications(): Promise<void> {
       .selectFrom('dao')
       .selectAll()
       .where('dao.id', 'in', (qb) =>
-        qb.selectFrom('daoGovernor').select('daoId').where('enabled', '=', true)
+        qb.selectFrom('daoGovernor').select('daoId')
       )
       .execute();
 
@@ -292,7 +292,6 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', dao.id)
-    .where('enabled', '=', true)
     .executeTakeFirst();
 
   if (!daoDiscourse) {
