@@ -558,30 +558,16 @@ export async function getTotalVotingPower(daoId: string): Promise<number> {
 
   try {
     const result = await db.public
-      .with('latest_voting_power', (db) =>
-        db
-          .selectFrom('votingPower')
-          .select(['voter', sql<string>`MAX(timestamp)`.as('latest_timestamp')])
-          .where('daoId', '=', daoId)
-          .where(
-            'votingPower.voter',
-            '!=',
-            '0x00000000000000000000000000000000000A4B86' // Filter out Arbitrum Foundation Vesting Wallet
-          )
-          .groupBy('voter')
+      .selectFrom('votingPowerLatest')
+      .where('daoId', '=', daoId)
+      .where(
+        'voter',
+        '!=',
+        '0x00000000000000000000000000000000000A4B86' // Filter out Arbitrum Exclusion address
       )
-      .selectFrom('votingPower as vp')
-      .innerJoin(
-        'latest_voting_power as lvp',
-        (join) =>
-          join
-            .onRef('vp.voter', '=', 'lvp.voter')
-            .on('vp.timestamp', '=', sql`lvp.latest_timestamp`) // Use direct column name
-      )
-      .where('vp.daoId', '=', daoId)
       .select(
         // Ensure the sum returns a number, defaulting to 0
-        sql<number>`COALESCE(SUM(vp.voting_power), 0)`.as('totalVotingPower')
+        sql<number>`COALESCE(SUM(voting_power), 0)`.as('totalVotingPower')
       )
       .executeTakeFirst();
 

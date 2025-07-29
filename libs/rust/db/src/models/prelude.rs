@@ -20,4 +20,5 @@ pub use super::proposal::Entity as Proposal;
 pub use super::proposal_group::Entity as ProposalGroup;
 pub use super::vote::Entity as Vote;
 pub use super::voter::Entity as Voter;
-pub use super::voting_power::Entity as VotingPower;
+pub use super::voting_power_latest::Entity as VotingPowerLatest;
+pub use super::voting_power_timeseries::Entity as VotingPowerTimeseries;

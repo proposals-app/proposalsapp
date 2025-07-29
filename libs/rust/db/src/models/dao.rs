@@ -49,7 +49,8 @@ pub enum Relation {
     Proposal,
     ProposalGroup,
     Vote,
-    VotingPower,
+    VotingPowerLatest,
+    VotingPowerTimeseries,
 }
 
 impl ColumnTrait for Column {
@@ -74,7 +75,10 @@ impl RelationTrait for Relation {
             Self::Proposal => Entity::has_many(super::proposal::Entity).into(),
             Self::ProposalGroup => Entity::has_many(super::proposal_group::Entity).into(),
             Self::Vote => Entity::has_many(super::vote::Entity).into(),
-            Self::VotingPower => Entity::has_many(super::voting_power::Entity).into(),
+            Self::VotingPowerLatest => Entity::has_many(super::voting_power_latest::Entity).into(),
+            Self::VotingPowerTimeseries => {
+                Entity::has_many(super::voting_power_timeseries::Entity).into()
+            }
         }
     }
 }
@@ -121,9 +125,15 @@ impl Related<super::vote::Entity> for Entity {
     }
 }
 
-impl Related<super::voting_power::Entity> for Entity {
+impl Related<super::voting_power_latest::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::VotingPower.def()
+        Relation::VotingPowerLatest.def()
+    }
+}
+
+impl Related<super::voting_power_timeseries::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::VotingPowerTimeseries.def()
     }
 }
 

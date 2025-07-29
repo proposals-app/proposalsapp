@@ -94,7 +94,7 @@ export async function getNonVoters(proposalId: string) {
 
   // 2. Get all potentially eligible voters at proposal start
   const eligibleVoters = await db.public
-    .selectFrom('votingPower as vp')
+    .selectFrom('votingPowerTimeseries as vp')
     .innerJoin('voter as v', 'v.address', 'vp.voter')
     .where('vp.daoId', '=', daoId)
     .where('vp.votingPower', '>', 0)
@@ -120,20 +120,17 @@ export async function getNonVoters(proposalId: string) {
   const eligibleVoterIds = eligibleVoters.map((v) => v.voterId);
 
   // 3. Get the *current* (latest) voting power for all eligible voters
-  // Use a more efficient approach with a single query when possible
-  const CHUNK_SIZE = 5000; // Increased chunk size for better performance
+  // Now using the optimized voting_power_latest table
+  const CHUNK_SIZE = 10000; // Increased chunk size since query is now much faster
   const currentPowerMap = new Map<string, number>();
 
   if (eligibleVoterAddresses.length <= CHUNK_SIZE) {
     // Single query for smaller datasets
     const currentPowers = await db.public
-      .selectFrom('votingPower')
+      .selectFrom('votingPowerLatest')
       .where('daoId', '=', daoId)
       .where('voter', 'in', eligibleVoterAddresses)
       .select(['voter', 'votingPower'])
-      .distinctOn('voter')
-      .orderBy('voter', 'asc')
-      .orderBy('timestamp', 'desc')
       .execute();
     currentPowers.forEach((cp) => {
       currentPowerMap.set(cp.voter, cp.votingPower);
@@ -144,13 +141,10 @@ export async function getNonVoters(proposalId: string) {
       const chunk = eligibleVoterAddresses.slice(i, i + CHUNK_SIZE);
       if (chunk.length === 0) continue;
       const chunkPowers = await db.public
-        .selectFrom('votingPower')
+        .selectFrom('votingPowerLatest')
         .where('daoId', '=', daoId)
         .where('voter', 'in', chunk)
         .select(['voter', 'votingPower'])
-        .distinctOn('voter')
-        .orderBy('voter', 'asc')
-        .orderBy('timestamp', 'desc')
         .execute();
       chunkPowers.forEach((cp) => {
         currentPowerMap.set(cp.voter, cp.votingPower);
@@ -330,21 +324,14 @@ export async function getVotesWithVoters(proposalId: string) {
   }
   const { daoId } = proposal;
 
-  // Optimized single query with all necessary joins
+  // Optimized single query with all necessary joins using voting_power_latest
   const votesWithAllData = await db.public
     .selectFrom('vote')
     .innerJoin('voter', 'voter.address', 'vote.voterAddress')
-    .leftJoin(
-      db.public
-        .selectFrom('votingPower')
-        .select(['voter', 'votingPower', 'daoId'])
-        .where('daoId', '=', daoId)
-        .distinctOn('voter')
-        .orderBy('voter', 'asc')
-        .orderBy('timestamp', 'desc')
-        .as('latestVp'),
-      'latestVp.voter',
-      'vote.voterAddress'
+    .leftJoin('votingPowerLatest as latestVp', (join) =>
+      join
+        .onRef('latestVp.voter', '=', 'vote.voterAddress')
+        .on('latestVp.daoId', '=', daoId)
     )
     .distinctOn('vote.voterAddress')
     .select([
@@ -569,11 +556,9 @@ export async function getDelegateVotingPower(
 
   // Get the latest voting power
   const latestVotingPowerRecord = await db.public
-    .selectFrom('votingPower')
+    .selectFrom('votingPowerLatest')
     .where('voter', '=', voterAddress)
     .where('daoId', '=', dao.id)
-    .orderBy('timestamp', 'desc')
-    .limit(1)
     .selectAll()
     .executeTakeFirst();
 
@@ -679,14 +664,10 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
 
   // 4. Fetch latest voting power for each voter across all DAOs
   const latestVotingPowers = await db.public
-    .selectFrom('votingPower')
+    .selectFrom('votingPowerLatest')
     .select(['voter', 'votingPower', 'daoId'])
     .where('voter', 'in', voterAddresses)
     .where('daoId', 'in', daoIds)
-    .orderBy('voter', 'asc')
-    .orderBy('daoId', 'asc')
-    .orderBy('timestamp', 'desc')
-    .distinctOn(['voter', 'daoId'])
     .execute();
 
   // Create a map for efficient latest voting power lookup by voter and daoId

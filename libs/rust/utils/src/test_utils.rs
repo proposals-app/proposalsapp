@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use proposalsapp_db::models::{
-    delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power,
+    delegation, proposal, sea_orm_active_enums::ProposalState, vote, voting_power_timeseries,
 };
 use serde_json::Value;
 
@@ -220,7 +220,7 @@ pub struct ExpectedVotingPower {
 }
 
 pub fn assert_voting_power(
-    voting_power: &voting_power::ActiveModel,
+    voting_power: &voting_power_timeseries::ActiveModel,
     expected: &ExpectedVotingPower,
 ) {
     assert_eq!(

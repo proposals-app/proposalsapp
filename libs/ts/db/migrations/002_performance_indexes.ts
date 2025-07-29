@@ -544,10 +544,57 @@ export async function up(db: Kysely<DB>): Promise<void> {
   await sql`CREATE INDEX idx_vote_choice_gin ON public.vote USING gin (choice);`.execute(
     db
   );
+
+  // --- CRITICAL PERFORMANCE INDEXES FROM PG_STAT_STATEMENTS ANALYSIS ---
+
+  // Critical composite index for proposal queries (5-11 second queries)
+  await db.schema
+    .createIndex('idx_proposal_dao_state_created_at')
+    .on('public.proposal')
+    .columns(['dao_id', 'proposal_state', 'created_at'])
+    .where('marked_spam', '=', false)
+    .execute();
+
+  // Critical index for vote queries (2-6 second queries)
+  await db.schema
+    .createIndex('idx_vote_voter_proposal_created')
+    .on('public.vote')
+    .columns(['voter_address', 'proposal_id', 'created_at'])
+    .execute();
+
+  // Better index for vote proposal lookups
+  await db.schema
+    .createIndex('idx_vote_proposal_created')
+    .on('public.vote')
+    .columns(['proposal_id', 'created_at'])
+    .execute();
+
+  // Index for time-based active proposal queries
+  await db.schema
+    .createIndex('idx_proposal_active_time_range')
+    .on('public.proposal')
+    .columns(['proposal_state', 'end_at', 'start_at'])
+    .where('proposal_state', '=', 'ACTIVE')
+    .execute();
 }
 
 export async function down(db: Kysely<DB>): Promise<void> {
   // Drop indexes in reverse order
+
+  // Drop critical performance indexes
+  await db.schema
+    .dropIndex('idx_proposal_active_time_range')
+    .ifExists()
+    .execute();
+  await db.schema.dropIndex('idx_vote_proposal_created').ifExists().execute();
+  await db.schema
+    .dropIndex('idx_vote_voter_proposal_created')
+    .ifExists()
+    .execute();
+  await db.schema
+    .dropIndex('idx_proposal_dao_state_created_at')
+    .ifExists()
+    .execute();
 
   // Drop JSONB indexes
   await sql`DROP INDEX IF EXISTS idx_vote_choice_gin;`.execute(db);

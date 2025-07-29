@@ -167,12 +167,10 @@ export async function getDelegateByDiscourseUser(
   if (!delegateData) return null;
 
   const latestVotingPower = await db.public
-    .selectFrom('votingPower')
+    .selectFrom('votingPowerLatest')
     .selectAll()
     .where('voter', '=', delegateData.voterAddress)
     .where('daoId', '=', dao.id)
-    .orderBy('timestamp', 'desc')
-    .limit(1)
     .executeTakeFirst();
 
   // Transform the data into the expected format

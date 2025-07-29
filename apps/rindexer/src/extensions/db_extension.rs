@@ -4,7 +4,9 @@ use alloy_ens::ProviderEnsExt;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::{Lazy, OnceCell};
-use proposalsapp_db::models::{dao, dao_governor, delegation, proposal, vote, voter, voting_power};
+use proposalsapp_db::models::{
+    dao, dao_governor, delegation, proposal, vote, voter, voting_power_timeseries,
+};
 use rindexer::provider::RindexerProvider;
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set,
@@ -427,7 +429,9 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
 }
 
 #[instrument(name = "db_store_voting_powers", skip(voting_powers), fields(voting_power_count = voting_powers.len()))]
-pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) -> Result<()> {
+pub async fn store_voting_powers(
+    voting_powers: Vec<voting_power_timeseries::ActiveModel>,
+) -> Result<()> {
     if voting_powers.is_empty() {
         info!("No voting powers provided to store.");
         return Ok(());
@@ -447,10 +451,10 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
 
             if let (Some(voter_addr), Some(dao), Some(block_num)) = (voter, dao_id, block) {
                 // Check if voting power already exists
-                let existing = voting_power::Entity::find()
-                    .filter(voting_power::Column::Voter.eq(voter_addr.clone()))
-                    .filter(voting_power::Column::DaoId.eq(dao.clone()))
-                    .filter(voting_power::Column::Block.eq(block_num.clone()))
+                let existing = voting_power_timeseries::Entity::find()
+                    .filter(voting_power_timeseries::Column::Voter.eq(voter_addr.clone()))
+                    .filter(voting_power_timeseries::Column::DaoId.eq(dao.clone()))
+                    .filter(voting_power_timeseries::Column::Block.eq(block_num.clone()))
                     .one(db)
                     .await?;
 
@@ -461,9 +465,10 @@ pub async fn store_voting_powers(voting_powers: Vec<voting_power::ActiveModel>) 
                     voting_power_to_insert.dao_id = Set(dao);
                     voting_power_to_insert.block = Set(block_num);
 
-                    if let Err(err) = voting_power::Entity::insert(voting_power_to_insert)
-                        .exec(db)
-                        .await
+                    if let Err(err) =
+                        voting_power_timeseries::Entity::insert(voting_power_to_insert)
+                            .exec(db)
+                            .await
                     {
                         error!(error = %err, "Failed to insert voting power");
                         // Continue with next voting power instead of failing entire batch

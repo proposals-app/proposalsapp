@@ -144,11 +144,10 @@ export async function GET(
 
     for (const address of voterAddresses) {
       const currentVpEntry = await db.public
-        .selectFrom('votingPower')
-        .where('votingPower.voter', '=', address)
-        .where('votingPower.daoId', '=', dao.id)
-        .orderBy('votingPower.timestamp', 'desc')
-        .select('votingPower.votingPower')
+        .selectFrom('votingPowerLatest')
+        .where('votingPowerLatest.voter', '=', address)
+        .where('votingPowerLatest.daoId', '=', dao.id)
+        .select('votingPowerLatest.votingPower')
         .executeTakeFirst();
 
       if (currentVpEntry && currentVpEntry.votingPower !== null) {
@@ -157,12 +156,12 @@ export async function GET(
 
       if (parsedTimestamp) {
         const historicalVpEntry = await db.public
-          .selectFrom('votingPower')
-          .where('votingPower.voter', '=', address)
-          .where('votingPower.daoId', '=', dao.id)
-          .where('votingPower.timestamp', '<=', parsedTimestamp)
-          .orderBy('votingPower.timestamp', 'desc')
-          .select('votingPower.votingPower')
+          .selectFrom('votingPowerTimeseries')
+          .where('votingPowerTimeseries.voter', '=', address)
+          .where('votingPowerTimeseries.daoId', '=', dao.id)
+          .where('votingPowerTimeseries.timestamp', '<=', parsedTimestamp)
+          .orderBy('votingPowerTimeseries.timestamp', 'desc')
+          .select('votingPowerTimeseries.votingPower')
           .executeTakeFirst();
 
         if (historicalVpEntry && historicalVpEntry.votingPower !== null) {

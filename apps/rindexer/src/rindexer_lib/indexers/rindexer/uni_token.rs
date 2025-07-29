@@ -9,7 +9,7 @@ use super::super::super::typings::rindexer::events::uni_token::{
 };
 use alloy::hex::ToHexExt;
 use futures::{StreamExt, stream};
-use proposalsapp_db::models::{delegation, voting_power};
+use proposalsapp_db::models::{delegation, voting_power_timeseries};
 use rindexer::{
     EthereumSqlTypeWrapper, PgType, RindexerColorize,
     event::callback_registry::EventCallbackRegistry, rindexer_error, rindexer_info,
@@ -162,7 +162,7 @@ async fn delegate_votes_changed_handler(
                     .unwrap();
 
                 // Process results in parallel using futures streams
-                let vps: Vec<voting_power::ActiveModel> = stream::iter(results)
+                let vps: Vec<voting_power_timeseries::ActiveModel> = stream::iter(results)
                     .map(|result| async move {
                         let block_number = result.tx_information.block_number.to::<u64>();
                         let delegate_addr = result.event_data.delegate;
@@ -186,7 +186,7 @@ async fn delegate_votes_changed_handler(
                             "Processed single event within batch"
                         );
 
-                        Some(voting_power::ActiveModel {
+                        Some(voting_power_timeseries::ActiveModel {
                             id: NotSet,
                             voter: Set(delegate_addr.to_string()),
                             voting_power: Set(new_balance.to::<u128>() as f64 / (10.0f64.powi(18))),
@@ -203,8 +203,10 @@ async fn delegate_votes_changed_handler(
 
                 if !vps.is_empty() {
                     // Deduplicate voting powers by keeping only the last one for each (voter, dao_id, block) combination
-                    let mut deduped_vps: HashMap<(String, Uuid, i32), voting_power::ActiveModel> =
-                        HashMap::new();
+                    let mut deduped_vps: HashMap<
+                        (String, Uuid, i32),
+                        voting_power_timeseries::ActiveModel,
+                    > = HashMap::new();
 
                     for vp in vps {
                         let voter = vp.voter.clone().unwrap();
@@ -215,7 +217,7 @@ async fn delegate_votes_changed_handler(
                         deduped_vps.insert(key, vp);
                     }
 
-                    let final_vps: Vec<voting_power::ActiveModel> =
+                    let final_vps: Vec<voting_power_timeseries::ActiveModel> =
                         deduped_vps.into_values().collect();
 
                     if let Err(e) = store_voting_powers(final_vps).await {

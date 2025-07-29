@@ -666,10 +666,10 @@ async function getAuthor(groupId: string) {
     const delegateToVoters = await db.public
       .selectFrom('delegateToVoter')
       .innerJoin('voter', 'voter.id', 'delegateToVoter.voterId')
-      .leftJoin('votingPower', (join) =>
+      .leftJoin('votingPowerLatest', (join) =>
         join
-          .on('votingPower.voter', '=', 'voter.address')
-          .on('votingPower.daoId', '=', dao.id)
+          .on('votingPowerLatest.voter', '=', 'voter.address')
+          .on('votingPowerLatest.daoId', '=', dao.id)
       )
       .where('delegateToVoter.delegateId', '=', delegate.id)
       .select([
@@ -677,8 +677,8 @@ async function getAuthor(groupId: string) {
         'voter.address',
         'voter.ens',
         'voter.avatar',
-        'votingPower.votingPower',
-        'votingPower.timestamp',
+        'votingPowerLatest.votingPower',
+        'votingPowerLatest.timestamp',
       ])
       .execute();
 

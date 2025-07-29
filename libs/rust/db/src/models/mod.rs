@@ -23,4 +23,5 @@ pub mod proposal_group;
 pub mod sea_orm_active_enums;
 pub mod vote;
 pub mod voter;
-pub mod voting_power;
+pub mod voting_power_latest;
+pub mod voting_power_timeseries;
