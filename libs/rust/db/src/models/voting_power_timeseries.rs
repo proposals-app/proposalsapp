@@ -8,7 +8,7 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "voting_power"
+        "voting_power_timeseries"
     }
 }
 

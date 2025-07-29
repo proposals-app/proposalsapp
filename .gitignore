@@ -32,7 +32,6 @@ infrastructure/ansible/.vault_pass
 .fastembed_cache/
 **/.fastembed_cache/
 *.onnx
-models/
 __pycache__/
 
 llm_logs
