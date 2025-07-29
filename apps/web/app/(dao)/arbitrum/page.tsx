@@ -326,8 +326,10 @@ async function GroupsContainer({
       id: group.id,
       name: group.name,
       slug: group.slug,
-      authorName: group.originalAuthorName,
-      authorAvatarUrl: group.originalAuthorPicture,
+      authorName: group.originalAuthorName || 'Unknown',
+      authorAvatarUrl:
+        group.originalAuthorPicture ||
+        'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app',
       latestActivityAt: new Date(group.newestActivityTimestamp),
       hasNewActivity: group.hasNewActivity,
       hasActiveProposal: group.hasActiveProposal,
