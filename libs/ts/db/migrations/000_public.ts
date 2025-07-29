@@ -164,6 +164,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addColumn('updated_at', 'timestamp', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
     )
+    .addUniqueConstraint('unique_voter_address', ['address'])
     .execute();
 
   await db.schema

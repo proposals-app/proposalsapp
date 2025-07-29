@@ -78,10 +78,10 @@ pub struct DiscourseApi {
 
 impl DiscourseApi {
     /// Creates a new Discourse API client and starts its background worker task.
-    #[instrument(skip(base_url, with_user_agent), fields(base_url = %base_url))]
-    pub fn new(base_url: String, with_user_agent: bool) -> Self {
+    #[instrument(skip(base_url), fields(base_url = %base_url))]
+    pub fn new(base_url: String) -> Self {
         info!("Initializing Discourse API client");
-        let (headers, cookie_jar) = Self::default_headers_with_cookies(with_user_agent);
+        let (headers, cookie_jar) = Self::default_headers_with_cookies();
 
         let client = Client::builder()
             .default_headers(headers)
@@ -129,11 +129,13 @@ impl DiscourseApi {
     }
 
     /// Configures default HTTP headers and cookie jar.
-    fn default_headers_with_cookies(with_user_agent: bool) -> (HeaderMap, Arc<Jar>) {
+    fn default_headers_with_cookies() -> (HeaderMap, Arc<Jar>) {
         let mut headers = HeaderMap::new();
         let cookie_jar = Arc::new(Jar::default());
 
-        let user_agent = if with_user_agent {
+        const WITH_USER_AGENT: bool = false;
+
+        let user_agent = if WITH_USER_AGENT {
             Self::get_random_user_agent()
         } else {
             // Standard user agent if randomization is disabled.
@@ -249,9 +251,7 @@ impl DiscourseApi {
 
         // Handle potential errors returned from the worker (e.g., network errors, parsing errors).
         let shared_response = response_result.with_context(|| {
-            format!(
-                "Worker task failed processing request for endpoint: {endpoint}"
-            )
+            format!("Worker task failed processing request for endpoint: {endpoint}")
         })?;
 
         // Deserialize the successful JSON response.
@@ -426,9 +426,8 @@ impl DiscourseApi {
                     error!(url = %job.url, error = ?e, "Request ultimately failed, notifying waiters with error.");
                     // Send owned error to each waiter.
                     // We need to capture the error before the loop as `e` is moved into the first `context` call.
-                    let error_message = format!(
-                        "Discourse API request failed for {endpoint_key_clone}: {e:?}"
-                    );
+                    let error_message =
+                        format!("Discourse API request failed for {endpoint_key_clone}: {e:?}");
                     for sender in senders {
                         // Create a fresh anyhow::Error for each sender with the captured message.
                         let err_to_send = anyhow!(error_message.clone());
@@ -662,10 +661,7 @@ mod tests {
 
     // Helper to create a simple API instance for tests that don't need a real server.
     fn create_test_api() -> Arc<DiscourseApi> {
-        Arc::new(DiscourseApi::new(
-            "https://test.forum.local".to_string(),
-            false,
-        ))
+        Arc::new(DiscourseApi::new("https://test.forum.local".to_string()))
     }
 
     #[tokio::test]
@@ -679,10 +675,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_upload_urls_trailing_slash() {
-        let api = Arc::new(DiscourseApi::new(
-            "https://test.forum.local/".to_string(),
-            false,
-        ));
+        let api = Arc::new(DiscourseApi::new("https://test.forum.local/".to_string()));
         let raw = "Text upload://file.jpg";
         let expected = "Text https://test.forum.local/uploads/short-url/file.jpg"; // No double slash
         let processed = process_upload_urls(raw, api); // No await needed
@@ -696,7 +689,6 @@ mod tests {
         // Use a real-looking URL even if the test doesn't hit the network for this function
         let discourse_api = Arc::new(DiscourseApi::new(
             "https://forum.arbitrum.foundation".to_string(),
-            true,
         ));
 
         let raw_content = r#"Yes, both Arbitrum DAO governors count the **Abstain** vote choice towards quorum.
@@ -724,7 +716,6 @@ And for example, in the OpCo onchain vote, if **Abstain** wouldn't count towards
     async fn test_process_post_raw_content_revision() {
         let discourse_api = Arc::new(DiscourseApi::new(
             "https://forum.arbitrum.foundation".to_string(),
-            true,
         ));
 
         let raw_content = r#"## Constitutional / Non-Constitutional

@@ -13,7 +13,7 @@ use axum::Router;
 use dotenv::dotenv;
 use proposalsapp_db::models::dao_discourse;
 use reqwest::Client;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::EntityTrait;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
@@ -106,7 +106,6 @@ async fn main() -> Result<()> {
 
     // --- Initialize API Clients and Indexers ---
     let dao_discourses = dao_discourse::Entity::find()
-        .filter(dao_discourse::Column::Enabled.eq(true))
         .find_with_related(proposalsapp_db::models::dao::Entity)
         .all(db())
         .await
@@ -148,10 +147,7 @@ async fn main() -> Result<()> {
 
         info!(%dao_name, dao_id = %dao_config.id, base_url = %dao_config.discourse_base_url, "Initializing indexer tasks for DAO");
 
-        let api_client = Arc::new(DiscourseApi::new(
-            dao_config.discourse_base_url.clone(),
-            dao_config.with_user_agent,
-        ));
+        let api_client = Arc::new(DiscourseApi::new(dao_config.discourse_base_url.clone()));
 
         // Create indexer instances
         let category_indexer = CategoryIndexer::new(Arc::clone(&api_client));

@@ -15,7 +15,6 @@ interface ResultsTitleProps {
     id: string;
     daoId: string;
     name: string | null;
-    enabled: boolean;
     portalUrl: string | null;
   } | null;
 }

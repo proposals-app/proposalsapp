@@ -221,14 +221,11 @@
         repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
         state: present
 
-    - name: Install PostgreSQL and dependencies
+    - name: Install PostgreSQL core packages
       apt:
         name:
           - "postgresql-{{ postgresql_version }}"
           - "postgresql-contrib-{{ postgresql_version }}"
-          - "postgresql-{{ postgresql_version }}-repack"
-          - "postgresql-{{ postgresql_version }}-cron"
-          - "postgresql-{{ postgresql_version }}-pg-background"
           - python3-pip
           - python3-psycopg2
           - libpq-dev
@@ -237,6 +234,53 @@
           - python3-full
         state: present
         update_cache: yes
+
+    - name: Install pg_cron extension package
+      apt:
+        name: "postgresql-{{ postgresql_version }}-cron"
+        state: present
+      register: pgcron_install
+
+    - name: Install build dependencies for pg_background
+      apt:
+        name:
+          - "postgresql-server-dev-{{ postgresql_version }}"
+          - build-essential
+          - git
+          - libcurl4-openssl-dev
+          - libssl-dev
+          - zlib1g-dev
+          - libkrb5-dev
+          - libgssapi-krb5-2
+        state: present
+
+    - name: Clone pg_background repository
+      git:
+        repo: https://github.com/vibhorkum/pg_background.git
+        dest: /tmp/pg_background
+        version: master
+        force: yes
+
+    - name: Build and install pg_background
+      shell: |
+        cd /tmp/pg_background
+        export PATH=$PATH:/usr/lib/postgresql/{{ postgresql_version }}/bin
+        make clean || true
+        make PG_CONFIG=/usr/lib/postgresql/{{ postgresql_version }}/bin/pg_config
+        make install PG_CONFIG=/usr/lib/postgresql/{{ postgresql_version }}/bin/pg_config
+        
+        # Verify installation
+        if [ ! -f "/usr/share/postgresql/{{ postgresql_version }}/extension/pg_background.control" ]; then
+          echo "ERROR: pg_background extension files were not installed properly"
+          exit 1
+        fi
+      args:
+        chdir: /tmp/pg_background
+
+    - name: Clean up pg_background source
+      file:
+        path: /tmp/pg_background
+        state: absent
 
     - name: Stop PostgreSQL service
       systemd:
@@ -418,42 +462,54 @@
         # pg_stat_statements should already be in shared_preload_libraries
         psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
         
-        # Check if pg_cron is available and create it
-        if psql -h localhost -U postgres -d proposalsapp -c "SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron';" | grep -q 1; then
-          psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_cron;"
-          # Grant usage permissions on cron schema
-          psql -h localhost -U postgres -d proposalsapp -c "
-            GRANT USAGE ON SCHEMA cron TO proposalsapp;
-            GRANT ALL ON ALL TABLES IN SCHEMA cron TO proposalsapp;
-            GRANT ALL ON ALL FUNCTIONS IN SCHEMA cron TO proposalsapp;
-            GRANT ALL ON ALL SEQUENCES IN SCHEMA cron TO proposalsapp;
-          "
-        else
-          echo "Warning: pg_cron extension not available"
-        fi
+        # Create pg_cron extension (must be available after package installation)
+        psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_cron;"
         
-        # Check if pg_background is available and create it
-        if psql -h localhost -U postgres -d proposalsapp -c "SELECT 1 FROM pg_available_extensions WHERE name = 'pg_background';" | grep -q 1; then
-          psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_background;"
-        else
-          echo "Warning: pg_background extension not available"
-        fi
+        # Grant usage permissions on cron schema
+        psql -h localhost -U postgres -d proposalsapp -c "
+          GRANT USAGE ON SCHEMA cron TO proposalsapp;
+          GRANT ALL ON ALL TABLES IN SCHEMA cron TO proposalsapp;
+          GRANT ALL ON ALL FUNCTIONS IN SCHEMA cron TO proposalsapp;
+          GRANT ALL ON ALL SEQUENCES IN SCHEMA cron TO proposalsapp;
+        "
+        
+        # Create pg_background extension (must be available after compilation)
+        psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_background;"
       run_once: true
       delegate_to: "{{ groups['postgres_nodes'] | select('match', '.*sib-01') | first }}"
 
-    - name: Verify extensions are installed
+    - name: Verify all required extensions are installed
       shell: |
         export PGPASSWORD="{{ postgres_password }}"
-        echo "=== Checking extensions in proposalsapp database ==="
+        
+        # Check that all required extensions are installed
+        missing_extensions=""
+        
+        for ext in pg_stat_statements pg_cron pg_background; do
+          if ! psql -h localhost -U postgres -d proposalsapp -c "SELECT 1 FROM pg_extension WHERE extname = '$ext';" | grep -q 1; then
+            missing_extensions="$missing_extensions $ext"
+          fi
+        done
+        
+        if [ -n "$missing_extensions" ]; then
+          echo "ERROR: The following required extensions are not installed:$missing_extensions"
+          exit 1
+        fi
+        
+        echo "SUCCESS: All required extensions are installed"
+        
+        # Display extension details
+        echo ""
+        echo "=== Installed extensions in proposalsapp database ==="
         psql -h localhost -U postgres -d proposalsapp -c "\dx"
         echo ""
-        echo "=== Checking available extensions ==="
-        psql -h localhost -U postgres -d proposalsapp -c "SELECT name, installed_version FROM pg_available_extensions WHERE name IN ('pg_stat_statements', 'pg_cron', 'pg_background') ORDER BY name;"
+        echo "=== Extension versions ==="
+        psql -h localhost -U postgres -d proposalsapp -c "SELECT extname, extversion FROM pg_extension WHERE extname IN ('pg_stat_statements', 'pg_cron', 'pg_background') ORDER BY extname;"
       register: extension_check
       run_once: true
       delegate_to: "{{ groups['postgres_nodes'] | select('match', '.*sib-01') | first }}"
 
-    - name: Display extension status
+    - name: Display extension verification results
       debug:
         msg: "{{ extension_check.stdout_lines }}"
       run_once: true
@@ -510,6 +566,16 @@
         owner: root
         group: root
         mode: "0755"
+        timeout: 30
+      retries: 5
+      delay: 10
+      register: confd_download
+      until: confd_download is succeeded
+
+    - name: Verify Confd installation
+      command: /usr/local/bin/confd --version
+      register: confd_version_check
+      failed_when: confd_version_check.rc != 0
 
     - name: Create Confd directories
       file:

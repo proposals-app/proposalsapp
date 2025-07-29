@@ -21,26 +21,16 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .execute();
 
   // --- DAO_DISCOURSE INDEXES ---
+  // Composite index for queries filtering by dao
+  // This covers both dao_id alone and (dao_id) queries
   await db.schema
     .createIndex('idx_dao_discourse_dao_id')
     .on('public.dao_discourse')
-    .column('dao_id')
-    .execute();
-
-  await db.schema
-    .createIndex('idx_dao_discourse_enabled')
-    .on('public.dao_discourse')
-    .column('enabled')
-    .where('enabled', '=', true)
+    .columns(['dao_id'])
     .execute();
 
   // --- DAO_GOVERNOR INDEXES ---
-  await db.schema
-    .createIndex('idx_dao_governor_dao_id')
-    .on('public.dao_governor')
-    .column('dao_id')
-    .execute();
-
+  // Composite index covers both dao_id alone and (dao_id, type) queries
   await db.schema
     .createIndex('idx_dao_governor_dao_id_type')
     .on('public.dao_governor')
@@ -99,6 +89,13 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .columns(['period_start', 'period_end'])
     .execute();
 
+  // Composite index for DELETE operations
+  await db.schema
+    .createIndex('idx_delegate_to_discourse_user_delegate_discourse')
+    .on('public.delegate_to_discourse_user')
+    .columns(['delegate_id', 'discourse_user_id'])
+    .execute();
+
   // --- VOTER INDEXES ---
   await db.schema
     .createIndex('idx_voter_address')
@@ -137,6 +134,13 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .createIndex('idx_delegate_to_voter_voter_id_created_at')
     .on('public.delegate_to_voter')
     .columns(['voter_id', 'created_at'])
+    .execute();
+
+  // Composite index for DELETE operations
+  await db.schema
+    .createIndex('idx_delegate_to_voter_delegate_voter')
+    .on('public.delegate_to_voter')
+    .columns(['delegate_id', 'voter_id'])
     .execute();
 
   // --- DELEGATION INDEXES ---
@@ -199,12 +203,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .execute();
 
   await db.schema
-    .createIndex('idx_discourse_post_topic_id_dao_discourse_id')
-    .on('public.discourse_post')
-    .columns(['topic_id', 'dao_discourse_id'])
-    .execute();
-
-  await db.schema
     .createIndex('idx_discourse_post_user_id')
     .on('public.discourse_post')
     .column('user_id')
@@ -241,6 +239,14 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .createIndex('idx_discourse_post_updated_at')
     .on('public.discourse_post')
     .column('updated_at')
+    .execute();
+
+  // Comprehensive index for queries filtering by dao, topic, and post number
+  // This covers topic_id alone, (topic_id, dao_discourse_id), and all three columns
+  await db.schema
+    .createIndex('idx_discourse_post_topic_dao_postnumber')
+    .on('public.discourse_post')
+    .columns(['topic_id', 'dao_discourse_id', 'post_number'])
     .execute();
 
   // --- DISCOURSE_POST_LIKE INDEXES ---
@@ -348,12 +354,8 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .column('governor_id')
     .execute();
 
-  await db.schema
-    .createIndex('idx_proposal_state')
-    .on('public.proposal')
-    .column('proposal_state')
-    .execute();
-
+  // Composite index for dao_id and state queries
+  // This covers both proposal_state alone and (dao_id, proposal_state) queries
   await db.schema
     .createIndex('idx_proposal_dao_id_state')
     .on('public.proposal')
@@ -409,21 +411,24 @@ export async function up(db: Kysely<DB>): Promise<void> {
 
   // --- PROPOSAL_GROUP INDEXES ---
   await db.schema
-    .createIndex('idx_proposal_group_dao_id')
-    .on('public.proposal_group')
-    .column('dao_id')
-    .execute();
-
-  await db.schema
     .createIndex('idx_proposal_group_created_at')
     .on('public.proposal_group')
     .column('created_at')
     .execute();
 
+  // Composite index for dao_id and created_at queries
+  // This covers dao_id alone, (dao_id, created_at), and (dao_id, name) queries
   await db.schema
     .createIndex('idx_proposal_group_dao_id_created_at')
     .on('public.proposal_group')
     .columns(['dao_id', 'created_at'])
+    .execute();
+
+  // Composite index for filtering by name and dao_id
+  await db.schema
+    .createIndex('idx_proposal_group_dao_id_name')
+    .on('public.proposal_group')
+    .columns(['dao_id', 'name'])
     .execute();
 
   // --- VOTE INDEXES ---
@@ -467,14 +472,6 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .createIndex('idx_vote_proposal_voter')
     .on('public.vote')
     .columns(['proposal_id', 'voter_address'])
-    .unique()
-    .execute();
-
-  // Composite index for distinct votes query
-  await db.schema
-    .createIndex('idx_vote_proposal_voter_created')
-    .on('public.vote')
-    .columns(['proposal_id', 'voter_address', 'created_at'])
     .execute();
 
   // Index for vote counting by proposal (used in rindexer)
@@ -486,17 +483,12 @@ export async function up(db: Kysely<DB>): Promise<void> {
 
   // --- VOTING_POWER INDEXES ---
   await db.schema
-    .createIndex('idx_voting_power_voter_dao_id')
-    .on('public.voting_power')
-    .columns(['voter', 'dao_id'])
-    .execute();
-
-  await db.schema
     .createIndex('idx_voting_power_dao_id_timestamp')
     .on('public.voting_power')
     .columns(['dao_id', 'timestamp'])
     .execute();
 
+  // This index covers (voter, dao_id) and (voter, dao_id, timestamp) queries
   await db.schema
     .createIndex('idx_voting_power_voter_dao_id_timestamp')
     .on('public.voting_power')
@@ -584,17 +576,9 @@ export async function down(db: Kysely<DB>): Promise<void> {
     .dropIndex('idx_voting_power_dao_id_timestamp')
     .ifExists()
     .execute();
-  await db.schema
-    .dropIndex('idx_voting_power_voter_dao_id')
-    .ifExists()
-    .execute();
 
   // Drop vote indexes
   await db.schema.dropIndex('idx_vote_proposal_id_choice').ifExists().execute();
-  await db.schema
-    .dropIndex('idx_vote_proposal_voter_created')
-    .ifExists()
-    .execute();
   await db.schema.dropIndex('idx_vote_proposal_voter').ifExists().execute();
   await db.schema
     .dropIndex('idx_vote_proposal_external_id_governor_id')
@@ -608,6 +592,10 @@ export async function down(db: Kysely<DB>): Promise<void> {
 
   // Drop proposal_group indexes
   await db.schema
+    .dropIndex('idx_proposal_group_dao_id_name')
+    .ifExists()
+    .execute();
+  await db.schema
     .dropIndex('idx_proposal_group_dao_id_created_at')
     .ifExists()
     .execute();
@@ -615,7 +603,6 @@ export async function down(db: Kysely<DB>): Promise<void> {
     .dropIndex('idx_proposal_group_created_at')
     .ifExists()
     .execute();
-  await db.schema.dropIndex('idx_proposal_group_dao_id').ifExists().execute();
 
   // Drop proposal indexes
   await db.schema
@@ -632,7 +619,6 @@ export async function down(db: Kysely<DB>): Promise<void> {
   await db.schema.dropIndex('idx_proposal_end_at').ifExists().execute();
   await db.schema.dropIndex('idx_proposal_start_at').ifExists().execute();
   await db.schema.dropIndex('idx_proposal_dao_id_state').ifExists().execute();
-  await db.schema.dropIndex('idx_proposal_state').ifExists().execute();
   await db.schema.dropIndex('idx_proposal_governor_id').ifExists().execute();
   await db.schema.dropIndex('idx_proposal_dao_id').ifExists().execute();
   await db.schema
@@ -697,6 +683,10 @@ export async function down(db: Kysely<DB>): Promise<void> {
 
   // Drop discourse_post indexes
   await db.schema
+    .dropIndex('idx_discourse_post_topic_dao_postnumber')
+    .ifExists()
+    .execute();
+  await db.schema
     .dropIndex('idx_discourse_post_updated_at')
     .ifExists()
     .execute();
@@ -710,10 +700,6 @@ export async function down(db: Kysely<DB>): Promise<void> {
     .ifExists()
     .execute();
   await db.schema.dropIndex('idx_discourse_post_user_id').ifExists().execute();
-  await db.schema
-    .dropIndex('idx_discourse_post_topic_id_dao_discourse_id')
-    .ifExists()
-    .execute();
   await db.schema
     .dropIndex('idx_discourse_post_external_id_dao_discourse_id')
     .ifExists()
@@ -742,6 +728,10 @@ export async function down(db: Kysely<DB>): Promise<void> {
 
   // Drop delegate_to_voter indexes
   await db.schema
+    .dropIndex('idx_delegate_to_voter_delegate_voter')
+    .ifExists()
+    .execute();
+  await db.schema
     .dropIndex('idx_delegate_to_voter_voter_id_created_at')
     .ifExists()
     .execute();
@@ -764,6 +754,10 @@ export async function down(db: Kysely<DB>): Promise<void> {
   await db.schema.dropIndex('idx_voter_address').ifExists().execute();
 
   // Drop delegate_to_discourse_user indexes
+  await db.schema
+    .dropIndex('idx_delegate_to_discourse_user_delegate_discourse')
+    .ifExists()
+    .execute();
   await db.schema
     .dropIndex('idx_delegate_to_discourse_user_period')
     .ifExists()
@@ -803,10 +797,8 @@ export async function down(db: Kysely<DB>): Promise<void> {
     .dropIndex('idx_dao_governor_dao_id_type')
     .ifExists()
     .execute();
-  await db.schema.dropIndex('idx_dao_governor_dao_id').ifExists().execute();
 
   // Drop dao_discourse indexes
-  await db.schema.dropIndex('idx_dao_discourse_enabled').ifExists().execute();
   await db.schema.dropIndex('idx_dao_discourse_dao_id').ifExists().execute();
 
   // Drop dao indexes

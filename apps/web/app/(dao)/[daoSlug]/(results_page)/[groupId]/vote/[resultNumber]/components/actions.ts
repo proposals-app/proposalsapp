@@ -164,7 +164,6 @@ export async function getNonVoters(proposalId: string) {
   const daoDiscourse = await db.public
     .selectFrom('daoDiscourse')
     .where('daoId', '=', daoId)
-    .where('enabled', '=', true)
     .select('id')
     .executeTakeFirst();
 
@@ -398,7 +397,6 @@ export async function getVotesWithVoters(proposalId: string) {
   const daoDiscourse = await db.public
     .selectFrom('daoDiscourse')
     .where('daoId', '=', daoId)
-    .where('enabled', '=', true)
     .select('id')
     .executeTakeFirst();
 
@@ -724,7 +722,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   const daoDiscourses = await db.public
     .selectFrom('daoDiscourse')
     .where('daoId', 'in', daoIds)
-    .where('enabled', '=', true)
     .select(['id', 'daoId'])
     .execute();
 
