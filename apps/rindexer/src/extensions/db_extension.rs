@@ -400,23 +400,32 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
                     delegation::Column::Timestamp,
                     delegation::Column::Block,
                 ])
-                .to_owned()
+                .to_owned(),
             )
             .exec(db)
             .await;
 
         match insert_result {
             Ok(_) => {
-                debug!(chunk_size = chunk.len(), "Successfully upserted delegation chunk");
+                debug!(
+                    chunk_size = chunk.len(),
+                    "Successfully upserted delegation chunk"
+                );
             }
             Err(err) => {
                 error!(error = %err, chunk_size = chunk.len(), "Failed to bulk upsert delegations");
-                return Err(anyhow::anyhow!("Failed to bulk upsert delegations: {}", err));
+                return Err(anyhow::anyhow!(
+                    "Failed to bulk upsert delegations: {}",
+                    err
+                ));
             }
         }
     }
 
-    info!("Successfully stored {} delegations in bulk with upsert.", total_delegations);
+    info!(
+        "Successfully stored {} delegations in bulk with upsert.",
+        total_delegations
+    );
     Ok(())
 }
 
@@ -449,18 +458,24 @@ pub async fn store_voting_powers(
                     voting_power_timeseries::Column::Timestamp,
                     voting_power_timeseries::Column::Block,
                 ])
-                .to_owned()
+                .to_owned(),
             )
             .exec(db)
             .await;
 
         match insert_result {
             Ok(_) => {
-                debug!(chunk_size = chunk.len(), "Successfully upserted voting power chunk");
+                debug!(
+                    chunk_size = chunk.len(),
+                    "Successfully upserted voting power chunk"
+                );
             }
             Err(err) => {
                 error!(error = %err, chunk_size = chunk.len(), "Failed to bulk upsert voting powers");
-                return Err(anyhow::anyhow!("Failed to bulk upsert voting powers: {}", err));
+                return Err(anyhow::anyhow!(
+                    "Failed to bulk upsert voting powers: {}",
+                    err
+                ));
             }
         }
     }
