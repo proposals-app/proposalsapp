@@ -1,5 +1,4 @@
 import withSerwistInit from '@serwist/next';
-// import { resolve } from 'path';
 
 const _withSerwist = withSerwistInit({
   swSrc: 'app/sw.ts',
@@ -44,10 +43,7 @@ const nextConfig = {
   skipTrailingSlashRedirect: true,
   experimental: {
     reactCompiler: true,
-    // viewTransition: true,
-    // dynamicIO: true,
-    // useCache: true,
-    // cacheHandlers: { default: resolve('./cache-handler.mjs') },
+    // cacheComponents: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },

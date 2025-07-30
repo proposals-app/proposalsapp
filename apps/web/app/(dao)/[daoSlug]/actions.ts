@@ -4,7 +4,7 @@ import type { AsyncReturnType } from '@/lib/utils';
 import { db, sql } from '@proposalsapp/db';
 import { daoIdSchema, daoSlugSchema } from '@/lib/validations';
 import { requireAuthAndDao } from '@/lib/server-actions-utils';
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, unstable_cache } from 'next/cache';
 import { getFeed } from './(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 
@@ -54,14 +54,16 @@ export async function markAllAsRead(daoSlug: string) {
       )
       .execute();
 
-    revalidateTag(`groups-user-${userId}-${daoSlug}`);
+    // Revalidate the groups cache
+    revalidateTag('groups');
   } catch (error) {
     console.error('[markAllAsRead] Error:', error);
     throw error;
   }
 }
 
-export async function getGroups(daoSlug: string, userId?: string) {
+// Internal function for fetching groups data (without user-specific data)
+async function getGroupsDataInternal(daoSlug: string) {
   daoSlugSchema.parse(daoSlug);
 
   const dao = await db.public
@@ -210,30 +212,7 @@ export async function getGroups(daoSlug: string, userId?: string) {
     ])
     .execute();
 
-  // Get user-specific last read data if user is authenticated
-  const lastReadMap = new Map<string, Date | null>();
-  if (userId && groupsWithStats.length > 0) {
-    const targetDb =
-      daoSlug === 'arbitrum'
-        ? db.arbitrum
-        : daoSlug === 'uniswap'
-          ? db.uniswap
-          : null;
-
-    if (targetDb) {
-      const groupIds = groupsWithStats.map((g) => g.id);
-      const lastReads = await targetDb
-        .selectFrom('userProposalGroupLastRead')
-        .where('userId', '=', userId)
-        .where('proposalGroupId', 'in', groupIds)
-        .select(['proposalGroupId', 'lastReadAt'])
-        .execute();
-
-      lastReads.forEach((lr) => {
-        lastReadMap.set(lr.proposalGroupId, lr.lastReadAt);
-      });
-    }
-  }
+  // Note: User-specific data is handled in the main getGroups function
 
   // Transform the results
   const groups = groupsWithStats.map((group) => {
@@ -245,12 +224,8 @@ export async function getGroups(daoSlug: string, userId?: string) {
       group.createdAt.getTime()
     );
 
-    const lastReadAt = lastReadMap.get(group.id);
-    const hasNewActivity = userId
-      ? lastReadAt
-        ? newestActivityTimestamp > lastReadAt.getTime()
-        : true
-      : false;
+    // hasNewActivity will be set in the main function for user-specific data
+    const hasNewActivity = false;
 
     return {
       id: group.id,
@@ -288,17 +263,83 @@ export async function getGroups(daoSlug: string, userId?: string) {
   };
 }
 
+// Cached version of getGroupsData
+const getCachedGroupsData = unstable_cache(
+  getGroupsDataInternal,
+  ['groups-data'],
+  {
+    revalidate: 60, // Cache for 60 seconds
+    tags: ['groups'],
+  }
+);
+
+// Main export function that combines cached data with user-specific data
+export async function getGroups(daoSlug: string, userId?: string) {
+  // Get the cached groups data
+  const cachedData = await getCachedGroupsData(daoSlug);
+
+  if (!cachedData) return null;
+
+  // If no userId, return cached data as-is
+  if (!userId) {
+    return cachedData;
+  }
+
+  // Apply user-specific last read data
+  const targetDb =
+    daoSlug === 'arbitrum'
+      ? db.arbitrum
+      : daoSlug === 'uniswap'
+        ? db.uniswap
+        : null;
+
+  if (!targetDb) {
+    return cachedData;
+  }
+
+  const lastReadMap = new Map<string, Date | null>();
+
+  if (cachedData.groups.length > 0) {
+    const groupIds = cachedData.groups.map((g) => g.id);
+    const lastReads = await targetDb
+      .selectFrom('userProposalGroupLastRead')
+      .where('userId', '=', userId)
+      .where('proposalGroupId', 'in', groupIds)
+      .select(['proposalGroupId', 'lastReadAt'])
+      .execute();
+
+    lastReads.forEach((lr) => {
+      lastReadMap.set(lr.proposalGroupId, lr.lastReadAt);
+    });
+  }
+
+  // Update groups with user-specific hasNewActivity
+  const groupsWithUserData = cachedData.groups.map((group) => {
+    const lastReadAt = lastReadMap.get(group.id);
+    const hasNewActivity = lastReadAt
+      ? group.newestActivityTimestamp > lastReadAt.getTime()
+      : true;
+
+    return {
+      ...group,
+      hasNewActivity,
+    };
+  });
+
+  return {
+    ...cachedData,
+    groups: groupsWithUserData,
+  };
+}
+
 /**
  * Fetches feed data for multiple groups in parallel
  * This eliminates the N+1 query problem when rendering active groups
  */
-export async function getActiveGroupsFeeds(
+// Internal function for fetching active group feeds
+async function getActiveGroupsFeedsInternal(
   groupIds: string[]
 ): Promise<Map<string, FeedData | null>> {
-  // 'use cache';
-  // cacheTag(`active-feeds-${daoSlug}`);
-  // cacheLife('minutes');
-
   if (!groupIds.length) return new Map();
 
   // Using static imports instead of dynamic imports
@@ -325,6 +366,30 @@ export async function getActiveGroupsFeeds(
   return new Map(results.map(({ groupId, feedData }) => [groupId, feedData]));
 }
 
+// Cached version of getActiveGroupsFeeds
+const getCachedActiveGroupsFeeds = unstable_cache(
+  async (groupIds: string[]) => {
+    const result = await getActiveGroupsFeedsInternal(groupIds);
+    // Convert Map to array for serialization
+    return Array.from(result.entries());
+  },
+  ['active-groups-feeds'],
+  {
+    revalidate: 30, // Cache for 30 seconds
+    tags: ['feeds'],
+  }
+);
+
+// Export function that handles the cached data
+export async function getActiveGroupsFeeds(
+  groupIds: string[]
+): Promise<Map<string, FeedData | null>> {
+  // Get cached data as array
+  const cachedArray = await getCachedActiveGroupsFeeds(groupIds);
+  // Convert back to Map
+  return new Map(cachedArray);
+}
+
 export type GroupsReturnType = AsyncReturnType<typeof getGroups>;
 export type ActiveGroupsFeedsReturnType = AsyncReturnType<
   typeof getActiveGroupsFeeds
@@ -339,11 +404,8 @@ export type FeedData = Awaited<
 // These seem reasonably optimized and appropriately cached already.
 // Keeping them as they are unless specific issues arise.
 
-export async function getTotalVotingPower(daoId: string): Promise<number> {
-  // 'use cache';
-  // cacheLife('hours');
-  // cacheTag(`total-vp-${daoId}`); // Add tag
-
+// Internal function for fetching total voting power
+async function getTotalVotingPowerInternal(daoId: string): Promise<number> {
   // Validate daoId
   try {
     daoIdSchema.parse(daoId);
@@ -375,4 +437,19 @@ export async function getTotalVotingPower(daoId: string): Promise<number> {
     );
     return 0; // Return 0 on error
   }
+}
+
+// Cached version of getTotalVotingPower
+const getCachedTotalVotingPower = unstable_cache(
+  getTotalVotingPowerInternal,
+  ['total-voting-power'],
+  {
+    revalidate: 1800, // Cache for 30 minutes
+    tags: ['voting-power'],
+  }
+);
+
+// Export function
+export async function getTotalVotingPower(daoId: string): Promise<number> {
+  return getCachedTotalVotingPower(daoId);
 }
