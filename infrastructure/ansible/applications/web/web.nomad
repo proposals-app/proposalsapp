@@ -195,45 +195,6 @@ EOF
         ]
         port = "http"
         address_mode = "host"
-
-        # Readiness check - used during deployments
-        check {
-          name     = "web-ready"
-          type     = "http"
-          path     = "/api/ready"
-          interval = "5s"
-          timeout  = "5s"
-          
-          # This is the primary check for deployments
-          check_restart {
-            limit = 10         # More lenient for readiness
-            grace = "120s"     # 2 minutes grace for full startup
-            ignore_warnings = true
-          }
-        }
-        
-        # Liveness check - lightweight health check
-        check {
-          name     = "web-alive"
-          type     = "http"
-          path     = "/api/health"
-          interval = "30s"     # Less frequent for established instances
-          timeout  = "5s"
-          
-          check_restart {
-            limit = 3          # Restart after 3 consecutive failures
-            grace = "300s"     # 5 minutes grace after readiness
-            ignore_warnings = false
-          }
-        }
-        
-        # TCP check for basic connectivity
-        check {
-          name     = "web-tcp"
-          type     = "tcp"
-          interval = "10s"
-          timeout  = "2s"
-        }
       }
     }
   }

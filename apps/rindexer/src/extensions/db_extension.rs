@@ -10,7 +10,7 @@ use proposalsapp_db::models::{
 use rindexer::provider::RindexerProvider;
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set,
-    prelude::Uuid,
+    prelude::Uuid, sea_query::OnConflict,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -333,44 +333,43 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
         vote_active_models.push(vote_active_model);
     }
 
+    // Process votes in chunks
     for chunk in vote_active_models.chunks(BATCH_SIZE) {
-        // For each vote, check if it already exists
-        for vote_model in chunk {
-            let proposal_id = vote_model.proposal_id.clone().take();
-            let voter_address = vote_model.voter_address.clone().take();
-            let created_at = vote_model.created_at.clone().take();
+        // Use SeaORM's insert_many with on_conflict
+        let insert_result = vote::Entity::insert_many(chunk.to_vec())
+            .on_conflict(
+                OnConflict::columns([
+                    vote::Column::ProposalId,
+                    vote::Column::VoterAddress,
+                    vote::Column::Txid,
+                ])
+                .update_columns([
+                    vote::Column::Choice,
+                    vote::Column::VotingPower,
+                    vote::Column::Reason,
+                    vote::Column::CreatedAt,
+                    vote::Column::BlockCreatedAt,
+                ])
+                .to_owned(),
+            )
+            .exec(db)
+            .await;
 
-            if let (Some(prop_id), Some(voter_addr), Some(created)) =
-                (proposal_id, voter_address, created_at)
-            {
-                // Check if vote already exists
-                let existing = vote::Entity::find()
-                    .filter(vote::Column::ProposalId.eq(prop_id.clone()))
-                    .filter(vote::Column::VoterAddress.eq(voter_addr.clone()))
-                    .filter(vote::Column::CreatedAt.eq(created.clone()))
-                    .one(db)
-                    .await?;
-
-                if existing.is_none() {
-                    // Insert new vote
-                    let mut vote_to_insert = vote_model.clone();
-                    vote_to_insert.proposal_id = Set(prop_id);
-                    vote_to_insert.voter_address = Set(voter_addr);
-                    vote_to_insert.created_at = Set(created);
-
-                    if let Err(err) = vote::Entity::insert(vote_to_insert).exec(db).await {
-                        error!(error = %err, "Failed to insert vote");
-                        // Continue with next vote instead of failing entire batch
-                        continue;
-                    }
-                } else {
-                    debug!("Vote already exists, skipping");
-                }
+        match insert_result {
+            Ok(_) => {
+                debug!(chunk_size = chunk.len(), "Successfully upserted vote chunk");
+            }
+            Err(err) => {
+                error!(error = %err, chunk_size = chunk.len(), "Failed to bulk upsert votes");
+                return Err(anyhow::anyhow!("Failed to bulk upsert votes: {}", err));
             }
         }
     }
 
-    info!("Successfully stored {} votes in chunk.", votes.len());
+    info!(
+        "Successfully stored {} votes in bulk with upsert.",
+        votes.len()
+    );
     Ok(())
 }
 
@@ -386,45 +385,38 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
 
+    // Process delegations in chunks
     for chunk in delegations.chunks(BATCH_SIZE) {
-        // For each delegation, check if it already exists
-        for delegation_model in chunk {
-            let delegator = delegation_model.delegator.clone().take();
-            let dao_id = delegation_model.dao_id.clone().take();
-            let block = delegation_model.block.clone().take();
+        // Use SeaORM's insert_many with on_conflict
+        let insert_result = delegation::Entity::insert_many(chunk.to_vec())
+            .on_conflict(
+                OnConflict::columns([
+                    delegation::Column::Delegator,
+                    delegation::Column::DaoId,
+                    delegation::Column::Txid,
+                ])
+                .update_columns([
+                    delegation::Column::Delegate,
+                    delegation::Column::Timestamp,
+                    delegation::Column::Block,
+                ])
+                .to_owned()
+            )
+            .exec(db)
+            .await;
 
-            if let (Some(delegator_addr), Some(dao), Some(block_num)) = (delegator, dao_id, block) {
-                // Check if delegation already exists
-                let existing = delegation::Entity::find()
-                    .filter(delegation::Column::Delegator.eq(delegator_addr.clone()))
-                    .filter(delegation::Column::DaoId.eq(dao.clone()))
-                    .filter(delegation::Column::Block.eq(block_num.clone()))
-                    .one(db)
-                    .await?;
-
-                if existing.is_none() {
-                    // Insert new delegation
-                    let mut delegation_to_insert = delegation_model.clone();
-                    delegation_to_insert.delegator = Set(delegator_addr);
-                    delegation_to_insert.dao_id = Set(dao);
-                    delegation_to_insert.block = Set(block_num);
-
-                    if let Err(err) = delegation::Entity::insert(delegation_to_insert)
-                        .exec(db)
-                        .await
-                    {
-                        error!(error = %err, "Failed to insert delegation");
-                        // Continue with next delegation instead of failing entire batch
-                        continue;
-                    }
-                } else {
-                    debug!("Delegation already exists, skipping");
-                }
+        match insert_result {
+            Ok(_) => {
+                debug!(chunk_size = chunk.len(), "Successfully upserted delegation chunk");
+            }
+            Err(err) => {
+                error!(error = %err, chunk_size = chunk.len(), "Failed to bulk upsert delegations");
+                return Err(anyhow::anyhow!("Failed to bulk upsert delegations: {}", err));
             }
         }
     }
 
-    info!("Successfully processed {} delegations.", total_delegations);
+    info!("Successfully stored {} delegations in bulk with upsert.", total_delegations);
     Ok(())
 }
 
@@ -442,47 +434,39 @@ pub async fn store_voting_powers(
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
 
+    // Process voting powers in chunks
     for chunk in voting_powers.chunks(BATCH_SIZE) {
-        // For each voting power, check if it already exists
-        for voting_power_model in chunk {
-            let voter = voting_power_model.voter.clone().take();
-            let dao_id = voting_power_model.dao_id.clone().take();
-            let block = voting_power_model.block.clone().take();
+        // Use SeaORM's insert_many with on_conflict
+        let insert_result = voting_power_timeseries::Entity::insert_many(chunk.to_vec())
+            .on_conflict(
+                OnConflict::columns([
+                    voting_power_timeseries::Column::Voter,
+                    voting_power_timeseries::Column::DaoId,
+                    voting_power_timeseries::Column::Txid,
+                ])
+                .update_columns([
+                    voting_power_timeseries::Column::VotingPower,
+                    voting_power_timeseries::Column::Timestamp,
+                    voting_power_timeseries::Column::Block,
+                ])
+                .to_owned()
+            )
+            .exec(db)
+            .await;
 
-            if let (Some(voter_addr), Some(dao), Some(block_num)) = (voter, dao_id, block) {
-                // Check if voting power already exists
-                let existing = voting_power_timeseries::Entity::find()
-                    .filter(voting_power_timeseries::Column::Voter.eq(voter_addr.clone()))
-                    .filter(voting_power_timeseries::Column::DaoId.eq(dao.clone()))
-                    .filter(voting_power_timeseries::Column::Block.eq(block_num.clone()))
-                    .one(db)
-                    .await?;
-
-                if existing.is_none() {
-                    // Insert new voting power
-                    let mut voting_power_to_insert = voting_power_model.clone();
-                    voting_power_to_insert.voter = Set(voter_addr);
-                    voting_power_to_insert.dao_id = Set(dao);
-                    voting_power_to_insert.block = Set(block_num);
-
-                    if let Err(err) =
-                        voting_power_timeseries::Entity::insert(voting_power_to_insert)
-                            .exec(db)
-                            .await
-                    {
-                        error!(error = %err, "Failed to insert voting power");
-                        // Continue with next voting power instead of failing entire batch
-                        continue;
-                    }
-                } else {
-                    debug!("Voting power already exists, skipping");
-                }
+        match insert_result {
+            Ok(_) => {
+                debug!(chunk_size = chunk.len(), "Successfully upserted voting power chunk");
+            }
+            Err(err) => {
+                error!(error = %err, chunk_size = chunk.len(), "Failed to bulk upsert voting powers");
+                return Err(anyhow::anyhow!("Failed to bulk upsert voting powers: {}", err));
             }
         }
     }
 
     info!(
-        "Successfully processed {} voting powers.",
+        "Successfully stored {} voting powers in bulk with upsert.",
         total_voting_powers
     );
     Ok(())
