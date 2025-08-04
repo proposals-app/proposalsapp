@@ -4,6 +4,10 @@
   become: true
   vars:
     consul_kv_values:
+      # HyperSync Bearer Token
+      - key: "erpc/hypersync/bearer_token"
+        value: "{{ vault_erpc_hypersync_bearer_token }}"
+      
       # Hypersync node URLs (per chain)
       - key: "erpc/hypersync/ethereum"
         value: "{{ vault_erpc_hypersync_ethereum_url }}"

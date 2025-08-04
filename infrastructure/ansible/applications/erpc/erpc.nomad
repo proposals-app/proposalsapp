@@ -202,6 +202,8 @@ projects:
           supportsBatch: true
           batchMaxSize: 100
           batchMaxWait: 50ms
+          headers:
+            Authorization: "Bearer {{ keyOrDefault "erpc/hypersync/bearer_token" "" }}"
 
         failsafe:
           timeout:
@@ -251,6 +253,8 @@ projects:
           supportsBatch: true
           batchMaxSize: 100
           batchMaxWait: 50ms
+          headers:
+            Authorization: "Bearer {{ keyOrDefault "erpc/hypersync/bearer_token" "" }}"
 
       # Optimism Hypersync
       - id: hypersync-optimism
@@ -290,6 +294,8 @@ projects:
           supportsBatch: true
           batchMaxSize: 100
           batchMaxWait: 50ms
+          headers:
+            Authorization: "Bearer {{ keyOrDefault "erpc/hypersync/bearer_token" "" }}"
 
       # Polygon Hypersync
       - id: hypersync-polygon
@@ -329,6 +335,8 @@ projects:
           supportsBatch: true
           batchMaxSize: 100
           batchMaxWait: 50ms
+          headers:
+            Authorization: "Bearer {{ keyOrDefault "erpc/hypersync/bearer_token" "" }}"
 
       # Avalanche Hypersync
       - id: hypersync-avalanche
@@ -368,6 +376,8 @@ projects:
           supportsBatch: true
           batchMaxSize: 100
           batchMaxWait: 50ms
+          headers:
+            Authorization: "Bearer {{ keyOrDefault "erpc/hypersync/bearer_token" "" }}"
 
       # Ethereum Full node - for all other methods
       - id: full-ethereum
