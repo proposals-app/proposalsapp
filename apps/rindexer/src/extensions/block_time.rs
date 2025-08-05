@@ -509,17 +509,17 @@ async fn get_timestamp_from_past_scan_api(
         .context("Past scan API request failed")?;
 
     if let Some(response) = response {
-        if response.status == "1" {
-            if let Some(BlockRewardResult::Success(result)) = response.result {
-                let timestamp: i64 = result
-                    .timestamp
-                    .parse()
-                    .context("Failed to parse timestamp from past scan API")?;
-                debug!(timestamp = timestamp, "Got timestamp from past scan API");
-                return DateTime::<Utc>::from_timestamp(timestamp, 0)
-                    .map(|dt| dt.naive_utc())
-                    .context("Timestamp from past scan API out of range");
-            }
+        if response.status == "1"
+            && let Some(BlockRewardResult::Success(result)) = response.result
+        {
+            let timestamp: i64 = result
+                .timestamp
+                .parse()
+                .context("Failed to parse timestamp from past scan API")?;
+            debug!(timestamp = timestamp, "Got timestamp from past scan API");
+            return DateTime::<Utc>::from_timestamp(timestamp, 0)
+                .map(|dt| dt.naive_utc())
+                .context("Timestamp from past scan API out of range");
         }
         error!(
             scan_api = scan_api_url,
@@ -550,21 +550,21 @@ async fn get_timestamp_from_future_scan_api(
         .context("Future scan API request failed")?;
 
     if let Some(response) = response {
-        if response.status == "1" {
-            if let Some(EstimateTimestampResult::Success(result)) = response.result {
-                let estimate_seconds: f64 = result
-                    .estimate_time_in_sec
-                    .parse()
-                    .context("Failed to parse estimate time from future scan API")?;
-                debug!(
-                    estimate_seconds = estimate_seconds,
-                    "Got estimate from future scan API"
-                );
-                return Utc::now()
-                    .checked_add_signed(chrono::Duration::seconds(estimate_seconds as i64))
-                    .context("Failed to add duration to current time")
-                    .map(|dt| dt.naive_utc());
-            }
+        if response.status == "1"
+            && let Some(EstimateTimestampResult::Success(result)) = response.result
+        {
+            let estimate_seconds: f64 = result
+                .estimate_time_in_sec
+                .parse()
+                .context("Failed to parse estimate time from future scan API")?;
+            debug!(
+                estimate_seconds = estimate_seconds,
+                "Got estimate from future scan API"
+            );
+            return Utc::now()
+                .checked_add_signed(chrono::Duration::seconds(estimate_seconds as i64))
+                .context("Failed to add duration to current time")
+                .map(|dt| dt.naive_utc());
         }
         return Err(anyhow::anyhow!(
             "Future scan API returned error: status={}, message={}",
@@ -1105,18 +1105,18 @@ mod tests {
         }
 
         if let Some(scan_response) = scan_result {
-            if scan_response.status == "1" {
-                if let Some(BlockRewardResult::Success(result)) = scan_response.result {
-                    let timestamp: i64 = result.timestamp.parse()?;
-                    let scan_timestamp = DateTime::<Utc>::from_timestamp(timestamp, 0)
-                        .unwrap()
-                        .naive_utc();
-                    println!(
-                        "Scan API returned genesis timestamp: {} (year: {})",
-                        scan_timestamp,
-                        scan_timestamp.year()
-                    );
-                }
+            if scan_response.status == "1"
+                && let Some(BlockRewardResult::Success(result)) = scan_response.result
+            {
+                let timestamp: i64 = result.timestamp.parse()?;
+                let scan_timestamp = DateTime::<Utc>::from_timestamp(timestamp, 0)
+                    .unwrap()
+                    .naive_utc();
+                println!(
+                    "Scan API returned genesis timestamp: {} (year: {})",
+                    scan_timestamp,
+                    scan_timestamp.year()
+                );
             }
         }
 

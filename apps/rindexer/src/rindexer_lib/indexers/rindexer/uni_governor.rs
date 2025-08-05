@@ -77,7 +77,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 for result in results.clone() {
                     let proposal_id = result.event_data.id;
-                    let block_number = result.tx_information.block_number.to::<u64>();
+                    let block_number = result.tx_information.block_number;
 
                     let uni_governor = uni_governor_contract("ethereum").await;
 
@@ -279,7 +279,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                 let votes: Vec<vote::ActiveModel> = stream::iter(results)
                     .map(|result| async move {
-                        let block_number = result.tx_information.block_number.to::<u64>();
+                        let block_number = result.tx_information.block_number;
                         let proposal_id = result.event_data.proposalId.to_string();
 
                         let created_at = match estimate_timestamp("ethereum", block_number).await {

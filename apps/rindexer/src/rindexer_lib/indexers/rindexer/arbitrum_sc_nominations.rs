@@ -71,7 +71,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                 for result in results.clone() {
                     let proposal_id = result.event_data.proposalId;
-                    let block_number = result.tx_information.block_number.to::<u64>();
+                    let block_number = result.tx_information.block_number;
 
                     let arbitrum_sc_nominations_governor = arbitrum_sc_nominations_contract("arbitrum").await;
 

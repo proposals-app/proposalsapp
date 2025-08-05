@@ -64,7 +64,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                 // Process results in parallel using futures streams
                 let delegations: Vec<delegation::ActiveModel> = stream::iter(results)
                     .map(|result| async move {
-                        let block_number = result.tx_information.block_number.to::<u64>();
+                        let block_number = result.tx_information.block_number;
                         let delegator_addr = result.event_data.delegator;
                         let delegate_addr = result.event_data.toDelegate;
                         let tx_hash = result.tx_information.transaction_hash;
@@ -175,7 +175,7 @@ async fn delegate_votes_changed_handler(
                 // Process results in parallel using futures streams
                 let vps: Vec<voting_power_timeseries::ActiveModel> = stream::iter(results)
                     .map(|result| async move {
-                        let block_number = result.tx_information.block_number.to::<u64>();
+                        let block_number = result.tx_information.block_number;
                         let delegate_addr = result.event_data.delegate;
                         let new_balance = result.event_data.newBalance;
                         let tx_hash = result.tx_information.transaction_hash;
