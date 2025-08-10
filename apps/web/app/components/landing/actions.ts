@@ -9,7 +9,7 @@ export async function getLandingPageStats() {
 
   try {
     // Get count of active DAOs
-    const activeDaos = await db.public.selectFrom('dao').selectAll().execute();
+    const activeDaos = await db.selectFrom('dao').selectAll().execute();
 
     const daoCount = activeDaos.length;
 
@@ -18,7 +18,7 @@ export async function getLandingPageStats() {
 
     // Count all active proposals (both onchain and snapshot)
     // Active means: current time is between startAt and endAt, and state is ACTIVE
-    const activeProposals = await db.public
+    const activeProposals = await db
       .selectFrom('proposal')
       .where('proposal.endAt', '>', now)
       .where('proposal.startAt', '<=', now)

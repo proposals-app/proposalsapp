@@ -225,7 +225,7 @@
               - cuda-drivers
               - libnvidia-ml-dev
             state: latest
-          ignore_errors: yes  # May partially fail but installs needed libraries
+          ignore_errors: yes # May partially fail but installs needed libraries
 
         - name: Create symlink for libnvidia-ml.so
           shell: |

@@ -1,11 +1,4 @@
-import {
-  db,
-  ProposalState,
-  type Selectable,
-  type Dao,
-  type Kysely,
-  type DB,
-} from '@proposalsapp/db';
+import { db, ProposalState, type Selectable, type Dao } from '@proposalsapp/db';
 import { Resend } from 'resend';
 import cron from 'node-cron';
 import { formatDistanceStrict } from 'date-fns';
@@ -74,7 +67,7 @@ async function processNotifications(): Promise<void> {
 
   try {
     // Get enabled DAOs (those with at least one enabled governor)
-    const daos = await db.public
+    const daos = await db
       .selectFrom('dao')
       .selectAll()
       .where('dao.id', 'in', (qb) =>
@@ -118,14 +111,8 @@ async function processDao(dao: Selectable<Dao>): Promise<void> {
 
 // Process new proposal notifications
 async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
-  const daoDb = getDaoDb(dao.slug);
-  if (!daoDb) {
-    logger.error(`Database for DAO ${dao.slug} not found`);
-    return;
-  }
-
   // Get new proposals
-  const newProposals = await db.public
+  const newProposals = await db
     .selectFrom('proposal')
     .selectAll()
     .where('daoId', '=', dao.id)
@@ -144,7 +131,7 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
   }
 
   // Get users who want new proposal notifications
-  const users = await daoDb
+  const users = await db
     .selectFrom('user')
     .select(['id', 'email'])
     .where('emailSettingsNewProposals', '=', true)
@@ -156,12 +143,12 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
 
   for (const proposal of newProposals) {
     for (const user of users) {
-      if (await alreadySent(user.id, proposal.id, 'new_proposal', dao.slug))
+      if (await alreadySent(user.id, proposal.id, 'new_proposal', dao.id))
         continue;
 
       // Get author ENS if available
       const voter = proposal.author
-        ? await db.public
+        ? await db
             .selectFrom('voter')
             .select('ens')
             .where('address', '=', proposal.author)
@@ -192,21 +179,15 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
         html,
         idempotencyKey
       );
-      await recordNotification(user.id, proposal.id, 'new_proposal', dao.slug);
+      await recordNotification(user.id, proposal.id, 'new_proposal', dao.id);
     }
   }
 }
 
 // Process ending proposal notifications
 async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
-  const daoDb = getDaoDb(dao.slug);
-  if (!daoDb) {
-    logger.error(`Database for DAO ${dao.slug} not found`);
-    return;
-  }
-
   // Get ending proposals
-  const endingProposals = await db.public
+  const endingProposals = await db
     .selectFrom('proposal')
     .selectAll()
     .where('daoId', '=', dao.id)
@@ -226,7 +207,7 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
   }
 
   // Get users who want ending proposal notifications
-  const users = await daoDb
+  const users = await db
     .selectFrom('user')
     .select(['id', 'email'])
     .where('emailSettingsEndingProposals', '=', true)
@@ -238,7 +219,7 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
 
   for (const proposal of endingProposals) {
     for (const user of users) {
-      if (await alreadySent(user.id, proposal.id, 'ending_proposal', dao.slug))
+      if (await alreadySent(user.id, proposal.id, 'ending_proposal', dao.id))
         continue;
 
       const endTime = formatDistanceStrict(
@@ -269,26 +250,15 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
         html,
         idempotencyKey
       );
-      await recordNotification(
-        user.id,
-        proposal.id,
-        'ending_proposal',
-        dao.slug
-      );
+      await recordNotification(user.id, proposal.id, 'ending_proposal', dao.id);
     }
   }
 }
 
 // Process new discussion notifications
 async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
-  const daoDb = getDaoDb(dao.slug);
-  if (!daoDb) {
-    logger.error(`Database for DAO ${dao.slug} not found`);
-    return;
-  }
-
   // Check if Discourse is enabled for this DAO
-  const daoDiscourse = await db.public
+  const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', dao.id)
@@ -302,7 +272,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
   // Get allowed category IDs for filtering
   const allowedCategories = DAO_DISCOURSE_CATEGORIES[dao.slug];
 
-  let query = db.public
+  let query = db
     .selectFrom('discourseTopic')
     .innerJoin('discoursePost', (join) =>
       join
@@ -351,7 +321,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
   }
 
   // Get users who want new discussion notifications
-  const users = await daoDb
+  const users = await db
     .selectFrom('user')
     .select(['id', 'email'])
     .where('emailSettingsNewDiscussions', '=', true)
@@ -365,7 +335,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
     const topicUrl = `${daoDiscourse.discourseBaseUrl}/t/${topic.slug}/${topic.externalId}`;
 
     for (const user of users) {
-      if (await alreadySent(user.id, topic.id, 'new_discussion', dao.slug))
+      if (await alreadySent(user.id, topic.id, 'new_discussion', dao.id))
         continue;
 
       const html = await render(
@@ -391,7 +361,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
         html,
         idempotencyKey
       );
-      await recordNotification(user.id, topic.id, 'new_discussion', dao.slug);
+      await recordNotification(user.id, topic.id, 'new_discussion', dao.id);
     }
   }
 }
@@ -399,17 +369,6 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
 // ============================================
 // Helper Functions
 // ============================================
-
-// Type-safe DAO database getter
-function getDaoDb(daoSlug: string): Kysely<DB> | null {
-  // Currently we only support arbitrum and uniswap
-  if (daoSlug === 'arbitrum') {
-    return db.arbitrum;
-  } else if (daoSlug === 'uniswap') {
-    return db.uniswap;
-  }
-  return null;
-}
 
 // Send email helper
 async function sendEmail(
@@ -448,22 +407,17 @@ async function alreadySent(
   userId: string,
   targetId: string,
   type: string,
-  daoSlug: string
+  daoId: string
 ): Promise<boolean> {
   const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000);
 
-  const daoDb = getDaoDb(daoSlug);
-  if (!daoDb) {
-    logger.error(`Database for DAO ${daoSlug} not found`);
-    return false;
-  }
-
-  const existing = await daoDb
+  const existing = await db
     .selectFrom('userNotification')
     .select('id')
     .where('userId', '=', userId)
     .where('targetId', '=', targetId)
     .where('type', '=', type)
+    .where('daoId', '=', daoId)
     .where('sentAt', '>=', cutoff)
     .executeTakeFirst();
 
@@ -475,21 +429,16 @@ async function recordNotification(
   userId: string,
   targetId: string,
   type: string,
-  daoSlug: string
+  daoId: string
 ): Promise<void> {
   try {
-    const daoDb = getDaoDb(daoSlug);
-    if (!daoDb) {
-      logger.error(`Database for DAO ${daoSlug} not found`);
-      return;
-    }
-
-    await daoDb
+    await db
       .insertInto('userNotification')
       .values({
         userId,
         targetId,
         type,
+        daoId,
         sentAt: new Date(),
       })
       .execute();
@@ -570,14 +519,10 @@ process.on('SIGINT', async () => {
   // Close HTTP server
   server.close();
 
-  // Close database connections
-  await Promise.all([
-    db.public.destroy(),
-    db.arbitrum.destroy(),
-    db.uniswap.destroy(),
-  ]).catch((err) =>
-    logger.error({ err }, 'Error closing database connections')
-  );
+  // Close database connection
+  await db
+    .destroy()
+    .catch((err) => logger.error({ err }, 'Error closing database connection'));
 
   process.exit(0);
 });

@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/lib/auth/arbitrum_auth';
+import { auth } from '@/lib/auth/auth';
 import { settingsSchema } from '@/lib/validations';
 import { headers } from 'next/headers';
 

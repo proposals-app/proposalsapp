@@ -14,7 +14,7 @@ async function getGroupIdFromTopicSlug(
   // 'use cache';
 
   // First, get the DAO
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .select(['id'])
@@ -23,7 +23,7 @@ async function getGroupIdFromTopicSlug(
   if (!dao) return null;
 
   // Get the DAO discourse configuration
-  const daoDiscourse = await db.public
+  const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .where('daoId', '=', dao.id)
     .select(['id'])
@@ -32,7 +32,7 @@ async function getGroupIdFromTopicSlug(
   if (!daoDiscourse) return null;
 
   // Find the discourse topic by slug
-  const discourseTopic = await db.public
+  const discourseTopic = await db
     .selectFrom('discourseTopic')
     .where('slug', '=', topicSlug)
     .where('daoDiscourseId', '=', daoDiscourse.id)
@@ -42,7 +42,7 @@ async function getGroupIdFromTopicSlug(
   if (!discourseTopic) return null;
 
   // Find the proposal group containing this topic
-  const proposalGroups = await db.public
+  const proposalGroups = await db
     .selectFrom('proposalGroup')
     .where('daoId', '=', dao.id)
     .select(['id', 'items'])

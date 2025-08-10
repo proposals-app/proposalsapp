@@ -32,7 +32,7 @@
       loop: "{{ consul_kv_values }}"
       loop_control:
         label: "{{ item.key }} in {{ current_datacenter }}"
-      no_log: true  # Don't log the sensitive token
+      no_log: true # Don't log the sensitive token
 
     - name: Display setup information
       debug:
@@ -40,9 +40,9 @@
           ========================================
           Cloudflared Setup Complete for {{ current_datacenter }}
           ========================================
-          
+
           The Cloudflare tunnel token has been stored in Consul KV.
-          
+
           Run this playbook on all consul servers to replicate
           the configuration across all datacenters.
           ========================================
@@ -58,22 +58,22 @@
           ========================================
           Cloudflared Setup Complete
           ========================================
-          
+
           To deploy Cloudflared:
           1. Ensure this playbook has been run on all consul servers
           2. Run: nomad job run applications/cloudflared/cloudflared.nomad
-          
+
           The Cloudflared tunnel will:
           - Establish secure connection to Cloudflare's edge
           - Enable Zero Trust access to internal services
           - Provide metrics on port 2000
           - Automatically migrate to another DC if current node fails
-          
+
           To verify the deployment:
           - Check Nomad: nomad job status cloudflared
           - Check metrics: curl http://<node>:2000/metrics
           - Check Cloudflare dashboard for tunnel status
-          
+
           Note: The tunnel token contains all necessary configuration
           including the tunnel ID and credentials.
           ========================================

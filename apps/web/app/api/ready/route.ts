@@ -45,7 +45,7 @@ export async function GET() {
 async function checkDatabase() {
   try {
     // Simple query to check database connectivity using Kysely
-    await sql`SELECT 1 as check`.execute(db.public);
+    await sql`SELECT 1 as check`.execute(db);
     return {
       status: 'ok',
       message: 'Database connection is healthy',

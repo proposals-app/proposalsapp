@@ -121,34 +121,10 @@ export async function up(db: Kysely<DB>): Promise<void> {
     ON public.discourse_user(username, dao_discourse_id)
     INCLUDE (external_id, avatar_template);
   `.execute(db);
-
-  // ===== USER-SPECIFIC INDEXES FOR READ TRACKING =====
-
-  // CRITICAL: User proposal group read tracking (Arbitrum)
-  await sql`
-    CREATE INDEX IF NOT EXISTS idx_arbitrum_user_proposal_group_last_read_lookup
-    ON arbitrum.user_proposal_group_last_read(user_id, proposal_group_id)
-    INCLUDE (last_read_at);
-  `.execute(db);
-
-  // CRITICAL: User proposal group read tracking (Uniswap)
-  await sql`
-    CREATE INDEX IF NOT EXISTS idx_uniswap_user_proposal_group_last_read_lookup
-    ON uniswap.user_proposal_group_last_read(user_id, proposal_group_id)
-    INCLUDE (last_read_at);
-  `.execute(db);
 }
 
 export async function down(db: Kysely<DB>): Promise<void> {
   // Drop all indexes in reverse order of creation
-
-  // User-specific indexes
-  await sql`DROP INDEX IF EXISTS uniswap.idx_uniswap_user_proposal_group_last_read_lookup;`.execute(
-    db
-  );
-  await sql`DROP INDEX IF EXISTS arbitrum.idx_arbitrum_user_proposal_group_last_read_lookup;`.execute(
-    db
-  );
 
   // Discourse user indexes
   await sql`DROP INDEX IF EXISTS public.idx_discourse_user_username_lookup;`.execute(

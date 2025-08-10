@@ -59,7 +59,7 @@ export async function getGroupsData(daoSlug: string) {
   // 'use cache';
   // cacheTag('groupsData');
 
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .select(['id', 'name', 'slug'])
@@ -67,7 +67,7 @@ export async function getGroupsData(daoSlug: string) {
 
   if (!dao) return { dao: null, proposals: [], topics: [], proposalGroups: [] };
 
-  const proposalGroups = await db.public
+  const proposalGroups = await db
     .selectFrom('proposalGroup')
     .where('daoId', '=', dao.id)
     .select(['id', 'name', 'items', 'createdAt', 'daoId'])
@@ -82,7 +82,7 @@ export async function getGroupsData(daoSlug: string) {
           let indexerName = 'unknown';
 
           if (item.type === 'proposal') {
-            const proposal = await db.public
+            const proposal = await db
               .selectFrom('proposal')
               .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
               .select('daoGovernor.name as governorName')
@@ -91,7 +91,7 @@ export async function getGroupsData(daoSlug: string) {
               .executeTakeFirst();
             indexerName = proposal?.governorName ?? 'unknown';
           } else if (item.type === 'topic') {
-            const topic = await db.public
+            const topic = await db
               .selectFrom('discourseTopic')
               .leftJoin(
                 'daoDiscourse',
@@ -132,7 +132,7 @@ export async function getUngroupedProposals(
   // 'use cache';
   // cacheTag('ungroupedProposals');
 
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
@@ -140,7 +140,7 @@ export async function getUngroupedProposals(
 
   if (!dao) return [];
 
-  const allProposals = await db.public
+  const allProposals = await db
     .selectFrom('proposal')
     .where('proposal.daoId', '=', dao.id)
     .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
@@ -154,10 +154,7 @@ export async function getUngroupedProposals(
     .where('markedSpam', '=', false)
     .execute();
 
-  const groups = await db.public
-    .selectFrom('proposalGroup')
-    .select('items')
-    .execute();
+  const groups = await db.selectFrom('proposalGroup').select('items').execute();
 
   // Extract all proposal items from groups
   const allGroupedProposalItems: { externalId: string; governorId: string }[] =
@@ -177,7 +174,7 @@ export async function getUngroupedProposals(
   // Fetch all grouped proposal IDs in a single query
   const groupedProposalIds =
     allGroupedProposalItems.length > 0
-      ? await db.public
+      ? await db
           .selectFrom('proposal')
           .select(['id'])
           .where((eb) => {
@@ -225,7 +222,7 @@ export async function fuzzySearchItems(
 
   return handleSilentServerAction(
     async () => {
-      const dao = await db.public
+      const dao = await db
         .selectFrom('dao')
         .where('slug', '=', daoSlug)
         .selectAll()
@@ -236,7 +233,7 @@ export async function fuzzySearchItems(
         return [];
       }
 
-      const daoDiscourse = await db.public
+      const daoDiscourse = await db
         .selectFrom('daoDiscourse')
         .where('daoId', '=', dao.id)
         .selectAll()
@@ -248,7 +245,7 @@ export async function fuzzySearchItems(
       }
 
       const [proposals, topics] = await Promise.all([
-        db.public
+        db
           .selectFrom('proposal')
           .where('markedSpam', '=', false)
           .where('proposal.daoId', '=', dao.id)
@@ -261,7 +258,7 @@ export async function fuzzySearchItems(
             'daoGovernor.name as governorName',
           ])
           .execute(),
-        db.public
+        db
           .selectFrom('discourseTopic')
           .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
           .leftJoin(
@@ -330,7 +327,7 @@ export async function saveGroups(
     await Promise.all(
       groups.map(async (group) => {
         if (group.id) {
-          await db.public
+          await db
             .insertInto('proposalGroup')
             .values({
               id: group.id,
@@ -349,7 +346,7 @@ export async function saveGroups(
             )
             .execute();
         } else {
-          await db.public
+          await db
             .insertInto('proposalGroup')
             .values({
               name: group.name,
@@ -390,7 +387,7 @@ export async function createGroup(
       createdAt: new Date(),
     };
 
-    await db.public
+    await db
       .insertInto('proposalGroup')
       .values({
         id: newGroup.id,
@@ -410,10 +407,7 @@ export async function createGroup(
  * Deletes a group from the database
  */
 export async function deleteGroup(groupId: string) {
-  await db.public
-    .deleteFrom('proposalGroup')
-    .where('id', '=', groupId)
-    .execute();
+  await db.deleteFrom('proposalGroup').where('id', '=', groupId).execute();
 
   revalidateTag('groupsData');
   revalidateTag('ungroupedProposals');
@@ -426,7 +420,7 @@ export async function getDao(daoSlug: string) {
   // 'use cache';
   // cacheLife('hours');
 
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .selectAll()
     .where('slug', '=', daoSlug)

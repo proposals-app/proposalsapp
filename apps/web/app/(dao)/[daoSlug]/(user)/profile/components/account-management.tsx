@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { authClient } from '@/lib/auth/auth-client';
-import type { Session } from '@/lib/auth/arbitrum_auth';
 import { Mail, RefreshCw, Trash2 } from 'lucide-react';
 
 interface AccountManagementProps {
-  session: Session;
+  session: {
+    user: {
+      email: string;
+    };
+  };
 }
 
 export const AccountManagement = ({ session }: AccountManagementProps) => {

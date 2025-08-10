@@ -36,8 +36,6 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
-export type Numeric = ColumnType<string, number | string, number | string>;
-
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Account {
@@ -54,31 +52,6 @@ export interface Account {
   scope: string | null;
   updatedAt: Timestamp;
   userId: string;
-}
-
-export interface CronJob {
-  active: Generated<boolean>;
-  command: string;
-  database: Generated<string>;
-  jobid: Generated<Int8>;
-  jobname: string | null;
-  nodename: Generated<string>;
-  nodeport: Generated<number>;
-  schedule: string;
-  username: Generated<string>;
-}
-
-export interface CronJobRunDetails {
-  command: string | null;
-  database: string | null;
-  endTime: Timestamp | null;
-  jobid: Int8 | null;
-  jobPid: number | null;
-  returnMessage: string | null;
-  runid: Generated<Int8>;
-  startTime: Timestamp | null;
-  status: string | null;
-  username: string | null;
 }
 
 export interface Dao {
@@ -262,63 +235,6 @@ export interface JobQueue {
   type: string;
 }
 
-export interface PgStatStatements {
-  calls: Int8 | null;
-  dbid: number | null;
-  jitDeformCount: Int8 | null;
-  jitDeformTime: number | null;
-  jitEmissionCount: Int8 | null;
-  jitEmissionTime: number | null;
-  jitFunctions: Int8 | null;
-  jitGenerationTime: number | null;
-  jitInliningCount: Int8 | null;
-  jitInliningTime: number | null;
-  jitOptimizationCount: Int8 | null;
-  jitOptimizationTime: number | null;
-  localBlkReadTime: number | null;
-  localBlksDirtied: Int8 | null;
-  localBlksHit: Int8 | null;
-  localBlksRead: Int8 | null;
-  localBlksWritten: Int8 | null;
-  localBlkWriteTime: number | null;
-  maxExecTime: number | null;
-  maxPlanTime: number | null;
-  meanExecTime: number | null;
-  meanPlanTime: number | null;
-  minExecTime: number | null;
-  minmaxStatsSince: Timestamp | null;
-  minPlanTime: number | null;
-  plans: Int8 | null;
-  query: string | null;
-  queryid: Int8 | null;
-  rows: Int8 | null;
-  sharedBlkReadTime: number | null;
-  sharedBlksDirtied: Int8 | null;
-  sharedBlksHit: Int8 | null;
-  sharedBlksRead: Int8 | null;
-  sharedBlksWritten: Int8 | null;
-  sharedBlkWriteTime: number | null;
-  statsSince: Timestamp | null;
-  stddevExecTime: number | null;
-  stddevPlanTime: number | null;
-  tempBlkReadTime: number | null;
-  tempBlksRead: Int8 | null;
-  tempBlksWritten: Int8 | null;
-  tempBlkWriteTime: number | null;
-  toplevel: boolean | null;
-  totalExecTime: number | null;
-  totalPlanTime: number | null;
-  userid: number | null;
-  walBytes: Numeric | null;
-  walFpi: Int8 | null;
-  walRecords: Int8 | null;
-}
-
-export interface PgStatStatementsInfo {
-  dealloc: Int8 | null;
-  statsReset: Timestamp | null;
-}
-
 export interface Proposal {
   author: string | null;
   blockCreatedAt: number | null;
@@ -351,106 +267,6 @@ export interface ProposalGroup {
   name: string;
 }
 
-export interface RindexerInternalLatestBlock {
-  block: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumCoreGovernorProposalCreated {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExtended {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumCoreGovernorVoteCast {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumScNominationsProposalCreated {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumScNominationsProposalExecuted {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbTokenDelegateChanged {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerArbTokenDelegateVotesChanged {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerLastKnownIndexesDroppingSql {
-  key: number;
-  value: string;
-}
-
-export interface RindexerInternalRindexerLastKnownRelationshipDroppingSql {
-  key: number;
-  value: string;
-}
-
-export interface RindexerInternalRindexerUniGovernorProposalCreated {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerUniGovernorProposalExecuted {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerUniGovernorVoteCast {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerUniTokenDelegateChanged {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
-export interface RindexerInternalRindexerUniTokenDelegateVotesChanged {
-  lastSyncedBlock: Numeric | null;
-  network: string;
-}
-
 export interface Session {
   createdAt: Timestamp;
   expiresAt: Timestamp;
@@ -460,71 +276,6 @@ export interface Session {
   updatedAt: Timestamp;
   userAgent: string | null;
   userId: string;
-}
-
-export interface UniswapAccount {
-  accessToken: string | null;
-  accessTokenExpiresAt: Timestamp | null;
-  accountId: string;
-  createdAt: Timestamp;
-  id: string;
-  idToken: string | null;
-  password: string | null;
-  providerId: string;
-  refreshToken: string | null;
-  refreshTokenExpiresAt: Timestamp | null;
-  scope: string | null;
-  updatedAt: Timestamp;
-  userId: string;
-}
-
-export interface UniswapSession {
-  createdAt: Timestamp;
-  expiresAt: Timestamp;
-  id: string;
-  ipAddress: string | null;
-  token: string;
-  updatedAt: Timestamp;
-  userAgent: string | null;
-  userId: string;
-}
-
-export interface UniswapUser {
-  createdAt: Timestamp;
-  email: string;
-  emailSettingsEndingProposals: Generated<boolean>;
-  emailSettingsNewDiscussions: Generated<boolean>;
-  emailSettingsNewProposals: Generated<boolean>;
-  emailVerified: boolean;
-  id: string;
-  image: string | null;
-  isOnboarded: Generated<boolean>;
-  name: string;
-  updatedAt: Timestamp;
-}
-
-export interface UniswapUserNotification {
-  id: Generated<string>;
-  sentAt: Generated<Timestamp>;
-  targetId: string;
-  type: string;
-  userId: string;
-}
-
-export interface UniswapUserProposalGroupLastRead {
-  id: Generated<string>;
-  lastReadAt: Timestamp | null;
-  proposalGroupId: string;
-  userId: string;
-}
-
-export interface UniswapVerification {
-  createdAt: Timestamp | null;
-  expiresAt: Timestamp;
-  id: string;
-  identifier: string;
-  updatedAt: Timestamp | null;
-  value: string;
 }
 
 export interface User {
@@ -542,6 +293,7 @@ export interface User {
 }
 
 export interface UserNotification {
+  daoId: string | null;
   id: Generated<string>;
   sentAt: Generated<Timestamp>;
   targetId: string;
@@ -610,8 +362,6 @@ export interface VotingPowerTimeseries {
 
 export interface DB {
   account: Account;
-  "cron.job": CronJob;
-  "cron.jobRunDetails": CronJobRunDetails;
   dao: Dao;
   daoDiscourse: DaoDiscourse;
   daoGovernor: DaoGovernor;
@@ -626,37 +376,9 @@ export interface DB {
   discourseTopic: DiscourseTopic;
   discourseUser: DiscourseUser;
   jobQueue: JobQueue;
-  pgStatStatements: PgStatStatements;
-  pgStatStatementsInfo: PgStatStatementsInfo;
   proposal: Proposal;
   proposalGroup: ProposalGroup;
-  "rindexerInternal.latestBlock": RindexerInternalLatestBlock;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated": RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExecuted": RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted;
-  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExtended": RindexerInternalRindexerArbitrumCoreGovernorProposalExtended;
-  "rindexerInternal.rindexerArbitrumCoreGovernorVoteCast": RindexerInternalRindexerArbitrumCoreGovernorVoteCast;
-  "rindexerInternal.rindexerArbitrumScNominationsProposalCreated": RindexerInternalRindexerArbitrumScNominationsProposalCreated;
-  "rindexerInternal.rindexerArbitrumScNominationsProposalExecuted": RindexerInternalRindexerArbitrumScNominationsProposalExecuted;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalCreated": RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExecuted": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExtended": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended;
-  "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCast": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast;
-  "rindexerInternal.rindexerArbTokenDelegateChanged": RindexerInternalRindexerArbTokenDelegateChanged;
-  "rindexerInternal.rindexerArbTokenDelegateVotesChanged": RindexerInternalRindexerArbTokenDelegateVotesChanged;
-  "rindexerInternal.rindexerLastKnownIndexesDroppingSql": RindexerInternalRindexerLastKnownIndexesDroppingSql;
-  "rindexerInternal.rindexerLastKnownRelationshipDroppingSql": RindexerInternalRindexerLastKnownRelationshipDroppingSql;
-  "rindexerInternal.rindexerUniGovernorProposalCreated": RindexerInternalRindexerUniGovernorProposalCreated;
-  "rindexerInternal.rindexerUniGovernorProposalExecuted": RindexerInternalRindexerUniGovernorProposalExecuted;
-  "rindexerInternal.rindexerUniGovernorVoteCast": RindexerInternalRindexerUniGovernorVoteCast;
-  "rindexerInternal.rindexerUniTokenDelegateChanged": RindexerInternalRindexerUniTokenDelegateChanged;
-  "rindexerInternal.rindexerUniTokenDelegateVotesChanged": RindexerInternalRindexerUniTokenDelegateVotesChanged;
   session: Session;
-  "uniswap.account": UniswapAccount;
-  "uniswap.session": UniswapSession;
-  "uniswap.user": UniswapUser;
-  "uniswap.userNotification": UniswapUserNotification;
-  "uniswap.userProposalGroupLastRead": UniswapUserProposalGroupLastRead;
-  "uniswap.verification": UniswapVerification;
   user: User;
   userNotification: UserNotification;
   userProposalGroupLastRead: UserProposalGroupLastRead;

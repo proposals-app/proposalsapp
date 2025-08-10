@@ -268,7 +268,7 @@
         make clean || true
         make PG_CONFIG=/usr/lib/postgresql/{{ postgresql_version }}/bin/pg_config
         make install PG_CONFIG=/usr/lib/postgresql/{{ postgresql_version }}/bin/pg_config
-        
+
         # Verify installation
         if [ ! -f "/usr/share/postgresql/{{ postgresql_version }}/extension/pg_background.control" ]; then
           echo "ERROR: pg_background extension files were not installed properly"
@@ -423,7 +423,7 @@
     - name: Create application database and user
       shell: |
         export PGPASSWORD="{{ postgres_password }}"
-        
+
         # Wait for PostgreSQL to be ready
         for i in {1..30}; do
           if psql -h localhost -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then
@@ -431,7 +431,7 @@
           fi
           sleep 2
         done
-        
+
         # Create proposalsapp role if it doesn't exist
         psql -h localhost -U postgres -d postgres -c "
           DO \$\$
@@ -442,12 +442,12 @@
           END
           \$\$;
         "
-        
+
         # Create database if it doesn't exist (using a different approach)
         if ! psql -h localhost -U postgres -lqt | cut -d \| -f 1 | grep -qw proposalsapp; then
           psql -h localhost -U postgres -d postgres -c "CREATE DATABASE proposalsapp OWNER proposalsapp ENCODING UTF8"
         fi
-        
+
         # Grant permissions
         psql -h localhost -U postgres -d proposalsapp -c "
           GRANT ALL PRIVILEGES ON DATABASE proposalsapp TO proposalsapp;
@@ -455,16 +455,16 @@
           GRANT pg_read_all_settings TO proposalsapp;
           GRANT pg_monitor TO proposalsapp;
         "
-        
+
         # Create extensions in proposalsapp database as superuser
         echo "Creating extensions..."
-        
+
         # pg_stat_statements should already be in shared_preload_libraries
         psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
-        
+
         # Create pg_cron extension (must be available after package installation)
         psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_cron;"
-        
+
         # Grant usage permissions on cron schema
         psql -h localhost -U postgres -d proposalsapp -c "
           GRANT USAGE ON SCHEMA cron TO proposalsapp;
@@ -472,7 +472,7 @@
           GRANT ALL ON ALL FUNCTIONS IN SCHEMA cron TO proposalsapp;
           GRANT ALL ON ALL SEQUENCES IN SCHEMA cron TO proposalsapp;
         "
-        
+
         # Create pg_background extension (must be available after compilation)
         psql -h localhost -U postgres -d proposalsapp -c "CREATE EXTENSION IF NOT EXISTS pg_background;"
       run_once: true
@@ -481,23 +481,23 @@
     - name: Verify all required extensions are installed
       shell: |
         export PGPASSWORD="{{ postgres_password }}"
-        
+
         # Check that all required extensions are installed
         missing_extensions=""
-        
+
         for ext in pg_stat_statements pg_cron pg_background; do
           if ! psql -h localhost -U postgres -d proposalsapp -c "SELECT 1 FROM pg_extension WHERE extname = '$ext';" | grep -q 1; then
             missing_extensions="$missing_extensions $ext"
           fi
         done
-        
+
         if [ -n "$missing_extensions" ]; then
           echo "ERROR: The following required extensions are not installed:$missing_extensions"
           exit 1
         fi
-        
+
         echo "SUCCESS: All required extensions are installed"
-        
+
         # Display extension details
         echo ""
         echo "=== Installed extensions in proposalsapp database ==="
@@ -738,7 +738,12 @@
         group: "{{ item.group | default('postgres') }}"
         mode: "{{ item.mode | default('0755') }}"
       loop:
-        - { path: "{{ pgpool_config_dir }}", owner: "root", group: "postgres", mode: "0775" }
+        - {
+            path: "{{ pgpool_config_dir }}",
+            owner: "root",
+            group: "postgres",
+            mode: "0775",
+          }
         - { path: "{{ pgpool_log_dir }}" }
         - { path: "{{ pgpool_run_dir }}" }
         - { path: "{{ pgpool_data_dir }}" }
@@ -840,13 +845,13 @@
           RuntimeDirectoryMode=0755
 
           Environment="PGDATA=/var/lib/postgresql/17/main"
-          
+
           # Simple check for configuration file
           ExecStartPre=/bin/bash -c 'test -f {{ pgpool_config_dir }}/pgpool.conf || (echo "[pgpool] ERROR: Configuration file missing"; exit 1)'
-          
+
           # Check for backends in configuration
           ExecStartPre=/bin/bash -c 'grep -q "^backend_hostname0" {{ pgpool_config_dir }}/pgpool.conf || (echo "[pgpool] ERROR: No backends configured"; exit 1)'
-          
+
           ExecStart=/usr/sbin/pgpool -D -f {{ pgpool_config_dir }}/pgpool.conf -F {{ pgpool_config_dir }}/pcp.conf -a {{ pgpool_config_dir }}/pool_hba.conf
           ExecReload=/usr/sbin/pgpool reload
           ExecStop=/usr/sbin/pgpool -m fast stop
@@ -1032,7 +1037,7 @@
           PostgreSQL HA Cluster with pgpool-II
           ========================================
           {{ cluster_overview.stdout }}
-          
+
           Connection via pgpool: postgresql://proposalsapp:***@localhost:5432/proposalsapp
           ========================================
 
@@ -1052,7 +1057,7 @@
       - { key: "pgpool/port", value: "5432" }
       - { key: "pgpool/enabled", value: "true" }
       - { key: "pgpool/pool_mode", value: "transaction" }
-  
+
   tasks:
     - name: Ensure Consul is available
       wait_for:

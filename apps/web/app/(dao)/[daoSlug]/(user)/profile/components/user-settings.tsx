@@ -2,12 +2,18 @@
 
 import { useState } from 'react';
 import { Bell, Mail, RefreshCw } from 'lucide-react';
-import type { Session } from '@/lib/auth/arbitrum_auth';
 import { useRouter } from 'next/navigation';
 import { saveSettings, type SettingsData } from './../actions';
 
 interface UserSettingsProps {
-  session: Session;
+  session: {
+    user: {
+      email: string;
+      email_settings_new_discussions: boolean;
+      email_settings_new_proposals: boolean;
+      email_settings_ending_proposals: boolean;
+    };
+  };
 }
 
 export const UserSettings = ({ session }: UserSettingsProps) => {

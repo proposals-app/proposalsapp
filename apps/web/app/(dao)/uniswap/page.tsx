@@ -6,7 +6,7 @@ import {
 import { GroupList } from '../[daoSlug]/components/group-list';
 import { UniswapActionBarClient } from './components/uniswap-action-bar-client';
 import { Suspense } from 'react';
-import { auth } from '@/lib/auth/uniswap_auth';
+import { auth } from '@/lib/auth/auth';
 import { headers } from 'next/headers';
 import { UniswapSummaryHeader } from './components/uniswap-summary-header';
 import {

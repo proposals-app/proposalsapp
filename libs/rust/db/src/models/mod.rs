@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod account;
 pub mod dao;
 pub mod dao_discourse;
 pub mod dao_governor;
@@ -21,6 +22,11 @@ pub mod kysely_migration_lock;
 pub mod proposal;
 pub mod proposal_group;
 pub mod sea_orm_active_enums;
+pub mod session;
+pub mod user;
+pub mod user_notification;
+pub mod user_proposal_group_last_read;
+pub mod verification;
 pub mod vote;
 pub mod voter;
 pub mod voting_power_latest;

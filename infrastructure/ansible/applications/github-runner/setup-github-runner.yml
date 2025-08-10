@@ -9,7 +9,7 @@
     runner_home: "/home/runner"
     runner_workdir: "{{ runner_home }}/actions-runner"
     github_url: "https://github.com/{{ vault_github_org }}/{{ vault_github_repo }}"
-    
+
   tasks:
     - name: Add Microsoft package signing key
       apt_key:
@@ -98,8 +98,8 @@
       copy:
         content: "{{ runner_user }} ALL=(ALL) NOPASSWD: ALL"
         dest: "/etc/sudoers.d/{{ runner_user }}"
-        mode: '0440'
-        validate: 'visudo -cf %s'
+        mode: "0440"
+        validate: "visudo -cf %s"
 
     - name: Create runner directory
       file:
@@ -107,7 +107,7 @@
         state: directory
         owner: "{{ runner_user }}"
         group: "{{ runner_group }}"
-        mode: '0755'
+        mode: "0755"
 
     - name: Download GitHub Actions runner
       unarchive:
@@ -166,10 +166,10 @@
           --labels linux,self-hosted,{{ datacenter }},tailscale{{ ',sibiu' if inventory_hostname in ['github-runner-sib-01', 'github-runner-sib-03'] else '' }} \
           --unattended \
           --replace
-      when: 
+      when:
         - runner_token is defined
         - not runner_configured.stat.exists
-        - vault_github_pat is defined 
+        - vault_github_pat is defined
         - vault_github_pat != ""
 
     - name: Install runner service
@@ -181,7 +181,7 @@
       args:
         creates: /etc/systemd/system/actions.runner.{{ vault_github_org }}-{{ vault_github_repo }}.{{ inventory_hostname }}.service
       when:
-        - vault_github_pat is defined 
+        - vault_github_pat is defined
         - vault_github_pat != ""
 
     - name: Start and enable runner service
@@ -191,7 +191,7 @@
         enabled: yes
         daemon_reload: yes
       when:
-        - vault_github_pat is defined 
+        - vault_github_pat is defined
         - vault_github_pat != ""
 
     - name: Setup Docker buildx
@@ -221,7 +221,7 @@
             }
           }
         dest: /etc/docker/daemon.json
-        mode: '0644'
+        mode: "0644"
       notify: restart docker
 
     - name: Create buildx config directory
@@ -230,7 +230,7 @@
         state: directory
         owner: "{{ runner_user }}"
         group: "{{ runner_group }}"
-        mode: '0755'
+        mode: "0755"
 
     - name: Configure buildx with cache limits
       become: true
@@ -252,7 +252,7 @@
         dest: "{{ runner_home }}/.docker/buildx/buildkitd.toml"
         owner: "{{ runner_user }}"
         group: "{{ runner_group }}"
-        mode: '0644'
+        mode: "0644"
 
     - name: Create runner healthcheck script
       copy:
@@ -262,8 +262,7 @@
           systemctl is-active --quiet actions.runner.{{ vault_github_org }}-{{ vault_github_repo }}.{{ inventory_hostname }}
           exit $?
         dest: /usr/local/bin/runner-healthcheck
-        mode: '0755'
-
+        mode: "0755"
 
     - name: Display setup summary
       debug:
@@ -279,7 +278,7 @@
           - Rust toolchain installed
           {% else %}
           WARNING: GitHub PAT not configured!
-          
+
           To complete setup:
           1. Create a GitHub Personal Access Token with:
              - repo scope
@@ -295,7 +294,7 @@
       systemd:
         name: docker
         state: restarted
-    
+
     - name: reload systemd
       systemd:
         daemon_reload: yes

@@ -8,26 +8,32 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "proposal_group"
+        "session"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: Uuid,
-    pub name: String,
-    pub items: Json,
+    pub id: String,
+    pub expires_at: DateTime,
+    pub token: String,
     pub created_at: DateTime,
-    pub dao_id: Uuid,
+    pub updated_at: DateTime,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub user_id: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
-    Name,
-    Items,
+    ExpiresAt,
+    Token,
     CreatedAt,
-    DaoId,
+    UpdatedAt,
+    IpAddress,
+    UserAgent,
+    UserId,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -36,7 +42,7 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = Uuid;
+    type ValueType = String;
     fn auto_increment() -> bool {
         false
     }
@@ -44,19 +50,21 @@ impl PrimaryKeyTrait for PrimaryKey {
 
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
-    Dao,
-    UserProposalGroupLastRead,
+    User,
 }
 
 impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::Uuid.def(),
-            Self::Name => ColumnType::Text.def(),
-            Self::Items => ColumnType::JsonBinary.def(),
+            Self::Id => ColumnType::Text.def(),
+            Self::ExpiresAt => ColumnType::DateTime.def(),
+            Self::Token => ColumnType::Text.def().unique(),
             Self::CreatedAt => ColumnType::DateTime.def(),
-            Self::DaoId => ColumnType::Uuid.def(),
+            Self::UpdatedAt => ColumnType::DateTime.def(),
+            Self::IpAddress => ColumnType::Text.def().null(),
+            Self::UserAgent => ColumnType::Text.def().null(),
+            Self::UserId => ColumnType::Text.def(),
         }
     }
 }
@@ -64,26 +72,17 @@ impl ColumnTrait for Column {
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
-            Self::Dao => Entity::belongs_to(super::dao::Entity)
-                .from(Column::DaoId)
-                .to(super::dao::Column::Id)
+            Self::User => Entity::belongs_to(super::user::Entity)
+                .from(Column::UserId)
+                .to(super::user::Column::Id)
                 .into(),
-            Self::UserProposalGroupLastRead => {
-                Entity::has_many(super::user_proposal_group_last_read::Entity).into()
-            }
         }
     }
 }
 
-impl Related<super::dao::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Dao.def()
-    }
-}
-
-impl Related<super::user_proposal_group_last_read::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserProposalGroupLastRead.def()
+        Relation::User.def()
     }
 }
 

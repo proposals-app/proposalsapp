@@ -13,7 +13,7 @@ export async function markAllAsRead(daoSlug: string) {
     const { userId, dao } = await requireAuthAndDao(daoSlug);
 
     // Fetch only the group IDs needed for the update
-    const groupIds = await db.public
+    const groupIds = await db
       .selectFrom('proposalGroup')
       .where('daoId', '=', dao.id)
       .select('id')
@@ -32,19 +32,7 @@ export async function markAllAsRead(daoSlug: string) {
     }));
 
     // Batch insert/update all groups at once
-    const targetDb =
-      daoSlug === 'arbitrum'
-        ? db.arbitrum
-        : daoSlug === 'uniswap'
-          ? db.uniswap
-          : null;
-
-    if (!targetDb) {
-      console.error(`[markAllAsRead] Invalid daoSlug: ${daoSlug}`);
-      return;
-    }
-
-    await targetDb
+    await db
       .insertInto('userProposalGroupLastRead')
       .values(values)
       .onConflict((oc) =>
@@ -66,7 +54,7 @@ export async function markAllAsRead(daoSlug: string) {
 async function getGroupsDataInternal(daoSlug: string) {
   daoSlugSchema.parse(daoSlug);
 
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .select(['id', 'name'])
@@ -75,7 +63,7 @@ async function getGroupsDataInternal(daoSlug: string) {
   if (!dao) return null;
 
   // Single optimized query using lateral joins for better performance
-  const groupsWithStats = await db.public
+  const groupsWithStats = await db
     .selectFrom('proposalGroup as pg')
     .where('pg.daoId', '=', dao.id)
     .where('pg.name', '!=', 'UNGROUPED')
@@ -286,22 +274,11 @@ export async function getGroups(daoSlug: string, userId?: string) {
   }
 
   // Apply user-specific last read data
-  const targetDb =
-    daoSlug === 'arbitrum'
-      ? db.arbitrum
-      : daoSlug === 'uniswap'
-        ? db.uniswap
-        : null;
-
-  if (!targetDb) {
-    return cachedData;
-  }
-
   const lastReadMap = new Map<string, Date | null>();
 
   if (cachedData.groups.length > 0) {
     const groupIds = cachedData.groups.map((g) => g.id);
-    const lastReads = await targetDb
+    const lastReads = await db
       .selectFrom('userProposalGroupLastRead')
       .where('userId', '=', userId)
       .where('proposalGroupId', 'in', groupIds)
@@ -414,7 +391,7 @@ async function getTotalVotingPowerInternal(daoId: string): Promise<number> {
   }
 
   try {
-    const result = await db.public
+    const result = await db
       .selectFrom('votingPowerLatest')
       .where('daoId', '=', daoId)
       .where(

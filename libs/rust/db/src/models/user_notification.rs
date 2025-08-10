@@ -8,26 +8,28 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "proposal_group"
+        "user_notification"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub id: Uuid,
-    pub name: String,
-    pub items: Json,
-    pub created_at: DateTime,
-    pub dao_id: Uuid,
+    pub user_id: String,
+    pub r#type: String,
+    pub target_id: String,
+    pub dao_id: Option<Uuid>,
+    pub sent_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
-    Name,
-    Items,
-    CreatedAt,
+    UserId,
+    Type,
+    TargetId,
     DaoId,
+    SentAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -45,7 +47,7 @@ impl PrimaryKeyTrait for PrimaryKey {
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     Dao,
-    UserProposalGroupLastRead,
+    User,
 }
 
 impl ColumnTrait for Column {
@@ -53,10 +55,11 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Uuid.def(),
-            Self::Name => ColumnType::Text.def(),
-            Self::Items => ColumnType::JsonBinary.def(),
-            Self::CreatedAt => ColumnType::DateTime.def(),
-            Self::DaoId => ColumnType::Uuid.def(),
+            Self::UserId => ColumnType::Text.def(),
+            Self::Type => ColumnType::Text.def(),
+            Self::TargetId => ColumnType::Text.def(),
+            Self::DaoId => ColumnType::Uuid.def().null(),
+            Self::SentAt => ColumnType::DateTime.def(),
         }
     }
 }
@@ -68,9 +71,10 @@ impl RelationTrait for Relation {
                 .from(Column::DaoId)
                 .to(super::dao::Column::Id)
                 .into(),
-            Self::UserProposalGroupLastRead => {
-                Entity::has_many(super::user_proposal_group_last_read::Entity).into()
-            }
+            Self::User => Entity::belongs_to(super::user::Entity)
+                .from(Column::UserId)
+                .to(super::user::Column::Id)
+                .into(),
         }
     }
 }
@@ -81,9 +85,9 @@ impl Related<super::dao::Entity> for Entity {
     }
 }
 
-impl Related<super::user_proposal_group_last_read::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserProposalGroupLastRead.def()
+        Relation::User.def()
     }
 }
 

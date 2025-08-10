@@ -74,7 +74,7 @@ export async function GET(
   }
 
   try {
-    const dao = await db.public
+    const dao = await db
       .selectFrom('dao')
       .where('dao.slug', '=', daoSlug)
       .selectAll()
@@ -84,7 +84,7 @@ export async function GET(
       return emptyResponse;
     }
 
-    const daoDiscourse = await db.public
+    const daoDiscourse = await db
       .selectFrom('daoDiscourse')
       .where('daoDiscourse.daoId', '=', dao.id)
       .selectAll()
@@ -94,7 +94,7 @@ export async function GET(
       return emptyResponse;
     }
 
-    const discourseUser = await db.public
+    const discourseUser = await db
       .selectFrom('discourseUser')
       .where('discourseUser.username', '=', username)
       .where('discourseUser.daoDiscourseId', '=', daoDiscourse.id)
@@ -105,7 +105,7 @@ export async function GET(
       return emptyResponse;
     }
 
-    const dtdu = await db.public
+    const dtdu = await db
       .selectFrom('delegateToDiscourseUser')
       .where('delegateToDiscourseUser.discourseUserId', '=', discourseUser.id)
       .select(['delegateId'])
@@ -115,7 +115,7 @@ export async function GET(
       return emptyResponse;
     }
 
-    const dtvRecords = await db.public
+    const dtvRecords = await db
       .selectFrom('delegateToVoter')
       .where('delegateToVoter.delegateId', '=', dtdu.delegateId)
       .select(['voterId'])
@@ -127,7 +127,7 @@ export async function GET(
 
     const voterIds = dtvRecords.map((record) => record.voterId);
 
-    const voters = await db.public
+    const voters = await db
       .selectFrom('voter')
       .where('voter.id', 'in', voterIds)
       .select(['address'])
@@ -143,7 +143,7 @@ export async function GET(
     let totalHistoricalVotingPower = 0;
 
     for (const address of voterAddresses) {
-      const currentVpEntry = await db.public
+      const currentVpEntry = await db
         .selectFrom('votingPowerLatest')
         .where('votingPowerLatest.voter', '=', address)
         .where('votingPowerLatest.daoId', '=', dao.id)
@@ -155,7 +155,7 @@ export async function GET(
       }
 
       if (parsedTimestamp) {
-        const historicalVpEntry = await db.public
+        const historicalVpEntry = await db
           .selectFrom('votingPowerTimeseries')
           .where('votingPowerTimeseries.voter', '=', address)
           .where('votingPowerTimeseries.daoId', '=', dao.id)

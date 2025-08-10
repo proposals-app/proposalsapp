@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth/arbitrum_auth';
+import { auth } from '@/lib/auth/auth';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { LoginForm } from './components/login-form';

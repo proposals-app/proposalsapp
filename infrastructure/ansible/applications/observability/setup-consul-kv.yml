@@ -44,5 +44,3 @@
       debug:
         msg: "Consul KV setup complete for observability stack in {{ current_datacenter }}"
       run_once: true
-
-

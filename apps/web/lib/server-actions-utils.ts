@@ -1,27 +1,16 @@
 import { headers } from 'next/headers';
-import { auth as arbitrumAuth } from '@/lib/auth/arbitrum_auth';
-import { auth as uniswapAuth } from '@/lib/auth/uniswap_auth';
+import { auth } from '@/lib/auth/auth';
 import { db } from '@proposalsapp/db';
 import { daoSlugSchema } from '@/lib/validations';
 
-// Map of DAO slugs to their auth instances
-const authMap = {
-  arbitrum: arbitrumAuth,
-  uniswap: uniswapAuth,
-  // Add other DAOs as needed
-};
-
 /**
- * Get the current user session for a specific DAO
+ * Get the current user session (unified auth for all DAOs)
  */
 export async function getCurrentUser(daoSlug: string) {
-  const validatedSlug = daoSlugSchema.parse(daoSlug);
+  // Validate the slug format
+  daoSlugSchema.parse(daoSlug);
 
-  // For special DAOs, use their specific auth
-  const authInstance =
-    authMap[validatedSlug as keyof typeof authMap] || arbitrumAuth;
-
-  const session = await authInstance.api.getSession({
+  const session = await auth.api.getSession({
     headers: await headers(),
   });
 
@@ -52,7 +41,7 @@ export async function requireAuth(daoSlug: string) {
 export async function getDaoBySlug(daoSlug: string) {
   const validatedSlug = daoSlugSchema.parse(daoSlug);
 
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .where('slug', '=', validatedSlug)
     .select(['id', 'slug', 'name', 'picture'])

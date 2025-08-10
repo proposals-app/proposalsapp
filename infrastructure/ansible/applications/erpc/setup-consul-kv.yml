@@ -7,7 +7,7 @@
       # HyperSync Bearer Token
       - key: "erpc/hypersync/bearer_token"
         value: "{{ vault_erpc_hypersync_bearer_token }}"
-      
+
       # Hypersync node URLs (per chain)
       - key: "erpc/hypersync/ethereum"
         value: "{{ vault_erpc_hypersync_ethereum_url }}"
@@ -19,7 +19,7 @@
         value: "{{ vault_erpc_hypersync_polygon_url }}"
       - key: "erpc/hypersync/avalanche"
         value: "{{ vault_erpc_hypersync_avalanche_url }}"
-      
+
       # Full node URLs (per chain)
       - key: "erpc/full/ethereum"
         value: "{{ vault_erpc_full_ethereum_url }}"

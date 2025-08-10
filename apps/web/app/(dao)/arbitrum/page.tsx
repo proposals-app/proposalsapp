@@ -5,7 +5,7 @@ import {
 } from '../[daoSlug]/actions';
 import { GroupList } from '../[daoSlug]/components/group-list';
 import { Suspense } from 'react';
-import { auth } from '@/lib/auth/arbitrum_auth';
+import { auth } from '@/lib/auth/auth';
 import { headers } from 'next/headers';
 import { ArbitrumSummaryHeader } from './components/arbitrum-summary-header';
 import { ArbitrumActionBarClient } from './components/arbitrum-action-bar-client';

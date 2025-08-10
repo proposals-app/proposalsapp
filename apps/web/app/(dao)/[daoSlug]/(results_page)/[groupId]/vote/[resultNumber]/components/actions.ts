@@ -12,7 +12,7 @@ export async function getProposalGovernor(proposalId: string) {
 
   proposalIdSchema.parse(proposalId);
 
-  const proposal = await db.public
+  const proposal = await db
     .selectFrom('proposal')
     .where('id', '=', proposalId)
     .select(['governorId'])
@@ -23,7 +23,7 @@ export async function getProposalGovernor(proposalId: string) {
     return null;
   }
 
-  const daoIndexer = await db.public
+  const daoIndexer = await db
     .selectFrom('daoGovernor')
     .where('id', '=', proposal.governorId)
     .selectAll()
@@ -66,7 +66,7 @@ export async function getNonVoters(proposalId: string) {
   }
 
   // 0. Fetch proposal
-  const proposal = await db.public
+  const proposal = await db
     .selectFrom('proposal')
     .where('id', '=', proposalId)
     .select(['id', 'governorId', 'daoId', 'startAt', 'endAt'])
@@ -83,7 +83,7 @@ export async function getNonVoters(proposalId: string) {
   // 1. Get addresses that *did* vote
   const votedAddressesSet = new Set(
     (
-      await db.public
+      await db
         .selectFrom('vote')
         .where('proposalId', '=', proposalId)
         .select('voterAddress')
@@ -93,7 +93,7 @@ export async function getNonVoters(proposalId: string) {
   );
 
   // 2. Get all potentially eligible voters at proposal start
-  const eligibleVoters = await db.public
+  const eligibleVoters = await db
     .selectFrom('votingPowerTimeseries as vp')
     .innerJoin('voter as v', 'v.address', 'vp.voter')
     .where('vp.daoId', '=', daoId)
@@ -126,7 +126,7 @@ export async function getNonVoters(proposalId: string) {
 
   if (eligibleVoterAddresses.length <= CHUNK_SIZE) {
     // Single query for smaller datasets
-    const currentPowers = await db.public
+    const currentPowers = await db
       .selectFrom('votingPowerLatest')
       .where('daoId', '=', daoId)
       .where('voter', 'in', eligibleVoterAddresses)
@@ -140,7 +140,7 @@ export async function getNonVoters(proposalId: string) {
     for (let i = 0; i < eligibleVoterAddresses.length; i += CHUNK_SIZE) {
       const chunk = eligibleVoterAddresses.slice(i, i + CHUNK_SIZE);
       if (chunk.length === 0) continue;
-      const chunkPowers = await db.public
+      const chunkPowers = await db
         .selectFrom('votingPowerLatest')
         .where('daoId', '=', daoId)
         .where('voter', 'in', chunk)
@@ -155,7 +155,7 @@ export async function getNonVoters(proposalId: string) {
   // --- Steps to fetch Discourse User Info (CHUNKED) ---
 
   // 4. Get the daoDiscourseId for the current DAO
-  const daoDiscourse = await db.public
+  const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .where('daoId', '=', daoId)
     .select('id')
@@ -178,7 +178,7 @@ export async function getNonVoters(proposalId: string) {
       const chunk = eligibleVoterIds.slice(i, i + CHUNK_SIZE);
       if (chunk.length === 0) continue;
 
-      const chunkLinks = await db.public
+      const chunkLinks = await db
         .selectFrom('delegateToVoter as dtv')
         .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
         .where('dtv.voterId', 'in', chunk) // Use chunk here
@@ -208,7 +208,7 @@ export async function getNonVoters(proposalId: string) {
         const chunk = allDelegateIds.slice(i, i + CHUNK_SIZE);
         if (chunk.length === 0) continue;
 
-        const chunkLinks = await db.public
+        const chunkLinks = await db
           .selectFrom('delegateToDiscourseUser as dtdu')
           .where('dtdu.delegateId', 'in', chunk) // Use chunk here
           .orderBy('dtdu.delegateId', 'asc')
@@ -240,7 +240,7 @@ export async function getNonVoters(proposalId: string) {
           const chunk = allDiscourseUserIds.slice(i, i + CHUNK_SIZE);
           if (chunk.length === 0) continue;
 
-          const chunkUsers = await db.public
+          const chunkUsers = await db
             .selectFrom('discourseUser')
             .where('id', 'in', chunk) // Use chunk here
             .where('daoDiscourseId', '=', daoDiscourseId)
@@ -312,7 +312,7 @@ export async function getVotesWithVoters(proposalId: string) {
   }
 
   // 0. Fetch proposal to get daoId
-  const proposal = await db.public
+  const proposal = await db
     .selectFrom('proposal')
     .where('id', '=', proposalId)
     .select(['id', 'daoId'])
@@ -325,7 +325,7 @@ export async function getVotesWithVoters(proposalId: string) {
   const { daoId } = proposal;
 
   // Optimized single query with all necessary joins using voting_power_latest
-  const votesWithAllData = await db.public
+  const votesWithAllData = await db
     .selectFrom('vote')
     .innerJoin('voter', 'voter.address', 'vote.voterAddress')
     .leftJoin('votingPowerLatest as latestVp', (join) =>
@@ -364,7 +364,7 @@ export async function getVotesWithVoters(proposalId: string) {
   // --- New Steps for Discourse User ---
 
   // 5. Find the delegate link for each voter (most recent verified link)
-  const delegateToVoterLinks = await db.public
+  const delegateToVoterLinks = await db
     .selectFrom('delegateToVoter as dtv')
     .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
     .where('dtv.voterId', 'in', voterIds)
@@ -381,7 +381,7 @@ export async function getVotesWithVoters(proposalId: string) {
   const delegateIds = delegateToVoterLinks.map((link) => link.delegateId);
 
   // 6. Get the daoDiscourseId for the current DAO
-  const daoDiscourse = await db.public
+  const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .where('daoId', '=', daoId)
     .select('id')
@@ -397,7 +397,7 @@ export async function getVotesWithVoters(proposalId: string) {
     const daoDiscourseId = daoDiscourse.id;
 
     // 7. Find the discourse user link for each delegate (most recent verified link)
-    const delegateToDiscourseLinks = await db.public
+    const delegateToDiscourseLinks = await db
       .selectFrom('delegateToDiscourseUser as dtdu')
       .where('dtdu.delegateId', 'in', delegateIds)
       // .where('dtdu.verified', '=', true) // Optional: only consider verified links
@@ -421,7 +421,7 @@ export async function getVotesWithVoters(proposalId: string) {
 
     // 8. Fetch the actual Discourse User details for the linked users
     if (discourseUserIds.length > 0) {
-      const discourseUsers = await db.public
+      const discourseUsers = await db
         .selectFrom('discourseUser')
         .where('id', 'in', discourseUserIds)
         .where('daoDiscourseId', '=', daoDiscourseId) // Ensure the discourse user belongs to the correct discourse instance
@@ -484,7 +484,7 @@ export async function getVoter(voterAddress: string): Promise<DelegateInfo> {
   voterAddressSchema.parse(voterAddress);
 
   // Get the voter
-  const voter = await db.public
+  const voter = await db
     .selectFrom('voter')
     .where('address', '=', voterAddress)
     .selectAll()
@@ -527,7 +527,7 @@ export async function getDelegateVotingPower(
   }
 
   // Get the proposal to determine timestamps
-  const proposal = await db.public
+  const proposal = await db
     .selectFrom('proposal')
     .where('id', '=', proposalId)
     .selectAll()
@@ -536,7 +536,7 @@ export async function getDelegateVotingPower(
   if (!proposal) return null;
 
   // Get the dao
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
     .selectAll()
@@ -545,7 +545,7 @@ export async function getDelegateVotingPower(
   if (!dao) return null;
 
   // Get the vote
-  const vote = await db.public
+  const vote = await db
     .selectFrom('vote')
     .where('voterAddress', '=', voterAddress)
     .where('proposalId', '=', proposalId)
@@ -555,7 +555,7 @@ export async function getDelegateVotingPower(
   if (!vote) return null;
 
   // Get the latest voting power
-  const latestVotingPowerRecord = await db.public
+  const latestVotingPowerRecord = await db
     .selectFrom('votingPowerLatest')
     .where('voter', '=', voterAddress)
     .where('daoId', '=', dao.id)
@@ -603,7 +603,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   }
 
   // 0. Fetch all proposals to get daoIds
-  const proposals = await db.public
+  const proposals = await db
     .selectFrom('proposal')
     .where('id', 'in', validProposalIds)
     .select(['id', 'daoId'])
@@ -617,7 +617,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   const daoIds = [...new Set(proposals.map((p) => p.daoId))];
 
   // 1. Fetch all votes for all proposals in a single query
-  const allVotes = await db.public
+  const allVotes = await db
     .selectFrom('vote')
     .distinctOn(['proposalId', 'voterAddress'])
     .select([
@@ -653,7 +653,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   }
 
   // 3. Fetch all voters in a single query
-  const voters = await db.public
+  const voters = await db
     .selectFrom('voter')
     .select(['id', 'address', 'ens', 'avatar'])
     .where('address', 'in', voterAddresses)
@@ -663,7 +663,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   const voterIds = voters.map((v) => v.id);
 
   // 4. Fetch latest voting power for each voter across all DAOs
-  const latestVotingPowers = await db.public
+  const latestVotingPowers = await db
     .selectFrom('votingPowerLatest')
     .select(['voter', 'votingPower', 'daoId'])
     .where('voter', 'in', voterAddresses)
@@ -678,7 +678,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   });
 
   // 5. Find delegate links for all voters across all DAOs
-  const delegateToVoterLinks = await db.public
+  const delegateToVoterLinks = await db
     .selectFrom('delegateToVoter as dtv')
     .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
     .where('dtv.voterId', 'in', voterIds)
@@ -700,7 +700,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   ];
 
   // 6. Get all daoDiscourseIds for the DAOs
-  const daoDiscourses = await db.public
+  const daoDiscourses = await db
     .selectFrom('daoDiscourse')
     .where('daoId', 'in', daoIds)
     .select(['id', 'daoId'])
@@ -711,7 +711,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
 
   if (delegateIds.length > 0 && daoDiscourses.length > 0) {
     // 7. Find discourse user links for all delegates
-    const delegateToDiscourseLinks = await db.public
+    const delegateToDiscourseLinks = await db
       .selectFrom('delegateToDiscourseUser as dtdu')
       .where('dtdu.delegateId', 'in', delegateIds)
       .orderBy('dtdu.delegateId', 'asc')
@@ -733,7 +733,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
 
     // 8. Fetch all discourse users
     if (discourseUserIds.length > 0) {
-      const discourseUsers = await db.public
+      const discourseUsers = await db
         .selectFrom('discourseUser')
         .where('id', 'in', discourseUserIds)
         .where(

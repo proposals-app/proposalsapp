@@ -22,13 +22,13 @@
       file:
         path: /etc/apt/keyrings
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Download Redis GPG key
       get_url:
         url: https://packages.redis.io/gpg
         dest: /etc/apt/keyrings/redis-archive-keyring.asc
-        mode: '0644'
+        mode: "0644"
 
     - name: Add Redis APT repository
       apt_repository:
@@ -65,7 +65,7 @@
         state: directory
         owner: redis
         group: redis
-        mode: '0755'
+        mode: "0755"
       loop:
         - /etc/redis
         - /var/lib/redis
@@ -83,7 +83,7 @@
         dest: /etc/redis/redis.conf
         owner: redis
         group: redis
-        mode: '0640'
+        mode: "0640"
         backup: yes
 
     - name: Create Redis Sentinel configuration
@@ -92,7 +92,7 @@
         dest: /etc/redis/sentinel.conf
         owner: redis
         group: redis
-        mode: '0640'
+        mode: "0640"
         backup: yes
 
     - name: Create Redis systemd service
@@ -102,15 +102,15 @@
           Description=Redis In-Memory Data Store
           After=network.target consul.service
           Before=nomad.service
-          
+
           [Service]
           Type=notify
           ExecStart=/usr/bin/redis-server /etc/redis/redis.conf --supervised systemd
           ExecStop=/usr/bin/redis-cli -a {{ redis_password }} shutdown
-          
+
           # Health check before considering service started
           ExecStartPost=/bin/bash -c 'for i in {1..30}; do redis-cli -a {{ redis_password }} ping >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1'
-          
+
           TimeoutStopSec=0
           TimeoutStartSec=60
           Restart=always
@@ -118,20 +118,20 @@
           Group=redis
           RuntimeDirectory=redis redis-sentinel
           RuntimeDirectoryMode=0755
-          
+
           # Security
           NoNewPrivileges=yes
           PrivateTmp=yes
           ProtectSystem=strict
           ReadWritePaths=/var/lib/redis /var/log/redis /run/redis /run/redis-sentinel /etc/redis
-          
+
           # Performance
           LimitNOFILE=65535
-          
+
           [Install]
           WantedBy=multi-user.target
         dest: /etc/systemd/system/redis.service
-        mode: '0644'
+        mode: "0644"
 
     - name: Create Redis Sentinel systemd service
       copy:
@@ -139,7 +139,7 @@
           [Unit]
           Description=Redis Sentinel
           After=network.target redis.service
-          
+
           [Service]
           Type=notify
           ExecStart=/usr/bin/redis-sentinel /etc/redis/sentinel.conf --supervised systemd
@@ -148,17 +148,17 @@
           Group=redis
           RuntimeDirectory=redis-sentinel
           RuntimeDirectoryMode=0755
-          
+
           # Security
           NoNewPrivileges=yes
           PrivateTmp=yes
           ProtectSystem=strict
           ReadWritePaths=/var/lib/redis /var/log/redis /run/redis /run/redis-sentinel /etc/redis
-          
+
           [Install]
           WantedBy=multi-user.target
         dest: /etc/systemd/system/redis-sentinel.service
-        mode: '0644'
+        mode: "0644"
 
     - name: Create Redis etcd registration script
       template:
@@ -166,7 +166,7 @@
         dest: /usr/local/bin/redis-etcd-register
         owner: root
         group: root
-        mode: '0755'
+        mode: "0755"
 
     - name: Create Redis etcd registration service
       copy:
@@ -175,31 +175,31 @@
           Description=Register Redis in etcd
           After=redis.service network-online.target
           Wants=network-online.target
-          
+
           [Service]
           Type=oneshot
           ExecStart=/usr/local/bin/redis-etcd-register
           RemainAfterExit=yes
-          
+
           [Install]
           WantedBy=multi-user.target
         dest: /etc/systemd/system/redis-etcd-register.service
-        mode: '0644'
+        mode: "0644"
 
     - name: Create Redis etcd registration timer
       copy:
         content: |
           [Unit]
           Description=Periodically register Redis in etcd
-          
+
           [Timer]
           OnBootSec=5s
           OnUnitActiveSec=5s
-          
+
           [Install]
           WantedBy=timers.target
         dest: /etc/systemd/system/redis-etcd-register.timer
-        mode: '0644'
+        mode: "0644"
 
     - name: Start and enable Redis service
       systemd:
@@ -227,7 +227,7 @@
         state: touch
         owner: redis
         group: redis
-        mode: '0640'
+        mode: "0640"
 
     - name: Wait before starting Sentinel
       pause:
@@ -257,7 +257,7 @@
         dest: /usr/local/bin/redis-health-check
         owner: root
         group: root
-        mode: '0755'
+        mode: "0755"
 
     - name: Create Redis Consul health check
       copy:
@@ -277,7 +277,7 @@
             }
           }
         dest: /etc/consul.d/redis.json
-        mode: '0644'
+        mode: "0644"
 
     - name: Reload Consul to register Redis service
       systemd:
@@ -311,7 +311,7 @@
   tasks:
     - name: Ensure HAProxy and Redis tools are installed
       package:
-        name: 
+        name:
           - haproxy
           - redis-tools
         state: present
@@ -323,13 +323,13 @@
         state: directory
         owner: haproxy
         group: haproxy
-        mode: '0755'
+        mode: "0755"
 
     - name: Copy HAProxy template for Redis
       copy:
         src: ../../files/haproxy-redis.cfg.tmpl
         dest: /etc/confd/templates/haproxy-redis.cfg.tmpl
-        mode: '0644'
+        mode: "0644"
 
     - name: Create Redis resource configuration for Confd
       copy:
@@ -344,7 +344,7 @@
           check_cmd = "haproxy -f {{ '{{.src}}' }} -c"
           reload_cmd = "systemctl reload haproxy || systemctl restart haproxy"
         dest: /etc/confd/conf.d/redis.toml
-        mode: '0644'
+        mode: "0644"
 
     - name: Set Redis configuration in etcd
       shell: |
@@ -399,7 +399,7 @@
       file:
         path: /etc/systemd/system/haproxy.service.d
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Create HAProxy systemd override for dependencies
       copy:
@@ -407,13 +407,13 @@
           [Unit]
           After=network-online.target confd.service consul.service
           Before=nomad.service
-          
+
           [Service]
           # Health check to ensure Redis is accessible
           ExecStartPost=/bin/bash -c 'for i in {1..30}; do redis-cli -h localhost -p 6380 -a {{ redis_password }} ping >/dev/null 2>&1 && exit 0 || sleep 1; done; exit 1'
           TimeoutStartSec=60
         dest: /etc/systemd/system/haproxy.service.d/dependencies.conf
-        mode: '0644'
+        mode: "0644"
 
     - name: Ensure HAProxy service is enabled and started
       systemd:
@@ -440,23 +440,23 @@
         content: |
           #!/bin/bash
           # Test Redis connection through HAProxy
-          
+
           REDIS_PASSWORD="{{ redis_password }}"
-          
+
           echo "Testing Redis connection through HAProxy on port 6380..."
           redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" ping
-          
+
           echo "Testing write operation..."
           redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" SET test:key "test-value-$(date +%s)"
-          
+
           echo "Testing read operation..."
           redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" GET test:key
-          
+
           echo ""
           echo "Getting replication info..."
           redis-cli -h localhost -p 6380 -a "$REDIS_PASSWORD" INFO replication | grep -E "role:|connected_slaves:|slave[0-9]+:"
         dest: /usr/local/bin/test-redis
-        mode: '0755'
+        mode: "0755"
 
     - name: Test Redis through HAProxy
       command: /usr/local/bin/test-redis
@@ -475,11 +475,11 @@
           ========================================
           Connect to Redis via: localhost:6380
           Password: Stored in vault as vault_redis_password
-          
+
           Connection string: redis://:***@localhost:6380
-          
+
           Test with: /usr/local/bin/test-redis
-          
+
           Features:
           - Automatic master discovery via Sentinel
           - LOCAL-ONLY reads when local Redis is healthy
@@ -498,7 +498,7 @@
           timeout 2 redis-cli -h localhost -p 6380 -a '{{ redis_password }}' ping >/dev/null 2>&1 || exit 2
           exit 0
         dest: /usr/local/bin/haproxy-redis-health-check
-        mode: '0755'
+        mode: "0755"
 
     - name: Create HAProxy Consul service definition
       copy:
@@ -518,7 +518,7 @@
             }
           }
         dest: /etc/consul.d/haproxy-redis.json
-        mode: '0644'
+        mode: "0644"
 
     - name: Reload Consul to register HAProxy service
       systemd:
@@ -562,11 +562,14 @@
   vars:
     redis_password: "{{ vault_redis_password }}"
     consul_kv_values:
-      - { key: "redis/connection_string/haproxy", value: "redis://:{{ redis_password | urlencode }}@localhost:6380" }
+      - {
+          key: "redis/connection_string/haproxy",
+          value: "redis://:{{ redis_password | urlencode }}@localhost:6380",
+        }
       - { key: "redis/port/haproxy", value: "6380" }
       - { key: "redis/password", value: "{{ redis_password }}" }
       - { key: "redis/enabled", value: "true" }
-  
+
   tasks:
     - name: Ensure Consul is available
       wait_for:

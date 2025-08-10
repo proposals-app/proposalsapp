@@ -157,10 +157,11 @@ cargo run --bin rindexer        # Run blockchain indexer
 ProposalsApp runs on a highly available, geographically distributed infrastructure:
 
 - **DC1** (`sib-01`) - Sibiu, Romania - Primary datacenter
-- **DC2** (`sib-02`) - Sibiu, Romania - Different building/network  
+- **DC2** (`sib-02`) - Sibiu, Romania - Different building/network
 - **DC3** (`sib-03`) - Sibiu, Romania - Geographic redundancy
 
 Each datacenter runs on Proxmox with 5 LXC containers:
+
 - `consul-nomad-xxx`: Control plane (Consul server, Nomad server)
 - `apps-xxx`: Application layer (Nomad client, pgpool-II, HAProxy for Redis, app workloads)
 - `db-xxx`: Database layer (PostgreSQL 17, Patroni, etcd)
@@ -172,6 +173,7 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 ### Service Architecture
 
 #### Consul (Service Discovery)
+
 - Single server per datacenter with WAN federation
 - Service registration and health checking
 - Dynamic configuration via KV store
@@ -179,17 +181,20 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 - Automatic WAN federation health monitoring
 
 #### etcd (Distributed Configuration)
+
 - Three-node cluster for Patroni consensus
 - Leader election for PostgreSQL primary
 - Strong consistency across datacenters
 - Optimized for 50ms RTT between DCs
 
 #### Nomad (Orchestration)
+
 - Single 3-node cluster spanning all datacenters
 - Automatic workload scheduling and rescheduling
 - Job definitions in `infrastructure/nomad-jobs/`
 
 #### PostgreSQL + Patroni (Database)
+
 - PostgreSQL 17 with automatic failover
 - Single cluster with one primary and two replicas
 - Synchronous replication (at least one replica)
@@ -197,6 +202,7 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 - etcd-based distributed configuration
 
 #### pgpool-II (Database Proxy)
+
 - Connection pooling on each app node
 - Query parsing for automatic read/write splitting
 - Single connection URL: `postgresql://user:pass@localhost:5432/db`
@@ -206,6 +212,7 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 - Remote databases only used when local is down
 
 #### Redis + Sentinel (Cache)
+
 - Redis 7 with automatic failover via Sentinel
 - One master, two replicas across datacenters
 - HAProxy on app nodes for connection routing
@@ -219,6 +226,7 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
 #### Infrastructure Provisioning (Ansible)
 
 1. **Initial Setup**
+
    ```bash
    cd infrastructure/ansible
    # Create vault for secrets
@@ -226,25 +234,26 @@ All inter-datacenter communication happens over Tailscale VPN (100.x.x.x network
    ```
 
 2. **Deploy Infrastructure** (in order)
+
    ```bash
    # 1. Create LXC containers with Tailscale
    ansible-playbook -i inventory.yml playbooks/01-provision-and-prepare-lxcs.yml --vault-password-file .vault_pass
-   
+
    # 2. Install Consul cluster
    ansible-playbook -i inventory.yml playbooks/02-install-consul.yml --vault-password-file .vault_pass
-   
+
    # 3. Install Nomad cluster
    ansible-playbook -i inventory.yml playbooks/03-install-nomad.yml --vault-password-file .vault_pass
-   
+
    # 4. Setup etcd cluster
    ansible-playbook -i inventory.yml playbooks/04-install-etcd.yml --vault-password-file .vault_pass
-   
+
    # 5. Install PostgreSQL with Patroni
    ansible-playbook -i inventory.yml playbooks/05-install-postgres.yml --vault-password-file .vault_pass
-   
+
    # 6. Setup pgpool-II proxy
    ansible-playbook -i inventory.yml playbooks/06-install-pgpool.yml --vault-password-file .vault_pass
-   
+
    # 7. Install Redis with Sentinel and HAProxy
    ansible-playbook -i inventory.yml playbooks/07-install-redis.yml --vault-password-file .vault_pass
    ```
@@ -264,6 +273,7 @@ nomad job run infrastructure/nomad-jobs/indexers.nomad
 ### Container Images
 
 All applications use multi-stage Docker builds:
+
 - `apps/web/Dockerfile` - Next.js frontend
 - `apps/email-service/Dockerfile` - Email notification service
 - `apps/rindexer/Dockerfile` - Blockchain indexer
@@ -273,12 +283,14 @@ All applications use multi-stage Docker builds:
 ### Database Management
 
 #### Migrations
+
 - TypeScript migrations in `libs/ts/db/migrations/`
 - Main schema: `000_consolidated.ts`
 - DAO-specific: `001_arbitrum.ts`, etc.
 - Run via Kysely migration CLI
 
 #### Connection Strings
+
 - PostgreSQL: `postgresql://user:pass@localhost:5432/db` (via pgpool-II)
 - Redis: `redis://user:pass@localhost:6380` (via HAProxy)
 - Direct PostgreSQL: `postgresql://user:pass@db-sib-01:5432/db` (via Tailscale hostname)
@@ -287,6 +299,7 @@ All applications use multi-stage Docker builds:
 ### Monitoring & Operations
 
 #### Service Status
+
 ```bash
 # Consul (requires token)
 consul members
@@ -309,6 +322,7 @@ etcdctl endpoint health --endpoints=<all-nodes>
 ```
 
 #### Failure Scenarios
+
 - **Datacenter failure**: Automatic failover, maintains quorum with 2/3 DCs
 - **Network partition**: DC3 isolation handled gracefully
 - **Database failure**: Patroni promotes new primary in ~30-45 seconds
@@ -316,6 +330,7 @@ etcdctl endpoint health --endpoints=<all-nodes>
 - **WAN federation issues**: Automatic repair via health check service
 
 ### Security
+
 - All traffic encrypted via Tailscale VPN
 - PostgreSQL uses SCRAM-SHA-256 authentication
 - Redis uses password authentication (requirepass)
@@ -411,6 +426,7 @@ nomad job run applications/rindexer/rindexer.nomad
 ### Container Images
 
 All services use multi-stage Docker builds:
+
 - `apps/rindexer/Dockerfile`
 - `apps/discourse/Dockerfile`
 - `apps/mapper/Dockerfile`
@@ -425,7 +441,7 @@ All services use multi-stage Docker builds:
   - **Reads favor local database** (primary or replica) via weight-based algorithm
   - **Writes always go to primary** (wherever it is located)
   - Handles failovers transparently
-- **Direct access** (not recommended): 
+- **Direct access** (not recommended):
   - Primary/replica endpoints change during failovers
   - Use only for debugging or special cases
 

@@ -2,7 +2,7 @@
 - name: Setup Dashboard Configuration in Consul KV
   hosts: consul_servers[0]
   gather_facts: no
-  
+
   tasks:
     - name: Set Dashboard configuration in Consul KV
       uri:

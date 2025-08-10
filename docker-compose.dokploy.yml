@@ -1,0 +1,69 @@
+services:
+  erpc:
+    image: ghcr.io/erpc/erpc:latest
+    container_name: erpc
+    restart: unless-stopped
+    ports:
+      - "8545:4000"  # RPC endpoint
+      - "4001:4001"  # Metrics endpoint
+    environment:
+      # Logging
+      LOG_LEVEL: debug
+      
+      # Performance tuning
+      GOMAXPROCS: "2"
+      GOGC: "30"
+      GOMEMLIMIT: "3500MiB"
+      
+      # RPC Endpoints from .env file
+      HYPERSYNC_BEARER_TOKEN: ${HYPERSYNC_BEARER_TOKEN:-}
+      HYPERSYNC_ETHEREUM_ENDPOINT: ${HYPERSYNC_ETHEREUM_ENDPOINT:-https://ethereum.hypersync.xyz}
+      HYPERSYNC_ARBITRUM_ENDPOINT: ${HYPERSYNC_ARBITRUM_ENDPOINT:-https://arbitrum.hypersync.xyz}
+      HYPERSYNC_OPTIMISM_ENDPOINT: ${HYPERSYNC_OPTIMISM_ENDPOINT:-https://optimism.hypersync.xyz}
+      HYPERSYNC_POLYGON_ENDPOINT: ${HYPERSYNC_POLYGON_ENDPOINT:-https://polygon.hypersync.xyz}
+      HYPERSYNC_AVALANCHE_ENDPOINT: ${HYPERSYNC_AVALANCHE_ENDPOINT:-https://avalanche.hypersync.xyz}
+      FULL_ETHEREUM_ENDPOINT: ${FULL_ETHEREUM_ENDPOINT:-}
+      FULL_ARBITRUM_ENDPOINT: ${FULL_ARBITRUM_ENDPOINT:-}
+      FULL_OPTIMISM_ENDPOINT: ${FULL_OPTIMISM_ENDPOINT:-}
+      FULL_POLYGON_ENDPOINT: ${FULL_POLYGON_ENDPOINT:-}
+      FULL_AVALANCHE_ENDPOINT: ${FULL_AVALANCHE_ENDPOINT:-}
+    
+    # Mount config file - Dokploy creates files in ../files/ directory
+    volumes:
+      - erpc-data:/var/lib/erpc
+      - ../files/erpc.yaml:/home/nonroot/erpc.yaml:ro
+    
+    # eRPC will automatically find the config file at /home/nonroot/erpc.yaml
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8192M
+        reservations:
+          cpus: '1'
+          memory: 4096M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    # DNS configuration
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  erpc-data:
+    driver: local

@@ -13,7 +13,7 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
   discourseUserIdSchema.parse(userId);
   daoDiscourseIdSchema.parse(daoDiscourseId);
 
-  const discourseUser = await db.public
+  const discourseUser = await db
     .selectFrom('discourseUser')
     .selectAll()
     .where('daoDiscourseId', '=', daoDiscourseId)
@@ -36,7 +36,7 @@ export async function getDelegateByDiscourseUser(
   discourseUserIdSchema.parse(discourseUserId);
   daoSlugSchema.parse(daoSlug);
 
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .selectAll()
     .where('dao.slug', '=', daoSlug)
@@ -44,7 +44,7 @@ export async function getDelegateByDiscourseUser(
 
   if (!dao) return null;
 
-  const daoDiscourse = await db.public
+  const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', dao.id)
@@ -53,7 +53,7 @@ export async function getDelegateByDiscourseUser(
   if (!daoDiscourse) return null;
 
   // Fetch the discourse user
-  const discourseUser = await db.public
+  const discourseUser = await db
     .selectFrom('discourseUser')
     .selectAll()
     .where('externalId', '=', discourseUserId)
@@ -63,7 +63,7 @@ export async function getDelegateByDiscourseUser(
   if (!discourseUser) return null;
 
   // Find the associated delegate via delegateToDiscourseUser
-  const delegateToDiscourseUser = await db.public
+  const delegateToDiscourseUser = await db
     .selectFrom('delegateToDiscourseUser')
     .selectAll()
     .where('discourseUserId', '=', discourseUser.id)
@@ -72,7 +72,7 @@ export async function getDelegateByDiscourseUser(
   if (!delegateToDiscourseUser) return null;
 
   // Find the associated voter via delegateToVoter
-  const delegateToVoter = await db.public
+  const delegateToVoter = await db
     .selectFrom('delegateToVoter')
     .selectAll()
     .where('delegateId', '=', delegateToDiscourseUser.delegateId)
@@ -81,7 +81,7 @@ export async function getDelegateByDiscourseUser(
   if (!delegateToVoter) return null;
 
   // Fetch the voter using the voter ID from delegateToVoter
-  const voter = await db.public
+  const voter = await db
     .selectFrom('voter')
     .selectAll()
     .where('id', '=', delegateToVoter.voterId)
@@ -98,7 +98,7 @@ export async function getDelegateByDiscourseUser(
     let proposalEndTimes: number[] = [];
 
     if (proposalIds && proposalIds.length > 0) {
-      const proposals = await db.public
+      const proposals = await db
         .selectFrom('proposal')
         .selectAll()
         .where('id', 'in', proposalIds)
@@ -114,7 +114,7 @@ export async function getDelegateByDiscourseUser(
     let topicEndTimes: number[] = [];
 
     if (topicIds && topicIds.length > 0) {
-      const topics = await db.public
+      const topics = await db
         .selectFrom('discourseTopic')
         .selectAll()
         .where('id', 'in', topicIds)
@@ -131,7 +131,7 @@ export async function getDelegateByDiscourseUser(
   }
 
   // Fetch the delegate with all related data in one query
-  let query = db.public
+  let query = db
     .selectFrom('delegate')
     .innerJoin('delegateToVoter', 'delegate.id', 'delegateToVoter.delegateId')
     .leftJoin(
@@ -166,7 +166,7 @@ export async function getDelegateByDiscourseUser(
 
   if (!delegateData) return null;
 
-  const latestVotingPower = await db.public
+  const latestVotingPower = await db
     .selectFrom('votingPowerLatest')
     .selectAll()
     .where('voter', '=', delegateData.voterAddress)
@@ -200,7 +200,7 @@ export async function getPostLikesCount(
 
   daoDiscourseIdSchema.parse(daoDiscourseId);
 
-  const result = await db.public
+  const result = await db
     .selectFrom('discoursePostLike')
     .select(sql<number>`count(*)`.as('count'))
     .where('externalDiscoursePostId', '=', externalPostId)

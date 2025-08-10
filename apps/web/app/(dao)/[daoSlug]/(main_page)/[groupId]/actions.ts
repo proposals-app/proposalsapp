@@ -46,19 +46,7 @@ export async function updateLastReadAt(groupId: string, daoSlug: string) {
 
     const now = new Date();
 
-    const targetDb =
-      daoSlug === 'arbitrum'
-        ? db.arbitrum
-        : daoSlug === 'uniswap'
-          ? db.uniswap
-          : null;
-
-    if (!targetDb) {
-      console.error(`[markAsRead] Invalid daoSlug: ${daoSlug}`);
-      return;
-    }
-
-    await targetDb
+    await db
       .insertInto('userProposalGroupLastRead')
       .values({
         userId,
@@ -111,7 +99,7 @@ export async function getGroup(groupId: string) {
     try {
       // Fetch the group based on ID
       group =
-        (await db.public
+        (await db
           .selectFrom('proposalGroup')
           .where('id', '=', groupId)
           .selectAll()
@@ -126,7 +114,7 @@ export async function getGroup(groupId: string) {
   }
 
   // Fetch the DAO based on the slug
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .where('id', '=', group.daoId)
     .selectAll()
@@ -136,7 +124,7 @@ export async function getGroup(groupId: string) {
     return null;
   }
 
-  const daoDiscourse = await db.public
+  const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .where('daoId', '=', dao.id)
     .selectAll()
@@ -152,7 +140,7 @@ export async function getGroup(groupId: string) {
     if (proposalItems.length > 0) {
       for (const proposalItem of proposalItems) {
         try {
-          const p = (await db.public
+          const p = (await db
             .selectFrom('proposal')
             .innerJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
             .select([
@@ -197,7 +185,7 @@ export async function getGroup(groupId: string) {
     if (topicItems.length > 0) {
       for (const topicItem of topicItems) {
         try {
-          const t = await db.public
+          const t = await db
             .selectFrom('discourseTopic')
             .where('externalId', '=', parseInt(topicItem.externalId, 10))
             .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
@@ -250,7 +238,7 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
 
   const bodies: BodyVersionType[] = [];
 
-  const group = await db.public
+  const group = await db
     .selectFrom('proposalGroup')
     .selectAll()
     .where('id', '=', groupId)
@@ -269,7 +257,7 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
   if (proposalItems.length > 0) {
     for (const proposalItem of proposalItems) {
       try {
-        const p = await db.public
+        const p = await db
           .selectFrom('proposal')
           .selectAll()
           .where('externalId', '=', proposalItem.externalId)
@@ -298,7 +286,7 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
   if (topicItems.length > 0) {
     for (const topicItem of topicItems) {
       try {
-        const t = await db.public
+        const t = await db
           .selectFrom('discourseTopic')
           .where('externalId', '=', parseInt(topicItem.externalId, 10))
           .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
@@ -313,7 +301,7 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
   }
 
   for (const discourseTopic of discourseTopics) {
-    const discourseFirstPost = await db.public
+    const discourseFirstPost = await db
       .selectFrom('discoursePost')
       .where('discoursePost.topicId', '=', discourseTopic.externalId)
       .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
@@ -323,7 +311,7 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
 
     if (!discourseFirstPost) return null;
 
-    const discourseFirstPostAuthor = await db.public
+    const discourseFirstPostAuthor = await db
       .selectFrom('discourseUser')
       .where('discourseUser.externalId', '=', discourseFirstPost.userId)
       .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
@@ -332,7 +320,7 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
 
     if (!discourseFirstPostAuthor) return null;
 
-    const discourseFirstPostRevisions = await db.public
+    const discourseFirstPostRevisions = await db
       .selectFrom('discoursePostRevision')
       .where(
         'discoursePostRevision.discoursePostId',
@@ -493,7 +481,7 @@ async function getAuthor(groupId: string) {
     return null;
   }
 
-  const group = await db.public
+  const group = await db
     .selectFrom('proposalGroup')
     .selectAll()
     .where('id', '=', groupId)
@@ -521,7 +509,7 @@ async function getAuthor(groupId: string) {
 
   const proposals =
     proposalItems.length > 0
-      ? await db.public
+      ? await db
           .selectFrom('proposal')
           .selectAll()
           .where((eb) =>
@@ -540,7 +528,7 @@ async function getAuthor(groupId: string) {
 
   const topics =
     topicItems.length > 0
-      ? await db.public
+      ? await db
           .selectFrom('discourseTopic')
           .selectAll()
           .where((eb) =>
@@ -567,7 +555,7 @@ async function getAuthor(groupId: string) {
   const firstItem = sortedItems[0];
 
   // Get the DAO to lookup any delegates
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .selectAll()
     .where('id', '=', group.daoId)
@@ -579,7 +567,7 @@ async function getAuthor(groupId: string) {
 
   // If the first item is a proposal, get the voter/delegate
   if ('governorId' in firstItem) {
-    const voter = await db.public
+    const voter = await db
       .selectFrom('voter')
       .selectAll()
       .where('address', '=', firstItem.author)
@@ -587,7 +575,7 @@ async function getAuthor(groupId: string) {
 
     if (voter) {
       // Find delegate associated with this voter
-      const delegateToVoter = await db.public
+      const delegateToVoter = await db
         .selectFrom('delegateToVoter')
         .innerJoin('delegate', 'delegate.id', 'delegateToVoter.delegateId')
         .where('delegateToVoter.voterId', '=', voter.id)
@@ -600,7 +588,7 @@ async function getAuthor(groupId: string) {
         .executeTakeFirst();
 
       if (delegateToVoter) {
-        delegate = await db.public
+        delegate = await db
           .selectFrom('delegate')
           .where('id', '=', delegateToVoter.delegateId)
           .selectAll()
@@ -611,7 +599,7 @@ async function getAuthor(groupId: string) {
   // If the first item is a topic, get the discourse user/delegate
   else if ('daoDiscourseId' in firstItem) {
     // Get the first post of the topic
-    const firstPost = await db.public
+    const firstPost = await db
       .selectFrom('discoursePost')
       .where('topicId', '=', firstItem.externalId)
       .where('daoDiscourseId', '=', firstItem.daoDiscourseId)
@@ -621,7 +609,7 @@ async function getAuthor(groupId: string) {
 
     if (firstPost) {
       // Get the discourse user who authored the first post
-      const discourseUser = await db.public
+      const discourseUser = await db
         .selectFrom('discourseUser')
         .where('externalId', '=', firstPost.userId)
         .where('daoDiscourseId', '=', firstItem.daoDiscourseId)
@@ -630,7 +618,7 @@ async function getAuthor(groupId: string) {
 
       if (discourseUser) {
         // Find delegate associated with this discourse user
-        const delegateToDiscourseUser = await db.public
+        const delegateToDiscourseUser = await db
           .selectFrom('delegateToDiscourseUser')
           .innerJoin(
             'delegate',
@@ -650,7 +638,7 @@ async function getAuthor(groupId: string) {
           .executeTakeFirst();
 
         if (delegateToDiscourseUser) {
-          delegate = await db.public
+          delegate = await db
             .selectFrom('delegate')
             .where('id', '=', delegateToDiscourseUser.delegateId)
             .selectAll()
@@ -663,7 +651,7 @@ async function getAuthor(groupId: string) {
   // If we found a delegate, fetch all related information
   if (delegate) {
     // Get all delegate to voter relationships
-    const delegateToVoters = await db.public
+    const delegateToVoters = await db
       .selectFrom('delegateToVoter')
       .innerJoin('voter', 'voter.id', 'delegateToVoter.voterId')
       .leftJoin('votingPowerLatest', (join) =>
@@ -683,7 +671,7 @@ async function getAuthor(groupId: string) {
       .execute();
 
     // Get all delegate to discourse user relationships
-    const delegateToDiscourseUsers = await db.public
+    const delegateToDiscourseUsers = await db
       .selectFrom('delegateToDiscourseUser')
       .innerJoin(
         'discourseUser',
@@ -737,7 +725,7 @@ export async function getFeed(
   if (fromFilter === FromFilterEnum.AUTHOR) author = await getAuthor(groupId);
 
   // Fetch the proposal group
-  const group = await db.public
+  const group = await db
     .selectFrom('proposalGroup')
     .selectAll()
     .where('id', '=', groupId)
@@ -745,7 +733,7 @@ export async function getFeed(
 
   if (!group) return { votes: [], posts: [], events: [] };
 
-  const dao = await db.public
+  const dao = await db
     .selectFrom('dao')
     .selectAll()
     .where('dao.id', '=', group.daoId)
@@ -753,7 +741,7 @@ export async function getFeed(
 
   if (!dao) return { votes: [], posts: [], events: [] };
 
-  const daoDiscourse = await db.public
+  const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .selectAll()
     .where('daoId', '=', group.daoId)
@@ -783,7 +771,7 @@ export async function getFeed(
 
   // Batch fetch all proposals at once
   if (proposalItems.length > 0) {
-    const fetchedProposals = await db.public
+    const fetchedProposals = await db
       .selectFrom('proposal')
       .selectAll()
       .where((eb) =>
@@ -806,7 +794,7 @@ export async function getFeed(
   if (proposals.length > 0) {
     const proposalIds = proposals.map((p) => p.id);
 
-    let votesQuery = db.public
+    let votesQuery = db
       .selectFrom('vote')
       .distinctOn(['voterAddress', 'proposalId'])
       .selectAll()
@@ -969,7 +957,7 @@ export async function getFeed(
         const startedAt = new Date(proposal.startAt);
         const endedAt = new Date(proposal.endAt);
 
-        const daoGovernor = await db.public
+        const daoGovernor = await db
           .selectFrom('daoGovernor')
           .selectAll()
           .where('id', '=', proposal.governorId)
@@ -1067,7 +1055,7 @@ export async function getFeed(
 
   // Batch fetch all topics at once
   if (topicItems.length > 0) {
-    const fetchedTopics = await db.public
+    const fetchedTopics = await db
       .selectFrom('discourseTopic')
       .selectAll()
       .where((eb) =>
@@ -1097,7 +1085,7 @@ export async function getFeed(
   }
 
   if (topics.length > 0) {
-    allPosts = await db.public
+    allPosts = await db
       .selectFrom('discoursePost')
       .where(
         'topicId',
@@ -1268,7 +1256,7 @@ export async function getGroupHeader(groupId: string): Promise<{
     createdAt: Date;
   }
 
-  const group = await db.public
+  const group = await db
     .selectFrom('proposalGroup')
     .where('id', '=', groupId)
     .selectAll()
@@ -1312,7 +1300,7 @@ export async function getGroupHeader(groupId: string): Promise<{
   // Fetch proposals in bulk
   const proposals =
     proposalItems.length > 0
-      ? await db.public
+      ? await db
           .selectFrom('proposal')
           .selectAll()
           .where((eb) =>
@@ -1332,7 +1320,7 @@ export async function getGroupHeader(groupId: string): Promise<{
   // Fetch topics in bulk
   const topics =
     topicItems.length > 0
-      ? await db.public
+      ? await db
           .selectFrom('discourseTopic')
           .selectAll()
           .where((eb) =>
@@ -1354,7 +1342,7 @@ export async function getGroupHeader(groupId: string): Promise<{
     topic: Selectable<DiscourseTopic>
   ): Promise<AuthorInfo | null> => {
     try {
-      const discourseFirstPost = await db.public
+      const discourseFirstPost = await db
         .selectFrom('discoursePost')
         .where('discoursePost.topicId', '=', topic.externalId)
         .where('daoDiscourseId', '=', topic.daoDiscourseId)
@@ -1364,7 +1352,7 @@ export async function getGroupHeader(groupId: string): Promise<{
 
       if (!discourseFirstPost) return null;
 
-      const discourseFirstPostAuthor = await db.public
+      const discourseFirstPostAuthor = await db
         .selectFrom('discourseUser')
         .where('discourseUser.externalId', '=', discourseFirstPost.userId)
         .where('daoDiscourseId', '=', topic.daoDiscourseId)

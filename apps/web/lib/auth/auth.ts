@@ -1,4 +1,4 @@
-import { db, dbPool } from '@proposalsapp/db';
+import { dbPool } from '@proposalsapp/db';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { emailOTP } from 'better-auth/plugins';
@@ -11,8 +11,12 @@ import {
 
 export const auth = betterAuth({
   appName: 'proposals.app',
-  database: dbPool.uniswap,
-  trustedOrigins: [`https://uniswap.proposals.app`],
+  database: dbPool,
+  trustedOrigins: [
+    `https://arbitrum.proposals.app`,
+    `https://uniswap.proposals.app`,
+    `https://proposals.app`,
+  ],
   secret: process.env.BETTER_AUTH_SECRET,
 
   plugins: [
@@ -105,79 +109,53 @@ export const auth = betterAuth({
         defaultValue: false,
       },
     },
-    changeEmail: {
-      enabled: true,
-      expiresIn: 3600,
-      sendChangeEmailVerification: async ({ user, newEmail, url }) => {
-        const { error } = await resend.emails.send({
-          from: 'proposals.app <accounts@proposals.app>',
-          to: [user.email],
-          subject: 'Confirm Your Email Address Change',
-          react: ChangeEmailTemplate({
-            currentEmail: user.email,
-            newEmail,
-            verificationUrl: url,
-          }),
-        });
-
-        if (error) {
-          console.log('Error sending email change verification:', error);
-        }
-      },
-    },
-    deleteUser: {
-      enabled: true,
-      expiresIn: 3600,
-      sendDeleteAccountVerification: async ({ user, url }) => {
-        console.log(
-          `Preparing to send account deletion verification email to ${user.email}`
-        );
-        const { error } = await resend.emails.send({
-          from: 'proposals.app <accounts@proposals.app>',
-          to: [user.email],
-          subject: 'Confirm Your Account Deletion',
-          react: DeleteAccountTemplate({
-            email: user.email,
-            verificationUrl: url,
-          }),
-        });
-
-        if (error) {
-          console.log('Error sending account deletion verification:', error);
-        }
-      },
-      beforeDelete: async (user) => {
-        console.log(`Preparing to delete user account: ${user.email}`);
-      },
-      afterDelete: async (user) => {
-        console.log(`Successfully deleted user account: ${user.email}`);
-      },
-    },
   },
-  databaseHooks: {
-    user: {
-      create: {
-        after: async (user) => {
-          const allGroups = await db.public
-            .selectFrom('proposalGroup')
-            .selectAll()
-            .execute();
+  emailAndPassword: {
+    enabled: true,
+    autoSignIn: true,
+    requireEmailVerification: false,
+    sendChangeEmailVerification: async ({
+      email,
+      url,
+    }: {
+      email: string;
+      url: string;
+    }) => {
+      const { error } = await resend.emails.send({
+        from: 'proposals.app <noreply@proposals.app>',
+        to: [email],
+        subject: 'Verify your email change',
+        react: ChangeEmailTemplate({
+          currentEmail: email,
+          newEmail: email, // This would need to be passed differently in production
+          verificationUrl: url,
+        }),
+      });
 
-          if (allGroups)
-            await db.uniswap
-              .insertInto('userProposalGroupLastRead')
-              .values(
-                allGroups.map((group) => ({
-                  userId: user.id,
-                  proposalGroupId: group.id,
-                  lastReadAt: new Date(),
-                }))
-              )
-              .execute();
-        },
-      },
+      if (error) {
+        console.log('Error sending change email verification:', error);
+      }
+    },
+    sendDeleteAccountVerification: async ({
+      email,
+      url,
+    }: {
+      email: string;
+      url: string;
+    }) => {
+      const { error } = await resend.emails.send({
+        from: 'proposals.app <noreply@proposals.app>',
+        to: [email],
+        subject: 'Delete your account',
+        react: DeleteAccountTemplate({
+          email,
+          verificationUrl: url,
+        }),
+      });
+
+      if (error) {
+        console.log('Error sending delete account verification:', error);
+      }
     },
   },
 });
-
-export type Session = typeof auth.$Infer.Session;

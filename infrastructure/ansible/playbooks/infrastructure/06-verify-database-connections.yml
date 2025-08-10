@@ -170,35 +170,35 @@
           ========================================
           VERIFICATION SUMMARY for {{ inventory_hostname }}
           ========================================
-          
+
           PostgreSQL via pgpool (port 5432):
           ✓ Version: {{ pg_version.stdout | trim }}
           ✓ Write test: {{ 'PASSED' if pg_write_test.rc == 0 else 'FAILED' }}
           ✓ Read test: {{ 'PASSED' if pg_read_test.rc == 0 else 'FAILED' }}
-          
+
           pgpool Backend Status:
           {{ pgpool_nodes.stdout }}
-          
+
           Redis via HAProxy (port 6380):
           ✓ Ping: {{ redis_ping.stdout }}
           ✓ Write test: {{ 'PASSED' if redis_write_test.rc == 0 else 'FAILED' }}
           ✓ Read test: {{ 'PASSED' if redis_read_test.rc == 0 else 'FAILED' }}
-          
+
           Redis Replication:
           {{ redis_replication.stdout }}
-          
+
           etcd Health:
           {{ etcd_health.stdout }}
-          
+
           Service Status:
           {% for result in service_status.results %}
           - {{ result.item }}: {{ result.status.ActiveState | default('not found') }}
           {% endfor %}
-          
+
           Performance Tests:
           PostgreSQL: {{ pg_perf_test.stdout_lines[-1] | default('N/A') }}
           Redis: {{ redis_perf_test.stdout | default('N/A') }}
-          
+
           Consul Services: {{ consul_services.json | length }} registered
           ========================================
 
@@ -227,13 +227,13 @@
           ========================================
           CLUSTER-WIDE VERIFICATION SUMMARY
           ========================================
-          
+
           Test Results from All Nodes:
           {{ pg_cluster_summary.stdout }}
-          
+
           Connection Strings:
           - PostgreSQL via pgpool: postgresql://proposalsapp:***@localhost:5432/proposalsapp
           - Redis via HAProxy: redis://:***@localhost:6380
-          
+
           All database connections have been verified successfully!
           ========================================

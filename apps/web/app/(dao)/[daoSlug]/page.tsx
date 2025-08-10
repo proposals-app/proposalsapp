@@ -2,7 +2,7 @@ import { getActiveGroupsFeeds, getGroups } from './actions';
 import { GroupList } from './components/group-list';
 import { MarkAllAsReadButton } from './components/mark-all-as-read';
 import { Suspense } from 'react';
-import { auth } from '@/lib/auth/arbitrum_auth';
+import { auth } from '@/lib/auth/auth';
 import { headers } from 'next/headers';
 import {
   SkeletonText,

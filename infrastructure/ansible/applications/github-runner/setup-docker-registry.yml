@@ -5,7 +5,7 @@
   vars:
     registry_port: 5000
     registry_data_dir: /var/lib/docker-registry
-    
+
   tasks:
     - name: Configure Docker daemon to use insecure registry
       copy:
@@ -31,14 +31,14 @@
       retries: 5
       delay: 5
       when: docker_config_changed.changed
-    
+
     - name: Create registry data directory
       file:
         path: "{{ registry_data_dir }}"
         state: directory
         owner: root
         group: root
-        mode: '0755'
+        mode: "0755"
 
     - name: Check if registry container exists
       command: docker ps -a --filter name=registry --format '{{ '{{' }}.Names{{ '}}' }}'
@@ -49,11 +49,11 @@
       command: docker rm -f registry
       when: existing_registry.stdout == 'registry'
       ignore_errors: true
-      
+
     - name: Run local Docker registry
       command: docker run -d --name registry --restart always -p {{ registry_port }}:5000 -v {{ registry_data_dir }}:/var/lib/registry registry:2
       register: docker_run_result
-      
+
     - name: Wait for registry container to be running
       command: docker ps --filter name=registry --filter status=running --format '{{ '{{' }}.Names{{ '}}' }}'
       register: registry_running
@@ -75,7 +75,7 @@
           # Garbage collect the registry to free up space
           docker exec registry bin/registry garbage-collect /etc/docker/registry/config.yml
         dest: /usr/local/bin/registry-gc
-        mode: '0755'
+        mode: "0755"
 
     - name: Setup cron job for registry garbage collection
       cron:

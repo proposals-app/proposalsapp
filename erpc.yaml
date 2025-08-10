@@ -1,0 +1,238 @@
+server:
+  listenV4: true
+  httpHostV4: "0.0.0.0"
+  httpPort: 4000
+  maxTimeout: 120s
+
+metrics:
+  enabled: true
+  listenV4: true
+  hostV4: "0.0.0.0"
+  port: 4001
+
+database:
+  evmJsonRpcCache:
+    connectors:
+      - id: memory-cache
+        driver: memory
+        memory:
+          maxItems: 2000
+    policies:
+      - network: "*"
+        method: "*"
+        finality: finalized
+        connector: memory-cache
+        ttl: 5s
+      - network: "*"
+        method: "eth_getLogs|trace_*"
+        finality: finalized
+        connector: memory-cache
+        ttl: 60s
+
+projects:
+  - id: proposalsapp
+    networks:
+      - architecture: evm
+        evm:
+          chainId: 1
+      - architecture: evm
+        evm:
+          chainId: 42161
+      - architecture: evm
+        evm:
+          chainId: 10
+      - architecture: evm
+        evm:
+          chainId: 137
+      - architecture: evm
+        evm:
+          chainId: 43114
+
+    rateLimitBudget: global
+
+    upstreams:
+      # Ethereum Hypersync
+      - id: hypersync-ethereum
+        type: evm
+        endpoint: ${HYPERSYNC_ETHEREUM_ENDPOINT}
+        rateLimitBudget: hypersync-budget
+        evm:
+          chainId: 1
+        allowMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+        ignoreMethods:
+          - "*"
+        jsonRpc:
+          supportsBatch: true
+          batchMaxSize: 100
+          batchMaxWait: 50ms
+          headers:
+            Authorization: "Bearer ${HYPERSYNC_BEARER_TOKEN}"
+
+      # Arbitrum Hypersync
+      - id: hypersync-arbitrum
+        type: evm
+        endpoint: ${HYPERSYNC_ARBITRUM_ENDPOINT}
+        rateLimitBudget: hypersync-budget
+        evm:
+          chainId: 42161
+        allowMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+        ignoreMethods:
+          - "*"
+        jsonRpc:
+          supportsBatch: true
+          batchMaxSize: 100
+          batchMaxWait: 50ms
+          headers:
+            Authorization: "Bearer ${HYPERSYNC_BEARER_TOKEN}"
+
+      # Ethereum Full node
+      - id: full-ethereum
+        type: evm
+        endpoint: ${FULL_ETHEREUM_ENDPOINT}
+        rateLimitBudget: full-budget
+        evm:
+          chainId: 1
+        allowMethods:
+          - "eth_getBalance"
+          - "eth_getCode"
+          - "eth_getStorageAt"
+          - "eth_getProof"
+          - "eth_getStateRoot"
+          - "eth_call"
+          - "eth_sendTransaction"
+          - "eth_sendRawTransaction"
+          - "eth_getTransactionCount"
+          - "eth_estimateGas"
+          - "eth_gasPrice"
+          - "eth_maxPriorityFeePerGas"
+          - "eth_feeHistory"
+          - "eth_createAccessList"
+          - "eth_accounts"
+          - "eth_coinbase"
+          - "eth_syncing"
+          - "eth_protocolVersion"
+          - "eth_pendingTransactions"
+          - "net_version"
+          - "net_peerCount"
+          - "net_listening"
+          - "web3_clientVersion"
+          - "web3_sha3"
+          - "debug_*"
+          - "trace_call"
+          - "trace_callMany"
+          - "trace_rawTransaction"
+          - "trace_replayTransaction"
+          - "trace_replayBlockTransactions"
+          - "trace_transaction"
+          - "trace_get"
+          - "trace_filter"
+        ignoreMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+        jsonRpc:
+          supportsBatch: true
+          batchMaxSize: 100
+          batchMaxWait: 50ms
+
+      # Arbitrum Full node
+      - id: full-arbitrum
+        type: evm
+        endpoint: ${FULL_ARBITRUM_ENDPOINT}
+        rateLimitBudget: full-budget
+        evm:
+          chainId: 42161
+        allowMethods:
+          - "eth_getBalance"
+          - "eth_getCode"
+          - "eth_getStorageAt"
+          - "eth_call"
+          - "eth_sendTransaction"
+          - "eth_sendRawTransaction"
+          - "eth_getTransactionCount"
+          - "eth_estimateGas"
+          - "eth_gasPrice"
+          - "eth_maxPriorityFeePerGas"
+          - "eth_feeHistory"
+          - "eth_createAccessList"
+          - "eth_accounts"
+          - "eth_syncing"
+          - "eth_protocolVersion"
+          - "eth_pendingTransactions"
+          - "net_*"
+          - "web3_*"
+          - "debug_*"
+          - "trace_call"
+          - "trace_callMany"
+          - "trace_rawTransaction"
+          - "trace_replayTransaction"
+          - "trace_replayBlockTransactions"
+          - "trace_transaction"
+          - "trace_get"
+          - "trace_filter"
+        ignoreMethods:
+          - "eth_chainId"
+          - "eth_blockNumber"
+          - "eth_getBlockByNumber"
+          - "eth_getBlockByHash"
+          - "eth_getBlockReceipts"
+          - "eth_getTransactionByHash"
+          - "eth_getTransactionByBlockHashAndIndex"
+          - "eth_getTransactionByBlockNumberAndIndex"
+          - "eth_getTransactionReceipt"
+          - "eth_getLogs"
+          - "trace_block"
+        jsonRpc:
+          supportsBatch: true
+          batchMaxSize: 100
+          batchMaxWait: 50ms
+
+rateLimiters:
+  budgets:
+    - id: global
+      rules:
+        - method: "*"
+          maxCount: 10000
+          period: 1s
+
+    - id: hypersync-budget
+      rules:
+        - method: "*"
+          maxCount: 10000
+          period: 1s
+
+    - id: full-budget
+      rules:
+        - method: "*"
+          maxCount: 5000
+          period: 1s
