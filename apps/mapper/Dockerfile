@@ -153,6 +153,7 @@ WORKDIR /app
 ARG APP_NAME
 
 # Install runtime dependencies INCLUDING build tools for llama.cpp compilation
+# NOTE: Do NOT install nvidia-utils package - let nvidia-container-runtime inject the correct driver version
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
@@ -167,7 +168,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     clang \
     lld \
-    nvidia-utils-535 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables for NVIDIA runtime
