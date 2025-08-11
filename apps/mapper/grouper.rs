@@ -1648,19 +1648,19 @@ Based on careful analysis, provide a final precise similarity score between 0 an
         );
         self.persist_results(&groups, dao_id).await?;
 
-        // Extract keywords for all items after procedural grouping
-        let total_items = all_items.len();
-        info!("Extracting keywords for {} items", total_items);
-        for (idx, item) in all_items.iter_mut().enumerate() {
-            if idx.is_multiple_of(10) {
-                info!(
-                    "Extracting keywords: {}/{} items processed",
-                    idx, total_items
-                );
-            }
-            item.keywords = self.extract_keywords(item).await?;
-        }
-        info!("Keyword extraction complete for all {} items", total_items);
+        // // Extract keywords for all items after procedural grouping
+        // let total_items = all_items.len();
+        // info!("Extracting keywords for {} items", total_items);
+        // for (idx, item) in all_items.iter_mut().enumerate() {
+        //     if idx.is_multiple_of(10) {
+        //         info!(
+        //             "Extracting keywords: {}/{} items processed",
+        //             idx, total_items
+        //         );
+        //     }
+        //     item.keywords = self.extract_keywords(item).await?;
+        // }
+        // info!("Keyword extraction complete for all {} items", total_items);
 
         // Get ungrouped items (after procedural grouping)
         let ungrouped_items: Vec<_> = all_items
@@ -1673,65 +1673,65 @@ Based on careful analysis, provide a final precise similarity score between 0 an
             ungrouped_items.len()
         );
 
-        // Step 3-5: Run the AI-based grouping algorithm on remaining ungrouped items
-        let final_groups = self
-            .ai_grouping_pass(ungrouped_items, groups, dao_id)
-            .await?;
+        // // Step 3-5: Run the AI-based grouping algorithm on remaining ungrouped items
+        // let final_groups = self
+        //     .ai_grouping_pass(ungrouped_items, groups, dao_id)
+        //     .await?;
 
         // No need to persist again here since we persist after each item in ai_grouping_pass
 
-        // Calculate final statistics
-        let total_groups = final_groups.len();
-        let single_item_groups = final_groups
-            .values()
-            .filter(|items| items.len() == 1)
-            .count();
-        let multi_item_groups = final_groups
-            .values()
-            .filter(|items| items.len() > 1)
-            .count();
-        let largest_group_size = final_groups
-            .values()
-            .map(|items| items.len())
-            .max()
-            .unwrap_or(0);
-        let avg_group_size = if total_groups > 0 {
-            final_groups
-                .values()
-                .map(|items| items.len())
-                .sum::<usize>() as f64
-                / total_groups as f64
-        } else {
-            0.0
-        };
+        // // Calculate final statistics
+        // let total_groups = final_groups.len();
+        // let single_item_groups = final_groups
+        //     .values()
+        //     .filter(|items| items.len() == 1)
+        //     .count();
+        // let multi_item_groups = final_groups
+        //     .values()
+        //     .filter(|items| items.len() > 1)
+        //     .count();
+        // let largest_group_size = final_groups
+        //     .values()
+        //     .map(|items| items.len())
+        //     .max()
+        //     .unwrap_or(0);
+        // let avg_group_size = if total_groups > 0 {
+        //     final_groups
+        //         .values()
+        //         .map(|items| items.len())
+        //         .sum::<usize>() as f64
+        //         / total_groups as f64
+        // } else {
+        //     0.0
+        // };
 
-        let procedural_matches_count = final_groups
-            .values()
-            .filter(|items| {
-                items.len() > 1
-                    && items
-                        .iter()
-                        .any(|item| matches!(&item.raw_data, ProposalGroupItem::Proposal(_)))
-                    && items
-                        .iter()
-                        .any(|item| matches!(&item.raw_data, ProposalGroupItem::Topic(_)))
-            })
-            .count();
+        // let procedural_matches_count = final_groups
+        //     .values()
+        //     .filter(|items| {
+        //         items.len() > 1
+        //             && items
+        //                 .iter()
+        //                 .any(|item| matches!(&item.raw_data, ProposalGroupItem::Proposal(_)))
+        //             && items
+        //                 .iter()
+        //                 .any(|item| matches!(&item.raw_data, ProposalGroupItem::Topic(_)))
+        //     })
+        //     .count();
 
-        info!(
-            dao_id = %dao_id,
-            total_items = total_items,
-            total_groups = total_groups,
-            single_item_groups = single_item_groups,
-            multi_item_groups = multi_item_groups,
-            largest_group_size = largest_group_size,
-            avg_group_size = format!("{:.2}", avg_group_size),
-            procedural_matches = procedural_matches_count,
-            ai_matches = multi_item_groups - procedural_matches_count,
-            proposals_processed = proposals.len(),
-            topics_processed = topics.len(),
-            "Grouping complete - detailed statistics"
-        );
+        // info!(
+        //     dao_id = %dao_id,
+        //     total_items = total_items,
+        //     total_groups = total_groups,
+        //     single_item_groups = single_item_groups,
+        //     multi_item_groups = multi_item_groups,
+        //     largest_group_size = largest_group_size,
+        //     avg_group_size = format!("{:.2}", avg_group_size),
+        //     procedural_matches = procedural_matches_count,
+        //     ai_matches = multi_item_groups - procedural_matches_count,
+        //     proposals_processed = proposals.len(),
+        //     topics_processed = topics.len(),
+        //     "Grouping complete - detailed statistics"
+        // );
         Ok(())
     }
 }
