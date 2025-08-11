@@ -170,6 +170,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
+# Fix CUDA library paths for runtime
+# The NVIDIA runtime container provides libcuda.so in the compat directory
+# We need to ensure it's accessible to llama.cpp
+ENV LD_LIBRARY_PATH=/usr/local/cuda/compat:/usr/local/cuda-12.6/compat:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+
+# Create symlinks for CUDA libraries if they don't exist
+# This ensures compatibility with different NVIDIA driver versions
+RUN if [ -f /usr/local/cuda-12.6/compat/libcuda.so.1 ]; then \
+        ln -sf /usr/local/cuda-12.6/compat/libcuda.so.1 /usr/lib/x86_64-linux-gnu/libcuda.so.1; \
+        ln -sf /usr/lib/x86_64-linux-gnu/libcuda.so.1 /usr/lib/x86_64-linux-gnu/libcuda.so; \
+    fi && \
+    ldconfig
+
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
