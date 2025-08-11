@@ -53,7 +53,7 @@ tokio-retry = "0.3.0"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 utils = { path = "libs/rust/utils" }
-uuid = "1.17"
+uuid = "1.18"
 
 [profile.release]
 opt-level = 3
