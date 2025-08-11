@@ -146,8 +146,9 @@ COPY . .
 # Build the project with parallel jobs
 RUN cargo build --release --bin ${APP_NAME} --jobs $(nproc)
 
-# Stage 4: Final runtime with CUDA
-FROM nvidia/cuda:12.6.2-runtime-ubuntu22.04
+# Stage 4: Final runtime with CUDA development tools
+# Use devel image instead of runtime to have CUDA toolkit for llm_client compilation
+FROM nvidia/cuda:12.6.2-devel-ubuntu22.04
 WORKDIR /app
 ARG APP_NAME
 
@@ -164,30 +165,65 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libcurl4-openssl-dev \
     procps \
+    clang \
+    lld \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables for NVIDIA runtime
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-# Fix CUDA library paths for runtime
-# The NVIDIA runtime container provides libcuda.so in the compat directory
-# We need to ensure it's accessible to llama.cpp
-ENV LD_LIBRARY_PATH=/usr/local/cuda/compat:/usr/local/cuda-12.6/compat:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+# Configure environment for llm_client to build llama.cpp with CUDA at runtime
+ENV CUDACXX=/usr/local/cuda/bin/nvcc
+ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+ENV GGML_CUDA=1
+ENV CUDA_DOCKER_ARCH=all-major
+ENV FORCE_CMAKE=1
+# Use portable CPU flags
+ENV CFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
+ENV CXXFLAGS="-march=x86-64-v2 -mtune=generic -fPIC"
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
-# Create symlinks for CUDA libraries if they don't exist
-# This ensures compatibility with different NVIDIA driver versions
-RUN if [ -f /usr/local/cuda-12.6/compat/libcuda.so.1 ]; then \
-        ln -sf /usr/local/cuda-12.6/compat/libcuda.so.1 /usr/lib/x86_64-linux-gnu/libcuda.so.1; \
-        ln -sf /usr/lib/x86_64-linux-gnu/libcuda.so.1 /usr/lib/x86_64-linux-gnu/libcuda.so; \
-    fi && \
+# Fix CUDA library paths for runtime
+# Ensure both build and runtime libraries are accessible
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/compat:/usr/local/cuda-12.6/compat:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+ENV LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:${LIBRARY_PATH}
+
+# Setup CUDA stub libraries for build-time linking
+# These will be replaced by real driver libraries at runtime via nvidia-container-runtime
+RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 && \
+    ln -sf /usr/local/cuda/lib64/stubs/libnvidia-ml.so /usr/local/cuda/lib64/stubs/libnvidia-ml.so.1 && \
+    echo "/usr/local/cuda/lib64/stubs" > /etc/ld.so.conf.d/cuda-stubs.conf && \
     ldconfig
+
+# Create a startup script that will handle CUDA library detection at runtime
+RUN echo '#!/bin/bash' > /usr/local/bin/setup-cuda.sh && \
+    echo '# Wait for nvidia-container-runtime to inject driver libraries' >> /usr/local/bin/setup-cuda.sh && \
+    echo 'sleep 2' >> /usr/local/bin/setup-cuda.sh && \
+    echo '# Check if real driver libraries are available' >> /usr/local/bin/setup-cuda.sh && \
+    echo 'if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 ]; then' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    echo "NVIDIA driver libraries detected"' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    # Remove stub library symlinks if real libraries exist' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    rm -f /usr/local/cuda/lib64/libcuda.so*' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    # Link to real driver libraries' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    ln -sf /usr/lib/x86_64-linux-gnu/libcuda.so.1 /usr/local/cuda/lib64/libcuda.so.1' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    ln -sf /usr/local/cuda/lib64/libcuda.so.1 /usr/local/cuda/lib64/libcuda.so' >> /usr/local/bin/setup-cuda.sh && \
+    echo 'else' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    echo "WARNING: NVIDIA driver libraries not found, using stubs"' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    # Ensure stub libraries are available for build' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/libcuda.so' >> /usr/local/bin/setup-cuda.sh && \
+    echo '    ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/libcuda.so.1' >> /usr/local/bin/setup-cuda.sh && \
+    echo 'fi' >> /usr/local/bin/setup-cuda.sh && \
+    echo 'ldconfig' >> /usr/local/bin/setup-cuda.sh && \
+    echo 'exec "$@"' >> /usr/local/bin/setup-cuda.sh && \
+    chmod +x /usr/local/bin/setup-cuda.sh
 
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
-# Copy the llama_cpp directory with the compatible llama-server built by llm_client
-COPY --from=builder /app/target/llama_cpp /app/target/llama_cpp
+# Note: llm_client will build llama.cpp at runtime with proper GPU detection
+# No need to copy pre-built llama_cpp directory
 
-# Set the default command
+# Use the setup script as entrypoint to ensure CUDA libraries are properly configured
+ENTRYPOINT ["/usr/local/bin/setup-cuda.sh"]
 CMD ["mapper"]
