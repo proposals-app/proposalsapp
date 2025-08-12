@@ -48,6 +48,8 @@ const ENDING_PROPOSAL_MINUTES = 60;
 const NEW_DISCUSSION_MINUTES = 5;
 const COOLDOWN_HOURS = 24;
 
+const ENABLED_DAOS = ['arbitrum'];
+
 // DAO-specific Discourse category filters
 const DAO_DISCOURSE_CATEGORIES: Record<string, number[]> = {
   arbitrum: [7, 8],
@@ -66,13 +68,10 @@ async function processNotifications(): Promise<void> {
   logger.info('Starting notification processing...');
 
   try {
-    // Get enabled DAOs (those with at least one enabled governor)
     const daos = await db
       .selectFrom('dao')
       .selectAll()
-      .where('dao.id', 'in', (qb) =>
-        qb.selectFrom('daoGovernor').select('daoId')
-      )
+      .where('dao.slug', 'in', ENABLED_DAOS)
       .execute();
 
     for (const dao of daos) {
