@@ -20,7 +20,7 @@ use tracing::{debug, error, info, instrument, warn};
 
 // Constants
 const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
-const MAX_BATCH_SIZE: usize = 10;
+const MAX_BATCH_SIZE: usize = 100;
 const MAX_LOOPS: usize = 10;
 
 #[instrument(name = "update_snapshot_votes", skip(dao_id, governor_id, space))]
