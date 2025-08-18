@@ -2,7 +2,7 @@ use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
 use anyhow::{Context, Result};
 use axum::Router;
 use dotenv::dotenv;
-use extensions::{db_extension::initialize_db, snapshot_api::initialize_snapshot_api};
+use extensions::db_extension::initialize_db;
 use reqwest::Client;
 use rindexer::{
     GraphqlOverrideSettings, IndexingDetails, StartDetails,
@@ -11,8 +11,7 @@ use rindexer::{
 use std::{env, time::Duration};
 use tasks::{
     onchain_proposals_updates::run_periodic_proposal_state_update,
-    snapshot_proposals::run_periodic_snapshot_proposals_update,
-    snapshot_votes::run_periodic_snapshot_votes_update,
+    snapshot_indexer::run_periodic_snapshot_indexing,
 };
 use tracing::{error, info, instrument, warn};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
@@ -52,20 +51,10 @@ async fn main() -> Result<()> {
         .await
         .context("Failed to initialize database")?;
 
-    initialize_snapshot_api()
-        .await
-        .context("Failed to initialize snapshot API")?;
-
     // Spawn periodic tasks and store their handles
-    let snapshot_proposals_handle = tokio::spawn(async {
-        if let Err(e) = run_periodic_snapshot_proposals_update().await {
-            error!("Error in periodic snapshot proposals update task: {:?}", e);
-        }
-    });
-
-    let snapshot_votes_handle = tokio::spawn(async {
-        if let Err(e) = run_periodic_snapshot_votes_update().await {
-            error!("Error in periodic snapshot votes update task: {:?}", e);
+    let snapshot_indexing_handle = tokio::spawn(async {
+        if let Err(e) = run_periodic_snapshot_indexing().await {
+            error!("Error in periodic snapshot indexing task: {:?}", e);
         }
     });
 
@@ -143,11 +132,8 @@ async fn main() -> Result<()> {
         result = uptime_handle => {
             error!("Uptime task completed unexpectedly: {:?}", result);
         }
-        result = snapshot_proposals_handle => {
-            error!("Snapshot proposals task completed unexpectedly: {:?}", result);
-        }
-        result = snapshot_votes_handle => {
-            error!("Snapshot votes task completed unexpectedly: {:?}", result);
+        result = snapshot_indexing_handle => {
+            error!("Snapshot indexing task completed unexpectedly: {:?}", result);
         }
         result = proposal_state_handle => {
             error!("Proposal state task completed unexpectedly: {:?}", result);

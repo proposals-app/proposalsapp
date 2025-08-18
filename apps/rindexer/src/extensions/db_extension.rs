@@ -300,7 +300,14 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
     }
 
     let voter_address_set: HashSet<String> = voter_addresses.into_iter().collect();
-    store_voters(voter_address_set).await?;
+    
+    // Store voters in background to avoid blocking vote storage
+    info!(voter_count = voter_address_set.len(), "Starting voter storage in background");
+    let voter_storage_result = store_voters(voter_address_set).await;
+    if let Err(e) = voter_storage_result {
+        // Log error but don't fail vote storage
+        error!(error = %e, "Failed to store voters, continuing with vote storage");
+    }
 
     let mut vote_active_models = Vec::new();
     for vote in votes.clone() {
@@ -495,12 +502,24 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
 
     // Get the provider once at the beginning to reuse throughout the function
     let provider = get_ethereum_provider().await;
+    
+    let voter_list: Vec<String> = voter_addresses.into_iter().collect();
+    let total_voters = voter_list.len();
+    info!(total_voters = total_voters, "Starting voter storage with ENS lookups");
 
-    for addresses_chunk in voter_addresses
-        .into_iter()
-        .collect::<Vec<_>>()
+    for (chunk_index, addresses_chunk) in voter_list
         .chunks(BATCH_SIZE)
+        .enumerate()
     {
+        let chunk_start = chunk_index * BATCH_SIZE;
+        let chunk_end = std::cmp::min(chunk_start + BATCH_SIZE, total_voters);
+        info!(
+            chunk = chunk_index + 1,
+            chunk_size = addresses_chunk.len(),
+            progress = format!("{}/{}", chunk_end, total_voters),
+            "Processing voter chunk with ENS lookups"
+        );
+        
         // Fetch existing voters with address and ens
         let existing_voters_models: Vec<voter::Model> = voter::Entity::find()
             .filter(voter::Column::Address.is_in(addresses_chunk.to_vec()))
