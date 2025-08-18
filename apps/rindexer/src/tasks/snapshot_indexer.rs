@@ -206,8 +206,21 @@ async fn index_all_votes_for_proposal(
 
     if !vote_models.is_empty() {
         let stored_count = vote_models.len();
-        store_votes(vote_models, governor_id).await?;
-        info!(proposal_id = %proposal.external_id, stored_count = stored_count, "Stored votes for proposal");
+        let proposal_id = proposal.external_id.clone();
+        
+        // Spawn vote storage as background task to avoid blocking next iteration
+        tokio::spawn(async move {
+            match store_votes(vote_models, governor_id).await {
+                Ok(()) => {
+                    info!(proposal_id = %proposal_id, stored_count = stored_count, "Stored votes for proposal");
+                }
+                Err(e) => {
+                    error!(proposal_id = %proposal_id, error = %e, "Failed to store votes for proposal");
+                }
+            }
+        });
+        
+        info!(proposal_id = %proposal.external_id, vote_count = stored_count, "Started background vote storage for proposal");
     }
 
     Ok(())
