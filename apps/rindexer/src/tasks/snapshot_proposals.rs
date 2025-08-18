@@ -14,7 +14,7 @@ use tracing::{debug, error, info, instrument};
 
 // Constants
 const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
-const BATCH_SIZE: usize = 10;
+const BATCH_SIZE: usize = 100;
 
 impl SnapshotProposal {
     fn to_active_model(&self, governor_id: Uuid, dao_id: Uuid) -> Result<proposal::ActiveModel> {

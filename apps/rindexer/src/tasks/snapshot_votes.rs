@@ -21,7 +21,7 @@ use tracing::{debug, error, info, instrument, warn};
 // Constants
 const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
 const MAX_BATCH_SIZE: usize = 100;
-const MAX_LOOPS: usize = 10;
+const MAX_LOOPS: usize = 100;
 
 #[instrument(name = "update_snapshot_votes", skip(dao_id, governor_id, space))]
 pub async fn update_snapshot_votes(dao_id: Uuid, governor_id: Uuid, space: String) -> Result<()> {
