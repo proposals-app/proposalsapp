@@ -1,9 +1,70 @@
 use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
-use tracing::{debug, info, instrument};
+use once_cell::sync::Lazy;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use tracing::{debug, info, instrument, warn};
 
 pub const SNAPSHOT_GRAPHQL_ENDPOINT: &str = "https://hub.snapshot.org/graphql";
+
+/// Token bucket rate limiter for 60 requests per minute
+#[derive(Debug)]
+struct RateLimiter {
+    tokens: Arc<Mutex<f64>>,
+    last_refill: Arc<Mutex<Instant>>,
+    max_tokens: f64,
+    refill_rate: f64, // tokens per second
+}
+
+impl RateLimiter {
+    /// Create a new rate limiter with 60 requests per minute
+    fn new() -> Self {
+        Self {
+            tokens: Arc::new(Mutex::new(60.0)),
+            last_refill: Arc::new(Mutex::new(Instant::now())),
+            max_tokens: 60.0,
+            refill_rate: 1.0, // 60 tokens per 60 seconds = 1 token per second
+        }
+    }
+
+    /// Wait until a request can be made (consumes 1 token)
+    async fn acquire(&self) {
+        loop {
+            let now = Instant::now();
+            let can_proceed = {
+                let mut tokens = self.tokens.lock().unwrap();
+                let mut last_refill = self.last_refill.lock().unwrap();
+
+                // Refill tokens based on elapsed time
+                let elapsed = now.duration_since(*last_refill).as_secs_f64();
+                let new_tokens = (*tokens + elapsed * self.refill_rate).min(self.max_tokens);
+                *tokens = new_tokens;
+                *last_refill = now;
+
+                // Check if we can consume a token
+                if *tokens >= 1.0 {
+                    *tokens -= 1.0;
+                    true
+                } else {
+                    false
+                }
+            };
+
+            if can_proceed {
+                return;
+            }
+
+            // Wait before trying again
+            let wait_ms = 1000; // 1 second
+            warn!("Rate limit reached, waiting {}ms before next request", wait_ms);
+            tokio::time::sleep(Duration::from_millis(wait_ms)).await;
+        }
+    }
+}
+
+/// Global rate limiter instance for Snapshot API
+static RATE_LIMITER: Lazy<RateLimiter> = Lazy::new(RateLimiter::new);
 
 // Response structures for Snapshot API
 
@@ -390,11 +451,14 @@ impl SnapshotApi {
         Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
     }
 
-    /// Execute a GraphQL query
+    /// Execute a GraphQL query with rate limiting
     async fn fetch_graphql<T>(&self, query: &str) -> Result<T>
     where
         T: for<'de> serde::Deserialize<'de>,
     {
+        // Wait for rate limiter before making request
+        RATE_LIMITER.acquire().await;
+        
         let response = self
             .client
             .post(SNAPSHOT_GRAPHQL_ENDPOINT)
