@@ -1,28 +1,27 @@
 use crate::extensions::{
     db_extension::{
-        DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, 
-        store_proposal, store_votes, DB,
+        DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB,
+        store_snapshot_proposal, store_votes,
     },
-    snapshot_api::{SnapshotApi, SnapshotProposal},
+    snapshot_api::SnapshotApi,
 };
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
-use proposalsapp_db::models::proposal;
+use chrono::{Duration, Utc};
+use proposalsapp_db::models::{proposal, vote};
 use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect,
+    ColumnTrait, EntityTrait, QueryFilter, QueryOrder,
     prelude::{Expr, Uuid},
 };
-use std::time::Duration;
+use std::time::Duration as StdDuration;
 use tracing::{debug, error, info, instrument};
 
 // Constants
-const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
-const PROPOSAL_BATCH_SIZE: usize = 100;
+const REFRESH_INTERVAL: StdDuration = StdDuration::from_secs(60);
 
 /// Main entry point for periodic snapshot indexing
 #[instrument(name = "run_periodic_snapshot_indexing", skip_all)]
 pub async fn run_periodic_snapshot_indexing() -> Result<()> {
-    info!("Starting simplified periodic snapshot indexing");
+    info!("Starting simplified snapshot indexing with cursors");
 
     loop {
         let snapshot_governors = {
@@ -49,13 +48,15 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
                     continue;
                 };
 
-                for (gov_type, governor_id) in governor_types.iter() {
-                    if gov_type.contains("SNAPSHOT") {
-                        let Some(space) = governor_space_map.get(&(dao_slug.clone(), gov_type.clone())) else {
+                for (gov_type, &governor_id) in governor_types {
+                    if gov_type.ends_with("_SNAPSHOT") {
+                        let Some(space) =
+                            governor_space_map.get(&(dao_slug.clone(), gov_type.clone()))
+                        else {
                             error!(dao_slug = %dao_slug, governor_type = %gov_type, "Snapshot space not found");
                             continue;
                         };
-                        snapshot_governors.push((dao_id, *governor_id, space.clone()));
+                        snapshot_governors.push((dao_id, governor_id, space.clone()));
                     }
                 }
             }
@@ -65,13 +66,20 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
         if snapshot_governors.is_empty() {
             info!("No SNAPSHOT governors configured");
         } else {
-            info!(governor_count = snapshot_governors.len(), "Found SNAPSHOT governors");
-            
+            info!(
+                governor_count = snapshot_governors.len(),
+                "Found SNAPSHOT governors"
+            );
+
             for (dao_id, governor_id, space) in snapshot_governors {
-                if let Err(e) = index_snapshot_space(&space, governor_id, dao_id).await {
-                    error!(space = %space, governor_id = %governor_id, error = %e, "Failed to index snapshot space");
-                } else {
-                    info!(space = %space, governor_id = %governor_id, "Successfully indexed snapshot space");
+                // Index proposals
+                if let Err(e) = index_proposals(&space, governor_id, dao_id).await {
+                    error!(space = %space, error = %e, "Failed to index proposals");
+                }
+
+                // Index votes
+                if let Err(e) = index_votes(&space, governor_id, dao_id).await {
+                    error!(space = %space, error = %e, "Failed to index votes");
                 }
             }
         }
@@ -80,321 +88,266 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
     }
 }
 
-/// Index a complete Snapshot space (proposals + votes)
-#[instrument(name = "index_snapshot_space", skip_all, fields(space = space))]
-async fn index_snapshot_space(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
-    info!(space = %space, "Starting to index snapshot space");
-
-    // Step 1: Index all proposals chronologically
-    index_proposals(space, governor_id, dao_id).await?;
-
-    // Step 2: Index votes for active/recent proposals
-    index_votes(space, governor_id, dao_id).await?;
-
-    info!(space = %space, "Completed indexing snapshot space");
-    Ok(())
-}
-
-/// Index proposals using cursor-based pagination
-#[instrument(name = "index_proposals", skip_all)]
+/// Index proposals using cursor-based pagination + refresh active proposals
+#[instrument(name = "index_proposals", skip_all, fields(space = space))]
 async fn index_proposals(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
     let api = SnapshotApi::new();
-    
-    // Get the last proposal timestamp we've indexed
-    let mut cursor = get_latest_proposal_created_at(governor_id).await?;
-    let mut total_indexed = 0;
 
+    // Get cursor or start from 1 year ago
+    let cursor = get_proposal_cursor(space).await?;
     info!(space = %space, cursor = cursor, "Starting proposal indexing");
 
-    loop {
-        let proposals = api.fetch_proposals_after(space, cursor, PROPOSAL_BATCH_SIZE).await?;
-        
-        if proposals.is_empty() {
-            debug!(space = %space, "No more proposals to index");
-            break;
-        }
+    // Fetch next batch of proposals chronologically
+    let proposals = api.fetch_proposals_after(space, cursor, 100).await?;
 
-        info!(space = %space, batch_size = proposals.len(), cursor = cursor, "Processing proposal batch");
+    if !proposals.is_empty() {
+        info!(space = %space, count = proposals.len(), "Fetched proposals");
 
-        let mut batch_success = 0;
+        // Store all proposals
         for proposal in &proposals {
-            match proposal.to_active_model(governor_id, dao_id) {
-                Ok(proposal_model) => {
-                    match store_proposal(proposal_model).await {
-                        Ok(_) => {
-                            batch_success += 1;
-                            cursor = proposal.created;
-                        }
-                        Err(e) => error!(proposal_id = %proposal.id, error = %e, "Failed to store proposal"),
-                    }
-                }
-                Err(e) => error!(proposal_id = %proposal.id, error = %e, "Failed to convert proposal"),
+            if let Err(e) = store_snapshot_proposal(proposal.clone(), governor_id, dao_id).await {
+                error!(proposal_id = %proposal.id, error = %e, "Failed to store proposal");
             }
         }
 
-        total_indexed += batch_success;
-        info!(space = %space, batch_success = batch_success, total_indexed = total_indexed, "Completed proposal batch");
+        // Log the latest proposal timestamp (cursor is now from database)
+        if let Some(last) = proposals.last() {
+            debug!(space = %space, latest_created = last.created, "Processed proposals up to timestamp");
+        }
     }
 
-    info!(space = %space, total_indexed = total_indexed, "Completed proposal indexing");
+    // Also refresh active proposals (regardless of cursor)
+    refresh_active_proposals(space, governor_id, dao_id).await?;
+
     Ok(())
 }
 
-/// Index votes for proposals that need updating
-#[instrument(name = "index_votes", skip_all)]
+/// Refresh active proposals to get latest state/vote counts
+#[instrument(name = "refresh_active_proposals", skip_all)]
+async fn refresh_active_proposals(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
+    let api = SnapshotApi::new();
+
+    // Fetch proposals that might still be changing
+    let active_proposals = api.fetch_active_proposals(space).await?;
+
+    if !active_proposals.is_empty() {
+        info!(space = %space, active_count = active_proposals.len(), "Refreshing active proposals");
+
+        for proposal in active_proposals {
+            if let Err(e) = store_snapshot_proposal(proposal, governor_id, dao_id).await {
+                error!(error = %e, "Failed to update active proposal");
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Index votes using cursor-based pagination by space
+#[instrument(name = "index_votes", skip_all, fields(space = space))]
 async fn index_votes(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
     let api = SnapshotApi::new();
 
-    // Step 1: Index votes for active/recent proposals
-    let active_proposals = get_proposals_needing_votes(governor_id).await?;
-    info!(space = %space, active_count = active_proposals.len(), "Found proposals needing vote updates");
+    // Get vote cursor or start from 1 year ago
+    let cursor = get_vote_cursor(space).await?;
+    info!(space = %space, cursor = cursor, "Starting vote indexing");
 
-    for proposal in active_proposals {
-        if let Err(e) = index_all_votes_for_proposal(&api, &proposal, governor_id, dao_id).await {
-            error!(proposal_id = %proposal.external_id, error = %e, "Failed to index votes for active proposal");
-        }
-    }
+    // Fetch votes directly by space and created time
+    let votes = api.fetch_votes_after(space, cursor, 500).await?;
 
-    // Step 2: Re-index recently ended shutter proposals (votes become visible after ending)
-    let shutter_proposals = get_recently_ended_shutter_proposals(governor_id).await?;
-    info!(space = %space, shutter_count = shutter_proposals.len(), "Found shutter proposals to re-index");
+    if !votes.is_empty() {
+        info!(space = %space, vote_count = votes.len(), "Fetched votes");
 
-    for proposal in shutter_proposals {
-        if let Err(e) = index_all_votes_for_proposal(&api, &proposal, governor_id, dao_id).await {
-            error!(proposal_id = %proposal.external_id, error = %e, "Failed to re-index votes for shutter proposal");
-        }
-    }
+        // Get cursor before moving votes
+        let last_cursor = votes.last().map(|v| v.created);
 
-    // Step 3: Historical backfill - index votes for proposals missing votes
-    let historical_proposals = get_proposals_missing_votes(governor_id).await?;
-    info!(space = %space, historical_count = historical_proposals.len(), "Found historical proposals needing vote backfill");
-
-    for proposal in historical_proposals {
-        if let Err(e) = index_all_votes_for_proposal(&api, &proposal, governor_id, dao_id).await {
-            error!(proposal_id = %proposal.external_id, error = %e, "Failed to backfill votes for historical proposal");
-        }
-    }
-
-    Ok(())
-}
-
-/// Index all votes for a single proposal
-#[instrument(name = "index_all_votes_for_proposal", skip(api), fields(proposal_id = proposal.external_id))]
-async fn index_all_votes_for_proposal(
-    api: &SnapshotApi,
-    proposal: &proposal::Model,
-    governor_id: Uuid,
-    dao_id: Uuid,
-) -> Result<()> {
-    let votes = api.fetch_all_proposal_votes(&proposal.external_id).await?;
-    
-    if votes.is_empty() {
-        debug!(proposal_id = %proposal.external_id, "No votes found for proposal");
-        return Ok(());
-    }
-
-    info!(proposal_id = %proposal.external_id, vote_count = votes.len(), "Processing votes for proposal");
-
-    let mut vote_models = Vec::new();
-    for vote in votes {
-        match vote.to_active_model(governor_id, dao_id) {
-            Ok(Some(vote_model)) => vote_models.push(vote_model),
-            Ok(None) => debug!(voter = %vote.voter, "Skipped invalid vote"),
-            Err(e) => error!(voter = %vote.voter, error = %e, "Failed to convert vote"),
-        }
-    }
-
-    if !vote_models.is_empty() {
-        let stored_count = vote_models.len();
-        let proposal_id = proposal.external_id.clone();
-        
-        // Spawn vote storage as background task to avoid blocking next iteration
+        // Store votes in background (non-blocking)
+        let vote_count = votes.len();
         tokio::spawn(async move {
-            match store_votes(vote_models, governor_id).await {
-                Ok(()) => {
-                    info!(proposal_id = %proposal_id, stored_count = stored_count, "Stored votes for proposal");
+            // Convert SnapshotVotes to ActiveModels
+            let mut vote_models = Vec::new();
+            for vote in votes {
+                match vote.to_active_model(governor_id, dao_id) {
+                    Ok(Some(vote_model)) => vote_models.push(vote_model),
+                    Ok(None) => {
+                        debug!(voter = %vote.voter, "Skipped invalid vote");
+                    }
+                    Err(e) => {
+                        error!(voter = %vote.voter, error = %e, "Failed to convert vote");
+                    }
                 }
-                Err(e) => {
-                    error!(proposal_id = %proposal_id, error = %e, "Failed to store votes for proposal");
+            }
+
+            if !vote_models.is_empty() {
+                match store_votes(vote_models, governor_id).await {
+                    Ok(()) => {
+                        info!(
+                            vote_count = vote_count,
+                            "Successfully stored votes in background"
+                        );
+                    }
+                    Err(e) => {
+                        error!(error = %e, vote_count = vote_count, "Failed to store votes in background");
+                    }
                 }
             }
         });
-        
-        info!(proposal_id = %proposal.external_id, vote_count = stored_count, "Started background vote storage for proposal");
+
+        // Log the latest vote timestamp (cursor is now from database)
+        if let Some(cursor) = last_cursor {
+            debug!(space = %space, latest_created = cursor, "Processed votes up to timestamp");
+        }
+    }
+
+    // Handle shutter proposals that just ended
+    refetch_ended_shutter_votes(space, governor_id, dao_id).await?;
+
+    Ok(())
+}
+
+/// Re-fetch votes for shutter proposals that recently ended (votes are now decrypted)
+#[instrument(name = "refetch_ended_shutter_votes", skip_all)]
+async fn refetch_ended_shutter_votes(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
+    let db = DB.get().context("DB not initialized")?;
+
+    // Find shutter proposals that ended in the last 2 hours
+    let two_hours_ago = (Utc::now() - Duration::hours(2)).naive_utc();
+    let now = Utc::now().naive_utc();
+
+    let ended_shutter = proposal::Entity::find()
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(Expr::cust(r#"metadata->>'privacy' = 'shutter'"#))
+        .filter(proposal::Column::EndAt.between(two_hours_ago, now))
+        .all(db)
+        .await?;
+
+    if !ended_shutter.is_empty() {
+        info!(space = %space, shutter_count = ended_shutter.len(), "Re-fetching votes for ended shutter proposals");
+
+        let api = SnapshotApi::new();
+
+        // Re-fetch votes for these proposals (choices now decrypted)
+        for proposal in ended_shutter {
+            let votes = api.fetch_all_proposal_votes(&proposal.external_id).await?;
+
+            if !votes.is_empty() {
+                info!(proposal_id = %proposal.external_id, vote_count = votes.len(), "Re-fetched shutter votes");
+
+                // Store votes in background
+                tokio::spawn({
+                    let votes = votes.clone();
+                    async move {
+                        // Convert SnapshotVotes to ActiveModels
+                        let mut vote_models = Vec::new();
+                        for vote in votes {
+                            match vote.to_active_model(governor_id, dao_id) {
+                                Ok(Some(vote_model)) => vote_models.push(vote_model),
+                                Ok(None) => {
+                                    debug!(voter = %vote.voter, "Skipped invalid shutter vote");
+                                }
+                                Err(e) => {
+                                    error!(voter = %vote.voter, error = %e, "Failed to convert shutter vote");
+                                }
+                            }
+                        }
+
+                        if !vote_models.is_empty() {
+                            if let Err(e) = store_votes(vote_models, governor_id).await {
+                                error!(error = %e, "Failed to store re-fetched shutter votes");
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Rate limit between shutter re-fetches
+            tokio::time::sleep(StdDuration::from_secs(1)).await;
+        }
     }
 
     Ok(())
 }
 
-/// Get the timestamp of the latest proposal we've indexed
-#[instrument(name = "get_latest_proposal_created_at", skip_all)]
-async fn get_latest_proposal_created_at(governor_id: Uuid) -> Result<i64> {
+/// Get proposal cursor from latest proposal created_at in database
+async fn get_proposal_cursor(space: &str) -> Result<i64> {
     let db = DB.get().context("DB not initialized")?;
 
-    let timestamp = proposal::Entity::find()
-        .select_only()
-        .column_as(
-            Expr::cust("COALESCE(MAX(created_at), '1970-01-01 00:00:00+00')::timestamptz"),
-            "max_timestamp",
-        )
-        .filter(proposal::Column::GovernorId.eq(governor_id))
-        .into_tuple::<(DateTime<Utc>,)>()
-        .one(db)
-        .await?
-        .map_or(0, |(dt,)| dt.timestamp());
+    // Find the governor_id for this space (release locks before async operations)
+    let governor_id = {
+        let governor_space_map = DAO_SLUG_GOVERNOR_SPACE_MAP.lock().unwrap();
+        governor_space_map
+            .iter()
+            .find(|(_, mapped_space)| *mapped_space == space)
+            .and_then(|((dao_slug, gov_type), _)| {
+                let dao_governor_map = DAO_SLUG_GOVERNOR_TYPE_ID_MAP
+                    .get()
+                    .context("DAO_SLUG_GOVERNOR_TYPE_ID_MAP not initialized")
+                    .ok()?
+                    .lock()
+                    .unwrap();
+                dao_governor_map.get(dao_slug)?.get(gov_type).copied()
+            })
+    };
 
-    debug!(governor_id = %governor_id, timestamp = timestamp, "Retrieved latest proposal timestamp");
-    Ok(timestamp)
-}
+    if let Some(governor_id) = governor_id {
+        // Get the latest proposal created_at timestamp for this governor
+        let latest_proposal = proposal::Entity::find()
+            .filter(proposal::Column::GovernorId.eq(governor_id))
+            .order_by_desc(proposal::Column::CreatedAt)
+            .one(db)
+            .await?;
 
-/// Get proposals that need vote updates (active or recently ended)
-#[instrument(name = "get_proposals_needing_votes", skip_all)]
-async fn get_proposals_needing_votes(governor_id: Uuid) -> Result<Vec<proposal::Model>> {
-    let db = DB.get().context("DB not initialized")?;
-    let now = Utc::now().naive_utc();
-    let two_days_ago = (Utc::now() - chrono::Duration::hours(48)).naive_utc();
-
-    let proposals = proposal::Entity::find()
-        .filter(proposal::Column::GovernorId.eq(governor_id))
-        .filter(
-            Condition::any()
-                .add(proposal::Column::EndAt.gt(now))  // Still active
-                .add(
-                    Condition::all()
-                        .add(proposal::Column::EndAt.gt(two_days_ago))  // Recently ended
-                        .add(proposal::Column::EndAt.lte(now))
-                )
-        )
-        .order_by(proposal::Column::EndAt, Order::Asc)
-        .all(db)
-        .await?;
-
-    debug!(governor_id = %governor_id, count = proposals.len(), "Found proposals needing votes");
-    Ok(proposals)
-}
-
-/// Get shutter proposals that recently ended (votes become visible after ending)
-#[instrument(name = "get_recently_ended_shutter_proposals", skip_all)]
-async fn get_recently_ended_shutter_proposals(governor_id: Uuid) -> Result<Vec<proposal::Model>> {
-    let db = DB.get().context("DB not initialized")?;
-    let now = Utc::now().naive_utc();
-    let yesterday = (Utc::now() - chrono::Duration::hours(24)).naive_utc();
-
-    let proposals = proposal::Entity::find()
-        .filter(proposal::Column::GovernorId.eq(governor_id))
-        .filter(proposal::Column::EndAt.between(yesterday, now))
-        .filter(Expr::cust(r#"metadata->>'hidden_vote' = 'true'"#))
-        .filter(Expr::cust(r#"metadata->>'scores_state' = 'final'"#))
-        .order_by(proposal::Column::EndAt, Order::Desc)
-        .all(db)
-        .await?;
-
-    debug!(governor_id = %governor_id, count = proposals.len(), "Found shutter proposals to re-index");
-    Ok(proposals)
-}
-
-/// Get historical proposals that have no votes indexed yet (for backfill)
-#[instrument(name = "get_proposals_missing_votes", skip_all)]
-async fn get_proposals_missing_votes(governor_id: Uuid) -> Result<Vec<proposal::Model>> {
-    let db = DB.get().context("DB not initialized")?;
-
-    // Find proposals that have no votes in our database
-    // Focus on older proposals that ended more than 48 hours ago (not covered by other methods)
-    let two_days_ago = (Utc::now() - chrono::Duration::hours(48)).naive_utc();
-    
-    let proposals = proposal::Entity::find()
-        .filter(proposal::Column::GovernorId.eq(governor_id))
-        .filter(proposal::Column::EndAt.lt(two_days_ago)) // Older than 48 hours
-        .filter(
-            // Find proposals where we have NO votes at all
-            Expr::cust(&format!(
-                r#"NOT EXISTS (
-                    SELECT 1 FROM vote v 
-                    WHERE v.proposal_id = proposal.id 
-                    AND v.governor_id = '{}'
-                )"#, governor_id
-            ))
-        )
-        .order_by(proposal::Column::EndAt, Order::Desc) // Start with most recent
-        .limit(20) // Limit to avoid overwhelming the API - process 20 at a time
-        .all(db)
-        .await?;
-
-    debug!(governor_id = %governor_id, count = proposals.len(), "Found historical proposals missing votes");
-    Ok(proposals)
-}
-
-impl SnapshotProposal {
-    fn to_active_model(&self, governor_id: Uuid, dao_id: Uuid) -> Result<proposal::ActiveModel> {
-        use proposalsapp_db::models::proposal;
-        use proposalsapp_db::models::sea_orm_active_enums::ProposalState;
-        use sea_orm::{ActiveValue::NotSet, Set};
-        use serde_json::json;
-
-        let state = match self.state.as_str() {
-            "pending" if self.privacy == "shutter" => ProposalState::Hidden,
-            "active" => ProposalState::Active,
-            "pending" => ProposalState::Pending,
-            "closed" => {
-                if self.scores_state == "final" {
-                    ProposalState::Executed
-                } else {
-                    ProposalState::Defeated
-                }
-            }
-            _ => ProposalState::Unknown,
-        };
-
-        let created_at = DateTime::from_timestamp(self.created, 0)
-            .context("Invalid created timestamp")?
-            .naive_utc();
-        let start_at = DateTime::from_timestamp(self.start, 0)
-            .context("Invalid start timestamp")?
-            .naive_utc();
-        let end_at = DateTime::from_timestamp(self.end, 0)
-            .context("Invalid end timestamp")?
-            .naive_utc();
-
-        let mut metadata = json!({
-            "vote_type": self.proposal_type,
-            "quorum_choices": self.get_quorum_choices(),
-            "scores_state": self.scores_state
-        });
-
-        if self.privacy == "shutter" {
-            metadata["hidden_vote"] = json!(true);
-        }
-
-        Ok(proposal::ActiveModel {
-            id: NotSet,
-            governor_id: Set(governor_id),
-            dao_id: Set(dao_id),
-            external_id: Set(self.id.clone()),
-            name: Set(self.title.clone()),
-            body: Set(self.body.clone()),
-            url: Set(self.link.clone()),
-            discussion_url: Set(Some(self.discussion.clone())),
-            choices: Set(json!(self.choices)),
-            quorum: Set(self.quorum),
-            proposal_state: Set(state),
-            marked_spam: Set(self.flagged.unwrap_or(false)),
-            created_at: Set(created_at),
-            start_at: Set(start_at),
-            end_at: Set(end_at),
-            block_created_at: NotSet,
-            block_start_at: NotSet,
-            block_end_at: NotSet,
-            txid: Set(Some(self.ipfs.clone())),
-            metadata: Set(metadata.into()),
-            author: Set(Some(self.author.clone())),
-        })
-    }
-
-    fn get_quorum_choices(&self) -> Vec<u32> {
-        if self.proposal_type == "basic" {
-            vec![0, 2] // For basic proposals: [For, Against]
-        } else {
-            (0..self.choices.len() as u32).collect()
+        if let Some(proposal) = latest_proposal {
+            let cursor = proposal.created_at.and_utc().timestamp();
+            debug!(space = %space, cursor = cursor, "Using proposal cursor from database");
+            return Ok(cursor);
         }
     }
+
+    // Default to 10 years ago if no proposals found
+    let one_year_ago = (Utc::now() - Duration::days(10 * 365)).timestamp();
+    debug!(space = %space, cursor = one_year_ago, "Using default proposal cursor (1 year ago)");
+    Ok(one_year_ago)
+}
+
+/// Get vote cursor from latest vote created_at in database
+async fn get_vote_cursor(space: &str) -> Result<i64> {
+    let db = DB.get().context("DB not initialized")?;
+
+    // Find the governor_id for this space (release locks before async operations)
+    let governor_id = {
+        let governor_space_map = DAO_SLUG_GOVERNOR_SPACE_MAP.lock().unwrap();
+        governor_space_map
+            .iter()
+            .find(|(_, mapped_space)| *mapped_space == space)
+            .and_then(|((dao_slug, gov_type), _)| {
+                let dao_governor_map = DAO_SLUG_GOVERNOR_TYPE_ID_MAP
+                    .get()
+                    .context("DAO_SLUG_GOVERNOR_TYPE_ID_MAP not initialized")
+                    .ok()?
+                    .lock()
+                    .unwrap();
+                dao_governor_map.get(dao_slug)?.get(gov_type).copied()
+            })
+    };
+
+    if let Some(governor_id) = governor_id {
+        // Get the latest vote created_at timestamp for this governor
+        let latest_vote = vote::Entity::find()
+            .filter(vote::Column::GovernorId.eq(governor_id))
+            .order_by_desc(vote::Column::CreatedAt)
+            .one(db)
+            .await?;
+
+        if let Some(vote) = latest_vote {
+            let cursor = vote.created_at.and_utc().timestamp();
+            debug!(space = %space, cursor = cursor, "Using vote cursor from database");
+            return Ok(cursor);
+        }
+    }
+
+    // Default to 10 years ago if no votes found
+    let one_year_ago = (Utc::now() - Duration::days(10 * 365)).timestamp();
+    debug!(space = %space, cursor = one_year_ago, "Using default vote cursor (1 year ago)");
+    Ok(one_year_ago)
 }

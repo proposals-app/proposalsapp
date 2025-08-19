@@ -1,4 +1,4 @@
-use crate::rindexer_lib::typings::networks::get_ethereum_provider;
+use crate::{rindexer_lib::typings::networks::get_ethereum_provider, extensions::snapshot_api::SnapshotProposal};
 use alloy::primitives::Address;
 use alloy_ens::ProviderEnsExt;
 use anyhow::{Context, Result};
@@ -825,3 +825,83 @@ async fn isolated_ens_lookup(
 //         }
 //     }
 // }
+
+/// Store a Snapshot proposal (wrapper around store_proposal for SnapshotProposal)
+#[instrument(name = "store_snapshot_proposal", skip(proposal))]
+pub async fn store_snapshot_proposal(
+    proposal: SnapshotProposal,
+    governor_id: Uuid,
+    dao_id: Uuid,
+) -> Result<()> {
+    use chrono::DateTime;
+    use serde_json::Value;
+    use sea_orm::{ActiveValue::NotSet, Set};
+    use proposalsapp_db::models::sea_orm_active_enums::ProposalState;
+
+    // Convert timestamps from seconds to DateTime
+    let created_at = DateTime::from_timestamp(proposal.created, 0)
+        .ok_or_else(|| anyhow::anyhow!("Invalid created timestamp"))?
+        .naive_utc();
+    let start_at = DateTime::from_timestamp(proposal.start, 0)
+        .ok_or_else(|| anyhow::anyhow!("Invalid start timestamp"))?
+        .naive_utc();
+    let end_at = DateTime::from_timestamp(proposal.end, 0)
+        .ok_or_else(|| anyhow::anyhow!("Invalid end timestamp"))?
+        .naive_utc();
+
+    // Convert state string to ProposalState enum (matching old logic)
+    let proposal_state = match proposal.state.as_str() {
+        "pending" if proposal.privacy == "shutter" => ProposalState::Hidden,
+        "active" => ProposalState::Active,
+        "pending" => ProposalState::Pending,
+        "closed" => {
+            if proposal.scores_state == "final" {
+                ProposalState::Executed
+            } else {
+                ProposalState::Defeated
+            }
+        }
+        "cancelled" => ProposalState::Canceled,
+        _ => ProposalState::Unknown,
+    };
+
+    // Create metadata JSON (matching old structure)
+    let mut metadata = serde_json::json!({
+        "vote_type": proposal.proposal_type,
+        "scores_state": proposal.scores_state
+    });
+
+    if let Some(votes) = proposal.votes {
+        metadata["snapshot_vote_count"] = Value::from(votes);
+    }
+    
+    if proposal.privacy == "shutter" {
+        metadata["hidden_vote"] = Value::from(true);
+    }
+
+    let proposal_active_model = proposal::ActiveModel {
+        id: NotSet,
+        external_id: Set(proposal.id),
+        name: Set(proposal.title),
+        body: Set(proposal.body),
+        url: Set(proposal.link), // Use the actual link field from API
+        discussion_url: Set(if proposal.discussion.is_empty() { None } else { Some(proposal.discussion) }),
+        choices: Set(serde_json::to_value(proposal.choices)?),
+        quorum: Set(proposal.quorum),
+        proposal_state: Set(proposal_state),
+        marked_spam: Set(proposal.flagged.unwrap_or(false)),
+        created_at: Set(created_at),
+        start_at: Set(start_at),
+        end_at: Set(end_at),
+        block_created_at: NotSet,
+        block_start_at: NotSet,
+        block_end_at: NotSet,
+        txid: Set(Some(proposal.ipfs)),
+        metadata: Set(Some(metadata)),
+        dao_id: Set(dao_id),
+        author: Set(Some(proposal.author)),
+        governor_id: Set(governor_id),
+    };
+
+    store_proposal(proposal_active_model).await
+}

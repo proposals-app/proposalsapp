@@ -40,6 +40,7 @@ pub struct SnapshotProposal {
     pub proposal_type: String,
     pub flagged: Option<bool>,
     pub ipfs: String,
+    pub votes: Option<u64>,
 }
 
 /// Response from Snapshot GraphQL API for votes query
@@ -192,6 +193,7 @@ impl SnapshotApi {
                     type
                     flagged
                     ipfs
+                    votes
                 }}
             }}"#
         );
@@ -256,6 +258,133 @@ impl SnapshotApi {
         );
 
         debug!(proposal_id = %proposal_id, skip = skip, limit = limit, "Fetching vote batch");
+
+        let response: SnapshotVotesResponse = self.fetch_graphql(&query).await?;
+        Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
+    }
+
+    /// Fetch active proposals for a space
+    #[instrument(name = "fetch_active_proposals", skip(self))]
+    pub async fn fetch_active_proposals(&self, space: &str) -> Result<Vec<SnapshotProposal>> {
+        // Fetch active and pending proposals separately since the API doesn't support arrays for state
+        let mut all_proposals = Vec::new();
+        
+        // Fetch active proposals
+        let active_query = format!(
+            r#"
+            {{
+                proposals(
+                    where: {{
+                        space: "{space}",
+                        state: "active"
+                    }},
+                    first: 10,
+                    orderBy: "created",
+                    orderDirection: desc
+                ) {{
+                    id
+                    author
+                    title
+                    body
+                    discussion
+                    choices
+                    scores_state
+                    privacy
+                    created
+                    start
+                    end
+                    quorum
+                    link
+                    state
+                    type
+                    flagged
+                    ipfs
+                    votes
+                }}
+            }}"#
+        );
+
+        debug!(space = %space, "Fetching active proposals");
+        let active_response: SnapshotProposalsResponse = self.fetch_graphql(&active_query).await?;
+        all_proposals.extend(active_response.data.map(|d| d.proposals).unwrap_or_default());
+
+        // Fetch pending proposals
+        let pending_query = format!(
+            r#"
+            {{
+                proposals(
+                    where: {{
+                        space: "{space}",
+                        state: "pending"
+                    }},
+                    first: 10,
+                    orderBy: "created",
+                    orderDirection: desc
+                ) {{
+                    id
+                    author
+                    title
+                    body
+                    discussion
+                    choices
+                    scores_state
+                    privacy
+                    created
+                    start
+                    end
+                    quorum
+                    link
+                    state
+                    type
+                    flagged
+                    ipfs
+                    votes
+                }}
+            }}"#
+        );
+
+        debug!(space = %space, "Fetching pending proposals");
+        let pending_response: SnapshotProposalsResponse = self.fetch_graphql(&pending_query).await?;
+        all_proposals.extend(pending_response.data.map(|d| d.proposals).unwrap_or_default());
+
+        info!(space = %space, active_count = all_proposals.len(), "Fetched active and pending proposals");
+        Ok(all_proposals)
+    }
+
+    /// Fetch votes after a given timestamp for a space
+    #[instrument(name = "fetch_votes_after", skip(self))]
+    pub async fn fetch_votes_after(
+        &self,
+        space: &str,
+        after_timestamp: i64,
+        limit: usize,
+    ) -> Result<Vec<SnapshotVote>> {
+        let query = format!(
+            r#"
+            {{
+                votes(
+                    where: {{
+                        space: "{space}",
+                        created_gt: {after_timestamp}
+                    }},
+                    first: {limit},
+                    orderBy: "created",
+                    orderDirection: asc
+                ) {{
+                    voter
+                    reason
+                    choice
+                    vp
+                    created
+                    ipfs
+                    proposal {{
+                        id
+                    }}
+                }}
+            }}"#
+        );
+
+        debug!(space = %space, after_timestamp = after_timestamp, limit = limit, "Fetching votes");
 
         let response: SnapshotVotesResponse = self.fetch_graphql(&query).await?;
         Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
