@@ -10,8 +10,8 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-alloy = { version = "1.0.24", features = ["full"] }
-alloy-ens = { version = "1.0.24", features = ["contract", "provider"] }
+alloy = { version = "1.0.25", features = ["full"] }
+alloy-ens = { version = "1.0.25", features = ["contract", "provider"] }
 anyhow = "1.0.99"
 async-trait = "0.1.89"
 axum = "0.8.4"
@@ -44,9 +44,9 @@ rindexer = { git = "https://github.com/joshstevens19/rindexer", branch = "releas
 scraper = "0.23.1"
 sea-orm = { version = "1.1.14", default-features = false }
 serde = "1.0.219"
-serde_json = "1.0.142"
+serde_json = "1.0.143"
 serial_test = "3.2.0"
-thiserror = "2.0.15"
+thiserror = "2.0.16"
 tiktoken-rs = "0.6.0"
 tokio = "1.47.1"
 tokio-retry = "0.3.0"

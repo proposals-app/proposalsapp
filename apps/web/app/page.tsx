@@ -1,3 +1,7 @@
+import { redirect } from 'next/navigation';
+
+// Original homepage implementation preserved below for future reference:
+/*
 import {
   Hero,
   FeatureSection,
@@ -10,19 +14,19 @@ import { FullPageSection } from '@/app/components/landing/FullPageSection';
 export default async function Page() {
   return (
     <>
-      {/* Under Construction Banner */}
+      {/* Under Construction Banner *\/}
       <div className='fixed top-0 right-0 left-0 z-50 bg-amber-500 px-4 py-2 text-center font-medium text-black'>
         <span className='text-sm'>🚧 This page is under construction. 🚧</span>
       </div>
 
       <Navigation />
       <main className='h-screen-safe snap-y snap-proximity overflow-x-hidden overflow-y-auto sm:snap-mandatory'>
-        {/* Hero Section - Light */}
+        {/* Hero Section - Light *\/}
         <FullPageSection className='bg-stone-50' data-theme='light'>
           <Hero />
         </FullPageSection>
 
-        {/* Feature 1: Unified Proposal Page - Dark */}
+        {/* Feature 1: Unified Proposal Page - Dark *\/}
         <FullPageSection className='bg-zinc-900' data-theme='dark'>
           <FeatureSection
             title='Unified Proposal Page'
@@ -38,7 +42,7 @@ export default async function Page() {
           />
         </FullPageSection>
 
-        {/* Feature 2: Live Votes - Light */}
+        {/* Feature 2: Live Votes - Light *\/}
         <FullPageSection className='bg-stone-100' data-theme='light'>
           <FeatureSection
             title='Live Voting Results'
@@ -55,7 +59,7 @@ export default async function Page() {
           />
         </FullPageSection>
 
-        {/* Feature 3: Email Notifications - Dark */}
+        {/* Feature 3: Email Notifications - Dark *\/}
         <FullPageSection className='bg-zinc-800' data-theme='dark'>
           <FeatureSection
             title='Proposal Notification Emails'
@@ -71,7 +75,7 @@ export default async function Page() {
           />
         </FullPageSection>
 
-        {/* Feature 4: Discourse Live Status - Light */}
+        {/* Feature 4: Discourse Live Status - Light *\/}
         <FullPageSection className='bg-stone-50' data-theme='light'>
           <FeatureSection
             title='Discourse Live Status'
@@ -88,7 +92,7 @@ export default async function Page() {
           />
         </FullPageSection>
 
-        {/* Feature 5: Voting Power Tags - Dark */}
+        {/* Feature 5: Voting Power Tags - Dark *\/}
         <FullPageSection className='bg-zinc-900' data-theme='dark'>
           <FeatureSection
             title='Voting Power Tags'
@@ -104,16 +108,21 @@ export default async function Page() {
           />
         </FullPageSection>
 
-        {/* Pledge Section - Dark */}
+        {/* Pledge Section - Dark *\/}
         <FullPageSection className='bg-zinc-950' data-theme='dark'>
           <PledgeSection />
         </FullPageSection>
 
-        {/* Final CTA Section - Dark */}
+        {/* Final CTA Section - Dark *\/}
         <FullPageSection className='bg-zinc-900' data-theme='dark'>
           <FinalSection />
         </FullPageSection>
       </main>
     </>
   );
+}
+*/
+
+export default function Page() {
+  redirect('/arbitrum');
 }
