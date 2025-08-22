@@ -1,4 +1,5 @@
-import { redirect } from 'next/navigation';
+// Homepage redirects to arbitrum subdomain via Next.js config redirects
+// This page should not be reached due to the redirect in next.config.mjs
 
 // Original homepage implementation preserved below for future reference:
 /*
@@ -124,5 +125,5 @@ export default async function Page() {
 */
 
 export default function Page() {
-  redirect('/arbitrum');
+  return <div></div>;
 }

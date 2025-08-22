@@ -19,6 +19,19 @@ export default function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
+  // Homepage redirect to arbitrum subdomain
+  if (url.pathname === '/') {
+    // Check if we're not already on a subdomain
+    const isArbitrumSubdomain = hostname.startsWith('arbitrum.');
+    const isUniswapSubdomain = hostname.startsWith('uniswap.');
+    
+    if (!isArbitrumSubdomain && !isUniswapSubdomain) {
+      const protocol = hostname.includes('localhost') ? 'http' : 'https';
+      const redirectUrl = `${protocol}://arbitrum.${hostname}`;
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   // Get configured domain from env or use default based on environment
   const defaultDomain = hostname.includes('localhost')
     ? 'localhost:3000'
