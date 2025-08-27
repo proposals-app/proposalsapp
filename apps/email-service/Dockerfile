@@ -6,16 +6,16 @@ WORKDIR /app
 ARG APP_NAME
 
 # Install and enable Corepack
-RUN corepack enable && corepack prepare yarn@4 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # Copy package-related files
-COPY package.json yarn.lock .yarnrc.yml ./
+COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
 COPY apps/${APP_NAME}/package.json ./apps/${APP_NAME}/
 COPY libs/ts/db/package.json ./libs/ts/db/
 COPY libs/ts/emails/package.json ./libs/ts/emails/
 
 # Install dependencies
-RUN yarn workspaces focus @proposalsapp/${APP_NAME}
+RUN pnpm install --frozen-lockfile
 
 # Copy the remaining project files
 COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
@@ -32,7 +32,7 @@ ENV DATABASE_URL=${DATABASE_URL}
 ENV ARBITRUM_DATABASE_URL=${ARBITRUM_DATABASE_URL}
 ENV UNISWAP_DATABASE_URL=${UNISWAP_DATABASE_URL}
 ENV RESEND_API_KEY=${RESEND_API_KEY}
-RUN yarn build-${APP_NAME}
+RUN pnpm build-${APP_NAME}
 
 # Stage 2: Final
 FROM node:22-alpine
@@ -41,7 +41,7 @@ ARG APP_NAME
 
 RUN apk update && apk add --no-cache curl
 
-RUN corepack enable && corepack prepare yarn@4 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # Copy only necessary files
 COPY --from=builder /app/apps/${APP_NAME}/ /app/apps/${APP_NAME}/
@@ -49,10 +49,11 @@ COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
 COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
 COPY --from=builder /app/node_modules/ /app/node_modules/
 COPY --from=builder /app/package.json /app/
-COPY --from=builder /app/yarn.lock /app/
-COPY --from=builder /app/.yarnrc.yml /app/
+COPY --from=builder /app/pnpm-lock.yaml /app/
+COPY --from=builder /app/.npmrc /app/
+COPY --from=builder /app/pnpm-workspace.yaml /app/
 
 ENV NODE_ENV=production
 
 # Set the default command
-CMD ["yarn", "start-email-service"]
+CMD ["pnpm", "start-email-service"]

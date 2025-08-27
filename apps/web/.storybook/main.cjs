@@ -104,8 +104,6 @@ const config = {
         'process.env': JSON.stringify({
           // Mock environment variables to prevent database connections
           DATABASE_URL: 'mock://localhost/test',
-          ARBITRUM_DATABASE_URL: 'mock://localhost/test',
-          UNISWAP_DATABASE_URL: 'mock://localhost/test',
           NODE_ENV: 'test',
         }),
         'process.cwd': 'function() { return "/"; }',

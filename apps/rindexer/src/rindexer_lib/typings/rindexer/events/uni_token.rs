@@ -20,6 +20,7 @@ use alloy::primitives::{Address, B256, Bytes};
 use alloy::sol_types::{SolEvent, SolEventInterface, SolType};
 use rindexer::{
     FutureExt, PostgresClient, async_trait,
+    blockclock::BlockClock,
     event::{
         callback_registry::{
             EventCallbackRegistry, EventCallbackRegistryInformation, EventCallbackResult,
@@ -452,7 +453,7 @@ where
         let index_event_in_order = contract_details
             .index_event_in_order
             .as_ref()
-            .is_some_and(|vec| vec.contains(&event_name.to_string()));
+            .map_or(false, |vec| vec.contains(&event_name.to_string()));
 
         // Expect providers to have been initialized, but it's an async init so this should
         // be fast but for correctness we must await each future.
@@ -469,22 +470,31 @@ where
             details: contract_details
                 .details
                 .iter()
-                .map(|c| NetworkContract {
-                    id: generate_random_id(10),
-                    network: c.network.clone(),
-                    cached_provider: providers
+                .map(|c| {
+                    let provider = providers
                         .get(&c.network)
                         .expect("must have a provider")
-                        .clone(),
-                    decoder: self.decoder(&c.network),
-                    indexing_contract_setup: c.indexing_contract_setup(manifest_path),
-                    start_block: c.start_block,
-                    end_block: c.end_block,
-                    disable_logs_bloom_checks: rindexer_yaml
-                        .networks
-                        .iter()
-                        .find(|n| n.name == c.network)
-                        .is_some_and(|n| n.disable_logs_bloom_checks.unwrap_or_default()),
+                        .clone();
+
+                    NetworkContract {
+                        id: generate_random_id(10),
+                        network: c.network.clone(),
+                        cached_provider: provider.clone(),
+                        block_clock: BlockClock::new(
+                            rindexer_yaml.timestamps,
+                            rindexer_yaml.config.timestamp_sample_rate,
+                            provider.clone(),
+                        ),
+                        decoder: self.decoder(&c.network),
+                        indexing_contract_setup: c.indexing_contract_setup(manifest_path),
+                        start_block: c.start_block,
+                        end_block: c.end_block,
+                        disable_logs_bloom_checks: rindexer_yaml
+                            .networks
+                            .iter()
+                            .find(|n| n.name == c.network)
+                            .map_or(false, |n| n.disable_logs_bloom_checks.unwrap_or_default()),
+                    }
                 })
                 .collect(),
             abi: contract_details.abi,

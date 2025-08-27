@@ -40,37 +40,37 @@ DAOs.
 
 ```bash
 # Build specific services
-yarn build-web              # Build Next.js frontend
-yarn build-email-service    # Build email service
-yarn build-emails          # Build email templates
+pnpm build-web              # Build Next.js frontend
+pnpm build-email-service    # Build email service
+pnpm build-emails          # Build email templates
 
 # Start services locally
-yarn start-web              # Start Next.js (port 3000)
-yarn start-email-service    # Start email notifications
+pnpm start-web              # Start Next.js (port 3000)
+pnpm start-email-service    # Start email notifications
 
 # Web development
 cd apps/web
-yarn dev                    # Development server with turbopack
-yarn storybook              # Component development environment
+pnpm dev                    # Development server with turbopack
+pnpm storybook              # Component development environment
 ```
 
 ### Code Quality
 
 ```bash
 # Lint and format all code
-yarn check                  # Run all linting and formatting checks
-yarn fix                   # Auto-fix all issues
+pnpm check                  # Run all linting and formatting checks
+pnpm fix                   # Auto-fix all issues
 
 # TypeScript/JavaScript
-yarn lint                  # ESLint check
-yarn lint:fix              # ESLint with auto-fix
-yarn format               # Prettier check
-yarn format:fix           # Prettier auto-fix
+pnpm lint                  # ESLint check
+pnpm lint:fix              # ESLint with auto-fix
+pnpm format               # Prettier check
+pnpm format:fix           # Prettier auto-fix
 
 # Rust
-yarn lint:rust            # Cargo clippy
-yarn format:rust          # Cargo format
-yarn format:rust:check    # Check Rust formatting
+pnpm lint:rust            # Cargo clippy
+pnpm format:rust          # Cargo format
+pnpm format:rust:check    # Check Rust formatting
 
 # Setup verification
 ./scripts/verify-setup.sh  # Verify development environment
@@ -81,15 +81,15 @@ yarn format:rust:check    # Check Rust formatting
 ```bash
 # Web E2E testing (requires local blockchain)
 cd apps/web
-yarn anvil                         # Start local Arbitrum fork
-yarn e2e:ui                       # Run E2E tests with Playwright UI
-yarn synpress-setup              # Setup MetaMask for testing
-yarn test-ui                     # Playwright test UI
+pnpm anvil                         # Start local Arbitrum fork
+pnpm e2e:ui                       # Run E2E tests with Playwright UI
+pnpm synpress-setup              # Setup MetaMask for testing
+pnpm test-ui                     # Playwright test UI
 
 # Email service testing
 cd apps/email-service
-yarn test                        # Vitest unit tests
-yarn test:coverage              # Test with coverage
+pnpm test                        # Vitest unit tests
+pnpm test:coverage              # Test with coverage
 ```
 
 ### Rust Development

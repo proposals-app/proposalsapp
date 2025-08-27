@@ -10,8 +10,8 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-alloy = { version = "1.0.25", features = ["full"] }
-alloy-ens = { version = "1.0.25", features = ["contract", "provider"] }
+alloy = { version = "1.0.27", features = ["full"] }
+alloy-ens = { version = "1.0.27", features = ["contract", "provider"] }
 anyhow = "1.0.99"
 async-trait = "0.1.89"
 axum = "0.8.4"
@@ -36,11 +36,11 @@ proposalsapp-db = { path = "libs/rust/db" }
 proptest = "1.7"
 rand = "0.9.2"
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
-regex = "1.11.1"
+regex = "1.11.2"
 reqwest = { version = "0.12.23", default-features = false }
 reqwest-middleware = "0.4.2"
 reqwest-retry = "0.7.0"
-rindexer = { git = "https://github.com/joshstevens19/rindexer", branch = "release/0.23.0", package = "rindexer" }
+rindexer = { git = "https://github.com/joshstevens19/rindexer", branch = "release/0.25.0", package = "rindexer" }
 scraper = "0.23.1"
 sea-orm = { version = "1.1.14", default-features = false }
 serde = "1.0.219"

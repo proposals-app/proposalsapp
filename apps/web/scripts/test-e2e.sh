@@ -78,7 +78,7 @@ check_env() {
 # Function to setup wallet
 setup_wallet() {
     print_status "Setting up MetaMask wallet..."
-    yarn synpress-setup
+    pnpm synpress-setup
     if [ $? -eq 0 ]; then
         print_success "Wallet setup completed"
     else
@@ -95,27 +95,27 @@ run_offchain_test() {
     local test_result=0
     case $test_name in
         "basic")
-            yarn e2e:test-basic
+            pnpm e2e:test-basic
             test_result=$?
             ;;
         "single-choice")
-            yarn e2e:test-single-choice
+            pnpm e2e:test-single-choice
             test_result=$?
             ;;
         "approval")
-            yarn e2e:test-approval
+            pnpm e2e:test-approval
             test_result=$?
             ;;
         "quadratic")
-            yarn e2e:test-quadratic
+            pnpm e2e:test-quadratic
             test_result=$?
             ;;
         "ranked-choice")
-            yarn e2e:test-ranked-choice
+            pnpm e2e:test-ranked-choice
             test_result=$?
             ;;
         "weighted")
-            yarn e2e:test-weighted
+            pnpm e2e:test-weighted
             test_result=$?
             ;;
         *)
@@ -141,11 +141,11 @@ run_onchain_test() {
     local test_result=0
     case $test_name in
         "arbitrum-core")
-            yarn e2e:test-arbitrum-core
+            pnpm e2e:test-arbitrum-core
             test_result=$?
             ;;
         "arbitrum-treasury")
-            yarn e2e:test-arbitrum-treasury
+            pnpm e2e:test-arbitrum-treasury
             test_result=$?
             ;;
         *)
@@ -190,7 +190,7 @@ case $TEST_TYPE in
         
         # Start storybook in background
         print_status "Starting Storybook..."
-        yarn e2e:start-storybook &
+        pnpm e2e:start-storybook &
         STORYBOOK_PID=$!
         
         # Wait for storybook to be ready
@@ -252,9 +252,9 @@ case $TEST_TYPE in
         
         # Start services in background
         print_status "Starting Anvil and Storybook..."
-        yarn e2e:start-anvil &
+        pnpm e2e:start-anvil &
         ANVIL_PID=$!
-        yarn e2e:start-storybook &
+        pnpm e2e:start-storybook &
         STORYBOOK_PID=$!
         
         # Wait for services to be ready

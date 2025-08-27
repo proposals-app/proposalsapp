@@ -7,8 +7,8 @@
 
    # Update root dependencies using npm-check-updates
    echo "Updating dependencies in the root project..."
-   yarn dlx npm-check-updates -u
-   yarn install
+   pnpm dlx npm-check-updates -u
+   pnpm install
 
    # Find all projects in the workspace and update their dependencies
    echo "Updating dependencies in all workspace projects..."
@@ -17,5 +17,5 @@
      echo "Updating dependencies in $project_dir..."
 
      # Run npm-check-updates
-     (cd "$project_dir" && yarn dlx npm-check-updates -u && yarn install)
+     (cd "$project_dir" && pnpm dlx npm-check-updates -u && pnpm install)
    done

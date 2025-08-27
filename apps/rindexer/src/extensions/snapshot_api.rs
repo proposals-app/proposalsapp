@@ -1,7 +1,7 @@
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use reqwest::Client;
 use serde::Deserialize;
-use once_cell::sync::Lazy;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, instrument, warn};
@@ -57,7 +57,10 @@ impl RateLimiter {
 
             // Wait before trying again
             let wait_ms = 1000; // 1 second
-            warn!("Rate limit reached, waiting {}ms before next request", wait_ms);
+            warn!(
+                "Rate limit reached, waiting {}ms before next request",
+                wait_ms
+            );
             tokio::time::sleep(Duration::from_millis(wait_ms)).await;
         }
     }
@@ -273,11 +276,13 @@ impl SnapshotApi {
         const BATCH_SIZE: usize = 100;
 
         loop {
-            let votes = self.fetch_proposal_votes_batch(proposal_id, skip, BATCH_SIZE).await?;
+            let votes = self
+                .fetch_proposal_votes_batch(proposal_id, skip, BATCH_SIZE)
+                .await?;
             if votes.is_empty() {
                 break;
             }
-            
+
             skip += votes.len();
             all_votes.extend(votes);
         }
@@ -329,7 +334,7 @@ impl SnapshotApi {
     pub async fn fetch_active_proposals(&self, space: &str) -> Result<Vec<SnapshotProposal>> {
         // Fetch active and pending proposals separately since the API doesn't support arrays for state
         let mut all_proposals = Vec::new();
-        
+
         // Fetch active proposals
         let active_query = format!(
             r#"
@@ -367,7 +372,12 @@ impl SnapshotApi {
 
         debug!(space = %space, "Fetching active proposals");
         let active_response: SnapshotProposalsResponse = self.fetch_graphql(&active_query).await?;
-        all_proposals.extend(active_response.data.map(|d| d.proposals).unwrap_or_default());
+        all_proposals.extend(
+            active_response
+                .data
+                .map(|d| d.proposals)
+                .unwrap_or_default(),
+        );
 
         // Fetch pending proposals
         let pending_query = format!(
@@ -405,8 +415,14 @@ impl SnapshotApi {
         );
 
         debug!(space = %space, "Fetching pending proposals");
-        let pending_response: SnapshotProposalsResponse = self.fetch_graphql(&pending_query).await?;
-        all_proposals.extend(pending_response.data.map(|d| d.proposals).unwrap_or_default());
+        let pending_response: SnapshotProposalsResponse =
+            self.fetch_graphql(&pending_query).await?;
+        all_proposals.extend(
+            pending_response
+                .data
+                .map(|d| d.proposals)
+                .unwrap_or_default(),
+        );
 
         info!(space = %space, active_count = all_proposals.len(), "Fetched active and pending proposals");
         Ok(all_proposals)
@@ -458,7 +474,7 @@ impl SnapshotApi {
     {
         // Wait for rate limiter before making request
         RATE_LIMITER.acquire().await;
-        
+
         let response = self
             .client
             .post(SNAPSHOT_GRAPHQL_ENDPOINT)

@@ -1,4 +1,7 @@
-use crate::{rindexer_lib::typings::networks::get_ethereum_provider, extensions::snapshot_api::SnapshotProposal};
+use crate::{
+    extensions::snapshot_api::SnapshotProposal,
+    rindexer_lib::typings::networks::get_ethereum_provider,
+};
 use alloy::primitives::Address;
 use alloy_ens::ProviderEnsExt;
 use anyhow::{Context, Result};
@@ -300,9 +303,12 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
     }
 
     let voter_address_set: HashSet<String> = voter_addresses.into_iter().collect();
-    
+
     // Store voters in background to avoid blocking vote storage
-    info!(voter_count = voter_address_set.len(), "Starting voter storage in background");
+    info!(
+        voter_count = voter_address_set.len(),
+        "Starting voter storage in background"
+    );
     let voter_storage_result = store_voters(voter_address_set).await;
     if let Err(e) = voter_storage_result {
         // Log error but don't fail vote storage
@@ -502,15 +508,15 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
 
     // Get the provider once at the beginning to reuse throughout the function
     let provider = get_ethereum_provider().await;
-    
+
     let voter_list: Vec<String> = voter_addresses.into_iter().collect();
     let total_voters = voter_list.len();
-    info!(total_voters = total_voters, "Starting voter storage with ENS lookups");
+    info!(
+        total_voters = total_voters,
+        "Starting voter storage with ENS lookups"
+    );
 
-    for (chunk_index, addresses_chunk) in voter_list
-        .chunks(BATCH_SIZE)
-        .enumerate()
-    {
+    for (chunk_index, addresses_chunk) in voter_list.chunks(BATCH_SIZE).enumerate() {
         let chunk_start = chunk_index * BATCH_SIZE;
         let chunk_end = std::cmp::min(chunk_start + BATCH_SIZE, total_voters);
         info!(
@@ -519,7 +525,7 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
             progress = format!("{}/{}", chunk_end, total_voters),
             "Processing voter chunk with ENS lookups"
         );
-        
+
         // Fetch existing voters with address and ens
         let existing_voters_models: Vec<voter::Model> = voter::Entity::find()
             .filter(voter::Column::Address.is_in(addresses_chunk.to_vec()))
@@ -834,9 +840,9 @@ pub async fn store_snapshot_proposal(
     dao_id: Uuid,
 ) -> Result<()> {
     use chrono::DateTime;
-    use serde_json::Value;
-    use sea_orm::{ActiveValue::NotSet, Set};
     use proposalsapp_db::models::sea_orm_active_enums::ProposalState;
+    use sea_orm::{ActiveValue::NotSet, Set};
+    use serde_json::Value;
 
     // Convert timestamps from seconds to DateTime
     let created_at = DateTime::from_timestamp(proposal.created, 0)
@@ -874,7 +880,7 @@ pub async fn store_snapshot_proposal(
     if let Some(votes) = proposal.votes {
         metadata["snapshot_vote_count"] = Value::from(votes);
     }
-    
+
     if proposal.privacy == "shutter" {
         metadata["hidden_vote"] = Value::from(true);
     }
@@ -885,7 +891,11 @@ pub async fn store_snapshot_proposal(
         name: Set(proposal.title),
         body: Set(proposal.body),
         url: Set(proposal.link), // Use the actual link field from API
-        discussion_url: Set(if proposal.discussion.is_empty() { None } else { Some(proposal.discussion) }),
+        discussion_url: Set(if proposal.discussion.is_empty() {
+            None
+        } else {
+            Some(proposal.discussion)
+        }),
         choices: Set(serde_json::to_value(proposal.choices)?),
         quorum: Set(proposal.quorum),
         proposal_state: Set(proposal_state),
