@@ -13,7 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js (LTS version)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs
 
 RUN cargo install cargo-chef --locked
 COPY . .
@@ -36,6 +41,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js (LTS version)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs
 
 # Set environment variables for faster builds
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
@@ -66,6 +75,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js (LTS version)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs
 
 # Set environment variables for faster builds
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
