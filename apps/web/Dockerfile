@@ -54,9 +54,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs && \
-    npm install -g corepack && \
     corepack enable && \
-    corepack prepare pnpm@9.15.4 --activate && \
+    corepack prepare pnpm@10.15.0 --activate && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

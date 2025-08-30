@@ -11,7 +11,7 @@
     "@types/dotenv": "^8.2.3",
     "@types/pg": "8",
     "kysely-codegen": "0.18.5",
-    "kysely-ctl": "^0.17.0",
+    "kysely-ctl": "^0.18.0",
     "typescript": "^5.9.2"
   },
   "main": "./src/index.ts",

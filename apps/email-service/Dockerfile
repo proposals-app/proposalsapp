@@ -6,7 +6,7 @@ WORKDIR /app
 ARG APP_NAME
 
 # Install and enable Corepack
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
 
 # Copy package-related files
 COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
@@ -41,7 +41,7 @@ ARG APP_NAME
 
 RUN apk update && apk add --no-cache curl
 
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
 
 # Copy only necessary files
 COPY --from=builder /app/apps/${APP_NAME}/ /app/apps/${APP_NAME}/
