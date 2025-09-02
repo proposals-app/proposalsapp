@@ -49,7 +49,11 @@ async function ResultsContent({ proposal }: ResultsProps) {
   const governor = await getProposalGovernor(proposal.id);
   const publisher = await getVoter(processedResults.proposal.author ?? '');
 
-  const onChain = !governor?.type.includes('SNAPSHOT');
+  // Consider proposals onchain when governor type does not contain SNAPSHOT (case-insensitive)
+  // Use null-safe check to avoid calling includes on undefined
+  const onChain = !(
+    governor?.type?.toUpperCase().includes('SNAPSHOT') ?? false
+  );
 
   return (
     <div className='flex w-full flex-col gap-2 sm:flex-row'>

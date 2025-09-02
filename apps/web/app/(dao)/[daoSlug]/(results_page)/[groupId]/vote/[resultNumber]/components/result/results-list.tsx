@@ -44,8 +44,12 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
     .filter((choice) => choice.countsTowardsQuorum)
     .reduce((sum, choice) => sum + choice.votingPower, 0);
 
-  const participationPercentage = totalDelegatedVp
-    ? (totalVotesCast / totalDelegatedVp) * 100
+  // Prefer totalDelegatedVp when available; otherwise fall back to a sensible scale
+  const participationDenominator =
+    totalDelegatedVp ||
+    Math.max(totalVotesCast, deserializedResults.quorum || 0);
+  const participationPercentage = participationDenominator
+    ? Math.min(100, (totalVotesCast / participationDenominator) * 100)
     : 0;
 
   // Determine which choices to show and the status message
@@ -58,6 +62,10 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
     : undefined;
 
   const hasQuorum = quorumVotingPower > (deserializedResults.quorum || 0);
+
+  // Consolidate conditions we care about for rendering
+  const showQuorumBar = Boolean(onchain && deserializedResults.quorum !== null);
+  const showParticipationBar = Boolean(onchain);
 
   return (
     <div className='flex w-72 flex-col gap-4 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
@@ -75,21 +83,19 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
         </div>
       )}
       <ChoiceList choices={sortedChoices} totalVotingPower={totalVotesCast} />
-      {deserializedResults.quorum !== null && totalDelegatedVp && (
+      {showQuorumBar && (
         <div className='flex flex-col gap-2'>
-          {deserializedResults.totalDelegatedVp && (
-            <QuorumBar
-              choices={sortedChoices.filter(
-                (choice) => choice.countsTowardsQuorum
-              )}
-              quorumVotingPower={quorumVotingPower}
-              quorum={deserializedResults.quorum}
-              totalDelegatedVp={totalDelegatedVp}
-            />
-          )}
+          <QuorumBar
+            choices={sortedChoices.filter(
+              (choice) => choice.countsTowardsQuorum
+            )}
+            quorumVotingPower={quorumVotingPower}
+            quorum={deserializedResults.quorum as number}
+            totalDelegatedVp={totalDelegatedVp ?? 0}
+          />
         </div>
       )}
-      {totalDelegatedVp && (
+      {showParticipationBar && (
         <ParticipationPercentage
           percentage={participationPercentage}
           actualVotesCast={totalVotesCast}
@@ -295,8 +301,14 @@ function QuorumBar({
   quorum,
   totalDelegatedVp,
 }: QuorumBarProps) {
-  const quorumPercentage =
-    totalDelegatedVp > 0 ? (quorum / totalDelegatedVp) * 100 : 0;
+  // Choose a denominator: prefer totalDelegatedVp; otherwise scale to the larger of quorum or current quorumVotingPower
+  const denominator =
+    totalDelegatedVp && totalDelegatedVp > 0
+      ? totalDelegatedVp
+      : Math.max(quorumVotingPower, quorum);
+  const quorumPercentage = denominator
+    ? Math.min(100, (quorum / denominator) * 100)
+    : 0;
 
   return (
     <div>
@@ -315,10 +327,9 @@ function QuorumBar({
         {/* Choices that count towards quorum */}
         <div className='absolute inset-0 flex overflow-hidden border border-neutral-800 dark:border-neutral-200'>
           {choices.map((choice, index) => {
-            const choiceWidthPercentage =
-              totalDelegatedVp > 0
-                ? (choice.votingPower / totalDelegatedVp) * 100
-                : 0;
+            const choiceWidthPercentage = denominator
+              ? Math.min(100, (choice.votingPower / denominator) * 100)
+              : 0;
             return (
               <div
                 key={index}
