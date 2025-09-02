@@ -55,7 +55,8 @@ function getElementPath(element: Element): string {
 
 function measureElement(element: Element): ElementData {
   const rect = element.getBoundingClientRect();
-  const computedStyle = window.getComputedStyle(element);
+  // Unused but kept for potential future use
+  // const _computedStyle = window.getComputedStyle(element);
 
   return {
     tagName: element.tagName.toLowerCase(),

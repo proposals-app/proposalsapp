@@ -12,11 +12,21 @@ import {
 export const auth = betterAuth({
   appName: 'proposals.app',
   database: dbPool,
-  trustedOrigins: [
-    `https://arbitrum.proposals.app`,
-    `https://uniswap.proposals.app`,
-    `https://proposals.app`,
-  ],
+  trustedOrigins: (() => {
+    const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';
+    const base = [
+      `https://${root}`,
+      `https://arbitrum.${root}`,
+      `https://uniswap.${root}`,
+    ];
+    const dev = [
+      'http://localhost:3000',
+      'http://arbitrum.localhost:3000',
+      'http://uniswap.localhost:3000',
+    ];
+    const extra = process.env.WEB_URL ? [process.env.WEB_URL] : [];
+    return [...base, ...dev, ...extra];
+  })(),
   secret: process.env.BETTER_AUTH_SECRET,
 
   plugins: [

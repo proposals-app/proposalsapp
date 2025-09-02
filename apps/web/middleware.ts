@@ -19,27 +19,44 @@ export default function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
+  // Read configuration from env with sensible defaults
+  const envRoot = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';
+  const specialFromEnv = (
+    process.env.NEXT_PUBLIC_SPECIAL_SUBDOMAINS || 'arbitrum,uniswap'
+  )
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   // Homepage redirect to arbitrum subdomain
   if (url.pathname === '/') {
     // Check if we're not already on a subdomain
     const isArbitrumSubdomain = hostname.startsWith('arbitrum.');
     const isUniswapSubdomain = hostname.startsWith('uniswap.');
-    
+
     if (!isArbitrumSubdomain && !isUniswapSubdomain) {
-      const protocol = hostname.includes('localhost') ? 'http' : 'https';
-      const redirectUrl = `${protocol}://arbitrum.${hostname}`;
-      return NextResponse.redirect(redirectUrl);
+      const isLocal = hostname.includes('localhost');
+      const protocol = isLocal ? 'http' : 'https';
+      // Extract host and port
+      const [hostOnly, port] = hostname.split(':');
+      const targetHost = isLocal
+        ? `arbitrum.${hostOnly}`
+        : `arbitrum.${hostOnly}`;
+      const redirect = new URL(url);
+      redirect.protocol = `${protocol}:`;
+      redirect.hostname = targetHost;
+      // Preserve port in dev
+      redirect.port = isLocal && port ? port : '';
+      return NextResponse.redirect(redirect);
     }
   }
 
   // Get configured domain from env or use default based on environment
-  const defaultDomain = hostname.includes('localhost')
-    ? 'localhost:3000'
-    : 'proposals.app';
+  const defaultDomain = hostname.includes('localhost') ? 'localhost' : envRoot;
   const configuredRootDomain = defaultDomain;
 
   // Special subdomains with custom implementations
-  const specialSubdomains = ['arbitrum', 'uniswap'];
+  const specialSubdomains = specialFromEnv;
 
   // Remove protocol and trailing slashes
   const rootDomain = configuredRootDomain
@@ -47,7 +64,7 @@ export default function middleware(request: NextRequest) {
     .replace(/\/$/, '');
 
   // Check if we're running in development with localhost
-  const isDev = rootDomain.includes('localhost');
+  const isDev = hostname.includes('localhost');
 
   // Extract subdomain differently based on environment
   let subdomain = '';
@@ -61,8 +78,9 @@ export default function middleware(request: NextRequest) {
     }
   } else {
     // In production, extract subdomain from hostname
-    if (hostname !== rootDomain && hostname.endsWith(`.${rootDomain}`)) {
-      subdomain = hostname.replace(`.${rootDomain}`, '');
+    const hostOnly = hostname.split(':')[0];
+    if (hostOnly !== rootDomain && hostOnly.endsWith(`.${rootDomain}`)) {
+      subdomain = hostOnly.replace(`.${rootDomain}`, '');
     }
   }
 
@@ -77,9 +95,11 @@ export default function middleware(request: NextRequest) {
     if (detectedDao) {
       // Redirect to proper subdomain
       const targetUrl = new URL(request.url);
-      targetUrl.hostname = `${detectedDao}.${rootDomain}`;
+      const [hostOnly, port] = hostname.split(':');
+      targetUrl.hostname = `${detectedDao}.${hostOnly}`;
       targetUrl.pathname = url.pathname.replace(`/${detectedDao}`, '') || '/';
-      targetUrl.port = ''; // Clear the port to use default (80/443)
+      // Preserve port for dev
+      targetUrl.port = isDev && port ? port : '';
 
       return NextResponse.redirect(targetUrl, 301);
     }
@@ -90,25 +110,9 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle specific subdomains with specialized implementations
-  if (specialSubdomains.includes(subdomain)) {
-    // Check if the pathname already starts with the subdomain to avoid double routing
-    if (!url.pathname.startsWith(`/${subdomain}`)) {
-      // Rewrite to the specialized implementation
-      url.pathname = `/${subdomain}${url.pathname}`;
-    }
-
-    return NextResponse.rewrite(url);
+  // Rewrite to real slug path so Next.js params are populated
+  if (!url.pathname.startsWith(`/${subdomain}`)) {
+    url.pathname = `/${subdomain}${url.pathname}`;
   }
-  // Handle other DAOs through the dynamic [daoSlug] route
-  else {
-    // Check if the pathname already contains [daoSlug] to avoid double routing
-    if (!url.pathname.startsWith('/[daoSlug]')) {
-      // Rewrite to the dynamic [daoSlug] route
-      url.pathname = `/[daoSlug]${url.pathname}`;
-    }
-    // Store the actual slug in searchParams to be accessed in the page
-    url.searchParams.set('daoSlug', subdomain);
-    return NextResponse.rewrite(url);
-  }
+  return NextResponse.rewrite(url);
 }

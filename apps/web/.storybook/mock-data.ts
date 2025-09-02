@@ -1,6 +1,6 @@
 // Centralized mock data for Storybook stories
-import type { Selectable } from '@proposalsapp/db';
 import { ProposalState } from '@proposalsapp/db';
+// import type { Selectable } from '@proposalsapp/db'; // Unused but may be needed later
 
 // Mock author data
 export const mockDiscourseUser = {

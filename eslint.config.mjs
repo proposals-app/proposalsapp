@@ -7,20 +7,31 @@ import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import prettier from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
+import globals from 'globals';
 
 export default [
   // Global ignores - must be first
   {
     ignores: [
+      // Dependencies
       'node_modules/',
+      '**/node_modules/',
+      
+      // Build outputs
       'dist/',
       '**/dist/',
       'build/',
       '**/build/',
       '.next/',
       '**/.next/',
+      'out/',
+      '**/out/',
+      
+      // Build tools
       '.turbo/',
       '**/.turbo/',
+      
+      // Cache directories
       '.cache/',
       '.cache-*/',
       '**/.cache/',
@@ -29,41 +40,69 @@ export default [
       '**/.cache-synpress/',
       '**/cache-synpress/**',
       '**/metamask-chrome-*/**',
+      '.eslintcache',
+      
+      // Test outputs
       'coverage/',
+      '**/coverage/',
       'playwright-report/',
       '**/playwright-report/',
       'test-results/',
-      '*.min.js',
-      '*.bundle.js',
-      'libs/ts/visual-dom-diff/',
+      '**/test-results/',
+      
+      // Minified/bundled files
+      '**/*.min.js',
+      '**/*.bundle.js',
+      '**/*-bundle.js',
+      '**/*.production.js',
+      
+      // Specific library that should not be linted
+      'libs/ts/visual-dom-diff/**',
+      
+      // Email library build
       'libs/ts/emails/.react-email/',
       'libs/ts/emails/dist/',
+      
+      // Observability stack
       'apps/observe/',
+      
+      // Generated files
       '**/*.generated.*',
       '**/*.d.ts',
+      '**/*.d.mts',
+      
+      // Rust/Cargo
       '.cargo/',
       'target/',
+      '**/target/',
+      
+      // Editor/IDE
       '.claude/',
       '**/.claude/',
+      '.idea/',
+      '.vscode/',
+      '*.swp',
+      '*.swo',
+      
+      // Service worker
       '**/sw.js',
+      '**/sw.*.js',
+      
+      // Storybook
+      'storybook-static/',
+      '**/storybook-static/',
     ],
   }, // Base JavaScript configuration
-  js.configs.recommended, // Default environment for all files
+  js.configs.recommended, // Default environment for all files with proper globals
   {
     languageOptions: {
       globals: {
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        global: 'readonly',
-        setInterval: 'readonly',
-        setTimeout: 'readonly',
-        clearInterval: 'readonly',
-        clearTimeout: 'readonly',
-        setImmediate: 'readonly',
-        clearImmediate: 'readonly',
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
+        // React global types
+        React: 'readonly',
+        JSX: 'readonly',
       },
     },
   }, // TypeScript configuration with recommended rules
@@ -96,6 +135,12 @@ export default [
       '@typescript-eslint/no-unsafe-declaration-merging': 'error',
       '@typescript-eslint/prefer-as-const': 'error',
       '@typescript-eslint/triple-slash-reference': 'error',
+    },
+  }, // Disable no-undef for TypeScript files (TypeScript handles this better)
+  {
+    files: ['**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-undef': 'off', // TypeScript's compiler already handles undefined variables
     },
   }, // Additional rules for all TypeScript and JavaScript files
   {
@@ -186,99 +231,12 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
-  }, // Email service configuration
+  }, // Storybook configuration files
   {
-    files: ['apps/email-service/**/*.{js,ts}'],
-    languageOptions: {
-      globals: {
-        // Node.js globals
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        global: 'readonly',
-        setInterval: 'readonly',
-        setTimeout: 'readonly',
-        clearInterval: 'readonly',
-        clearTimeout: 'readonly',
-        setImmediate: 'readonly',
-        clearImmediate: 'readonly',
-        NodeJS: 'readonly',
-        fetch: 'readonly',
-        URL: 'readonly',
-        URLSearchParams: 'readonly',
-        Headers: 'readonly',
-        Request: 'readonly',
-        Response: 'readonly',
-      },
-    },
-  }, // Next.js web app configuration
-  {
-    files: ['apps/web/**/*.{js,jsx,ts,tsx,mjs}'],
-    languageOptions: {
-      globals: {
-        // Node.js globals
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        global: 'readonly',
-        setInterval: 'readonly',
-        setTimeout: 'readonly',
-        clearInterval: 'readonly',
-        clearTimeout: 'readonly',
-        setImmediate: 'readonly',
-        clearImmediate: 'readonly',
-        // Browser globals
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        location: 'readonly',
-        fetch: 'readonly',
-        URL: 'readonly',
-        URLSearchParams: 'readonly',
-        Blob: 'readonly',
-        File: 'readonly',
-        FormData: 'readonly',
-        Headers: 'readonly',
-        Request: 'readonly',
-        Response: 'readonly',
-        HTMLElement: 'readonly',
-        HTMLDivElement: 'readonly',
-        HTMLButtonElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLFormElement: 'readonly',
-        Element: 'readonly',
-        Document: 'readonly',
-        Text: 'readonly',
-        Comment: 'readonly',
-        DocumentFragment: 'readonly',
-        DocumentType: 'readonly',
-        Event: 'readonly',
-        EventTarget: 'readonly',
-        CustomEvent: 'readonly',
-        KeyboardEvent: 'readonly',
-        MouseEvent: 'readonly',
-        Storage: 'readonly',
-        localStorage: 'readonly',
-        sessionStorage: 'readonly',
-        // React
-        React: 'readonly',
-        JSX: 'readonly',
-        // Additional browser APIs
-        IntersectionObserver: 'readonly',
-        ResizeObserver: 'readonly',
-        Node: 'readonly',
-        crypto: 'readonly',
-        getComputedStyle: 'readonly',
-        ServiceWorkerGlobalScope: 'readonly',
-        ReadableStream: 'readonly',
-      },
-    },
+    files: ['**/.storybook/**/*.{js,jsx,ts,tsx}', '**/*.stories.{js,jsx,ts,tsx}'],
     rules: {
-      // Web app specific overrides if needed
+      'no-undef': 'off', // Storybook has its own globals
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   }, // Prettier configuration (must be last)
   prettier,

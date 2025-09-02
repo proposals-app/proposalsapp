@@ -6,28 +6,51 @@ const IGNORED_USERS: Record<string, string[]> = {
   uniswap: ['admin', 'system'],
 };
 
-// Function to get headers with randomized cache duration
-const getHeaders = () => {
+// Build CORS/security headers safely
+function buildCorsHeaders(request: NextRequest) {
+  const origin = request.headers.get('origin') || '';
+  const allowedRoot = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';
+  const allowedOrigins = new Set<string>([
+    `https://${allowedRoot}`,
+    `https://arbitrum.${allowedRoot}`,
+    `https://uniswap.${allowedRoot}`,
+    'http://localhost:3000',
+    'http://arbitrum.localhost:3000',
+    'http://uniswap.localhost:3000',
+  ]);
+
+  const allowSpecificOrigin = allowedOrigins.has(origin) ? origin : '*';
+  const allowCredentials = allowSpecificOrigin !== '*';
+
   // Add cache jitter: 5 minutes base (300 seconds) + random 0-60 seconds
   const cacheMaxAge = 300 + Math.floor(Math.random() * 60);
 
-  return {
+  const baseHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers':
       'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
-    'Access-Control-Allow-Credentials': 'true',
     'Cache-Control': `public, max-age=${cacheMaxAge}, stale-while-revalidate=60`,
   };
-};
+
+  if (allowSpecificOrigin === '*') {
+    baseHeaders['Access-Control-Allow-Origin'] = '*';
+  } else {
+    baseHeaders['Access-Control-Allow-Origin'] = allowSpecificOrigin;
+    baseHeaders['Vary'] = 'Origin';
+    if (allowCredentials)
+      baseHeaders['Access-Control-Allow-Credentials'] = 'true';
+  }
+
+  return baseHeaders;
+}
 
 const emptyResponse = NextResponse.json(
   {
     currentVotingPower: 0,
     historicalVotingPower: 0,
   },
-  { headers: getHeaders() }
+  { headers: { 'Content-Type': 'application/json' } }
 );
 
 export async function GET(
@@ -42,7 +65,7 @@ export async function GET(
       {
         error: 'Access denied for this user.',
       },
-      { status: 403, headers: getHeaders() }
+      { status: 403, headers: buildCorsHeaders(request) }
     );
   }
 
@@ -58,7 +81,7 @@ export async function GET(
           error:
             'Invalid timestamp format. Please use a Unix timestamp (seconds).',
         },
-        { status: 400, headers: getHeaders() }
+        { status: 400, headers: buildCorsHeaders(request) }
       );
     }
     parsedTimestamp = new Date(timestampNum * 1000);
@@ -68,7 +91,7 @@ export async function GET(
           error:
             'Invalid timestamp value after parsing. Please provide a valid Unix timestamp (seconds).',
         },
-        { status: 400, headers: getHeaders() }
+        { status: 400, headers: buildCorsHeaders(request) }
       );
     }
   }
@@ -81,7 +104,10 @@ export async function GET(
       .executeTakeFirst();
 
     if (!dao) {
-      return emptyResponse;
+      return new NextResponse(emptyResponse.body, {
+        status: 200,
+        headers: buildCorsHeaders(request),
+      });
     }
 
     const daoDiscourse = await db
@@ -91,7 +117,10 @@ export async function GET(
       .executeTakeFirst();
 
     if (!daoDiscourse) {
-      return emptyResponse;
+      return new NextResponse(emptyResponse.body, {
+        status: 200,
+        headers: buildCorsHeaders(request),
+      });
     }
 
     const discourseUser = await db
@@ -102,7 +131,10 @@ export async function GET(
       .executeTakeFirst();
 
     if (!discourseUser) {
-      return emptyResponse;
+      return new NextResponse(emptyResponse.body, {
+        status: 200,
+        headers: buildCorsHeaders(request),
+      });
     }
 
     const dtdu = await db
@@ -112,7 +144,10 @@ export async function GET(
       .executeTakeFirst();
 
     if (!dtdu) {
-      return emptyResponse;
+      return new NextResponse(emptyResponse.body, {
+        status: 200,
+        headers: buildCorsHeaders(request),
+      });
     }
 
     const dtvRecords = await db
@@ -139,37 +174,54 @@ export async function GET(
       return emptyResponse;
     }
 
+    // Batch fetch current voting power
+    const currentVpRows = await db
+      .selectFrom('votingPowerLatest')
+      .where('votingPowerLatest.voter', 'in', voterAddresses)
+      .where('votingPowerLatest.daoId', '=', dao.id)
+      .select([
+        'votingPowerLatest.voter as voter',
+        'votingPowerLatest.votingPower as votingPower',
+      ])
+      .execute();
+
     let totalCurrentVotingPower = 0;
+    for (const row of currentVpRows) {
+      if (row.votingPower !== null)
+        totalCurrentVotingPower += Math.floor(
+          row.votingPower as unknown as number
+        );
+    }
+
+    // Batch fetch historical voting power (latest before timestamp per voter)
     let totalHistoricalVotingPower = 0;
+    if (parsedTimestamp) {
+      const historicalRows = await db
+        .selectFrom('votingPowerTimeseries')
+        .where('votingPowerTimeseries.voter', 'in', voterAddresses)
+        .where('votingPowerTimeseries.daoId', '=', dao.id)
+        .where('votingPowerTimeseries.timestamp', '<=', parsedTimestamp)
+        .orderBy('votingPowerTimeseries.voter', 'asc')
+        .orderBy('votingPowerTimeseries.timestamp', 'desc')
+        .select([
+          'votingPowerTimeseries.voter as voter',
+          'votingPowerTimeseries.votingPower as votingPower',
+          'votingPowerTimeseries.timestamp as timestamp',
+        ])
+        .execute();
 
-    for (const address of voterAddresses) {
-      const currentVpEntry = await db
-        .selectFrom('votingPowerLatest')
-        .where('votingPowerLatest.voter', '=', address)
-        .where('votingPowerLatest.daoId', '=', dao.id)
-        .select('votingPowerLatest.votingPower')
-        .executeTakeFirst();
-
-      if (currentVpEntry && currentVpEntry.votingPower !== null) {
-        totalCurrentVotingPower += Math.floor(currentVpEntry.votingPower);
-      }
-
-      if (parsedTimestamp) {
-        const historicalVpEntry = await db
-          .selectFrom('votingPowerTimeseries')
-          .where('votingPowerTimeseries.voter', '=', address)
-          .where('votingPowerTimeseries.daoId', '=', dao.id)
-          .where('votingPowerTimeseries.timestamp', '<=', parsedTimestamp)
-          .orderBy('votingPowerTimeseries.timestamp', 'desc')
-          .select('votingPowerTimeseries.votingPower')
-          .executeTakeFirst();
-
-        if (historicalVpEntry && historicalVpEntry.votingPower !== null) {
-          totalHistoricalVotingPower += Math.floor(
-            historicalVpEntry.votingPower
+      const latestPerVoter = new Map<string, number>();
+      for (const row of historicalRows) {
+        const voter = row.voter as unknown as string;
+        if (!latestPerVoter.has(voter) && row.votingPower !== null) {
+          latestPerVoter.set(
+            voter,
+            Math.floor(row.votingPower as unknown as number)
           );
         }
       }
+      for (const val of latestPerVoter.values())
+        totalHistoricalVotingPower += val;
     }
 
     const responseBody: Record<string, string> = {
@@ -182,16 +234,26 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(responseBody, { headers: getHeaders() });
+    return NextResponse.json(responseBody, {
+      headers: buildCorsHeaders(request),
+    });
   } catch (error) {
     console.error('Error fetching voting power:', error);
-    return emptyResponse;
+    return new NextResponse(emptyResponse.body, {
+      status: 200,
+      headers: buildCorsHeaders(request),
+    });
   }
 }
 
 export async function OPTIONS() {
   return new Response(null, {
     status: 204,
-    headers: getHeaders(),
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers':
+        'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
+    },
   });
 }

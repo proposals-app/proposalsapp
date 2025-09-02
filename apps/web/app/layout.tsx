@@ -11,7 +11,8 @@ import { SafariViewportProvider } from './components/providers/safari-viewport-p
 import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(`https://proposals.app`),
+  // Use production base by default; Next can override per-request in advanced setups
+  metadataBase: new URL(process.env.WEB_URL || `https://proposals.app`),
   title: 'proposals.app',
   applicationName: 'proposals.app',
   appleWebApp: {

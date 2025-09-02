@@ -70,8 +70,10 @@ async function getGroupIdFromTopicSlug(
   return null;
 }
 
-// Load Fira Sans Condensed fonts for better rendering
+// Cache fonts across requests
+let cachedFonts: { regular: ArrayBuffer; bold: ArrayBuffer } | null = null;
 async function getFiraSansCondensedFonts() {
+  if (cachedFonts) return cachedFonts;
   const [regular, bold] = await Promise.all([
     fetch(
       'https://fonts.gstatic.com/s/firasanscondensed/v10/wEOhEADFm8hSaQTFG18FErVhsC9x-tarYfE.ttf'
@@ -84,7 +86,8 @@ async function getFiraSansCondensedFonts() {
     regular.arrayBuffer(),
     bold.arrayBuffer(),
   ]);
-  return { regular: regularData, bold: boldData };
+  cachedFonts = { regular: regularData, bold: boldData };
+  return cachedFonts;
 }
 
 export async function GET(
@@ -151,7 +154,6 @@ export async function GET(
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers':
           'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
-        'Access-Control-Allow-Credentials': 'true',
         'Cache-Control': `public, max-age=${cacheMaxAge}, stale-while-revalidate=30`,
       },
     });
@@ -265,7 +267,6 @@ export async function GET(
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers':
         'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
-      'Access-Control-Allow-Credentials': 'true',
       'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
     },
   });
@@ -279,7 +280,6 @@ export async function OPTIONS() {
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers':
         'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
-      'Access-Control-Allow-Credentials': 'true',
     },
   });
 }

@@ -1,4 +1,5 @@
 import client from 'prom-client';
+export const runtime = 'nodejs';
 
 // Initialize the default metrics collection
 const collectDefaultMetrics = client.collectDefaultMetrics;

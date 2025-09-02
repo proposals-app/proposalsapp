@@ -24,7 +24,7 @@ export default async function Page({
   const daoSlug = resolvedSearchParams.daoSlug || routeParams.daoSlug;
 
   // Validate daoSlug early to prevent rendering with invalid data
-  if (!daoSlug || (daoSlug !== 'arbitrum' && daoSlug !== 'uniswap')) {
+  if (!daoSlug || !/^[-a-z0-9]{2,64}$/i.test(daoSlug)) {
     return (
       <div className='flex min-h-screen w-full items-center justify-center bg-neutral-50 dark:bg-neutral-900'>
         <div className='text-center'>
@@ -32,7 +32,7 @@ export default async function Page({
             Invalid DAO
           </h1>
           <p className='mt-2 text-neutral-500 dark:text-neutral-400'>
-            Please visit arbitrum.localhost:3000 or uniswap.localhost:3000
+            Please use a valid subdomain (e.g., arbitrum.localhost:3000)
           </p>
         </div>
       </div>

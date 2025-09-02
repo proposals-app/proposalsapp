@@ -3,6 +3,8 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { gfm } from 'micromark-extension-gfm';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
 import {
@@ -247,8 +249,54 @@ export function markdownToHtml(
     const processor = unified()
       .use(remarkParse)
       .use(remarkGfm) // This includes table support
+      // Convert to HAST allowing raw HTML, then sanitize
       .use(remarkRehype, { allowDangerousHtml: true })
-      .use(rehypeStringify, { allowDangerousHtml: true });
+      .use(rehypeRaw)
+      .use(rehypeSanitize, {
+        ...defaultSchema,
+        // Extend default schema minimally to allow common attributes/classes we add
+        attributes: {
+          ...defaultSchema.attributes,
+          a: [
+            ...(defaultSchema.attributes?.a || []),
+            ['target'],
+            ['rel'],
+            ['className'],
+          ],
+          p: [...(defaultSchema.attributes?.p || []), ['className']],
+          img: [
+            ...(defaultSchema.attributes?.img || []),
+            ['className'],
+            ['loading'],
+            ['decoding'],
+          ],
+          table: [...(defaultSchema.attributes?.table || []), ['className']],
+          thead: [...(defaultSchema.attributes?.thead || []), ['className']],
+          tbody: [...(defaultSchema.attributes?.tbody || []), ['className']],
+          tr: [...(defaultSchema.attributes?.tr || []), ['className']],
+          td: [
+            ...(defaultSchema.attributes?.td || []),
+            ['className', 'colspan'],
+          ],
+          th: [
+            ...(defaultSchema.attributes?.th || []),
+            ['className', 'colspan'],
+          ],
+          details: [
+            ...(defaultSchema.attributes?.details || []),
+            ['className'],
+            ['open'],
+          ],
+          summary: [
+            ...(defaultSchema.attributes?.summary || []),
+            ['className'],
+          ],
+          div: [...(defaultSchema.attributes?.div || []), ['className', 'id']],
+          span: [...(defaultSchema.attributes?.span || []), ['className']],
+        },
+        clobberPrefix: 'md-',
+      })
+      .use(rehypeStringify);
 
     let html = processor.processSync(markdown).toString();
 
