@@ -16,9 +16,10 @@ import {
 export default async function Page({
   params,
 }: {
-  params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
+  params: { daoSlug: string; groupId: string; resultNumber: string };
 }) {
-  const { groupId, resultNumber } = await params;
+  const { groupId, resultNumber } = params;
+  const group = await getGroup(groupId);
 
   return (
     <div className='flex min-h-screen w-full flex-row'>
@@ -29,7 +30,7 @@ export default async function Page({
 
       {/* Timeline loads independently */}
       <Suspense fallback={<LoadingTimeline />}>
-        <TimelineContainer groupId={groupId} resultNumber={resultNumber} />
+        <TimelineContainer group={group} resultNumber={resultNumber} />
       </Suspense>
 
       {/* Results load independently */}
@@ -41,7 +42,7 @@ export default async function Page({
         <div className='h-full w-full pr-2 pl-2 sm:pr-4 sm:pl-0'>
           <div className='dark:border-neutral-650 flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-r-xs border border-neutral-800 bg-white p-6 dark:bg-neutral-950'>
             <Suspense fallback={<ResultsLoading />}>
-              <ResultsContainer groupId={groupId} resultNumber={resultNumber} />
+              <ResultsContainer group={group} resultNumber={resultNumber} />
             </Suspense>
           </div>
         </div>
@@ -67,15 +68,14 @@ async function HeaderContainer({ groupId }: { groupId: string }) {
   );
 }
 
-// Separate component for timeline data fetching
+// Separate component for timeline rendering with pre-fetched group
 async function TimelineContainer({
-  groupId,
+  group,
   resultNumber,
 }: {
-  groupId: string;
+  group: Awaited<ReturnType<typeof getGroup>>;
   resultNumber: string;
 }) {
-  const group = await getGroup(groupId);
   if (!group) {
     notFound();
   }
@@ -84,15 +84,14 @@ async function TimelineContainer({
   return <Timeline group={group} selectedResult={proposalIndex + 1} />;
 }
 
-// Separate component for results data fetching
+// Separate component for results rendering with pre-fetched group
 async function ResultsContainer({
-  groupId,
+  group,
   resultNumber,
 }: {
-  groupId: string;
+  group: Awaited<ReturnType<typeof getGroup>>;
   resultNumber: string;
 }) {
-  const group = await getGroup(groupId);
   if (!group) {
     notFound();
   }
