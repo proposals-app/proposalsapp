@@ -113,7 +113,7 @@ export async function getDelegatesWithMappings(daoSlug: string) {
       return 1; // b comes before a (b has no mappings)
     }
     if (!hasMappingsA && !hasMappingsB) {
-      return -1; // if both have no mappings, keep relative order (or can be 0)
+      return 0; // keep original order when both have no mappings
     }
 
     // Both have mappings, sort by latestMappingTimestamp
@@ -198,6 +198,7 @@ export async function fuzzySearchDiscourseUsers(
 }
 
 export async function fuzzySearchVoters(
+  daoSlug: string,
   searchTerm: string,
   excludeVoterIds: string[] = []
 ): Promise<Selectable<Voter>[]> {
@@ -205,13 +206,47 @@ export async function fuzzySearchVoters(
   // This ensures the search functionality works properly
 
   // Validate inputs
-  if (!searchTerm || !searchTerm.trim()) {
-    console.log('Invalid search term:', { searchTerm });
+  if (!searchTerm || !searchTerm.trim() || !daoSlug) {
+    console.log('Invalid search term or daoSlug:', { searchTerm, daoSlug });
     return [];
   }
 
   try {
-    let query = db.selectFrom('voter');
+    const dao = await db
+      .selectFrom('dao')
+      .where('slug', '=', daoSlug)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (!dao) {
+      console.error(`DAO not found: ${daoSlug}`);
+      return [];
+    }
+
+    // Limit voters to those relevant to the DAO:
+    // - have any voting power entry for this dao, or
+    // - have cast a vote in this dao.
+    let query = db
+      .selectFrom('voter')
+      .where((eb) =>
+        eb
+          .exists(
+            db
+              .selectFrom('votingPowerTimeseries as vp')
+              .select('vp.id')
+              .whereRef('vp.voter', '=', 'voter.address')
+              .where('vp.daoId', '=', dao.id)
+          )
+          .or(
+            eb.exists(
+              db
+                .selectFrom('vote as vo')
+                .select('vo.id')
+                .whereRef('vo.voterAddress', '=', 'voter.address')
+                .where('vo.daoId', '=', dao.id)
+            )
+          )
+      );
 
     if (excludeVoterIds.length > 0) {
       query = query.where('id', 'not in', excludeVoterIds);

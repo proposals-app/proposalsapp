@@ -212,6 +212,7 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
             )}
           </div>
           <FuzzyVoterSearch
+            daoSlug={daoSlug}
             excludeVoterIds={currentVoters.map((voter) => voter.id)}
             onSelectVoter={handleMapVoter}
             isLoading={isSaving || isDeleting}
@@ -222,18 +223,26 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
         <div className='flex flex-wrap gap-2'>
           <Button
             onClick={onCancel}
+            variant='primary'
+            disabled={isSaving || isDeleting}
+            className='min-w-[100px]'
+          >
+            Save
+          </Button>
+          <Button
+            onClick={onCancel}
             variant='outline'
             disabled={isSaving || isDeleting}
-            className='min-w-[80px]'
+            className='min-w-[100px]'
           >
-            Close
+            Cancel
           </Button>
           <Button
             onClick={handleDeleteDelegate}
             variant='danger'
             disabled={isSaving || isDeleting}
             isLoading={isDeleting}
-            className='min-w-[80px]'
+            className='min-w-[100px]'
           >
             Delete
           </Button>
@@ -255,6 +264,7 @@ export const DelegateRow = ({
   daoSlug: string;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (isEditing) {
     return (
@@ -348,13 +358,38 @@ export const DelegateRow = ({
         </div>
       </MappingTableCell>
       <MappingTableActionCell>
-        <Button
-          onClick={() => setIsEditing(true)}
-          variant='primary'
-          className='min-w-[120px]'
-        >
-          Edit Mappings
-        </Button>
+        <div className='flex flex-wrap gap-2'>
+          <Button
+            onClick={() => setIsEditing(true)}
+            variant='primary'
+            className='min-w-[100px]'
+          >
+            Edit
+          </Button>
+          <Button
+            onClick={async () => {
+              if (
+                !window.confirm(
+                  'Are you sure you want to delete this delegate and all its mappings?'
+                )
+              )
+                return;
+              setIsDeleting(true);
+              try {
+                await deleteDelegate(delegate.id);
+                // Best-effort immediate UI feedback: hide edit or rely on tag revalidation
+              } finally {
+                setIsDeleting(false);
+              }
+            }}
+            variant='danger'
+            disabled={isDeleting}
+            isLoading={isDeleting}
+            className='min-w-[100px]'
+          >
+            Delete
+          </Button>
+        </div>
       </MappingTableActionCell>
     </MappingTableRow>
   );

@@ -154,7 +154,12 @@ export async function getUngroupedProposals(
     .where('markedSpam', '=', false)
     .execute();
 
-  const groups = await db.selectFrom('proposalGroup').select('items').execute();
+  // Only consider groups for this DAO when determining which proposals are already grouped
+  const groups = await db
+    .selectFrom('proposalGroup')
+    .select(['items'])
+    .where('daoId', '=', dao.id)
+    .execute();
 
   // Extract all proposal items from groups
   const allGroupedProposalItems: { externalId: string; governorId: string }[] =
@@ -324,6 +329,23 @@ export async function saveGroups(
   'use server';
 
   return handleVoidServerAction(async () => {
+    const sanitizeItems = (items: ProposalGroupItem[]) =>
+      items.map((item) =>
+        item.type === 'proposal'
+          ? {
+              type: 'proposal' as const,
+              name: item.name,
+              externalId: (item as any).externalId ?? (item as any).external_id,
+              governorId: (item as any).governorId ?? (item as any).governor_id,
+            }
+          : {
+              type: 'topic' as const,
+              name: item.name,
+              externalId: (item as any).externalId ?? (item as any).external_id,
+              daoDiscourseId:
+                (item as any).daoDiscourseId ?? (item as any).dao_discourse_id,
+            }
+      );
     await Promise.all(
       groups.map(async (group) => {
         if (group.id) {
@@ -332,14 +354,14 @@ export async function saveGroups(
             .values({
               id: group.id,
               name: group.name,
-              items: JSON.stringify(group.items),
+              items: JSON.stringify(sanitizeItems(group.items)),
               daoId: group.daoId,
               createdAt: group.createdAt,
             })
             .onConflict((oc) =>
               oc.column('id').doUpdateSet({
                 name: group.name,
-                items: JSON.stringify(group.items),
+                items: JSON.stringify(sanitizeItems(group.items)),
                 daoId: group.daoId,
                 createdAt: group.createdAt,
               })
@@ -350,7 +372,7 @@ export async function saveGroups(
             .insertInto('proposalGroup')
             .values({
               name: group.name,
-              items: JSON.stringify(group.items),
+              items: JSON.stringify(sanitizeItems(group.items)),
               daoId: group.daoId,
               createdAt: group.createdAt,
             })

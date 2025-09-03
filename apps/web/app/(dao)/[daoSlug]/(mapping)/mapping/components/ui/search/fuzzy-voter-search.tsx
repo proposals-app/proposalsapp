@@ -6,6 +6,7 @@ import FuzzySearch from './fuzzy-search';
 import { Badge } from '@/app/components/ui/badge';
 
 interface FuzzyVoterSearchProps {
+  daoSlug: string;
   excludeVoterIds?: string[];
   onSelectVoter: (_voter: Selectable<Voter>) => void;
   isLoading?: boolean;
@@ -13,13 +14,14 @@ interface FuzzyVoterSearchProps {
 }
 
 const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
+  daoSlug,
   excludeVoterIds = [],
   onSelectVoter,
   isLoading,
   className,
 }) => {
   const handleSearch = async (term: string) => {
-    return await fuzzySearchVoters(term, excludeVoterIds);
+    return await fuzzySearchVoters(daoSlug, term, excludeVoterIds);
   };
 
   return (

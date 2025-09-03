@@ -43,7 +43,7 @@ async function HeaderContainer({ daoSlug }: { daoSlug: string }) {
       description={`Create and manage proposal groups to better organize and map proposals within ${dao?.name || 'the DAO'}.`}
       actionLinks={[
         {
-          href: '/mapping/delegates',
+          href: `/${daoSlug}/mapping/delegates`,
           label: 'Delegate Mapping',
         },
       ]}

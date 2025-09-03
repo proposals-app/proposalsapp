@@ -193,6 +193,12 @@ export default function GroupingInterface({
   ) => {
     if (isLoading) return;
 
+    // Confirm deletion of the item from the group
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this item from the group?'
+    );
+    if (!confirmed) return;
+
     setIsLoading(true);
 
     // Remove item from group
@@ -396,7 +402,7 @@ export default function GroupingInterface({
                                   className='h-8 min-w-[80px] shrink-0 px-2 py-0'
                                   disabled={isLoading}
                                 >
-                                  Remove
+                                  Delete
                                 </Button>
                               </div>
                             </li>
@@ -471,7 +477,7 @@ export default function GroupingInterface({
                       variant='primary'
                       disabled={isLoading || !editingGroupName.trim()}
                       isLoading={isLoading && editingGroupName.trim() !== ''}
-                      className='min-w-[80px]'
+                      className='min-w-[100px]'
                     >
                       Save
                     </Button>
@@ -482,7 +488,7 @@ export default function GroupingInterface({
                       }}
                       variant='outline'
                       disabled={isLoading}
-                      className='min-w-[80px]'
+                      className='min-w-[100px]'
                     >
                       Cancel
                     </Button>
@@ -496,7 +502,7 @@ export default function GroupingInterface({
                       }}
                       variant='primary'
                       disabled={isLoading}
-                      className='min-w-[80px]'
+                      className='min-w-[100px]'
                     >
                       Edit
                     </Button>
@@ -505,7 +511,7 @@ export default function GroupingInterface({
                       variant='danger'
                       disabled={isLoading}
                       isLoading={isLoading}
-                      className='min-w-[80px]'
+                      className='min-w-[100px]'
                     >
                       Delete
                     </Button>
