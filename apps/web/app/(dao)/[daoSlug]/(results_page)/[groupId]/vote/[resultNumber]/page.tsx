@@ -16,9 +16,9 @@ import {
 export default async function Page({
   params,
 }: {
-  params: { daoSlug: string; groupId: string; resultNumber: string };
+  params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
 }) {
-  const { groupId, resultNumber } = params;
+  const { groupId, resultNumber } = await params;
   const group = await getGroup(groupId);
 
   return (
