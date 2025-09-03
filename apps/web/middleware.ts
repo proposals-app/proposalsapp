@@ -39,9 +39,12 @@ export default function middleware(request: NextRequest) {
       const protocol = isLocal ? 'http' : 'https';
       // Extract host and port
       const [hostOnly, port] = hostname.split(':');
+      // Always base redirects on the configured root domain to avoid nested subdomains
       const targetHost = isLocal
         ? `arbitrum.${hostOnly}`
-        : `arbitrum.${hostOnly}`;
+        : `arbitrum.${(process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app')
+            .replace(/^(https?:\/\/)?/, '')
+            .replace(/\/$/, '')}`;
       const redirect = new URL(url);
       redirect.protocol = `${protocol}:`;
       redirect.hostname = targetHost;
@@ -84,25 +87,46 @@ export default function middleware(request: NextRequest) {
     }
   }
 
-  // BLOCK DIRECT PATH ACCESS: If accessing root domain with /arbitrum or /uniswap paths, redirect to subdomain
-  if (
-    !subdomain &&
-    specialSubdomains.some((special) => url.pathname.startsWith(`/${special}`))
-  ) {
-    const detectedDao = specialSubdomains.find((special) =>
-      url.pathname.startsWith(`/${special}`)
-    );
-    if (detectedDao) {
-      // Redirect to proper subdomain
-      const targetUrl = new URL(request.url);
-      const [hostOnly, port] = hostname.split(':');
-      targetUrl.hostname = `${detectedDao}.${hostOnly}`;
-      targetUrl.pathname = url.pathname.replace(`/${detectedDao}`, '') || '/';
-      // Preserve port for dev
-      targetUrl.port = isDev && port ? port : '';
+  // Handle direct path access like /arbitrum or /uniswap
+  // - On root domain: redirect to the correct subdomain on the configured root domain
+  // - On the same subdomain: rewrite to remove the duplicate prefix (e.g., arbitrum.proposals.app/arbitrum -> arbitrum.proposals.app/)
+  // - On a different subdomain: redirect to the correct subdomain on the configured root domain
+  const matchingSpecial = specialSubdomains.find(
+    (special) =>
+      url.pathname === `/${special}` || url.pathname.startsWith(`/${special}/`)
+  );
+  if (matchingSpecial) {
+    const detectedDao = matchingSpecial;
 
-      return NextResponse.redirect(targetUrl, 301);
+    // Compute the tail path without the /<dao> prefix
+    const trimmedPath = url.pathname.replace(`/${detectedDao}`, '') || '/';
+
+    // If already on the same subdomain, just rewrite to the trimmed path
+    if (subdomain === detectedDao) {
+      const rewriteUrl = new URL(url);
+      rewriteUrl.pathname = trimmedPath;
+      return NextResponse.rewrite(rewriteUrl);
     }
+
+    // Otherwise, redirect to the right subdomain on the configured root domain
+    const [hostOnly, port] = hostname.split(':');
+    const targetRoot = isDev
+      ? 'localhost'
+      : (process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app')
+          .replace(/^(https?:\/\/)?/, '')
+          .replace(/\/$/, '');
+    const targetHost = isDev
+      ? `${detectedDao}.${hostOnly.split(':')[0]}`
+      : `${detectedDao}.${targetRoot}`;
+
+    const targetUrl = new URL(request.url);
+    targetUrl.hostname = targetHost;
+    targetUrl.pathname = trimmedPath;
+    // Preserve port for dev
+    targetUrl.port = isDev && port ? port : '';
+    targetUrl.protocol = isDev ? 'http:' : 'https:';
+
+    return NextResponse.redirect(targetUrl, 301);
   }
 
   // If no valid subdomain was found, proceed normally
