@@ -16,7 +16,7 @@ importers:
         version: 1.0.10
       headless-web3-provider:
         specifier: ^0.3.2
-        version: 0.3.2
+        version: 0.3.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       npm-check-updates:
         specifier: ^18.0.3
         version: 18.0.3
@@ -18589,7 +18589,7 @@ snapshots:
 
   he@1.2.0: {}
 
-  headless-web3-provider@0.3.2:
+  headless-web3-provider@0.3.2(bufferutil@4.0.9)(utf-8-validate@5.0.10):
     dependencies:
       '@metamask/eth-sig-util': 6.0.2
       '@metamask/json-rpc-engine': 8.0.2

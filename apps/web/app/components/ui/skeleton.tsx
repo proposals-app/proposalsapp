@@ -2,6 +2,7 @@ import * as React from 'react';
 import { type VariantProps, cva } from 'class-variance-authority';
 
 import { cn } from '../../../lib/utils';
+import { ResultsListBarsSkeleton as SkeletonResultsBars } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/result/results-list';
 
 const skeletonVariants = cva('skeleton-blueprint', {
   variants: {
@@ -1647,42 +1648,3 @@ export {
   skeletonVariants,
   type SkeletonProps,
 };
-// Bars skeleton aligned with live ResultsListBars
-const SkeletonResultsBars = React.forwardRef<
-  HTMLDivElement,
-  { className?: string }
->(({ className }, ref) => {
-  return (
-    <div ref={ref} className={cn('mt-4 min-h-[112px] w-72 sm:ml-6', className)}>
-      <div className='flex w-full flex-col gap-2'>
-        {/* Majority support row */}
-        <div className='flex w-full items-center gap-1 text-sm font-semibold'>
-          <div className='skeleton-blueprint skeleton-text h-5 w-5 rounded-full' />
-          <div className='skeleton-blueprint skeleton-text h-4 w-36' />
-        </div>
-        {/* Quorum bar */}
-        <div>
-          <div className='relative h-4 w-full'>
-            <div className='absolute inset-0 border border-neutral-200 dark:border-neutral-700'>
-              <div className='skeleton-blueprint skeleton-text h-full w-1/3' />
-            </div>
-          </div>
-          <div className='mt-2 flex items-center gap-1 text-sm'>
-            <div className='skeleton-blueprint skeleton-text h-4 w-4' />
-            <div className='skeleton-blueprint skeleton-text h-3.5 w-52' />
-          </div>
-        </div>
-        {/* Participation bar */}
-        <div>
-          <div className='relative h-2 w-full overflow-hidden border border-neutral-200 dark:border-neutral-700'>
-            <div className='skeleton-blueprint skeleton-text h-full w-1/2' />
-          </div>
-          <div className='mt-2 text-xs'>
-            <div className='skeleton-blueprint skeleton-text h-3 w-56' />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-SkeletonResultsBars.displayName = 'SkeletonResultsBars';
