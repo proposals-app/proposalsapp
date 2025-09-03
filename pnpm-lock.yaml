@@ -42,8 +42,8 @@ importers:
         specifier: ^4.2.1
         version: 4.2.1
       pino:
-        specifier: ^9.9.0
-        version: 9.9.0
+        specifier: ^9.9.1
+        version: 9.9.1
       resend:
         specifier: ^6.0.2
         version: 6.0.2(@react-email/render@1.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1))
@@ -199,8 +199,8 @@ importers:
         specifier: ^13.1.1
         version: 13.1.1
       posthog-js:
-        specifier: ^1.261.4
-        version: 1.261.4
+        specifier: ^1.261.6
+        version: 1.261.6
       posthog-node:
         specifier: ^5.8.1
         version: 5.8.1
@@ -265,8 +265,8 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1
       tw-animate-css:
-        specifier: ^1.3.7
-        version: 1.3.7
+        specifier: ^1.3.8
+        version: 1.3.8
       unified:
         specifier: ^11.0.5
         version: 11.0.5
@@ -462,8 +462,8 @@ importers:
         specifier: '8'
         version: 8.15.5
       kysely-codegen:
-        specifier: 0.18.5
-        version: 0.18.5(kysely@0.28.5)(pg@8.16.3)(typescript@5.9.2)
+        specifier: 0.19.0
+        version: 0.19.0(kysely@0.28.5)(pg@8.16.3)(typescript@5.9.2)
       kysely-ctl:
         specifier: ^0.18.0
         version: 0.18.0(kysely@0.28.5)(typescript@5.9.2)
@@ -7324,14 +7324,14 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  kysely-codegen@0.18.5:
-    resolution: {integrity: sha512-bj6DMsXcKo0PrrXUk/fdjFgNC6Pwq+HPBCqhNGuD57gwUJZdci2s2OqhNneQeYpAIWGot7/481WdzTyXrClY2Q==}
+  kysely-codegen@0.19.0:
+    resolution: {integrity: sha512-ZpdQQnpfY0kh45CA6yPA9vdFsBE+b06Fx7QVcbL5rX//yjbA0yYGZGhnH7GTd4P4BY/HIv5uAfuOD83JVZf95w==}
     engines: {node: '>=20.0.0'}
     hasBin: true
     peerDependencies:
       '@libsql/kysely-libsql': '>=0.3.0 <0.5.0'
       '@tediousjs/connection-string': '>=0.5.0 <0.6.0'
-      better-sqlite3: '>=7.6.2 <8.0.0'
+      better-sqlite3: '>=7.6.2 <13.0.0'
       kysely: '>=0.27.0 <1.0.0'
       kysely-bun-sqlite: '>=0.3.2 <1.0.0'
       kysely-bun-worker: '>=1.2.0 <2.0.0'
@@ -8561,8 +8561,8 @@ packages:
     resolution: {integrity: sha512-dMACeu63HtRLmCG8VKdy4cShCPKaYDR4youZqoSWLxl5Gu99HUw8bw75thbPv9Nip+H+QYX8o3ZJbTdVZZ2TVg==}
     hasBin: true
 
-  pino@9.9.0:
-    resolution: {integrity: sha512-zxsRIQG9HzG+jEljmvmZupOMDUQ0Jpj0yAgE28jQvvrdYTlEaiGwelJpdndMl/MBuRr70heIj83QyqJUWaU8mQ==}
+  pino@9.9.1:
+    resolution: {integrity: sha512-40SszWPOPwGhUIJ3zj0PsbMNV1bfg8nw5Qp/tP2FE2p3EuycmhDeYimKOMBAu6rtxcSw2QpjJsuK5A6v+en8Yw==}
     hasBin: true
 
   pirates@4.0.7:
@@ -8711,8 +8711,8 @@ packages:
     resolution: {integrity: sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==}
     engines: {node: '>=0.10.0'}
 
-  posthog-js@1.261.4:
-    resolution: {integrity: sha512-+XDKBO3tuwSJEdiO+XbHg3xVygI94rriI3SAGkgb3soJmDfjLes/zhb5EI4CSPQZbxRxQQK9Knb9IJ+pIyJgGw==}
+  posthog-js@1.261.6:
+    resolution: {integrity: sha512-tson+4i+T2YkGYlj/oGjFwKRpBFqhM7Xr9ZmXGEtNFkZc6ZQHYCzObeeHT6BbKc5d/dAfMCPtvPCKssARaK6eQ==}
     peerDependencies:
       '@rrweb/types': 2.0.0-alpha.17
       rrweb-snapshot: 2.0.0-alpha.17
@@ -10190,8 +10190,8 @@ packages:
   tty-browserify@0.0.1:
     resolution: {integrity: sha512-C3TaO7K81YvjCgQH9Q1S3R3P3BtN3RIM8n+OvX4il1K1zgE8ZhI0op7kClgkxtutIE8hQrcrHBXvIheqKUUCxw==}
 
-  tw-animate-css@1.3.7:
-    resolution: {integrity: sha512-lvLb3hTIpB5oGsk8JmLoAjeCHV58nKa2zHYn8yWOoG5JJusH3bhJlF2DLAZ/5NmJ+jyH3ssiAx/2KmbhavJy/A==}
+  tw-animate-css@1.3.8:
+    resolution: {integrity: sha512-Qrk3PZ7l7wUcGYhwZloqfkWCmaXZAoqjkdbIDvzfGshwGtexa/DAs9koXxIkrpEasyevandomzCBAV1Yyop5rw==}
 
   tweetnacl-util@0.15.1:
     resolution: {integrity: sha512-RKJBIj8lySrShN4w6i/BonWp2Z/uxwC3h4y7xsRrpP59ZboCd0GpEVsOnMDYLMmKBpYhb5TgHzZXy7wTfYFBRw==}
@@ -10883,9 +10883,6 @@ packages:
 
   zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zod@4.1.5:
     resolution: {integrity: sha512-rcUUZqlLJgBC33IT3PNMgsCq6TzLQEG/Ei/KTCU0PedSWRMAXoOUN+4t/0H+Q8bdnLPdqUYnvboJT0bn/229qg==}
@@ -19604,18 +19601,18 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  kysely-codegen@0.18.5(kysely@0.28.5)(pg@8.16.3)(typescript@5.9.2):
+  kysely-codegen@0.19.0(kysely@0.28.5)(pg@8.16.3)(typescript@5.9.2):
     dependencies:
       chalk: 4.1.2
       cosmiconfig: 9.0.0(typescript@5.9.2)
-      dotenv: 16.6.1
+      dotenv: 17.2.2
       dotenv-expand: 12.0.2
       git-diff: 2.0.6
       kysely: 0.28.5
       micromatch: 4.0.8
       minimist: 1.2.8
       pluralize: 8.0.0
-      zod: 3.25.76
+      zod: 4.1.5
     optionalDependencies:
       pg: 8.16.3
     transitivePeerDependencies:
@@ -20969,7 +20966,7 @@ snapshots:
       sonic-boom: 2.8.0
       thread-stream: 0.15.2
 
-  pino@9.9.0:
+  pino@9.9.1:
     dependencies:
       atomic-sleep: 1.0.0
       fast-redact: 3.5.0
@@ -21099,7 +21096,7 @@ snapshots:
     dependencies:
       xtend: 4.0.2
 
-  posthog-js@1.261.4:
+  posthog-js@1.261.6:
     dependencies:
       '@posthog/core': 1.0.2
       core-js: 3.45.1
@@ -22768,7 +22765,7 @@ snapshots:
 
   tty-browserify@0.0.1: {}
 
-  tw-animate-css@1.3.7: {}
+  tw-animate-css@1.3.8: {}
 
   tweetnacl-util@0.15.1: {}
 
@@ -23352,7 +23349,7 @@ snapshots:
       sockjs: 0.3.24
       spdy: 4.0.2
       webpack-dev-middleware: 7.4.2(webpack@5.101.3(esbuild@0.25.9))
-      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      ws: 8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     optionalDependencies:
       webpack: 5.101.3(esbuild@0.25.9)
     transitivePeerDependencies:
@@ -23649,8 +23646,6 @@ snapshots:
   yoga-layout@3.2.1: {}
 
   zod@3.22.4: {}
-
-  zod@3.25.76: {}
 
   zod@4.1.5: {}
 

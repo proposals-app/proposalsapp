@@ -16,7 +16,7 @@ export default [
       // Dependencies
       'node_modules/',
       '**/node_modules/',
-      
+
       // Build outputs
       'dist/',
       '**/dist/',
@@ -26,11 +26,11 @@ export default [
       '**/.next/',
       'out/',
       '**/out/',
-      
+
       // Build tools
       '.turbo/',
       '**/.turbo/',
-      
+
       // Cache directories
       '.cache/',
       '.cache-*/',
@@ -41,7 +41,7 @@ export default [
       '**/cache-synpress/**',
       '**/metamask-chrome-*/**',
       '.eslintcache',
-      
+
       // Test outputs
       'coverage/',
       '**/coverage/',
@@ -49,33 +49,33 @@ export default [
       '**/playwright-report/',
       'test-results/',
       '**/test-results/',
-      
+
       // Minified/bundled files
       '**/*.min.js',
       '**/*.bundle.js',
       '**/*-bundle.js',
       '**/*.production.js',
-      
+
       // Specific library that should not be linted
       'libs/ts/visual-dom-diff/**',
-      
+
       // Email library build
       'libs/ts/emails/.react-email/',
       'libs/ts/emails/dist/',
-      
+
       // Observability stack
       'apps/observe/',
-      
+
       // Generated files
       '**/*.generated.*',
       '**/*.d.ts',
       '**/*.d.mts',
-      
+
       // Rust/Cargo
       '.cargo/',
       'target/',
       '**/target/',
-      
+
       // Editor/IDE
       '.claude/',
       '**/.claude/',
@@ -83,14 +83,19 @@ export default [
       '.vscode/',
       '*.swp',
       '*.swo',
-      
+
       // Service worker
       '**/sw.js',
       '**/sw.*.js',
-      
+
       // Storybook
       'storybook-static/',
       '**/storybook-static/',
+      '.storybook/',
+      '**/.storybook/**',
+
+      // Generated test reports
+      '**/*.report.html',
     ],
   }, // Base JavaScript configuration
   js.configs.recommended, // Default environment for all files with proper globals
@@ -233,7 +238,10 @@ export default [
     },
   }, // Storybook configuration files
   {
-    files: ['**/.storybook/**/*.{js,jsx,ts,tsx}', '**/*.stories.{js,jsx,ts,tsx}'],
+    files: [
+      '**/.storybook/**/*.{js,jsx,ts,tsx}',
+      '**/*.stories.{js,jsx,ts,tsx}',
+    ],
     rules: {
       'no-undef': 'off', // Storybook has its own globals
       '@typescript-eslint/no-explicit-any': 'warn',

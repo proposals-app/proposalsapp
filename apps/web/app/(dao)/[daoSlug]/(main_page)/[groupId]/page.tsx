@@ -4,7 +4,12 @@ import {
   type FromFilterEnum,
 } from '@/app/searchParams';
 import { notFound } from 'next/navigation';
-import { getBodyVersions, getFeed, getGroup, getGroupHeader } from './actions';
+import {
+  getBodyVersionsCached,
+  getFeedCached,
+  getGroupCached,
+  getGroupHeaderCached,
+} from './actions';
 import { Body, BodyLoading } from './components/body/body';
 import { Feed, FeedLoading } from './components/feed/feed';
 import { MenuBar } from './components/menubar/menu-bar';
@@ -86,7 +91,7 @@ async function GroupPage({
         </Suspense>
       </div>
 
-      <Suspense key={timelineKey}>
+      <Suspense key={timelineKey} fallback={<SkeletonTimelineWrapper />}>
         <TimelineSection
           groupId={groupId}
           feedFilter={feedFilter}
@@ -95,6 +100,13 @@ async function GroupPage({
       </Suspense>
     </div>
   );
+}
+
+function SkeletonTimelineWrapper() {
+  // A small wrapper to reuse the existing SkeletonTimeline component
+  // without changing its positioning.
+  const { SkeletonTimeline } = require('@/app/components/ui/skeleton');
+  return <SkeletonTimeline />;
 }
 
 async function BodySection({
@@ -107,8 +119,8 @@ async function BodySection({
   diff: boolean;
 }) {
   const [group, bodyVersions] = await Promise.all([
-    getGroup(groupId),
-    getBodyVersions(groupId, true),
+    getGroupCached(groupId),
+    getBodyVersionsCached(groupId, true),
   ]);
 
   if (!group || !bodyVersions) {
@@ -131,10 +143,10 @@ async function BodySection({
 async function BodyHeaderSection({ groupId }: { groupId: string }) {
   const [group, bodyVersions, bodyVersionsNoContent, authorInfo] =
     await Promise.all([
-      getGroup(groupId),
-      getBodyVersions(groupId, true),
-      getBodyVersions(groupId, false),
-      getGroupHeader(groupId),
+      getGroupCached(groupId),
+      getBodyVersionsCached(groupId, true),
+      getBodyVersionsCached(groupId, false),
+      getGroupHeaderCached(groupId),
     ]);
 
   if (!group || !bodyVersions || !bodyVersionsNoContent) {
@@ -175,7 +187,7 @@ async function MenuBarSection({
   version: number | null;
   diff: boolean;
 }) {
-  const bodyVersions = await getBodyVersions(groupId, false);
+  const bodyVersions = await getBodyVersionsCached(groupId, false);
 
   if (!bodyVersions) {
     return null;
@@ -203,8 +215,8 @@ async function FeedSection({
   fromFilter: FromFilterEnum;
 }) {
   const [group, feed] = await Promise.all([
-    getGroup(groupId),
-    getFeed(groupId, feedFilter, fromFilter),
+    getGroupCached(groupId),
+    getFeedCached(groupId, feedFilter, fromFilter),
   ]);
 
   const proposalIds = group?.proposals.map((p) => p.id) || [];
@@ -229,8 +241,8 @@ async function TimelineSection({
   fromFilter: FromFilterEnum;
 }) {
   const [group, feed] = await Promise.all([
-    getGroup(groupId),
-    getFeed(groupId, feedFilter, fromFilter),
+    getGroupCached(groupId),
+    getFeedCached(groupId, feedFilter, fromFilter),
   ]);
 
   if (!group) {

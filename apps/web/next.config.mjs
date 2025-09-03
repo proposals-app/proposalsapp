@@ -48,6 +48,20 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  async headers() {
+    // Disable proxy buffering so streaming HTML is flushed progressively
+    return [
+      {
+        source: '/:path*{/}?',
+        headers: [
+          {
+            key: 'X-Accel-Buffering',
+            value: 'no',
+          },
+        ],
+      },
+    ];
+  },
 
   images: {
     minimumCacheTTL: 3600,

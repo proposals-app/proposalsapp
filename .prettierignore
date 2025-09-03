@@ -103,6 +103,15 @@ public
 # Storybook build outputs
 .out
 .storybook-out
+storybook-static/
+**/storybook-static/
+
+# Storybook configuration folders
+.storybook/
+**/.storybook/**
+
+# Generated test reports
+**/*.report.html
 
 # Temporary folders
 tmp/

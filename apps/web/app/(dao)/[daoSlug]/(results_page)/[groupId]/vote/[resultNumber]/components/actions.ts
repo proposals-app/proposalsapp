@@ -1,10 +1,16 @@
 import type { AsyncReturnType } from '@/lib/utils';
+import { cache } from 'react';
 import {
   daoSlugSchema,
   proposalIdSchema,
   voterAddressSchema,
 } from '@/lib/validations';
-import { db, type DiscourseUser, type Selectable } from '@proposalsapp/db';
+import {
+  db,
+  type DiscourseUser,
+  type Selectable,
+  type Vote,
+} from '@proposalsapp/db';
 
 // Address to exclude from delegated voting power calculations.
 // This is the Arbitrum exclusion address which should never count
@@ -837,3 +843,70 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
 
   return votesWithVoters;
 }
+
+// Cached wrappers to dedupe DB work within a render pass
+export const getVotesWithVotersCached = cache(getVotesWithVoters);
+export const getTotalDelegatedVpAtStartCached = cache(
+  getTotalDelegatedVpAtStart
+);
+export const getProposalGovernorCached = cache(getProposalGovernor);
+export const getVoterCached = cache(getVoter);
+
+// Minimal votes fetch for chart/time series and core results
+export async function getVotesMinimal(
+  proposalId: string
+): Promise<
+  Pick<
+    Selectable<Vote>,
+    | 'id'
+    | 'choice'
+    | 'createdAt'
+    | 'proposalId'
+    | 'reason'
+    | 'voterAddress'
+    | 'votingPower'
+  >[]
+> {
+  try {
+    proposalIdSchema.parse(proposalId);
+  } catch {
+    // Return a correctly typed empty array on validation failure
+    return [] as Pick<
+      Selectable<Vote>,
+      | 'id'
+      | 'choice'
+      | 'createdAt'
+      | 'proposalId'
+      | 'reason'
+      | 'voterAddress'
+      | 'votingPower'
+    >[];
+  }
+
+  const votes = await db
+    .selectFrom('vote')
+    .where('proposalId', '=', proposalId)
+    .distinctOn(['voterAddress'])
+    .select([
+      'id',
+      'choice',
+      'createdAt',
+      'proposalId',
+      'reason',
+      'voterAddress',
+      'votingPower',
+    ])
+    .orderBy('voterAddress', 'asc')
+    .orderBy('createdAt', 'desc')
+    .execute();
+
+  // Ensure createdAt is a Date to satisfy downstream typings
+  return votes.map((v) => ({
+    ...v,
+    createdAt: (v.createdAt instanceof Date
+      ? v.createdAt
+      : new Date(v.createdAt as unknown as string)) as Date,
+  }));
+}
+
+export const getVotesMinimalCached = cache(getVotesMinimal);

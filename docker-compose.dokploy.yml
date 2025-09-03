@@ -4,17 +4,17 @@ services:
     container_name: erpc
     restart: unless-stopped
     ports:
-      - "8545:4000"  # RPC endpoint
-      - "4001:4001"  # Metrics endpoint
+      - "8545:4000" # RPC endpoint
+      - "4001:4001" # Metrics endpoint
     environment:
       # Logging
       LOG_LEVEL: debug
-      
+
       # Performance tuning
       GOMAXPROCS: "2"
       GOGC: "30"
       GOMEMLIMIT: "3500MiB"
-      
+
       # RPC Endpoints from .env file
       HYPERSYNC_BEARER_TOKEN: ${HYPERSYNC_BEARER_TOKEN:-}
       HYPERSYNC_ETHEREUM_ENDPOINT: ${HYPERSYNC_ETHEREUM_ENDPOINT:-https://ethereum.hypersync.xyz}
@@ -27,24 +27,24 @@ services:
       FULL_OPTIMISM_ENDPOINT: ${FULL_OPTIMISM_ENDPOINT:-}
       FULL_POLYGON_ENDPOINT: ${FULL_POLYGON_ENDPOINT:-}
       FULL_AVALANCHE_ENDPOINT: ${FULL_AVALANCHE_ENDPOINT:-}
-    
+
     # Mount config file - Dokploy creates files in ../files/ directory
     volumes:
       - erpc-data:/var/lib/erpc
       - ../files/erpc.yaml:/home/nonroot/erpc.yaml:ro
-    
+
     # eRPC will automatically find the config file at /home/nonroot/erpc.yaml
-    
+
     # Resource limits
     deploy:
       resources:
         limits:
-          cpus: '2'
+          cpus: "2"
           memory: 8192M
         reservations:
-          cpus: '1'
+          cpus: "1"
           memory: 4096M
-    
+
     # Health check
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000"]
@@ -52,12 +52,12 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-    
+
     # DNS configuration
     dns:
       - 8.8.8.8
       - 8.8.4.4
-    
+
     logging:
       driver: json-file
       options:

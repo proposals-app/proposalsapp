@@ -18,7 +18,6 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
   const explicitOrder = ['For', 'Abstain', 'Against'];
 
   const totalVotesCast = deserializedResults.totalVotingPower;
-  const totalDelegatedVp = deserializedResults.totalDelegatedVp;
 
   // Calculate voting power for each choice using finalResults
   const choicesWithPower = deserializedResults.choices.map((choice, index) => ({
@@ -43,12 +42,7 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
     .filter((choice) => choice.countsTowardsQuorum)
     .reduce((sum, choice) => sum + choice.votingPower, 0);
 
-  // Participation should be relative to total delegated voting power at proposal start
-  // Use only `totalDelegatedVp` captured at proposal begin; if unavailable, we won't render the bar
-  const participationDenominator = totalDelegatedVp || 0;
-  const participationPercentage = participationDenominator
-    ? Math.min(100, (totalVotesCast / participationDenominator) * 100)
-    : 0;
+  // Participation bars are rendered in ResultsListBars; no local computation needed here
 
   // Determine which choices to show and the status message
   const majorityChoice = sortedChoices[0];
@@ -61,13 +55,7 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
 
   const hasQuorum = quorumVotingPower > (deserializedResults.quorum || 0);
 
-  // Consolidate conditions we care about for rendering
-  // Only render bars when we have the total delegated VP at proposal start
-  const hasStartDelegatedVp = Boolean(totalDelegatedVp && totalDelegatedVp > 0);
-  const showQuorumBar = Boolean(
-    onchain && deserializedResults.quorum !== null && hasStartDelegatedVp
-  );
-  const showParticipationBar = hasStartDelegatedVp;
+  // Bars are now rendered separately in ResultsListBars to avoid coupling
 
   return (
     <div className='flex w-72 flex-col gap-4 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
@@ -79,30 +67,7 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
           hasMajoritySupport={hasMajoritySupport}
         />
       </div>
-      {deserializedResults.quorum !== null && totalDelegatedVp && (
-        <div className='flex flex-col gap-2'>
-          <MajoritySupportCheckmark hasMajoritySupport={hasMajoritySupport} />
-        </div>
-      )}
       <ChoiceList choices={sortedChoices} totalVotingPower={totalVotesCast} />
-      {showQuorumBar && (
-        <div className='flex flex-col gap-2'>
-          <QuorumBar
-            choices={sortedChoices.filter(
-              (choice) => choice.countsTowardsQuorum
-            )}
-            quorumVotingPower={quorumVotingPower}
-            quorum={deserializedResults.quorum as number}
-            totalDelegatedVp={totalDelegatedVp ?? 0}
-          />
-        </div>
-      )}
-      {showParticipationBar && (
-        <ParticipationPercentage
-          percentage={participationPercentage}
-          actualVotesCast={totalVotesCast}
-        />
-      )}
     </div>
   );
 }
@@ -270,7 +235,7 @@ interface MajoritySupportCheckmarkProps {
   hasMajoritySupport: boolean | undefined;
 }
 
-function MajoritySupportCheckmark({
+export function MajoritySupportCheckmark({
   hasMajoritySupport,
 }: MajoritySupportCheckmarkProps) {
   return (
@@ -297,7 +262,7 @@ interface QuorumBarProps {
   totalDelegatedVp: number;
 }
 
-function QuorumBar({
+export function QuorumBar({
   choices,
   quorumVotingPower,
   quorum,
@@ -367,7 +332,7 @@ interface ParticipationPercentageProps {
   actualVotesCast: number;
 }
 
-function ParticipationPercentage({
+export function ParticipationPercentage({
   percentage,
   actualVotesCast,
 }: ParticipationPercentageProps) {
@@ -394,4 +359,116 @@ function ParticipationPercentage({
 
 export function LoadingList() {
   return <SkeletonResultsList />;
+}
+
+// Stream-only bars component that can be rendered after the list
+export function ResultsListBars({
+  results,
+  onchain,
+}: {
+  results: SuperJSONResult;
+  onchain: boolean;
+}) {
+  const deserializedResults: ProcessedResults = superjson.deserialize(results);
+
+  const explicitOrder = ['For', 'Abstain', 'Against'];
+
+  const totalVotesCast = deserializedResults.totalVotingPower;
+  const totalDelegatedVp = deserializedResults.totalDelegatedVp;
+
+  // Calculate voting power for each choice using finalResults
+  const choicesWithPower = deserializedResults.choices.map((choice, index) => ({
+    choice,
+    votingPower: deserializedResults.finalResults[index] || 0,
+    color: deserializedResults.choiceColors[index],
+    countsTowardsQuorum: deserializedResults.quorumChoices.includes(index),
+  }));
+
+  // Sort by explicit order, otherwise by power desc
+  const sortedChoices = explicitOrder
+    ? choicesWithPower.sort((a, b) => {
+        const indexA = explicitOrder.indexOf(a.choice);
+        const indexB = explicitOrder.indexOf(b.choice);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        return b.votingPower - a.votingPower;
+      })
+    : choicesWithPower.sort((a, b) => b.votingPower - a.votingPower);
+
+  const quorumVotingPower = sortedChoices
+    .filter((choice) => choice.countsTowardsQuorum)
+    .reduce((sum, choice) => sum + choice.votingPower, 0);
+
+  const hasStartDelegatedVp = Boolean(totalDelegatedVp && totalDelegatedVp > 0);
+  const showQuorumBar = Boolean(
+    onchain && deserializedResults.quorum !== null && hasStartDelegatedVp
+  );
+  const showParticipationBar = hasStartDelegatedVp;
+
+  const majorityChoice = sortedChoices[0];
+  const hasMajoritySupport = sortedChoices.map((c) => c.choice).includes('For')
+    ? majorityChoice.choice === 'For' &&
+      majorityChoice.votingPower > totalVotesCast / 2
+      ? true
+      : false
+    : undefined;
+
+  return (
+    <div className='mt-4 flex min-h-[112px] w-72 flex-col gap-2 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
+      {deserializedResults.quorum !== null && totalDelegatedVp && (
+        <MajoritySupportCheckmark hasMajoritySupport={hasMajoritySupport} />
+      )}
+      {showQuorumBar && (
+        <QuorumBar
+          choices={sortedChoices.filter((c) => c.countsTowardsQuorum)}
+          quorumVotingPower={quorumVotingPower}
+          quorum={deserializedResults.quorum as number}
+          totalDelegatedVp={totalDelegatedVp ?? 0}
+        />
+      )}
+      {showParticipationBar && (
+        <ParticipationPercentage
+          percentage={
+            totalDelegatedVp
+              ? Math.min(100, (totalVotesCast / totalDelegatedVp) * 100)
+              : 0
+          }
+          actualVotesCast={totalVotesCast}
+        />
+      )}
+    </div>
+  );
+}
+
+// Skeleton to occupy exact space of bars to avoid CLS
+export function ResultsListBarsSkeleton() {
+  return (
+    <div className='mt-4 flex min-h-[112px] w-72 flex-col gap-2 sm:ml-6'>
+      {/* Majority support row */}
+      <div className='flex w-full items-center gap-1 text-sm font-semibold'>
+        <div className='skeleton-blueprint skeleton-text h-5 w-5 rounded-full' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-36' />
+      </div>
+      {/* Quorum bar */}
+      <div>
+        <div className='relative h-4 w-full'>
+          <div className='absolute inset-0 border border-neutral-800 dark:border-neutral-200'>
+            <div className='skeleton-blueprint skeleton-text h-full w-1/3' />
+          </div>
+        </div>
+        <div className='mt-2 flex items-center gap-1 text-sm'>
+          <div className='skeleton-blueprint skeleton-text h-4 w-4' />
+          <div className='skeleton-blueprint skeleton-text h-3.5 w-52' />
+        </div>
+      </div>
+      {/* Participation bar */}
+      <div>
+        <div className='relative h-2 w-full overflow-hidden border border-neutral-800 dark:border-neutral-200'>
+          <div className='skeleton-blueprint skeleton-text h-full w-1/2' />
+        </div>
+        <div className='mt-2 text-xs'>
+          <div className='skeleton-blueprint skeleton-text h-3 w-56' />
+        </div>
+      </div>
+    </div>
+  );
 }

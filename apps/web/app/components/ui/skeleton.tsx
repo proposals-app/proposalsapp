@@ -945,6 +945,10 @@ const SkeletonResults = React.forwardRef<
         <div className='flex justify-center sm:hidden'>
           <SkeletonResultsList />
         </div>
+        {/* Bars skeleton to match live layout (mobile) */}
+        <div className='flex justify-center sm:hidden'>
+          <SkeletonResultsBars />
+        </div>
 
         <SkeletonChart />
 
@@ -956,6 +960,7 @@ const SkeletonResults = React.forwardRef<
 
       <div className='hidden sm:block'>
         <SkeletonResultsList />
+        <SkeletonResultsBars />
       </div>
     </div>
   );
@@ -1003,13 +1008,6 @@ const SkeletonResultsList = React.forwardRef<
         <div className='skeleton-blueprint skeleton-text mb-1 h-5 w-3/4' />
         <div className='skeleton-blueprint skeleton-text mb-4 h-5 w-3/4' />
       </div>
-
-      {/* Majority support placeholder */}
-      <div className='mb-4 flex w-full items-center gap-1'>
-        <div className='skeleton-blueprint skeleton-solid h-4 w-4 rounded-full' />
-        <div className='skeleton-blueprint skeleton-text h-4 w-24' />
-      </div>
-
       {/* Choice bars loading state */}
       <div className='mb-4 space-y-2'>
         {[...Array(3)].map((_, index) => (
@@ -1018,14 +1016,6 @@ const SkeletonResultsList = React.forwardRef<
             className='relative h-10 w-full overflow-hidden border-2 border-neutral-200 dark:border-neutral-700'
           />
         ))}
-      </div>
-
-      {/* Quorum bar placeholder */}
-      <div className='mb-4'>
-        <div className='relative mb-2 h-4 w-full overflow-hidden border border-neutral-200 dark:border-neutral-700'>
-          <div className='skeleton-blueprint skeleton-text h-full w-1/2' />
-          <div className='absolute top-[-4px] left-1/2 h-6 w-0.5 bg-neutral-300 dark:bg-neutral-600' />
-        </div>
       </div>
     </div>
   );
@@ -1657,3 +1647,42 @@ export {
   skeletonVariants,
   type SkeletonProps,
 };
+// Bars skeleton aligned with live ResultsListBars
+const SkeletonResultsBars = React.forwardRef<
+  HTMLDivElement,
+  { className?: string }
+>(({ className }, ref) => {
+  return (
+    <div ref={ref} className={cn('mt-4 min-h-[112px] w-72 sm:ml-6', className)}>
+      <div className='flex w-full flex-col gap-2'>
+        {/* Majority support row */}
+        <div className='flex w-full items-center gap-1 text-sm font-semibold'>
+          <div className='skeleton-blueprint skeleton-text h-5 w-5 rounded-full' />
+          <div className='skeleton-blueprint skeleton-text h-4 w-36' />
+        </div>
+        {/* Quorum bar */}
+        <div>
+          <div className='relative h-4 w-full'>
+            <div className='absolute inset-0 border border-neutral-200 dark:border-neutral-700'>
+              <div className='skeleton-blueprint skeleton-text h-full w-1/3' />
+            </div>
+          </div>
+          <div className='mt-2 flex items-center gap-1 text-sm'>
+            <div className='skeleton-blueprint skeleton-text h-4 w-4' />
+            <div className='skeleton-blueprint skeleton-text h-3.5 w-52' />
+          </div>
+        </div>
+        {/* Participation bar */}
+        <div>
+          <div className='relative h-2 w-full overflow-hidden border border-neutral-200 dark:border-neutral-700'>
+            <div className='skeleton-blueprint skeleton-text h-full w-1/2' />
+          </div>
+          <div className='mt-2 text-xs'>
+            <div className='skeleton-blueprint skeleton-text h-3 w-56' />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+SkeletonResultsBars.displayName = 'SkeletonResultsBars';

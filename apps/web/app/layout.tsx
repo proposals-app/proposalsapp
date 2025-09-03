@@ -8,7 +8,7 @@ import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/providers/posthog-provider';
 import { SafariViewportProvider } from './components/providers/safari-viewport-provider';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 
 export const metadata: Metadata = {
   // Use production base by default; Next can override per-request in advanced setups
@@ -39,39 +39,93 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  // Extract cookie from headers for SSR hydration
-  const headersList = await headers();
-  const cookie = headersList.get('cookie');
+  // Server-side read of theme cookies to set initial HTML class/attr
+  // to prevent any flash before the head script runs.
+  let initialModeClass = '';
+  let initialVariant: string | undefined = undefined;
+  try {
+    const cookieStore = await cookies();
+    const mode = cookieStore.get('theme-mode')?.value;
+    const variant = cookieStore.get('theme-variant')?.value;
+    if (mode === 'dark') initialModeClass = 'dark';
+    if (variant) initialVariant = variant;
+  } catch {
+    // nothing
+  }
 
   return (
     <html
       lang='en'
       suppressHydrationWarning
-      className={`${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable}`}
+      className={`${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable} ${initialModeClass}`}
+      {...(initialVariant ? { 'data-theme': initialVariant } : {})}
     >
       <head>
         <link rel='icon' href='/favicon.ico' />
         <link rel='manifest' href='/manifest.json' />
+        {/* Apply theme class ASAP to avoid FOUC before React hydration */}
+        <script
+          id='theme-initializer'
+          dangerouslySetInnerHTML={{
+            __html: `!function(){try{var m=document.cookie.match(/(?:^|; )theme-mode=([^;]+)/);var v=document.cookie.match(/(?:^|; )theme-variant=([^;]+)/);if(m){var mode=decodeURIComponent(m[1]);if(mode==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}if(v){document.documentElement.setAttribute('data-theme', decodeURIComponent(v[1]));}}catch(e){}}();`,
+          }}
+        />
       </head>
       <body>
         <SafariViewportProvider>
-          <Suspense>
-            <PostHogProvider>
-              <Suspense>
-                <WebVitals />
-              </Suspense>
-              <Suspense>
-                <NuqsAdapter>
-                  <WalletProvider cookie={cookie}>
-                    <main>{children}</main>
-                    <Toaster />
-                  </WalletProvider>
-                </NuqsAdapter>
-              </Suspense>
-            </PostHogProvider>
+          {/* Stream a lightweight shell immediately; hydrate providers inside Suspense */}
+          <Suspense
+            fallback={<ProvidersFallback>{children}</ProvidersFallback>}
+          >
+            <ProvidersWithRequest>{children}</ProvidersWithRequest>
           </Suspense>
         </SafariViewportProvider>
       </body>
     </html>
+  );
+}
+
+async function ProvidersWithRequest({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Read headers dynamically without blocking the outer shell
+  const headersList = await headers();
+  const cookie = headersList.get('cookie');
+
+  return (
+    <PostHogProvider>
+      <Suspense>
+        <WebVitals />
+      </Suspense>
+      <Suspense>
+        <NuqsAdapter>
+          <WalletProvider cookie={cookie}>
+            <main>{children}</main>
+            <Toaster />
+          </WalletProvider>
+        </NuqsAdapter>
+      </Suspense>
+    </PostHogProvider>
+  );
+}
+
+function ProvidersFallback({ children }: { children: React.ReactNode }) {
+  // Render the same structure without awaiting Request data
+  return (
+    <PostHogProvider>
+      <Suspense>
+        <WebVitals />
+      </Suspense>
+      <Suspense>
+        <NuqsAdapter>
+          <WalletProvider>
+            <main>{children}</main>
+            <Toaster />
+          </WalletProvider>
+        </NuqsAdapter>
+      </Suspense>
+    </PostHogProvider>
   );
 }

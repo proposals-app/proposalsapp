@@ -1,4 +1,5 @@
 'use server';
+import { cache } from 'react';
 
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import {
@@ -211,6 +212,9 @@ export async function getGroup(groupId: string) {
   }
 }
 
+// Cached wrappers to dedupe within a render pass
+export const getGroupCached = cache(getGroup);
+
 export type BodyVersionType = {
   title: string;
   content: string;
@@ -388,6 +392,8 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
 
   return bodies;
 }
+
+export const getBodyVersionsCached = cache(getBodyVersions);
 
 const MIN_VISIBLE_WIDTH_PERCENT = 1;
 
@@ -1230,6 +1236,8 @@ export async function getFeed(
   };
 }
 
+export const getFeedCached = cache(getFeed);
+
 export async function getGroupHeader(groupId: string): Promise<{
   originalAuthorName: string;
   originalAuthorPicture: string;
@@ -1424,6 +1432,8 @@ export async function getGroupHeader(groupId: string): Promise<{
     groupName: group.name,
   };
 }
+
+export const getGroupHeaderCached = cache(getGroupHeader);
 
 export type GroupReturnType = AsyncReturnType<typeof getGroup>;
 export type BodyVersionsReturnType = AsyncReturnType<typeof getBodyVersions>;

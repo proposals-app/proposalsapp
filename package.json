@@ -34,6 +34,9 @@
   "pnpm": {
     "overrides": {
       "prettier": "^3.6.2"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "ws"
+    ]
   }
 }
