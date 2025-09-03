@@ -145,21 +145,35 @@ const getTreasuryBalance = async () => {
 
 const getTokenPrice = async () => {
   try {
+    // Use the simpler price endpoint which is more reliable
     const url =
-      'https://api.coingecko.com/api/v3/coins/arbitrum/market_chart?vs_currency=usd&days=1';
+      'https://api.coingecko.com/api/v3/simple/price?ids=arbitrum&vs_currencies=usd';
+    console.log('[getTokenPrice] Fetching ARB price from:', url);
+
     const response = await fetch(url, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      next: { revalidate: 300 }, // Cache for 5 minutes
+      headers: {
+        Accept: 'application/json',
+      },
     });
 
     if (!response.ok) {
-      console.error(`CoinGecko API error: ${response.status}`);
+      console.error(
+        `[getTokenPrice] CoinGecko API error: ${response.status}, ${response.statusText}`
+      );
       return null;
     }
 
     const data = await response.json();
-    if (data.prices && data.prices.length > 0) {
-      return data.prices[data.prices.length - 1][1];
+    console.log('[getTokenPrice] Response data:', data);
+
+    if (data.arbitrum && data.arbitrum.usd) {
+      const price = data.arbitrum.usd;
+      console.log('[getTokenPrice] Successfully fetched ARB price:', price);
+      return price;
     }
+
+    console.error('[getTokenPrice] Unexpected response format:', data);
     return null;
   } catch (error) {
     console.error(`[getTokenPrice] Error fetching token price:`, error);
