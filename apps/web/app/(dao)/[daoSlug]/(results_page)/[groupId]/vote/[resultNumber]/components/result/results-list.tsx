@@ -306,7 +306,8 @@ function QuorumBar({
   totalDelegatedVp,
 }: QuorumBarProps) {
   // Denominator is the total delegated VP at proposal start
-  const denominator = totalDelegatedVp && totalDelegatedVp > 0 ? totalDelegatedVp : 0;
+  const denominator =
+    totalDelegatedVp && totalDelegatedVp > 0 ? totalDelegatedVp : 0;
   const quorumPercentage = denominator
     ? Math.min(100, (quorum / denominator) * 100)
     : 0;

@@ -223,29 +223,29 @@ export async function fuzzySearchVoters(
       return [];
     }
 
-    // Limit voters to those relevant to the DAO:
-    // - have any voting power entry for this dao, or
-    // - have cast a vote in this dao.
+    // Limit voters to those relevant to the DAO by checking membership via IN subqueries
+    // (easier to type correctly than cross-scope whereRef conditions)
     let query = db
       .selectFrom('voter')
       .where((eb) =>
-        eb
-          .exists(
+        eb.or([
+          eb(
+            'address',
+            'in',
             db
               .selectFrom('votingPowerTimeseries as vp')
-              .select('vp.id')
-              .whereRef('vp.voter', '=', 'voter.address')
+              .select('vp.voter')
               .where('vp.daoId', '=', dao.id)
-          )
-          .or(
-            eb.exists(
-              db
-                .selectFrom('vote as vo')
-                .select('vo.id')
-                .whereRef('vo.voterAddress', '=', 'voter.address')
-                .where('vo.daoId', '=', dao.id)
-            )
-          )
+          ),
+          eb(
+            'address',
+            'in',
+            db
+              .selectFrom('vote as vo')
+              .select('vo.voterAddress')
+              .where('vo.daoId', '=', dao.id)
+          ),
+        ])
       );
 
     if (excludeVoterIds.length > 0) {
