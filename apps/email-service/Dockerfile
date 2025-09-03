@@ -22,16 +22,7 @@ COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
 COPY libs/ts/db/ ./libs/ts/db/
 COPY libs/ts/emails/ ./libs/ts/emails/
 
-# Build the project
-ARG DATABASE_URL=postgres://user:password@host:5432/database
-ARG ARBITRUM_DATABASE_URL=postgres://user:password@host:5432/database   
-ARG UNISWAP_DATABASE_URL=postgres://user:password@host:5432/database
-ARG RESEND_API_KEY=re_dummy_key_for_build
-
-ENV DATABASE_URL=${DATABASE_URL}
-ENV ARBITRUM_DATABASE_URL=${ARBITRUM_DATABASE_URL}
-ENV UNISWAP_DATABASE_URL=${UNISWAP_DATABASE_URL}
-ENV RESEND_API_KEY=${RESEND_API_KEY}
+# Build the project (type-check only, no secrets needed)
 RUN pnpm build-${APP_NAME}
 
 # Stage 2: Final
@@ -54,6 +45,9 @@ COPY --from=builder /app/.npmrc /app/
 COPY --from=builder /app/pnpm-workspace.yaml /app/
 
 ENV NODE_ENV=production
+
+# Expose health server port
+EXPOSE 3000
 
 # Set the default command
 CMD ["pnpm", "start-email-service"]

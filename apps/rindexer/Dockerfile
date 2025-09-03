@@ -13,12 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     git \
-    curl \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Node.js (LTS version)
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
-    && apt-get install -y nodejs
 
 RUN cargo install cargo-chef --locked
 COPY . .
@@ -42,15 +37,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js (LTS version)
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
-    && apt-get install -y nodejs
+# Install Node.js (required by rindexer build script)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables for faster builds
+# Set environment variables
+# Prefer stability in constrained builders: lower codegen units, disable incremental
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
-ENV CARGO_PROFILE_RELEASE_INCREMENTAL=true
-ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+ENV CARGO_PROFILE_RELEASE_INCREMENTAL=false
+ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 RUN cargo install cargo-chef --locked
@@ -76,23 +74,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js (LTS version)
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
-    && apt-get install -y nodejs
+# Install Node.js (required by rindexer build script)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables for faster builds
+# Set environment variables
+# Prefer stability in constrained builders: lower codegen units, disable incremental
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
-ENV CARGO_PROFILE_RELEASE_INCREMENTAL=true
-ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+ENV CARGO_PROFILE_RELEASE_INCREMENTAL=false
+ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 COPY . .
 
-# Build the project with parallel jobs
-RUN cargo build --release --bin ${APP_NAME} --jobs $(nproc)
+# Build the project (let cargo decide parallelism)
+RUN cargo build --release --bin ${APP_NAME}
 
 # Stage 4: Final
 FROM debian:bookworm-slim
@@ -103,17 +104,17 @@ ARG APP_NAME
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
-    libunwind-dev \
-    libdw-dev \
-    build-essential \
-    python3 \
-    curl \
+    libunwind8 \
+    libdw1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 COPY --from=builder /app/apps/rindexer/abis /app/abis
 COPY --from=builder /app/apps/rindexer/rindexer.yaml /app/rindexer.yaml
+
+# Expose health server port
+EXPOSE 3000
 
 # Set the default command
 CMD ["proposalsapp-rindexer"]

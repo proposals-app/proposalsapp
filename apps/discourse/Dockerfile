@@ -90,15 +90,15 @@ ARG APP_NAME
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
-    libunwind-dev \
-    libdw-dev \
-    build-essential \
-    python3 \
-    curl \
+    libunwind8 \
+    libdw1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
 COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
+
+# Expose health server port
+EXPOSE 3000
 
 # Set the default command
 CMD ["discourse"]
