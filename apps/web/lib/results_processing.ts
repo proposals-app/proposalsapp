@@ -97,14 +97,7 @@ export function getColorForChoice(choice: string | undefined | null): string {
  * @param proposal - The proposal object.
  * @returns The total delegated voting power or undefined if not available.
  */
-function getTotalDelegatedVp(
-  proposal: Selectable<Proposal>
-): number | undefined {
-  const metadata = proposal.metadata as ProposalMetadata;
-  return metadata.totalDelegatedVp
-    ? Number(metadata.totalDelegatedVp)
-    : undefined;
-}
+// No DB access here; totalDelegatedVp should be provided by server code
 
 const ACCUMULATE_VOTING_POWER_THRESHOLD = 50000;
 
@@ -1099,6 +1092,7 @@ export interface ProcessingConfig {
   withVotes?: boolean;
   withTimeseries?: boolean;
   aggregatedVotes?: boolean;
+  totalDelegatedVpAtStart?: number;
 }
 
 /**
@@ -1108,6 +1102,8 @@ export interface ProcessingConfig {
  * @param withVotes - Whether to include processed votes in the result. Defaults to true.
  * @param withTimeseries - Whether to include time series data in the result. Defaults to true.
  * @param aggregatedVotes - Whether to aggregate small votes between large ones. Defaults to false.
+ * @param totalDelegatedVpAtStart - Optional normalized denominator for bars; the DAO-wide
+ *        total delegated voting power at or before proposal start. Must be computed server-side.
  * @returns A promise that resolves to the processed results.
  */
 export async function processResultsAction(
@@ -1126,6 +1122,7 @@ export async function processResultsAction(
     withVotes = true,
     withTimeseries = true,
     aggregatedVotes = false,
+    totalDelegatedVpAtStart,
   }: ProcessingConfig
 ): Promise<ProcessedResults> {
   // --- Common Setup ---
@@ -1145,7 +1142,10 @@ export async function processResultsAction(
   const voteType = (metadata.voteType || 'basic') as VoteType;
   const quorum = proposal.quorum ? Number(proposal.quorum) : null;
   const quorumChoices = metadata.quorumChoices ?? [];
-  const totalDelegatedVp = getTotalDelegatedVp(proposal);
+  const totalDelegatedVp =
+    typeof totalDelegatedVpAtStart === 'number'
+      ? totalDelegatedVpAtStart
+      : undefined;
   const hiddenVote = metadata.hiddenVote ?? false;
   const scoresState = metadata.scoresState ?? 'unknown';
 

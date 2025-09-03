@@ -44,10 +44,9 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
     .filter((choice) => choice.countsTowardsQuorum)
     .reduce((sum, choice) => sum + choice.votingPower, 0);
 
-  // Prefer totalDelegatedVp when available; otherwise fall back to a sensible scale
-  const participationDenominator =
-    totalDelegatedVp ||
-    Math.max(totalVotesCast, deserializedResults.quorum || 0);
+  // Participation should be relative to total delegated voting power at proposal start
+  // Use only `totalDelegatedVp` captured at proposal begin; if unavailable, we won't render the bar
+  const participationDenominator = totalDelegatedVp || 0;
   const participationPercentage = participationDenominator
     ? Math.min(100, (totalVotesCast / participationDenominator) * 100)
     : 0;
@@ -64,8 +63,12 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
   const hasQuorum = quorumVotingPower > (deserializedResults.quorum || 0);
 
   // Consolidate conditions we care about for rendering
-  const showQuorumBar = Boolean(onchain && deserializedResults.quorum !== null);
-  const showParticipationBar = Boolean(onchain);
+  // Only render bars when we have the total delegated VP at proposal start
+  const hasStartDelegatedVp = Boolean(totalDelegatedVp && totalDelegatedVp > 0);
+  const showQuorumBar = Boolean(
+    onchain && deserializedResults.quorum !== null && hasStartDelegatedVp
+  );
+  const showParticipationBar = hasStartDelegatedVp;
 
   return (
     <div className='flex w-72 flex-col gap-4 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
@@ -177,7 +180,8 @@ async function StatusMessage({
 
   // Vote has ended
   if (isEnded) {
-    if (!hasQuorum) {
+    // Onchain specific: mention quorum failure
+    if (isOnchain && !hasQuorum) {
       return (
         <div className='text-sm font-medium'>
           This {voteType} vote ended{' '}
@@ -210,7 +214,7 @@ async function StatusMessage({
 
   // Vote is still active
   // Check for majority support only if quorum is met, otherwise it's irrelevant
-  if (!hasQuorum) {
+  if (isOnchain && !hasQuorum) {
     return (
       <div className='text-sm font-medium'>
         This {voteType} vote ends{' '}
@@ -301,11 +305,8 @@ function QuorumBar({
   quorum,
   totalDelegatedVp,
 }: QuorumBarProps) {
-  // Choose a denominator: prefer totalDelegatedVp; otherwise scale to the larger of quorum or current quorumVotingPower
-  const denominator =
-    totalDelegatedVp && totalDelegatedVp > 0
-      ? totalDelegatedVp
-      : Math.max(quorumVotingPower, quorum);
+  // Denominator is the total delegated VP at proposal start
+  const denominator = totalDelegatedVp && totalDelegatedVp > 0 ? totalDelegatedVp : 0;
   const quorumPercentage = denominator
     ? Math.min(100, (quorum / denominator) * 100)
     : 0;

@@ -4,6 +4,7 @@ import {
   getProposalGovernor,
   getVoter,
   getVotesWithVoters,
+  getTotalDelegatedVpAtStart,
 } from './actions';
 import { LoadingChart, ResultsChart } from './result/results-chart';
 import { LoadingList, ResultsList } from './result/results-list';
@@ -37,10 +38,13 @@ export function Results({ proposal }: ResultsProps) {
 async function ResultsContent({ proposal }: ResultsProps) {
   const votes = await getVotesWithVoters(proposal.id);
 
+  const totalDelegatedAtStart = await getTotalDelegatedVpAtStart(proposal.id);
+
   const processedResults = await processResultsAction(proposal, votes, {
     withVotes: true,
     withTimeseries: true,
     aggregatedVotes: false,
+    totalDelegatedVpAtStart: totalDelegatedAtStart,
   });
 
   const serializedResults = superjson.serialize(processedResults);

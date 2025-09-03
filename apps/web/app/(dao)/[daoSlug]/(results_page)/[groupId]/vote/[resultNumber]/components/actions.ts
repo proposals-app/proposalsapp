@@ -6,6 +6,11 @@ import {
 } from '@/lib/validations';
 import { db, type DiscourseUser, type Selectable } from '@proposalsapp/db';
 
+// Address to exclude from delegated voting power calculations.
+// This is the Arbitrum exclusion address which should never count
+// toward delegated supply when computing participation/quorum baselines.
+export const EXCLUSION_ADDRESS = '0x00000000000000000000000000000000000A4B86';
+
 export async function getProposalGovernor(proposalId: string) {
   // 'use cache';
   // cacheLife('days');
@@ -37,6 +42,51 @@ export async function getProposalGovernor(proposalId: string) {
   }
 
   return daoIndexer;
+}
+
+// Compute total delegated voting power at the time the proposal started.
+//
+// Notes:
+// - Server-only: used to normalize participation and quorum bars.
+// - We derive the value from the DB (no metadata), summing each voter's
+//   latest record at or before `proposal.startAt` from `votingPowerTimeseries`.
+// - We use DISTINCT ON (voter) ordered by timestamp desc to pick the latest
+//   snapshot per voter at or before the proposal start.
+// - We exclude `EXCLUSION_ADDRESS` from the sum.
+export async function getTotalDelegatedVpAtStart(
+  proposalId: string
+): Promise<number> {
+  try {
+    proposalIdSchema.parse(proposalId);
+  } catch {
+    return 0;
+  }
+
+  const proposal = await db
+    .selectFrom('proposal')
+    .where('id', '=', proposalId)
+    .select(['daoId', 'startAt'])
+    .executeTakeFirst();
+
+  if (!proposal) return 0;
+
+  // For each voter, get their latest row at or before the start time,
+  // filter to positive voting power and exclude the special address.
+  const rows = await db
+    .selectFrom('votingPowerTimeseries as vp')
+    .where('vp.daoId', '=', proposal.daoId)
+    .where('vp.votingPower', '>', 0)
+    .where('vp.voter', '!=', EXCLUSION_ADDRESS)
+    .where('vp.timestamp', '<=', proposal.startAt)
+    .orderBy('vp.voter', 'asc')
+    .orderBy('vp.timestamp', 'desc')
+    .distinctOn(['vp.voter'])
+    .select(['vp.votingPower'])
+    .execute();
+
+  // Sum the voting power across all distinct voters; fall back to 0 if none found.
+  if (rows.length === 0) return 0;
+  return rows.reduce((sum, r) => sum + (r.votingPower || 0), 0);
 }
 
 export async function getNonVoters(proposalId: string) {
