@@ -12,15 +12,9 @@ import {
   type Vote,
 } from '@proposalsapp/db';
 
-// Address to exclude from delegated voting power calculations.
-// This is the Arbitrum exclusion address which should never count
-// toward delegated supply when computing participation/quorum baselines.
 export const EXCLUSION_ADDRESS = '0x00000000000000000000000000000000000A4B86';
 
 export async function getProposalGovernor(proposalId: string) {
-  // 'use cache';
-  // cacheLife('days');
-
   proposalIdSchema.parse(proposalId);
 
   const proposal = await db
@@ -29,10 +23,7 @@ export async function getProposalGovernor(proposalId: string) {
     .select(['governorId'])
     .executeTakeFirst();
 
-  if (!proposal) {
-    console.warn(`Proposal with id ${proposalId} not found.`);
-    return null;
-  }
+  if (!proposal) return null;
 
   const daoIndexer = await db
     .selectFrom('daoGovernor')
@@ -40,25 +31,11 @@ export async function getProposalGovernor(proposalId: string) {
     .selectAll()
     .executeTakeFirst();
 
-  if (!daoIndexer) {
-    console.warn(
-      `DaoIndexer with id ${proposal.governorId} not found for proposal ${proposalId}.`
-    );
-    return null;
-  }
+  if (!daoIndexer) return null;
 
   return daoIndexer;
 }
 
-// Compute total delegated voting power at the time the proposal started.
-//
-// Notes:
-// - Server-only: used to normalize participation and quorum bars.
-// - We derive the value from the DB (no metadata), summing each voter's
-//   latest record at or before `proposal.startAt` from `votingPowerTimeseries`.
-// - We use DISTINCT ON (voter) ordered by timestamp desc to pick the latest
-//   snapshot per voter at or before the proposal start.
-// - We exclude `EXCLUSION_ADDRESS` from the sum.
 export async function getTotalDelegatedVpAtStart(
   proposalId: string
 ): Promise<number> {
@@ -76,13 +53,18 @@ export async function getTotalDelegatedVpAtStart(
 
   if (!proposal) return 0;
 
-  // For each voter, get their latest row at or before the start time,
-  // filter to positive voting power and exclude the special address.
-  const rows = await db
+  // Join historical voting power with current voters to only count tokens still available for voting
+  const historicalPowers = await db
     .selectFrom('votingPowerTimeseries as vp')
+    .innerJoin('votingPowerLatest as latest', (join) =>
+      join
+        .onRef('latest.voter', '=', 'vp.voter')
+        .on('latest.daoId', '=', proposal.daoId)
+        .on('latest.votingPower', '>', 0)
+        .on('latest.voter', '!=', EXCLUSION_ADDRESS)
+    )
     .where('vp.daoId', '=', proposal.daoId)
     .where('vp.votingPower', '>', 0)
-    .where('vp.voter', '!=', EXCLUSION_ADDRESS)
     .where('vp.timestamp', '<=', proposal.startAt)
     .orderBy('vp.voter', 'asc')
     .orderBy('vp.timestamp', 'desc')
@@ -90,16 +72,13 @@ export async function getTotalDelegatedVpAtStart(
     .select(['vp.votingPower'])
     .execute();
 
-  // Sum the voting power across all distinct voters; fall back to 0 if none found.
-  if (rows.length === 0) return 0;
-  return rows.reduce((sum, r) => sum + (r.votingPower || 0), 0);
+  if (historicalPowers.length === 0) return 0;
+
+  return historicalPowers.reduce((sum, r) => sum + (r.votingPower || 0), 0);
 }
 
 export async function getNonVoters(proposalId: string) {
-  // 'use cache';
-  // cacheLife('minutes');
-
-  const NON_VOTER_SELECT_LIMIT = 50000; //50k VP
+  const NON_VOTER_SELECT_LIMIT = 50000;
 
   type DelegateToVoterLink = {
     voterId: string;
@@ -110,7 +89,6 @@ export async function getNonVoters(proposalId: string) {
     discourseUserId: string;
   };
 
-  // Validate proposalId
   try {
     proposalIdSchema.parse(proposalId);
   } catch {
@@ -120,8 +98,6 @@ export async function getNonVoters(proposalId: string) {
       nonVoters: [],
     };
   }
-
-  // 0. Fetch proposal
   const proposal = await db
     .selectFrom('proposal')
     .where('id', '=', proposalId)
@@ -129,14 +105,10 @@ export async function getNonVoters(proposalId: string) {
     .executeTakeFirst();
 
   if (!proposal) {
-    console.warn(
-      `Proposal with id ${proposalId} not found for non-voters query.`
-    );
     return { nonVoters: [], totalNumberOfNonVoters: 0, totalVotingPower: 0 };
   }
   const { daoId, startAt } = proposal;
 
-  // 1. Get addresses that *did* vote
   const votedAddressesSet = new Set(
     (
       await db
@@ -148,7 +120,6 @@ export async function getNonVoters(proposalId: string) {
     ).map((v) => v.voterAddress)
   );
 
-  // 2. Get all potentially eligible voters at proposal start
   const eligibleVoters = await db
     .selectFrom('votingPowerTimeseries as vp')
     .innerJoin('voter as v', 'v.address', 'vp.voter')
@@ -168,20 +139,17 @@ export async function getNonVoters(proposalId: string) {
     .execute();
 
   if (eligibleVoters.length === 0) {
-    console.log(`No eligible voters found for proposal ${proposalId}`);
     return { nonVoters: [], totalNumberOfNonVoters: 0, totalVotingPower: 0 };
   }
 
   const eligibleVoterAddresses = eligibleVoters.map((v) => v.voter);
   const eligibleVoterIds = eligibleVoters.map((v) => v.voterId);
 
-  // 3. Get the *current* (latest) voting power for all eligible voters
-  // Now using the optimized voting_power_latest table
-  const CHUNK_SIZE = 10000; // Increased chunk size since query is now much faster
+  // Process current voting power in chunks to handle large datasets
+  const CHUNK_SIZE = 10000;
   const currentPowerMap = new Map<string, number>();
 
   if (eligibleVoterAddresses.length <= CHUNK_SIZE) {
-    // Single query for smaller datasets
     const currentPowers = await db
       .selectFrom('votingPowerLatest')
       .where('daoId', '=', daoId)
@@ -192,7 +160,6 @@ export async function getNonVoters(proposalId: string) {
       currentPowerMap.set(cp.voter, cp.votingPower);
     });
   } else {
-    // Chunked processing for large datasets
     for (let i = 0; i < eligibleVoterAddresses.length; i += CHUNK_SIZE) {
       const chunk = eligibleVoterAddresses.slice(i, i + CHUNK_SIZE);
       if (chunk.length === 0) continue;
@@ -208,27 +175,22 @@ export async function getNonVoters(proposalId: string) {
     }
   }
 
-  // --- Steps to fetch Discourse User Info (CHUNKED) ---
-
-  // 4. Get the daoDiscourseId for the current DAO
+  // Link voters to discourse users for profile information
   const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .where('daoId', '=', daoId)
     .select('id')
     .executeTakeFirst();
 
-  // Initialize maps and lists needed later
   let delegateIdByVoterId = new Map<string, string>();
   let discourseUserIdByDelegateId = new Map<string, string>();
   let discourseUserMap = new Map<string, Selectable<DiscourseUser>>();
   let allDelegateIds: string[] = [];
   let allDiscourseUserIds: string[] = [];
-
-  // Only proceed if there's a discourse setup for the DAO
   if (daoDiscourse && eligibleVoterIds.length > 0) {
     const daoDiscourseId = daoDiscourse.id;
 
-    // 5. Find delegate links for eligible voters (CHUNKED)
+    // Process delegate links in chunks to avoid parameter limits
     const allDelegateToVoterLinks: DelegateToVoterLink[] = [];
     for (let i = 0; i < eligibleVoterIds.length; i += CHUNK_SIZE) {
       const chunk = eligibleVoterIds.slice(i, i + CHUNK_SIZE);
@@ -237,7 +199,7 @@ export async function getNonVoters(proposalId: string) {
       const chunkLinks = await db
         .selectFrom('delegateToVoter as dtv')
         .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
-        .where('dtv.voterId', 'in', chunk) // Use chunk here
+        .where('dtv.voterId', 'in', chunk)
         .where('d.daoId', '=', daoId)
         .orderBy('dtv.voterId', 'asc')
         .orderBy('dtv.createdAt', 'desc')
@@ -247,18 +209,14 @@ export async function getNonVoters(proposalId: string) {
       allDelegateToVoterLinks.push(...chunkLinks);
     }
 
-    // Populate map and list *after* chunking
     delegateIdByVoterId = new Map(
       allDelegateToVoterLinks.map((link) => [link.voterId, link.delegateId])
     );
-    // Get unique delegate IDs
     allDelegateIds = [
       ...new Set(allDelegateToVoterLinks.map((link) => link.delegateId)),
     ];
 
-    // Only proceed if there are linked delegates
     if (allDelegateIds.length > 0) {
-      // 6. Find Discourse user links for delegates (CHUNKED)
       const allDelegateToDiscourseLinks: DelegateToDiscourseLink[] = [];
       for (let i = 0; i < allDelegateIds.length; i += CHUNK_SIZE) {
         const chunk = allDelegateIds.slice(i, i + CHUNK_SIZE);
@@ -266,7 +224,7 @@ export async function getNonVoters(proposalId: string) {
 
         const chunkLinks = await db
           .selectFrom('delegateToDiscourseUser as dtdu')
-          .where('dtdu.delegateId', 'in', chunk) // Use chunk here
+          .where('dtdu.delegateId', 'in', chunk)
           .orderBy('dtdu.delegateId', 'asc')
           .orderBy('dtdu.createdAt', 'desc')
           .distinctOn('dtdu.delegateId')
@@ -275,21 +233,18 @@ export async function getNonVoters(proposalId: string) {
         allDelegateToDiscourseLinks.push(...chunkLinks);
       }
 
-      // Populate map and list *after* chunking
       discourseUserIdByDelegateId = new Map(
         allDelegateToDiscourseLinks.map((link) => [
           link.delegateId,
           link.discourseUserId,
         ])
       );
-      // Get unique discourse user IDs
       allDiscourseUserIds = [
         ...new Set(
           allDelegateToDiscourseLinks.map((link) => link.discourseUserId)
         ),
       ];
 
-      // 7. Fetch Discourse User details (CHUNKED)
       if (allDiscourseUserIds.length > 0) {
         const allDiscourseUsers: Selectable<DiscourseUser>[] = [];
         for (let i = 0; i < allDiscourseUserIds.length; i += CHUNK_SIZE) {
@@ -298,29 +253,24 @@ export async function getNonVoters(proposalId: string) {
 
           const chunkUsers = await db
             .selectFrom('discourseUser')
-            .where('id', 'in', chunk) // Use chunk here
+            .where('id', 'in', chunk)
             .where('daoDiscourseId', '=', daoDiscourseId)
             .selectAll()
             .execute();
           allDiscourseUsers.push(...chunkUsers);
         }
-        // Populate map *after* chunking
         discourseUserMap = new Map(allDiscourseUsers.map((du) => [du.id, du]));
       }
     }
   }
 
-  // --- Combine and Filter ---
-
   let totalVotingPower = 0;
-  // 8. Filter eligible voters who didn't vote and map to the final structure
   const nonVoters = eligibleVoters
     .filter((v) => !votedAddressesSet.has(v.voter))
     .map((voter) => {
       const currentVotingPower = currentPowerMap.get(voter.voter) ?? 0;
       totalVotingPower += voter.votingPowerAtStart;
 
-      // Find associated discourse user, if any (using the maps populated after chunking)
       let discourseUser: Selectable<DiscourseUser> | null = null;
       const delegateId = delegateIdByVoterId.get(voter.voterId);
       if (delegateId) {
@@ -357,30 +307,20 @@ export async function getNonVoters(proposalId: string) {
 export type NonVotersData = AsyncReturnType<typeof getNonVoters>;
 
 export async function getVotesWithVoters(proposalId: string) {
-  // 'use cache';
-  // cacheLife('minutes');
-
-  // Validate proposalId
   try {
     proposalIdSchema.parse(proposalId);
   } catch {
     return [];
   }
-
-  // 0. Fetch proposal to get daoId
   const proposal = await db
     .selectFrom('proposal')
     .where('id', '=', proposalId)
     .select(['id', 'daoId'])
     .executeTakeFirst();
 
-  if (!proposal) {
-    console.warn(`Proposal with id ${proposalId} not found.`);
-    return []; // Return empty array if proposal doesn't exist
-  }
+  if (!proposal) return [];
   const { daoId } = proposal;
 
-  // Optimized single query with all necessary joins using voting_power_latest
   const votesWithAllData = await db
     .selectFrom('vote')
     .innerJoin('voter', 'voter.address', 'vote.voterAddress')
@@ -412,21 +352,14 @@ export async function getVotesWithVoters(proposalId: string) {
     return [];
   }
 
-  // Extract voter IDs for delegate lookup
   const voterIds = votesWithAllData.map((v) => v.voterId);
-
-  // Latest voting power is already included in the join
-
-  // --- New Steps for Discourse User ---
-
-  // 5. Find the delegate link for each voter (most recent verified link)
   const delegateToVoterLinks = await db
     .selectFrom('delegateToVoter as dtv')
     .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
     .where('dtv.voterId', 'in', voterIds)
-    .where('d.daoId', '=', daoId) // Ensure delegate belongs to the DAO
+    .where('d.daoId', '=', daoId)
     .orderBy('dtv.voterId', 'asc')
-    .orderBy('dtv.createdAt', 'desc') // Or periodStart/End depending on desired logic
+    .orderBy('dtv.createdAt', 'desc')
     .distinctOn('dtv.voterId')
     .select(['dtv.voterId', 'dtv.delegateId'])
     .execute();
@@ -436,34 +369,25 @@ export async function getVotesWithVoters(proposalId: string) {
   );
   const delegateIds = delegateToVoterLinks.map((link) => link.delegateId);
 
-  // 6. Get the daoDiscourseId for the current DAO
   const daoDiscourse = await db
     .selectFrom('daoDiscourse')
     .where('daoId', '=', daoId)
     .select('id')
     .executeTakeFirst();
 
-  // Initialize maps needed later
   let discourseUserMap = new Map<string, Selectable<DiscourseUser>>();
-  // *** Declare the map that was missing population ***
   let discourseUserIdByDelegateId = new Map<string, string>();
-
-  // Only proceed if there are delegates and a discourse setup for the DAO
   if (delegateIds.length > 0 && daoDiscourse) {
     const daoDiscourseId = daoDiscourse.id;
 
-    // 7. Find the discourse user link for each delegate (most recent verified link)
     const delegateToDiscourseLinks = await db
       .selectFrom('delegateToDiscourseUser as dtdu')
       .where('dtdu.delegateId', 'in', delegateIds)
-      // .where('dtdu.verified', '=', true) // Optional: only consider verified links
       .orderBy('dtdu.delegateId', 'asc')
-      .orderBy('dtdu.createdAt', 'desc') // Or periodStart/End
+      .orderBy('dtdu.createdAt', 'desc')
       .distinctOn('dtdu.delegateId')
       .select(['dtdu.delegateId', 'dtdu.discourseUserId'])
       .execute();
-
-    // *** FIX: Populate the map here ***
     discourseUserIdByDelegateId = new Map(
       delegateToDiscourseLinks.map((link) => [
         link.delegateId,
@@ -475,25 +399,19 @@ export async function getVotesWithVoters(proposalId: string) {
       (link) => link.discourseUserId
     );
 
-    // 8. Fetch the actual Discourse User details for the linked users
     if (discourseUserIds.length > 0) {
       const discourseUsers = await db
         .selectFrom('discourseUser')
         .where('id', 'in', discourseUserIds)
-        .where('daoDiscourseId', '=', daoDiscourseId) // Ensure the discourse user belongs to the correct discourse instance
+        .where('daoDiscourseId', '=', daoDiscourseId)
         .selectAll()
         .execute();
 
-      // Map discourse users by their ID for lookup
       discourseUserMap = new Map(discourseUsers.map((du) => [du.id, du]));
     }
   }
 
-  // --- Combine all data ---
-
-  // 9. Combine vote data with voter, voting power, and discourse user info
   const votesWithVoters = votesWithAllData.map((vote) => {
-    // Find the discourse user
     let discourseUser: Selectable<DiscourseUser> | null = null;
     const delegateId = delegateIdByVoterId.get(vote.voterId);
     if (delegateId) {
@@ -503,7 +421,6 @@ export async function getVotesWithVoters(proposalId: string) {
       }
     }
 
-    // Construct the final object for this vote
     return {
       id: vote.id,
       choice: vote.choice,
@@ -534,12 +451,7 @@ export type DelegateInfo = {
 } | null;
 
 export async function getVoter(voterAddress: string): Promise<DelegateInfo> {
-  // 'use cache';
-  // cacheLife('hours');
-
   voterAddressSchema.parse(voterAddress);
-
-  // Get the voter
   const voter = await db
     .selectFrom('voter')
     .where('address', '=', voterAddress)
@@ -548,7 +460,6 @@ export async function getVoter(voterAddress: string): Promise<DelegateInfo> {
 
   if (!voter) return null;
 
-  // Fallback to address
   return {
     id: null,
     address: voter.address,
@@ -570,10 +481,6 @@ export async function getDelegateVotingPower(
   daoSlug: string,
   proposalId: string
 ): Promise<DelegateVotingPower | null> {
-  // 'use cache';
-  // cacheLife('hours');
-
-  // Validate all parameters
   try {
     voterAddressSchema.parse(voterAddress);
     daoSlugSchema.parse(daoSlug);
@@ -581,8 +488,6 @@ export async function getDelegateVotingPower(
   } catch {
     return null;
   }
-
-  // Get the proposal to determine timestamps
   const proposal = await db
     .selectFrom('proposal')
     .where('id', '=', proposalId)
@@ -591,7 +496,6 @@ export async function getDelegateVotingPower(
 
   if (!proposal) return null;
 
-  // Get the dao
   const dao = await db
     .selectFrom('dao')
     .where('slug', '=', daoSlug)
@@ -600,7 +504,6 @@ export async function getDelegateVotingPower(
 
   if (!dao) return null;
 
-  // Get the vote
   const vote = await db
     .selectFrom('vote')
     .where('voterAddress', '=', voterAddress)
@@ -610,7 +513,6 @@ export async function getDelegateVotingPower(
 
   if (!vote) return null;
 
-  // Get the latest voting power
   const latestVotingPowerRecord = await db
     .selectFrom('votingPowerLatest')
     .where('voter', '=', voterAddress)
@@ -621,7 +523,6 @@ export async function getDelegateVotingPower(
   const latestVotingPower = latestVotingPowerRecord?.votingPower ?? 0;
   const votingPowerAtVote = vote.votingPower;
 
-  // Compute relative change
   let change: number | null = null;
   if (votingPowerAtVote !== 0) {
     const rawChange =
@@ -641,10 +542,6 @@ export async function getDelegateVotingPower(
 export type VotesWithVoters = AsyncReturnType<typeof getVotesWithVoters>;
 
 export async function getVotesWithVotersForProposals(proposalIds: string[]) {
-  // 'use cache';
-  // cacheLife('minutes');
-
-  // Validate all proposalIds
   const validProposalIds = proposalIds.filter((id) => {
     try {
       proposalIdSchema.parse(id);
@@ -658,7 +555,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     return [];
   }
 
-  // 0. Fetch all proposals to get daoIds
   const proposals = await db
     .selectFrom('proposal')
     .where('id', 'in', validProposalIds)
@@ -669,10 +565,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     return [];
   }
 
-  // Get unique daoIds (should typically be just one for a group)
   const daoIds = [...new Set(proposals.map((p) => p.daoId))];
-
-  // 1. Fetch all votes for all proposals in a single query
   const allVotes = await db
     .selectFrom('vote')
     .distinctOn(['proposalId', 'voterAddress'])
@@ -691,7 +584,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     .orderBy('createdAt', 'desc')
     .execute();
 
-  // 2. Get all unique voter addresses
   const voterAddresses = [
     ...new Set(allVotes.map((vote) => vote.voterAddress)),
   ];
@@ -708,7 +600,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     }));
   }
 
-  // 3. Fetch all voters in a single query
   const voters = await db
     .selectFrom('voter')
     .select(['id', 'address', 'ens', 'avatar'])
@@ -718,7 +609,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   const voterMap = new Map(voters.map((voter) => [voter.address, voter]));
   const voterIds = voters.map((v) => v.id);
 
-  // 4. Fetch latest voting power for each voter across all DAOs
   const latestVotingPowers = await db
     .selectFrom('votingPowerLatest')
     .select(['voter', 'votingPower', 'daoId'])
@@ -726,14 +616,12 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     .where('daoId', 'in', daoIds)
     .execute();
 
-  // Create a map for efficient latest voting power lookup by voter and daoId
   const latestVotingPowerMap = new Map<string, number>();
   latestVotingPowers.forEach((vp) => {
     const key = `${vp.voter}-${vp.daoId}`;
     latestVotingPowerMap.set(key, vp.votingPower);
   });
 
-  // 5. Find delegate links for all voters across all DAOs
   const delegateToVoterLinks = await db
     .selectFrom('delegateToVoter as dtv')
     .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
@@ -755,7 +643,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     ...new Set(delegateToVoterLinks.map((link) => link.delegateId)),
   ];
 
-  // 6. Get all daoDiscourseIds for the DAOs
   const daoDiscourses = await db
     .selectFrom('daoDiscourse')
     .where('daoId', 'in', daoIds)
@@ -766,7 +653,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   let discourseUserIdByDelegateId = new Map<string, string>();
 
   if (delegateIds.length > 0 && daoDiscourses.length > 0) {
-    // 7. Find discourse user links for all delegates
     const delegateToDiscourseLinks = await db
       .selectFrom('delegateToDiscourseUser as dtdu')
       .where('dtdu.delegateId', 'in', delegateIds)
@@ -787,7 +673,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
       ...new Set(delegateToDiscourseLinks.map((link) => link.discourseUserId)),
     ];
 
-    // 8. Fetch all discourse users
     if (discourseUserIds.length > 0) {
       const discourseUsers = await db
         .selectFrom('discourseUser')
@@ -804,10 +689,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     }
   }
 
-  // 9. Map proposal to daoId for lookup
   const daoIdByProposalId = new Map(proposals.map((p) => [p.id, p.daoId]));
-
-  // 10. Combine all data
   const votesWithVoters = allVotes.map((vote) => {
     const voter = voterMap.get(vote.voterAddress);
     const daoId = daoIdByProposalId.get(vote.proposalId);
@@ -844,7 +726,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   return votesWithVoters;
 }
 
-// Cached wrappers to dedupe DB work within a render pass
 export const getVotesWithVotersCached = cache(getVotesWithVoters);
 export const getTotalDelegatedVpAtStartCached = cache(
   getTotalDelegatedVpAtStart
@@ -852,7 +733,6 @@ export const getTotalDelegatedVpAtStartCached = cache(
 export const getProposalGovernorCached = cache(getProposalGovernor);
 export const getVoterCached = cache(getVoter);
 
-// Minimal votes fetch for chart/time series and core results
 export async function getVotesMinimal(
   proposalId: string
 ): Promise<
@@ -870,7 +750,6 @@ export async function getVotesMinimal(
   try {
     proposalIdSchema.parse(proposalId);
   } catch {
-    // Return a correctly typed empty array on validation failure
     return [] as Pick<
       Selectable<Vote>,
       | 'id'
@@ -900,7 +779,6 @@ export async function getVotesMinimal(
     .orderBy('createdAt', 'desc')
     .execute();
 
-  // Ensure createdAt is a Date to satisfy downstream typings
   return votes.map((v) => ({
     ...v,
     createdAt: (v.createdAt instanceof Date
