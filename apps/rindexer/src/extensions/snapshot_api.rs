@@ -132,6 +132,17 @@ pub struct SnapshotVote {
 }
 
 impl SnapshotVote {
+    /// Check if this vote has a hidden (hex hash) choice indicating encrypted vote
+    pub fn has_hidden_choice(&self) -> bool {
+        match &self.choice {
+            serde_json::Value::String(choice_str) => {
+                // Check if it's a hex hash (0x followed by hex characters)
+                choice_str.starts_with("0x") && choice_str.len() >= 10 && 
+                choice_str[2..].chars().all(|c| c.is_ascii_hexdigit())
+            },
+            _ => false,
+        }
+    }
     /// Converts a SnapshotVote to a database vote model
     pub fn to_active_model(
         &self,
@@ -465,6 +476,56 @@ impl SnapshotApi {
 
         let response: SnapshotVotesResponse = self.fetch_graphql(&query).await?;
         Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
+    }
+
+    /// Fetch votes for a proposal with retry mechanism for hidden votes
+    /// Keeps retrying until votes are no longer hidden (hex hashes) or max attempts reached
+    #[instrument(name = "fetch_proposal_votes_with_retry", skip(self))]
+    pub async fn fetch_proposal_votes_with_retry(
+        &self, 
+        proposal_id: &str,
+        max_attempts: usize,
+        retry_delay_seconds: u64,
+    ) -> Result<Vec<SnapshotVote>> {
+        for attempt in 1..=max_attempts {
+            let votes = self.fetch_all_proposal_votes(proposal_id).await?;
+            
+            // Check if any votes still have hidden choices
+            let has_hidden_votes = votes.iter().any(|vote| vote.has_hidden_choice());
+            
+            if !has_hidden_votes || attempt == max_attempts {
+                if has_hidden_votes && attempt == max_attempts {
+                    warn!(
+                        proposal_id = %proposal_id,
+                        attempt = attempt,
+                        "Max retry attempts reached, some votes may still be hidden"
+                    );
+                } else if !has_hidden_votes && attempt > 1 {
+                    info!(
+                        proposal_id = %proposal_id,
+                        attempt = attempt,
+                        "Hidden votes successfully revealed after retries"
+                    );
+                }
+                return Ok(votes);
+            }
+
+            let hidden_count = votes.iter().filter(|vote| vote.has_hidden_choice()).count();
+            info!(
+                proposal_id = %proposal_id,
+                attempt = attempt,
+                max_attempts = max_attempts,
+                hidden_count = hidden_count,
+                total_count = votes.len(),
+                "Found hidden votes, retrying in {}s",
+                retry_delay_seconds
+            );
+
+            tokio::time::sleep(std::time::Duration::from_secs(retry_delay_seconds)).await;
+        }
+
+        // This shouldn't be reached due to the loop logic, but included for completeness
+        self.fetch_all_proposal_votes(proposal_id).await
     }
 
     /// Execute a GraphQL query with rate limiting

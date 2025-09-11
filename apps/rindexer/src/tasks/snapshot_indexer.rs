@@ -17,6 +17,8 @@ use tracing::{debug, error, info, instrument};
 
 // Constants
 const REFRESH_INTERVAL: StdDuration = StdDuration::from_secs(60);
+const HIDDEN_VOTE_MAX_RETRIES: usize = 15;
+const HIDDEN_VOTE_RETRY_DELAY_SECONDS: u64 = 60;
 
 /// Main entry point for periodic snapshot indexing
 #[instrument(name = "run_periodic_snapshot_indexing", skip_all)]
@@ -226,9 +228,9 @@ async fn refetch_ended_shutter_votes(space: &str, governor_id: Uuid, dao_id: Uui
 
         let api = SnapshotApi::new();
 
-        // Re-fetch votes for these proposals (choices now decrypted)
+        // Re-fetch votes for these proposals with retry until choices are decrypted
         for proposal in ended_shutter {
-            let votes = api.fetch_all_proposal_votes(&proposal.external_id).await?;
+            let votes = api.fetch_proposal_votes_with_retry(&proposal.external_id, HIDDEN_VOTE_MAX_RETRIES, HIDDEN_VOTE_RETRY_DELAY_SECONDS).await?;
 
             if !votes.is_empty() {
                 info!(proposal_id = %proposal.external_id, vote_count = votes.len(), "Re-fetched shutter votes");
@@ -251,11 +253,10 @@ async fn refetch_ended_shutter_votes(space: &str, governor_id: Uuid, dao_id: Uui
                             }
                         }
 
-                        if !vote_models.is_empty() {
-                            if let Err(e) = store_votes(vote_models, governor_id).await {
+                        if !vote_models.is_empty() 
+                            && let Err(e) = store_votes(vote_models, governor_id).await {
                                 error!(error = %e, "Failed to store re-fetched shutter votes");
                             }
-                        }
                     }
                 });
             }
