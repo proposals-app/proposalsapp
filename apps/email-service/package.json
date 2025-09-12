@@ -4,12 +4,12 @@
   "dependencies": {
     "@proposalsapp/db": "workspace:*",
     "@proposalsapp/emails": "workspace:*",
-    "@react-email/render": "^1.2.2",
+    "@react-email/render": "^1.2.3",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.2",
     "node-cron": "^4.2.1",
-    "pino": "^9.9.4",
-    "resend": "^6.0.2"
+    "pino": "^9.9.5",
+    "resend": "^6.0.3"
   },
   "devDependencies": {
     "@types/node": "^24.3.1",
