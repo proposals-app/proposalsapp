@@ -478,6 +478,46 @@ impl SnapshotApi {
         Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
     }
 
+    /// Fetch a single proposal by ID to refresh its state
+    #[instrument(name = "fetch_proposal_by_id", skip(self))]
+    pub async fn fetch_proposal_by_id(&self, proposal_id: &str) -> Result<Option<SnapshotProposal>> {
+        let query = format!(
+            r#"
+            {{
+                proposals(
+                    where: {{
+                        id: "{proposal_id}"
+                    }},
+                    first: 1
+                ) {{
+                    id
+                    author
+                    title
+                    body
+                    discussion
+                    choices
+                    scores_state
+                    privacy
+                    created
+                    start
+                    end
+                    quorum
+                    link
+                    state
+                    type
+                    flagged
+                    ipfs
+                    votes
+                }}
+            }}"#
+        );
+
+        debug!(proposal_id = %proposal_id, "Fetching proposal by ID");
+
+        let response: SnapshotProposalsResponse = self.fetch_graphql(&query).await?;
+        Ok(response.data.and_then(|d| d.proposals.into_iter().next()))
+    }
+
     /// Fetch votes for a proposal with retry mechanism for hidden votes
     /// Keeps retrying until votes are no longer hidden (hex hashes) or max attempts reached
     #[instrument(name = "fetch_proposal_votes_with_retry", skip(self))]
