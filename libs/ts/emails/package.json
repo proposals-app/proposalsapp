@@ -15,12 +15,12 @@
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-email": "4.2.11",
-    "resend": "^6.0.3",
+    "resend": "^6.1.0",
     "tailwindcss": "^4.1.13"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.10",
-    "@types/react": "^19.1.12",
+    "@types/react": "^19.1.13",
     "typescript": "^5.9.2"
   },
   "main": "./src/index.ts",
