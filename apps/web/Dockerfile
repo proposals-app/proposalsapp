@@ -28,7 +28,7 @@ COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 # Ensure an empty .env exists to satisfy any optional checks
 RUN touch apps/web/.env \
   && pnpm build-web \
-  && pnpm prune --prod
+  && CI=true pnpm prune --prod
 
 # Use Debian Bookworm for the final stage
 FROM node:22-alpine
