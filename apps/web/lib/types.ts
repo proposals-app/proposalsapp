@@ -28,12 +28,42 @@ export type ProposalGroupItem =
       name: string;
       externalId: string;
       daoDiscourseId: string;
+      indexerName?: string;
     }
   | {
       type: 'proposal';
       name: string;
       externalId: string;
       governorId: string;
+      indexerName?: string;
+    };
+
+export interface EditableProposalGroup {
+  id?: string;
+  name: string;
+  items: ProposalGroupItem[];
+  daoId: string;
+  createdAt: Date | string;
+}
+
+export type StoredProposalGroupItem =
+  | {
+      type: 'proposal';
+      name: string;
+      externalId?: string;
+      governorId?: string;
+      external_id?: string;
+      governor_id?: string;
+      indexerName?: string;
+    }
+  | {
+      type: 'topic';
+      name: string;
+      externalId?: string;
+      daoDiscourseId?: string;
+      external_id?: string;
+      dao_discourse_id?: string;
+      indexerName?: string;
     };
 
 export enum TimelineEventType {

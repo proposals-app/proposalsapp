@@ -19,12 +19,7 @@ use tracing::{error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
 
-// Module-level constants
-const MATCH_THRESHOLD: u8 = 85;
-const MAX_BODY_TOKENS_PER_ITEM: usize = 3000;
-const KEYWORD_EXTRACTION_MAX_TOKENS: usize = 3000;
-const KEYWORD_CACHE_TTL_BASE: u64 = 604800; // 7 days in seconds
-const KEYWORD_CACHE_TTL_JITTER_MAX: u64 = 302400 * 3; // Max 3x 3.5 days
+const BODY_PREVIEW_MAX_TOKENS: usize = 3000;
 
 lazy_static::lazy_static! {
     /// Mapping of DAO slugs to the Discourse category IDs that should be included
@@ -120,24 +115,10 @@ pub struct NormalizedItem {
     pub raw_data: ProposalGroupItem, // Original ProposalItem or TopicItem
 }
 
-impl NormalizedItem {
-    /// Get a truncated version of the body text, limited by token count
-    pub fn get_truncated_body(&self, max_tokens: usize) -> String {
-        Grouper::truncate_text(&self.body, max_tokens)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ItemType {
     Proposal,
     Topic,
-}
-
-#[derive(Debug, Clone)]
-struct MatchResult {
-    score: u8,
-    item_id: String,
-    is_grouped: bool,
 }
 
 pub struct Grouper {
@@ -146,12 +127,6 @@ pub struct Grouper {
 }
 
 impl Grouper {
-    // Helper function to check if a group can accept a topic item
-    fn group_can_accept_topic(group_items: &[NormalizedItem]) -> bool {
-        !group_items
-            .iter()
-            .any(|item| matches!(item.item_type, ItemType::Topic))
-    }
 
     pub async fn new(db: DatabaseConnection) -> Result<Self> {
         // // Initialize LLM client with proper error handling
@@ -199,25 +174,6 @@ impl Grouper {
 
         // Simple truncation with ellipsis
         format!("{}...", &text[..char_limit.min(text.len())])
-    }
-
-    // Keyword extraction using LLM with Redis caching
-    // Returns a vector of keywords, or ["insufficient-content"] if the content is too sparse
-    // or if the LLM extraction process fails
-    // COMMENTED OUT: LLM functionality disabled
-    async fn extract_keywords(&self, item: &NormalizedItem) -> Result<Vec<String>> {
-        // Simplified keyword extraction - just return a basic fallback
-        // In a real implementation, this could use simple text analysis
-        // instead of LLM for basic keyword extraction
-        info!(
-            dao_id = %item.dao_id,
-            item_id = %item.id,
-            item_title = %item.title,
-            item_type = ?item.item_type,
-            "LLM keyword extraction disabled - using fallback"
-        );
-        
-        Ok(vec!["insufficient-content".to_string()])
     }
 
     // Extract keywords using a conversational approach with the LLM
@@ -401,60 +357,6 @@ impl Grouper {
     //         ))
     //     }
     // 
-    // Parse keyword response from LLM output
-    fn parse_keyword_response(&self, response: &str) -> Vec<String> {
-        let cleaned = response.trim();
-
-        // Find the actual keyword content (strip "assistant" prefix if present)
-        let keyword_content = if let Some(idx) = cleaned.find("assistant") {
-            cleaned[idx + "assistant".len()..].trim()
-        } else {
-            cleaned
-        };
-
-        // Extract the main content line (skip any preamble)
-        let keyword_line = if keyword_content.contains('\n') {
-            // Find the line that looks like keywords
-            keyword_content
-                .lines()
-                .map(|line| line.trim())
-                .find(|line| {
-                    // Skip lines that are just explanatory text
-                    !line.to_lowercase().contains("here")
-                        && !line.to_lowercase().contains("keywords")
-                        && !line.to_lowercase().contains("following")
-                        && !line.is_empty()
-                        && (line.contains(',') || *line == "insufficient-content")
-                })
-                .unwrap_or(keyword_content.trim())
-        } else if let Some(idx) = keyword_content.rfind(':') {
-            // Handle case where keywords come after a colon
-            keyword_content[idx + 1..].trim()
-        } else {
-            keyword_content.trim()
-        };
-
-        // Check for insufficient content case
-        if keyword_line == "insufficient-content" {
-            return vec!["insufficient-content".to_string()];
-        }
-
-        // Parse comma-separated keywords
-        keyword_line
-            .split(',')
-            .map(|s| s.trim().trim_matches('"').trim_matches('\'').to_lowercase())
-            .filter(|s| {
-                !s.is_empty()
-                    && s.len() >= 2
-                    && s.len() <= 50
-                    && s.chars()
-                        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
-                    && !s.contains(' ')
-            })
-            .take(25)
-            .collect()
-    }
-
     // Scoring function that returns a match score from 0 to 100
     //     async fn match_score(&self, item_a: &NormalizedItem, item_b: &NormalizedItem) -> Result<u8> {
     //         // Extract keywords for both items
@@ -811,258 +713,47 @@ impl Grouper {
     //         Ok(consensus_score)
     //     }
 
-    // Main grouping algorithm with scoring
+    #[cfg(feature = "llm-grouping")]
     async fn ai_grouping_pass(
         &self,
         mut ungrouped_items: Vec<NormalizedItem>,
-        mut groups: HashMap<Uuid, Vec<NormalizedItem>>, // group_id -> items
+        mut groups: HashMap<Uuid, Vec<NormalizedItem>>,
         dao_id: Uuid,
     ) -> Result<HashMap<Uuid, Vec<NormalizedItem>>> {
-        let total_ungrouped = ungrouped_items.len();
-        let mut processed_count = 0;
+        let pending = ungrouped_items.len();
 
-        // Log initial state
-        info!(
-            dao_id = %dao_id,
-            phase = "AI_GROUPING_START",
-            total_ungrouped_items = total_ungrouped,
-            existing_groups_count = groups.len(),
-            existing_grouped_items = groups.values().map(|items| items.len()).sum::<usize>(),
-            "[AI_GROUPING] Starting AI grouping pass"
-        );
-
-        while let Some(current_item) = ungrouped_items.pop() {
-            processed_count += 1;
-            let current_item_id = current_item.id.clone();
-            let current_item_title = current_item.title.clone();
-            let current_item_type = current_item.item_type.clone();
-
+        if pending == 0 {
             info!(
                 dao_id = %dao_id,
-                phase = "START_PROCESSING_ITEM",
-                item_id = %current_item_id,
-                item_title = %current_item_title,
-                item_type = ?current_item_type,
-                item_keywords_count = current_item.keywords.len(),
-                item_keywords = %current_item.keywords.join(", "),
-                created_at = %current_item.created_at.format("%Y-%m-%d"),
-                progress_current = processed_count,
-                progress_total = total_ungrouped,
-                progress_percent = format!("{:.1}%", (processed_count as f64 / total_ungrouped as f64) * 100.0),
-                groups_count = groups.len(),
-                remaining_ungrouped = ungrouped_items.len(),
-                "[AI_GROUPING] Starting to process ungrouped item"
+                "[AI_GROUPING] Placeholder AI grouping - nothing to process"
             );
-
-            let mut best_match: Option<MatchResult> = None;
-            let mut best_group_id: Option<Uuid> = None;
-            let mut best_ungrouped_idx: Option<usize> = None;
-
-            // Score against all grouped items - iterate directly over groups to get fresh data
-            let total_groups = groups.len();
-            for (group_id, items) in groups.iter() {
-                // Skip this group if current item is a topic and group already has one
-                if matches!(current_item.item_type, ItemType::Topic)
-                    && !Self::group_can_accept_topic(items)
-                {
-                    info!(
-                        dao_id = %dao_id,
-                        phase = "SKIP_GROUP_TOPIC_LIMIT",
-                        current_item_id = %current_item_id,
-                        group_id = %group_id,
-                        reason = "group_already_has_topic",
-                        "[AI_GROUPING] Skipping group - already contains a topic"
-                    );
-                    continue;
-                }
-
-                // LLM-based matching disabled
-                // for grouped_item in items {
-                //     let score = self.match_score(&current_item, grouped_item).await?;
-
-                //     if score >= MATCH_THRESHOLD
-                //         && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
-                //     {
-                //         best_match = Some(MatchResult {
-                //             score,
-                //             item_id: grouped_item.id.clone(),
-                //             is_grouped: true,
-                //         });
-                //         best_group_id = Some(*group_id);
-                //     }
-                // }
-            }
-
-            // Score ungrouped items
-            {
-                let remaining_ungrouped = ungrouped_items.len();
-                if remaining_ungrouped > 0 {
-                    info!(
-                        dao_id = %dao_id,
-                        phase = "START_UNGROUPED_COMPARISON",
-                        current_item_id = %current_item_id,
-                        remaining_ungrouped = remaining_ungrouped,
-                        "[AI_GROUPING] Starting comparison with ungrouped items"
-                    );
-                }
-
-                for (idx, other_item) in ungrouped_items.iter().enumerate() {
-                    // Skip if both items are topics - never match topics together
-                    if matches!(current_item.item_type, ItemType::Topic)
-                        && matches!(other_item.item_type, ItemType::Topic)
-                    {
-                        info!(
-                            dao_id = %dao_id,
-                            phase = "SKIP_TOPIC_PAIR",
-                            current_item_id = %current_item_id,
-                            current_item_title = %current_item.title,
-                            other_item_id = %other_item.id,
-                            other_item_title = %other_item.title,
-                            reason = "both_items_are_topics",
-                            "[AI_GROUPING] Skipping match - both items are topics"
-                        );
-                        continue;
-                    }
-
-                    // LLM-based matching disabled
-                    // let score = self.match_score(&current_item, other_item).await?;
-
-                    // if score >= MATCH_THRESHOLD
-                    //     && (best_match.is_none() || score > best_match.as_ref().unwrap().score)
-                    // {
-                    //     best_match = Some(MatchResult {
-                    //         score,
-                    //         item_id: other_item.id.clone(),
-                    //         is_grouped: false,
-                    //     });
-                    //     best_ungrouped_idx = Some(idx);
-                    // }
-                }
-            }
-
-            // Log best match summary before confirmation
-            if let Some(ref match_result) = best_match {
-                info!(
-                    dao_id = %dao_id,
-                    phase = "BEST_MATCH_FOUND",
-                    current_item_id = %current_item_id,
-                    best_match_item_id = %match_result.item_id,
-                    best_match_score = match_result.score,
-                    best_match_is_grouped = match_result.is_grouped,
-                    best_match_group_id = ?best_group_id,
-                    total_items_compared = total_groups + ungrouped_items.len(),
-                    "[AI_GROUPING] Best match identified, proceeding to confirmation"
-                );
-            } else {
-                info!(
-                    dao_id = %dao_id,
-                    phase = "NO_MATCH_FOUND",
-                    current_item_id = %current_item_id,
-                    threshold = MATCH_THRESHOLD,
-                    total_items_compared = total_groups + ungrouped_items.len(),
-                    "[AI_GROUPING] No matches above threshold found"
-                );
-            }
-
-            // AI grouping disabled - no matches will be found
-            let confirmed_match: Option<MatchResult> = None;
-
-            // Process the confirmed match
-            match confirmed_match {
-                Some(match_result) => {
-                    if match_result.is_grouped {
-                        // Add to existing group
-                        let group_id = best_group_id.unwrap();
-                        let group_size = groups.get(&group_id).map(|g| g.len()).unwrap_or(0);
-
-                        info!(
-                            dao_id = %dao_id,
-                            phase = "FINAL_ACTION",
-                            action = "ADD_TO_GROUP",
-                            current_item_id = %current_item_id,
-                            current_item_title = %current_item.title,
-                            current_item_type = ?current_item_type,
-                            matched_item_id = %match_result.item_id,
-                            final_score = match_result.score,
-                            group_id = %group_id,
-                            group_size_before = group_size,
-                            group_size_after = group_size + 1,
-                            "[AI_GROUPING] Adding item to existing group"
-                        );
-
-                        groups.get_mut(&group_id).unwrap().push(current_item);
-                    } else {
-                        // Create new group with both items
-                        let matched_item = ungrouped_items.remove(best_ungrouped_idx.unwrap());
-                        let new_group_id = Uuid::new_v4();
-
-                        info!(
-                            dao_id = %dao_id,
-                            phase = "FINAL_ACTION",
-                            action = "CREATE_GROUP",
-                            item_a_id = %current_item_id,
-                            item_a_title = %current_item.title,
-                            item_a_type = ?current_item_type,
-                            item_b_id = %match_result.item_id,
-                            item_b_title = %matched_item.title,
-                            item_b_type = ?matched_item.item_type,
-                            final_score = match_result.score,
-                            new_group_id = %new_group_id,
-                            "[AI_GROUPING] Creating new group from two ungrouped items"
-                        );
-
-                        groups.insert(new_group_id, vec![current_item, matched_item]);
-                    }
-                }
-                None => {
-                    // No matches above threshold, create single-item group
-                    let new_group_id = Uuid::new_v4();
-
-                    info!(
-                        dao_id = %dao_id,
-                        phase = "FINAL_ACTION",
-                        action = "CREATE_SINGLE_ITEM_GROUP",
-                        current_item_id = %current_item_id,
-                        current_item_title = %current_item.title,
-                        current_item_type = ?current_item_type,
-                        threshold = MATCH_THRESHOLD,
-                        new_group_id = %new_group_id,
-                        total_items_compared = total_groups + ungrouped_items.len() + 1,
-                        "[AI_GROUPING] No matches found - creating single-item group"
-                    );
-
-                    groups.insert(new_group_id, vec![current_item]);
-                }
-            }
-
-            // Persist groups after processing each item
-            if let Err(e) = self.persist_results(&groups, dao_id).await {
-                error!(
-                    "Failed to persist groups after processing item {}: {}",
-                    current_item_id, e
-                );
-                // Continue processing despite persistence error
-            }
+            return Ok(groups);
         }
-
-        // Calculate final statistics
-        let total_groups_final = groups.len();
-        let single_item_groups = groups.values().filter(|items| items.len() == 1).count();
-        let multi_item_groups = groups.values().filter(|items| items.len() > 1).count();
-        let largest_group = groups.values().map(|items| items.len()).max().unwrap_or(0);
-        let total_items_grouped = groups.values().map(|items| items.len()).sum::<usize>();
 
         info!(
             dao_id = %dao_id,
-            phase = "AI_GROUPING_COMPLETE",
-            processed_items = total_ungrouped,
-            total_groups = total_groups_final,
-            single_item_groups = single_item_groups,
-            multi_item_groups = multi_item_groups,
-            largest_group_size = largest_group,
-            total_items_grouped = total_items_grouped,
-            "[AI_GROUPING] AI grouping phase completed"
+            pending_items = pending,
+            "[AI_GROUPING] Placeholder AI grouping creating single-item groups"
         );
+
+        while let Some(item) = ungrouped_items.pop() {
+            let new_group_id = Uuid::new_v4();
+            info!(
+                dao_id = %dao_id,
+                item_id = %item.id,
+                new_group_id = %new_group_id,
+                "[AI_GROUPING] Placeholder group created"
+            );
+            groups.insert(new_group_id, vec![item]);
+
+            if let Err(err) = self.persist_results(&groups, dao_id).await {
+                error!(
+                    dao_id = %dao_id,
+                    error = %err,
+                    "[AI_GROUPING] Failed to persist placeholder group"
+                );
+            }
+        }
 
         Ok(groups)
     }
@@ -1153,11 +844,13 @@ impl Grouper {
             governor_id: proposal.governor_id,
         });
 
+        let body_preview = Self::truncate_text(&proposal.body, BODY_PREVIEW_MAX_TOKENS);
+
         Ok(NormalizedItem {
             id,
             dao_id: proposal.dao_id.to_string(),
             title: proposal.name,
-            body: proposal.body,
+            body: body_preview,
             created_at: Utc.from_utc_datetime(&proposal.created_at),
             item_type: ItemType::Proposal,
             keywords: vec![], // Will be filled by extract_keywords
@@ -1182,9 +875,11 @@ impl Grouper {
             .await
             .context("Failed to load first post")?;
 
-        let body = first_post
+        let full_body = first_post
             .and_then(|p| p.cooked)
             .unwrap_or_else(|| String::from("No content available"));
+
+        let body_preview = Self::truncate_text(&full_body, BODY_PREVIEW_MAX_TOKENS);
 
         let raw_data = ProposalGroupItem::Topic(TopicItem {
             name: topic.title.clone(),
@@ -1196,7 +891,7 @@ impl Grouper {
             id,
             dao_id: dao_id.to_string(),
             title: topic.title,
-            body,
+            body: body_preview,
             created_at: Utc.from_utc_datetime(&topic.created_at),
             item_type: ItemType::Topic,
             keywords: vec![], // Will be filled by extract_keywords

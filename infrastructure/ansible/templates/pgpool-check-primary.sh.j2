@@ -1,8 +1,0 @@
-#!/bin/bash
-# Simple pgpool primary check and restart if needed
-
-# Check if pgpool has a primary node
-if ! echo "show pool_nodes;" | PGPASSWORD="{{ vault_postgres_password }}" psql -h localhost -p 5432 -U proposalsapp -d proposalsapp -t | grep -q "primary"; then
-    echo "No primary found in pgpool, restarting service"
-    systemctl restart pgpool
-fi

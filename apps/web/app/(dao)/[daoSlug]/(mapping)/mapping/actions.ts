@@ -9,32 +9,79 @@ import {
   handleSilentServerAction,
   handleVoidServerAction,
 } from '@/lib/server-actions-utils';
+import type {
+  EditableProposalGroup,
+  ProposalGroupItem as BaseProposalGroupItem,
+  StoredProposalGroupItem,
+} from '@/lib/types';
 
-// Define strong types for our data structures
-export type ProposalItem = {
-  type: 'proposal';
-  name: string;
-  externalId: string;
-  governorId: string;
-  indexerName?: string;
-};
+export type ProposalItem = Extract<BaseProposalGroupItem, { type: 'proposal' }>;
+export type TopicItem = Extract<BaseProposalGroupItem, { type: 'topic' }>;
+export type ProposalGroupItem = BaseProposalGroupItem;
+export type ProposalGroup = EditableProposalGroup;
 
-export type TopicItem = {
-  type: 'topic';
-  name: string;
-  externalId: string;
-  daoDiscourseId: string;
-  indexerName?: string;
-};
+type NormalizableGroupItem = StoredProposalGroupItem | ProposalGroupItem;
 
-export type ProposalGroupItem = ProposalItem | TopicItem;
+function normalizeGroupItem(item: NormalizableGroupItem): ProposalGroupItem {
+  if (item.type === 'proposal') {
+    const externalIdValue =
+      ('externalId' in item ? item.externalId : undefined) ??
+      ('external_id' in item ? item.external_id : undefined);
+    const governorIdValue =
+      ('governorId' in item ? item.governorId : undefined) ??
+      ('governor_id' in item ? item.governor_id : undefined);
 
-export interface ProposalGroup {
-  id?: string;
-  name: string;
-  items: ProposalGroupItem[];
-  daoId: string;
-  createdAt: Date;
+    if (
+      externalIdValue === undefined ||
+      externalIdValue === null ||
+      governorIdValue === undefined ||
+      governorIdValue === null
+    ) {
+      throw new Error('Missing proposal identifiers in group item');
+    }
+
+    const base: ProposalItem = {
+      type: 'proposal',
+      name: item.name,
+      externalId: String(externalIdValue),
+      governorId: String(governorIdValue),
+    };
+
+    if ('indexerName' in item && item.indexerName) {
+      return { ...base, indexerName: item.indexerName };
+    }
+
+    return base;
+  }
+
+  const externalIdValue =
+    ('externalId' in item ? item.externalId : undefined) ??
+    ('external_id' in item ? item.external_id : undefined);
+  const daoDiscourseIdValue =
+    ('daoDiscourseId' in item ? item.daoDiscourseId : undefined) ??
+    ('dao_discourse_id' in item ? item.dao_discourse_id : undefined);
+
+  if (
+    externalIdValue === undefined ||
+    externalIdValue === null ||
+    daoDiscourseIdValue === undefined ||
+    daoDiscourseIdValue === null
+  ) {
+    throw new Error('Missing topic identifiers in group item');
+  }
+
+  const base: TopicItem = {
+    type: 'topic',
+    name: item.name,
+    externalId: String(externalIdValue),
+    daoDiscourseId: String(daoDiscourseIdValue),
+  };
+
+  if ('indexerName' in item && item.indexerName) {
+    return { ...base, indexerName: item.indexerName };
+  }
+
+  return base;
 }
 
 export type GroupsDataReturnType = AsyncReturnType<typeof getGroupsData>;
@@ -76,21 +123,22 @@ export async function getGroupsData(daoSlug: string) {
 
   const groupsWithItems = await Promise.all(
     proposalGroups.map(async (group) => {
-      const items = group.items as ProposalGroupItem[];
+      const items = group.items as StoredProposalGroupItem[];
       const itemsWithIndexerName = await Promise.all(
         items.map(async (item) => {
-          let indexerName = 'unknown';
+          const normalized = normalizeGroupItem(item);
+          let indexerName = normalized.indexerName ?? 'unknown';
 
-          if (item.type === 'proposal') {
+          if (normalized.type === 'proposal') {
             const proposal = await db
               .selectFrom('proposal')
               .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
               .select('daoGovernor.name as governorName')
-              .where('proposal.externalId', '=', item.externalId)
-              .where('proposal.governorId', '=', item.governorId)
+              .where('proposal.externalId', '=', normalized.externalId)
+              .where('proposal.governorId', '=', normalized.governorId)
               .executeTakeFirst();
-            indexerName = proposal?.governorName ?? 'unknown';
-          } else if (item.type === 'topic') {
+            indexerName = proposal?.governorName ?? indexerName;
+          } else {
             const topic = await db
               .selectFrom('discourseTopic')
               .leftJoin(
@@ -102,14 +150,18 @@ export async function getGroupsData(daoSlug: string) {
               .where(
                 'discourseTopic.externalId',
                 '=',
-                parseInt(item.externalId)
+                Number.parseInt(normalized.externalId, 10)
               )
-              .where('discourseTopic.daoDiscourseId', '=', item.daoDiscourseId)
+              .where(
+                'discourseTopic.daoDiscourseId',
+                '=',
+                normalized.daoDiscourseId
+              )
               .executeTakeFirst();
-            indexerName = topic?.discourseBaseUrl ?? 'unknown';
+            indexerName = topic?.discourseBaseUrl ?? indexerName;
           }
 
-          return { ...item, indexerName };
+          return { ...normalized, indexerName };
         })
       );
 
@@ -165,12 +217,13 @@ export async function getUngroupedProposals(
   const allGroupedProposalItems: { externalId: string; governorId: string }[] =
     [];
   groups.forEach((group) => {
-    const items = group.items as ProposalGroupItem[];
+    const items = group.items as StoredProposalGroupItem[];
     items.forEach((item) => {
-      if (item.type === 'proposal') {
+      const normalized = normalizeGroupItem(item);
+      if (normalized.type === 'proposal') {
         allGroupedProposalItems.push({
-          externalId: item.externalId,
-          governorId: item.governorId,
+          externalId: normalized.externalId,
+          governorId: normalized.governorId,
         });
       }
     });
@@ -329,23 +382,26 @@ export async function saveGroups(
   'use server';
 
   return handleVoidServerAction(async () => {
-    const sanitizeItems = (items: ProposalGroupItem[]) =>
-      items.map((item) =>
-        item.type === 'proposal'
-          ? {
-              type: 'proposal' as const,
-              name: item.name,
-              externalId: (item as any).externalId ?? (item as any).external_id,
-              governorId: (item as any).governorId ?? (item as any).governor_id,
-            }
-          : {
-              type: 'topic' as const,
-              name: item.name,
-              externalId: (item as any).externalId ?? (item as any).external_id,
-              daoDiscourseId:
-                (item as any).daoDiscourseId ?? (item as any).dao_discourse_id,
-            }
-      );
+    const sanitizeItems = (items: NormalizableGroupItem[]) =>
+      items.map((item) => {
+        const normalized = normalizeGroupItem(item);
+
+        if (normalized.type === 'proposal') {
+          return {
+            type: 'proposal' as const,
+            name: normalized.name,
+            externalId: normalized.externalId,
+            governorId: normalized.governorId,
+          };
+        }
+
+        return {
+          type: 'topic' as const,
+          name: normalized.name,
+          externalId: normalized.externalId,
+          daoDiscourseId: normalized.daoDiscourseId,
+        };
+      });
     await Promise.all(
       groups.map(async (group) => {
         if (group.id) {
