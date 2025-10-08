@@ -137,9 +137,10 @@ impl SnapshotVote {
         match &self.choice {
             serde_json::Value::String(choice_str) => {
                 // Check if it's a hex hash (0x followed by hex characters)
-                choice_str.starts_with("0x") && choice_str.len() >= 10 && 
-                choice_str[2..].chars().all(|c| c.is_ascii_hexdigit())
-            },
+                choice_str.starts_with("0x")
+                    && choice_str.len() >= 10
+                    && choice_str[2..].chars().all(|c| c.is_ascii_hexdigit())
+            }
             _ => false,
         }
     }
@@ -480,7 +481,10 @@ impl SnapshotApi {
 
     /// Fetch a single proposal by ID to refresh its state
     #[instrument(name = "fetch_proposal_by_id", skip(self))]
-    pub async fn fetch_proposal_by_id(&self, proposal_id: &str) -> Result<Option<SnapshotProposal>> {
+    pub async fn fetch_proposal_by_id(
+        &self,
+        proposal_id: &str,
+    ) -> Result<Option<SnapshotProposal>> {
         let query = format!(
             r#"
             {{
@@ -522,17 +526,17 @@ impl SnapshotApi {
     /// Keeps retrying until votes are no longer hidden (hex hashes) or max attempts reached
     #[instrument(name = "fetch_proposal_votes_with_retry", skip(self))]
     pub async fn fetch_proposal_votes_with_retry(
-        &self, 
+        &self,
         proposal_id: &str,
         max_attempts: usize,
         retry_delay_seconds: u64,
     ) -> Result<Vec<SnapshotVote>> {
         for attempt in 1..=max_attempts {
             let votes = self.fetch_all_proposal_votes(proposal_id).await?;
-            
+
             // Check if any votes still have hidden choices
             let has_hidden_votes = votes.iter().any(|vote| vote.has_hidden_choice());
-            
+
             if !has_hidden_votes || attempt == max_attempts {
                 if has_hidden_votes && attempt == max_attempts {
                     warn!(

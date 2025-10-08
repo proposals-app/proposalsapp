@@ -230,13 +230,23 @@ async fn refetch_ended_shutter_votes(space: &str, governor_id: Uuid, dao_id: Uui
 
         // Re-fetch votes for these proposals with retry until choices are decrypted
         for proposal in ended_shutter {
-            let votes = api.fetch_proposal_votes_with_retry(&proposal.external_id, HIDDEN_VOTE_MAX_RETRIES, HIDDEN_VOTE_RETRY_DELAY_SECONDS).await?;
+            let votes = api
+                .fetch_proposal_votes_with_retry(
+                    &proposal.external_id,
+                    HIDDEN_VOTE_MAX_RETRIES,
+                    HIDDEN_VOTE_RETRY_DELAY_SECONDS,
+                )
+                .await?;
 
             // Only refresh proposal data if votes were successfully retrieved and revealed
             if !votes.is_empty() && !votes.iter().any(|vote| vote.has_hidden_choice()) {
                 // Refresh the proposal itself to get updated state/scores after votes are revealed
-                if let Ok(Some(updated_proposal)) = api.fetch_proposal_by_id(&proposal.external_id).await {
-                    if let Err(e) = store_snapshot_proposal(updated_proposal, governor_id, dao_id).await {
+                if let Ok(Some(updated_proposal)) =
+                    api.fetch_proposal_by_id(&proposal.external_id).await
+                {
+                    if let Err(e) =
+                        store_snapshot_proposal(updated_proposal, governor_id, dao_id).await
+                    {
                         error!(proposal_id = %proposal.external_id, error = %e, "Failed to refresh shutter proposal after vote reveal");
                     } else {
                         debug!(proposal_id = %proposal.external_id, "Refreshed shutter proposal data after vote reveal");
@@ -265,10 +275,11 @@ async fn refetch_ended_shutter_votes(space: &str, governor_id: Uuid, dao_id: Uui
                             }
                         }
 
-                        if !vote_models.is_empty() 
-                            && let Err(e) = store_votes(vote_models, governor_id).await {
-                                error!(error = %e, "Failed to store re-fetched shutter votes");
-                            }
+                        if !vote_models.is_empty()
+                            && let Err(e) = store_votes(vote_models, governor_id).await
+                        {
+                            error!(error = %e, "Failed to store re-fetched shutter votes");
+                        }
                     }
                 });
             }

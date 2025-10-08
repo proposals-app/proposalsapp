@@ -1,9 +1,10 @@
 use alloy::sol;
 use crate::rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations_abi_gen::RindexerArbitrumSCNominationsGen::Date;
 
+#[allow(clippy::all)]
 sol!(
     #[derive(Debug)]
-    #[sol(rpc, all_derives)]
+    #[sol(rpc)]
     RindexerArbitrumSCNominationsGen,
     r#"[
   { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
