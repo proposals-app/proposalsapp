@@ -11,8 +11,6 @@ use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberI
 
 mod grouper;
 mod karma;
-// mod llm_ops;
-mod redis_cache;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
@@ -85,19 +83,6 @@ async fn main() -> Result<()> {
     info!("Initializing database connection...");
     initialize_db().await?;
     info!("Database connection established");
-
-    // Initialize Redis
-    info!("Initializing Redis connection...");
-    if let Err(e) = redis_cache::initialize_redis().await {
-        warn!(
-            "Failed to initialize Redis, continuing without caching: {}",
-            e
-        );
-    } else {
-        info!("Redis connection established");
-    }
-
-    info!("Using LLM-based grouper for proposal matching");
 
     // Start health check server
     let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));

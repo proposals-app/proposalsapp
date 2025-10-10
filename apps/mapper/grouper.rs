@@ -1,13 +1,6 @@
-// use crate::redis_cache;
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
-// use llm_client::InstructPromptTrait;
-// use llm_client::LlmClient;
-// use llm_client::LoggingConfigTrait;
-// use llm_client::RequestConfigTrait;
-// use llm_models::GgufLoaderTrait;
 use proposalsapp_db::models::*;
-// use rand::Rng;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set, prelude::*,
     sea_query,
@@ -31,9 +24,6 @@ lazy_static::lazy_static! {
         m.insert("uniswap", vec![5, 8, 9, 10]);
         m
     };
-
-    // /// Tokenizer for counting tokens using cl100k_base encoding (used by GPT-3.5 and GPT-4)
-    // static ref TOKENIZER: CoreBPE = cl100k_base().expect("Failed to load cl100k_base tokenizer");
 }
 
 // Public function to run from main.rs
@@ -127,7 +117,6 @@ pub struct Grouper {
 }
 
 impl Grouper {
-
     pub async fn new(db: DatabaseConnection) -> Result<Self> {
         // // Initialize LLM client with proper error handling
         // info!("Initializing LLM client for grouper");
@@ -164,598 +153,31 @@ impl Grouper {
 
     // Helper function to safely truncate text with character-based counting
     // Simplified version without LLM token counting dependencies
-    fn truncate_text(text: &str, max_chars: usize) -> String {
-        // Rough estimate: 1 token ≈ 4 chars, so convert token limit to char limit
-        let char_limit = max_chars * 4;
-        
-        if text.len() <= char_limit {
+    fn truncate_text(text: &str, max_tokens: usize) -> String {
+        if text.is_empty() {
+            return String::new();
+        }
+
+        // Rough estimate: 1 token ≈ 4 chars, so convert token limit to char limit.
+        let char_limit = max_tokens.saturating_mul(4);
+
+        let mut byte_index = text.len();
+        let mut char_count = 0;
+
+        for (idx, _) in text.char_indices() {
+            if char_count >= char_limit {
+                byte_index = idx;
+                break;
+            }
+            char_count += 1;
+        }
+
+        if byte_index == text.len() {
             return text.to_string();
         }
 
-        // Simple truncation with ellipsis
-        format!("{}...", &text[..char_limit.min(text.len())])
-    }
-
-    // Extract keywords using a conversational approach with the LLM
-    // COMMENTED OUT: LLM functionality disabled
-    //     // async fn extract_keywords_with_conversation(
-    //         &self,
-    //         item: &NormalizedItem,
-    //     ) -> Result<Vec<String>> {
-    //         let mut basic_completion = self.llm_client.basic_completion();
-    // 
-    //         // Set reasonable token limits to prevent runaway generation
-    //         basic_completion
-    //             .max_tokens(200) // Keywords shouldn't need more than 200 tokens
-    //             .temperature(0.7) // Lower temperature for more focused output
-    //             .frequency_penalty(0.5); // Penalize repetition
-    // 
-    //         // Initial system prompt
-    //         basic_completion
-    //             .prompt()
-    //             .add_system_message()
-    //             .unwrap()
-    //             .set_content(r#"
-    //                 You are a DAO governance analyst specializing in precise proposal tagging. Analyze this governance item and extract 10-20 specific, descriptive keywords that uniquely identify and categorize this proposal.
-    // 
-    //                 Extraction Guidelines:
-    //                 - Prioritize specificity over generality (e.g., "uniswap-v3-fee-adjustment" not "protocol-update")
-    //                 - Do not, under any circumstance, make up ids (like "dao-proposal-123") which do not explicitly exist in the text
-    //                 - Include exact names, numbers, and identifiers when present
-    //                 - Capture the proposal's unique characteristics that distinguish it from others
-    //                 - Use hyphens to connect multi-word concepts (e.g., "cross-chain-bridge")
-    //                 - If there is not enough meaningful information to extract keywords, return ONLY: insufficient-content
-    // 
-    //                 Required Coverage Areas:
-    //                 1. IDENTIFIERS: proposal ID, voting round, specific dates
-    //                 2. PROPOSAL TYPE: funding-request, parameter-change, strategic-initiative, etc.
-    //                 3. TECHNICAL ELEMENTS: specific protocols, smart contracts, technical standards
-    //                 4. FINANCIAL DETAILS: amounts, percentages, token symbols, budget items
-    //                 5. ENTITIES: proposal author, affected protocols, partner organizations
-    //                 6. ACTIONS: specific verbs describing what will happen (e.g., "deploy", "allocate", "integrate")
-    //                 7. SCOPE: affected chains, ecosystems, or communities
-    // 
-    //                 Exclusion Rules (CRITICAL for DAO contexts):
-    //                 - EXCLUDE generic governance terms that appear in most proposals:
-    //                   * Simple terms: governance, proposal, vote, voting, dao, discussion, community, protocol
-    //                   * Procedural terms: temperature-check, snapshot, on-chain, quorum, forum, thread
-    //                   * Generic actions: update, change, improve, implement (unless with specific context)
-    //                 - ONLY include these if combined with specifics (e.g., "governance-token-migration", "snapshot-vote-123")
-    //                 - Skip abstract concepts without concrete details
-    //                 - Avoid terms that would appear in 50%+ of all DAO proposals
-    // 
-    //                 OUTPUT FORMAT REQUIREMENTS:
-    //                 - Return ONLY a comma-separated list of keywords
-    //                 - Each keyword must be lowercase letters, numbers, and hyphens only
-    //                 - Multi-word concepts should use hyphens (e.g., cross-chain-bridge)
-    //                 - No spaces, no special characters except hyphens
-    //                 - No prefixes, explanations, numbered lists, or formatting
-    //                 - Just return the keywords separated by commas
-    //                 - Aim for 10-20 keywords
-    //                 - End your response after listing the keywords
-    //                 - Special case: If content is insufficient, return ONLY the single keyword: insufficient-content
-    // 
-    //                 Example (good): compound-grant-23, defi-education-initiative, 50k-usdc-funding, alice-smith, q1-2024, developer-onboarding, polygon-deployment, compound-finance, fee-switch-activation, bridge-audit-consensys
-    // 
-    //                 Example (bad): governance, proposal, voting, community, discussion, update, dao, protocol, implementation, forum-post"#);
-    // 
-    //         // Limit the body to prevent exceeding token limits
-    //         // For keyword extraction with 8192 token context window:
-    //         // - System prompt + instructions: ~200 tokens
-    //         // - Response space for keywords: ~300 tokens
-    //         // - Buffer: ~200 tokens
-    //         // This leaves ~7500 tokens for content, but we'll use 3000 to be conservative
-    //         let truncated_body = Self::truncate_text(&item.body, KEYWORD_EXTRACTION_MAX_TOKENS);
-    // 
-    //         basic_completion
-    //             .prompt()
-    //             .add_user_message()
-    //             .unwrap()
-    //             .set_content(format!(
-    //                 "Please analyze the following governance item and extract keywords. The content is provided in XML format:\n\n<TITLE>{}</TITLE>\n<BODY>{}</BODY>\n\nRemember to return ONLY a comma-separated list of keywords, nothing else.",
-    //                 item.title, truncated_body
-    //             ));
-    // 
-    //         // Try conversational approach with up to 3 rounds
-    //         let max_rounds = 3;
-    // 
-    //         for round in 0..max_rounds {
-    //             // Execute with suppressed output
-    //             let response = {
-    //                 let _suppressor = crate::llm_ops::OutputSuppressor::new();
-    //                 basic_completion
-    //                     .run()
-    //                     .await
-    //                     .context("Failed to run LLM completion")?
-    //             };
-    // 
-    //             // Try to parse the response
-    //             let keywords = self.parse_keyword_response(&response.content);
-    // 
-    //             // Check if we got valid keywords
-    //             if keywords.len() == 1 && keywords[0] == "insufficient-content" {
-    //                 // Special case: insufficient content is valid
-    //                 info!(
-    //                     dao_id = %item.dao_id,
-    //                     item_id = %item.id,
-    //                     item_title = %item.title,
-    //                     item_type = ?item.item_type,
-    //                     "Insufficient content for keyword extraction"
-    //                 );
-    //                 return Ok(keywords);
-    //             } else if keywords.len() >= 5 && keywords.len() <= 25 {
-    //                 // Normal case: good number of keywords
-    //                 info!(
-    //                     dao_id = %item.dao_id,
-    //                     item_id = %item.id,
-    //                     item_title = %item.title,
-    //                     item_type = ?item.item_type,
-    //                     keywords_count = keywords.len(),
-    //                     keywords = %keywords.join(", "),
-    //                     extraction_round = round + 1,
-    //                     "Successfully extracted keywords"
-    //                 );
-    //                 return Ok(keywords);
-    //             }
-    // 
-    //             // If this was the last round, give up
-    //             if round == max_rounds - 1 {
-    //                 warn!(
-    //                     dao_id = %item.dao_id,
-    //                     item_id = %item.id,
-    //                     item_title = %item.title,
-    //                     item_type = ?item.item_type,
-    //                     max_rounds = max_rounds,
-    //                     keywords_found = keywords.len(),
-    //                     keywords = %keywords.join(", "),
-    //                     "Failed to get valid keywords after maximum rounds"
-    //                 );
-    //                 return Err(anyhow::anyhow!(
-    //                     "Could not extract valid keywords after {} attempts",
-    //                     max_rounds
-    //                 ));
-    //             }
-    // 
-    //             // Add the assistant's response to the conversation
-    //             basic_completion
-    //                 .prompt()
-    //                 .add_assistant_message()
-    //                 .unwrap()
-    //                 .set_content(&response.content);
-    // 
-    //             // Add a corrective user message based on what went wrong
-    //             let correction = if keywords.is_empty() {
-    //                 "I need you to provide keywords. Please respond with ONLY comma-separated keywords, nothing else. For example: keyword1,keyword2,keyword3. If there is truly insufficient content to extract meaningful keywords, respond with only: insufficient-content".to_string()
-    //             } else if keywords.len() < 5 {
-    //                 format!(
-    //                     "You only provided {} keywords. I need at least 10 keywords. Please provide more keywords as a comma-separated list. If there is truly insufficient content to extract meaningful keywords, respond with only: insufficient-content",
-    //                     keywords.len()
-    //                 )
-    //             } else {
-    //                 format!(
-    //                     "You provided {} keywords which is too many. Please provide 10-20 keywords only, as a comma-separated list.",
-    //                     keywords.len()
-    //                 )
-    //             };
-    // 
-    //             basic_completion
-    //                 .prompt()
-    //                 .add_user_message()
-    //                 .unwrap()
-    //                 .set_content(&correction);
-    // 
-    //             info!(
-    //                 "Round {} failed with {} keywords, trying again with correction",
-    //                 round + 1,
-    //                 keywords.len()
-    //             );
-    //         }
-    // 
-    //         Err(anyhow::anyhow!(
-    //             "Failed to extract keywords after {} rounds",
-    //             max_rounds
-    //         ))
-    //     }
-    // 
-    // Scoring function that returns a match score from 0 to 100
-    //     async fn match_score(&self, item_a: &NormalizedItem, item_b: &NormalizedItem) -> Result<u8> {
-    //         // Extract keywords for both items
-    //         let keywords_a = self.extract_keywords(item_a).await?;
-    //         let keywords_b = self.extract_keywords(item_b).await?;
-    // 
-    //         // Calculate available space for bodies
-    //         // Total limit: 15k chars
-    //         // With 8192 token context window for similarity comparison:
-    //         // - System prompt + template: ~500 tokens
-    //         // - Two titles + metadata: ~200 tokens
-    //         // - Model response: ~1000 tokens
-    //         // - Buffer: ~500 tokens
-    //         // This leaves ~6000 tokens for content (3000 per item)
-    // 
-    //         // For similarity comparison, allocate 3000 tokens per item
-    //         // This gives us 6000 tokens total for both items, leaving ~2000 for prompt/response
-    //         let body_a = item_a.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM);
-    //         let body_b = item_b.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM);
-    // 
-    //         // Create prompt with all relevant information
-    //         let prompt = format!(
-    //             r#"Item A:
-    // Title: {}
-    // Body: {}
-    // Keywords: {}
-    // Created: {}
-    // 
-    // Item B:
-    // Title: {}
-    // Body: {}
-    // Keywords: {}
-    // Created: {}
-    // 
-    // Consider if they are:
-    // - The same proposal at different stages
-    // - Strongly related proposals that should be tracked together
-    // - A proposal and its implementation/review
-    // - Separate topics despite any similarities"#,
-    //             item_a.title,
-    //             body_a,
-    //             keywords_a.join(", "),
-    //             item_a.created_at.format("%Y-%m-%d"),
-    //             item_b.title,
-    //             body_b,
-    //             keywords_b.join(", "),
-    //             item_b.created_at.format("%Y-%m-%d")
-    //         );
-    // 
-    //         // Use basic_primitive workflow for faster scoring (no reasoning overhead)
-    //         let mut primitive_request = self.llm_client.basic_primitive().integer();
-    // 
-    //         // Configure the integer bounds
-    //         primitive_request.primitive.lower_bound(0).upper_bound(100);
-    // 
-    //         // Configure request parameters
-    //         primitive_request
-    //             .temperature(0.3) // Lower temperature for consistent scoring
-    //             .max_tokens(50); // Only need a number, so very few tokens
-    // 
-    //         // Set the instructions with full context
-    //         primitive_request
-    //             .instructions()
-    //             .set_content(format!(
-    //                 r#"You are a DAO governance analyst specializing in proposal relationship mapping. Analyze whether these two governance items should be grouped together and provide a precise similarity score between 0 and 100.
-    // 
-    // IMPORTANT BASELINE CONTEXT: All items being compared are already DAO governance topics, so they share ~20-30 points of inherent similarity from common governance vocabulary, procedures, and ecosystem context. Your scoring must differentiate BEYOND this baseline similarity.
-    // 
-    // Scoring Guidelines (Adjusted for DAO Context):
-    // 
-    // 0-15: Maximum Unrelatedness Within Same DAO
-    // - Different protocol areas entirely (treasury vs technical vs community)
-    // - No shared specifics beyond generic governance terms
-    // - Months/quarters apart with no connection
-    // - Examples: "Deploy on Arbitrum" vs "Q3 Treasury Report", "Bug Bounty Program" vs "Marketing Budget"
-    // 
-    // 16-35: Minimal Substantive Connection
-    // - Same broad category but completely different initiatives
-    // - No shared stakeholders, amounts, or technical details
-    // - Generic category overlap only
-    // - Examples: Two unrelated grant requests, "Deploy on Chain A" vs "Deploy on Chain B" (different tech stacks)
-    // 
-    // 36-55: Moderate Thematic Relationship
-    // - Same problem space, different solutions
-    // - Shared category with some specific overlap
-    // - Competing or alternative proposals
-    // - Examples: Multiple security audit proposals (different vendors), Various treasury strategies (different approaches)
-    // 
-    // 56-{}: Significant Operational Connection
-    // - Clear dependencies or complementary goals
-    // - Same author/team across related initiatives
-    // - Shared specific parameters but not same proposal
-    // - Examples: "Temperature Check: Fee Reduction" vs "Topic: Fee Model Analysis", Grant request + progress report
-    // 
-    // {}-{}: Strong Governance Continuity (APPROACHING GROUPING THRESHOLD)
-    // - Same initiative progressing through stages
-    // - Clear progression markers (RFC→Temp Check→Proposal)
-    // - Days to weeks apart with continuity
-    // - Examples: "[RFC] Deploy V3" → "[Proposal] Deploy V3", Snapshot vote → On-chain execution
-    // 
-    // {}-95: Near-Identical Items (ABOVE GROUPING THRESHOLD)
-    // - Same proposal across platforms
-    // - Minor revisions or amendments
-    // - Identical key parameters (amounts, addresses, specifications)
-    // - Examples: Forum post ↔ On-chain proposal, Draft → Final versions
-    // 
-    // 96-100: Duplicates or Perfect Matches
-    // - Identical content with trivial differences
-    // - Same proposal ID across systems
-    // - Repostings or system duplicates
-    // 
-    // CRITICAL: The grouping threshold is {}. Scores of {} and above mean the items WILL be grouped together.
-    // Scores below {} mean they will remain separate.
-    // 
-    // CRITICAL DIFFERENTIATION FACTORS:
-    // 1. Specific parameters (amounts, addresses, dates) vs generic terms
-    // 2. Explicit references/URLs between items
-    // 3. Author/proposer continuity
-    // 4. Temporal progression indicators
-    // 5. Unique technical specifications
-    // 
-    // PENALIZE for baseline similarities:
-    // - Generic governance vocabulary (proposal, vote, treasury, protocol)
-    // - Standard procedural language (temperature check, quorum)
-    // - Common DAO references without specific context
-    // 
-    // Remember: Focus on what makes these items MORE related than any two random DAO proposals would be.
-    // 
-    // {}
-    // 
-    // Based on the above items, provide a precise similarity score between 0 and 100. Do not round up the score, make it a precise integer, use the entire range from 0 to 100."#,
-    //                 MATCH_THRESHOLD - 5,
-    //                 MATCH_THRESHOLD - 5,
-    //                 MATCH_THRESHOLD,
-    //                 MATCH_THRESHOLD + 6,
-    //                 MATCH_THRESHOLD,
-    //                 MATCH_THRESHOLD,
-    //                 MATCH_THRESHOLD,
-    //                 prompt
-    //             ));
-    // 
-    //         // Get the score using basic_primitive (non-optional)
-    //         let score = {
-    //             let _suppressor = crate::llm_ops::OutputSuppressor::new();
-    //             match primitive_request.return_primitive().await {
-    //                 Ok(score) => score,
-    //                 Err(e) => {
-    //                     error!(
-    //                         dao_id = %item_a.dao_id,
-    //                         item_a_id = %item_a.id,
-    //                         item_a_title = %item_a.title,
-    //                         item_a_type = ?item_a.item_type,
-    //                         item_b_id = %item_b.id,
-    //                         item_b_title = %item_b.title,
-    //                         item_b_type = ?item_b.item_type,
-    //                         error = %e,
-    //                         prompt_length = prompt.len(),
-    //                         "LLM basic_primitive failed to generate similarity score - returning default score of 0"
-    //                     );
-    //                     // Return a low score (0) to indicate no match when LLM fails
-    //                     // This allows the grouping process to continue instead of failing
-    //                     0
-    //                 }
-    //             }
-    //         };
-    // 
-    //         // Convert from u32 to u8, ensuring it's within bounds
-    //         let score = score.min(100) as u8;
-    // 
-    //         // Log detailed scoring information for analysis
-    //         info!(
-    //             dao_id = %item_a.dao_id,
-    //             item_a_id = %item_a.id,
-    //             item_a_title = %item_a.title,
-    //             item_a_type = ?item_a.item_type,
-    //             item_a_keywords = %keywords_a.join(", "),
-    //             item_b_id = %item_b.id,
-    //             item_b_title = %item_b.title,
-    //             item_b_type = ?item_b.item_type,
-    //             item_b_keywords = %keywords_b.join(", "),
-    //             score = score,
-    //             above_threshold = score >= MATCH_THRESHOLD,
-    //             "LLM similarity score calculated"
-    //         );
-    // 
-    //         Ok(score)
-    //     }
-    // 
-    //     // Confirm a match decision using decision workflow with multiple votes
-    //     async fn confirm_match_decision(
-    //         &self,
-    //         item_a: &NormalizedItem,
-    //         item_b: &NormalizedItem,
-    //         initial_score: u8,
-    //     ) -> Result<u8> {
-    //         // Only use decision workflow if score is near threshold
-    // 
-    //         info!(
-    //             dao_id = %item_a.dao_id,
-    //             phase = "CONFIRMATION_START",
-    //             item_a_id = %item_a.id,
-    //             item_a_title = %item_a.title,
-    //             item_b_id = %item_b.id,
-    //             item_b_title = %item_b.title,
-    //             initial_score = initial_score,
-    //             threshold = MATCH_THRESHOLD,
-    //             "[AI_GROUPING] Score near threshold - running decision confirmation with 3 votes"
-    //         );
-    // 
-    //         // Create the comparison prompt once
-    //         let prompt = format!(
-    //             r#"Item A:
-    // Title: {}
-    // Body: {}
-    // Keywords: {}
-    // Created: {}
-    // 
-    // Item B:
-    // Title: {}
-    // Body: {}
-    // Keywords: {}
-    // Created: {}
-    // 
-    // Initial assessment score: {}
-    // 
-    // The initial assessment determined these items have a similarity score of {}. This is near the grouping threshold of {}.
-    // Please carefully analyze whether these items should be grouped together."#,
-    //             item_a.title,
-    //             item_a.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM),
-    //             item_a.keywords.join(", "),
-    //             item_a.created_at.format("%Y-%m-%d"),
-    //             item_b.title,
-    //             item_b.get_truncated_body(MAX_BODY_TOKENS_PER_ITEM),
-    //             item_b.keywords.join(", "),
-    //             item_b.created_at.format("%Y-%m-%d"),
-    //             initial_score,
-    //             initial_score,
-    //             MATCH_THRESHOLD
-    //         );
-    // 
-    //         // Use basic_primitive workflow for faster consensus (no reasoning overhead)
-    //         // We'll run it 3 times manually to get consensus
-    //         let mut scores = Vec::new();
-    // 
-    //         for i in 0..3 {
-    //             let mut primitive_request = self.llm_client.basic_primitive().integer();
-    // 
-    //             // Configure the integer bounds
-    //             primitive_request.primitive.lower_bound(0).upper_bound(100);
-    // 
-    //             // Configure request parameters with temperature gradient for diversity
-    //             primitive_request
-    //                 .temperature(0.3 + (i as f32 * 0.2)) // 0.3, 0.5, 0.7
-    //                 .max_tokens(50); // Only need a number
-    // 
-    //             // Set the instructions with full context
-    //             primitive_request
-    //                 .instructions()
-    //                 .set_content(format!(
-    //                 r#"You are a DAO governance analyst providing a final determination on whether these items should be grouped. Consider the initial score and provide your own assessment.
-    // 
-    // {}
-    // 
-    // BASELINE CONTEXT: Remember that all items share ~20-30 points of inherent DAO governance similarity. Differentiate BEYOND this baseline.
-    // 
-    // Scoring Guidelines (Adjusted for DAO Context):
-    // - 0-15: Maximum unrelatedness within same DAO (different domains entirely)
-    // - 16-35: Minimal substantive connection (category overlap only)
-    // - 36-55: Moderate thematic relationship (same problem, different solutions)
-    // - 56-{}: Significant operational connection (dependencies, same team)
-    // - {}-{}: Strong governance continuity (same initiative progressing)
-    // - {}-95: Near-identical items (same proposal, different platforms)
-    // - 96-100: Duplicates or perfect matches
-    // 
-    // CRITICAL: The grouping threshold is {}. Scores of {} and above mean the items WILL be grouped together.
-    // Scores below {} mean they will remain separate.
-    // 
-    // Focus on: specific parameters, explicit references, author continuity, temporal progression, unique technical details.
-    // Ignore: generic governance terms, standard procedures, common DAO vocabulary.
-    // 
-    // Based on careful analysis, provide a final precise similarity score between 0 and 100. Do not round up the score, make it a precise integer, use the entire range from 0 to 100."#, prompt, MATCH_THRESHOLD - 5, MATCH_THRESHOLD - 5, MATCH_THRESHOLD, MATCH_THRESHOLD + 6, MATCH_THRESHOLD, MATCH_THRESHOLD, MATCH_THRESHOLD
-    //             ));
-    // 
-    //             // Get the score
-    //             let score = {
-    //                 let _suppressor = crate::llm_ops::OutputSuppressor::new();
-    //                 match primitive_request.return_primitive().await {
-    //                     Ok(score) => score,
-    //                     Err(e) => {
-    //                         error!(
-    //                             dao_id = %item_a.dao_id,
-    //                             item_a_id = %item_a.id,
-    //                             item_b_id = %item_b.id,
-    //                             vote_number = i + 1,
-    //                             error = %e,
-    //                             "Basic primitive vote {} failed",
-    //                             i + 1
-    //                         );
-    //                         continue; // Skip failed votes
-    //                     }
-    //                 }
-    //             };
-    // 
-    //             let vote_score = score.min(100) as u8;
-    //             scores.push(vote_score);
-    // 
-    //             info!(
-    //                 dao_id = %item_a.dao_id,
-    //                 item_a_id = %item_a.id,
-    //                 item_b_id = %item_b.id,
-    //                 vote_number = i + 1,
-    //                 vote_score = vote_score,
-    //                 temperature = 0.3 + (i as f32 * 0.2),
-    //                 "Basic primitive vote completed"
-    //             );
-    //         }
-    // 
-    //         // Calculate consensus score (median of valid scores)
-    //         if scores.is_empty() {
-    //             error!(
-    //                 dao_id = %item_a.dao_id,
-    //                 item_a_id = %item_a.id,
-    //                 item_b_id = %item_b.id,
-    //                 "All basic_primitive votes failed"
-    //             );
-    //             return Err(anyhow::anyhow!("All basic_primitive votes failed"));
-    //         }
-    // 
-    //         scores.sort();
-    //         let consensus_score = if scores.len().is_multiple_of(2) {
-    //             (scores[scores.len() / 2 - 1] + scores[scores.len() / 2]) / 2
-    //         } else {
-    //             scores[scores.len() / 2]
-    //         };
-    // 
-    //         // Log detailed decision information
-    //         info!(
-    //             dao_id = %item_a.dao_id,
-    //             phase = "CONFIRMATION_COMPLETE",
-    //             item_a_id = %item_a.id,
-    //             item_a_title = %item_a.title,
-    //             item_b_id = %item_b.id,
-    //             item_b_title = %item_b.title,
-    //             initial_score = initial_score,
-    //             consensus_score = consensus_score,
-    //             individual_scores = ?scores,
-    //             valid_votes = scores.len(),
-    //             score_change = (consensus_score as i16 - initial_score as i16),
-    //             decision = if consensus_score >= MATCH_THRESHOLD { "CONFIRMED_MATCH" } else { "CONFIRMED_NO_MATCH" },
-    //             threshold = MATCH_THRESHOLD,
-    //             "[AI_GROUPING] Basic primitive consensus reached"
-    //         );
-    // 
-    //         Ok(consensus_score)
-    //     }
-
-    #[cfg(feature = "llm-grouping")]
-    async fn ai_grouping_pass(
-        &self,
-        mut ungrouped_items: Vec<NormalizedItem>,
-        mut groups: HashMap<Uuid, Vec<NormalizedItem>>,
-        dao_id: Uuid,
-    ) -> Result<HashMap<Uuid, Vec<NormalizedItem>>> {
-        let pending = ungrouped_items.len();
-
-        if pending == 0 {
-            info!(
-                dao_id = %dao_id,
-                "[AI_GROUPING] Placeholder AI grouping - nothing to process"
-            );
-            return Ok(groups);
-        }
-
-        info!(
-            dao_id = %dao_id,
-            pending_items = pending,
-            "[AI_GROUPING] Placeholder AI grouping creating single-item groups"
-        );
-
-        while let Some(item) = ungrouped_items.pop() {
-            let new_group_id = Uuid::new_v4();
-            info!(
-                dao_id = %dao_id,
-                item_id = %item.id,
-                new_group_id = %new_group_id,
-                "[AI_GROUPING] Placeholder group created"
-            );
-            groups.insert(new_group_id, vec![item]);
-
-            if let Err(err) = self.persist_results(&groups, dao_id).await {
-                error!(
-                    dao_id = %dao_id,
-                    error = %err,
-                    "[AI_GROUPING] Failed to persist placeholder group"
-                );
-            }
-        }
-
-        Ok(groups)
+        // Simple truncation with ellipsis using character-safe boundary.
+        format!("{}...", &text[..byte_index])
     }
 
     // Load proposals for a DAO
@@ -844,13 +266,13 @@ impl Grouper {
             governor_id: proposal.governor_id,
         });
 
-        let body_preview = Self::truncate_text(&proposal.body, BODY_PREVIEW_MAX_TOKENS);
+        let body = proposal.body.clone();
 
         Ok(NormalizedItem {
             id,
             dao_id: proposal.dao_id.to_string(),
             title: proposal.name,
-            body: body_preview,
+            body,
             created_at: Utc.from_utc_datetime(&proposal.created_at),
             item_type: ItemType::Proposal,
             keywords: vec![], // Will be filled by extract_keywords
@@ -1354,7 +776,18 @@ mod tests {
         );
         // Using ~25 tokens (roughly 100 chars at ~4 chars/token)
         let truncated = Grouper::truncate_text(&long_unicode, 25);
-        assert!(truncated.contains("[... TRUNCATED ...]"));
+        assert!(truncated.ends_with("..."));
+        assert!(truncated.len() < long_unicode.len());
+    }
+
+    #[test]
+    fn test_truncate_text_curly_quote_boundary() {
+        // Craft a string where the truncation limit would fall in the middle of a multi-byte char
+        let text = format!("{}”{}", "a".repeat(15), " trailing content");
+        // 4 tokens -> ~16 char budget; ensures the quote sits at the boundary
+        let truncated = Grouper::truncate_text(&text, 4);
+        assert!(truncated.ends_with("..."));
+        assert!(truncated.len() < text.len());
     }
 
     // Tests for ID-only format: /t/12345

@@ -18,11 +18,7 @@ axum = { workspace = true }
 bincode = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
-# fastembed = { workspace = true }
-# gag = { workspace = true } # Used by llm_ops module for output suppression
 lazy_static = { workspace = true }
-# llm_client = { workspace = true }
-# llm_models = { workspace = true }
 once_cell = { workspace = true }
 proposalsapp-db = { workspace = true }
 rand = { workspace = true }
@@ -40,7 +36,6 @@ sea-orm = { workspace = true, features = [
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-# tiktoken-rs = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = [
