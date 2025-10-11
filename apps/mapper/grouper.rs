@@ -1,18 +1,14 @@
 use anyhow::{Context, Result};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::Utc;
 use proposalsapp_db::models::*;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set, prelude::*,
     sea_query,
 };
-use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-// use tiktoken_rs::{CoreBPE, cl100k_base};
 use tracing::{error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
-
-const BODY_PREVIEW_MAX_TOKENS: usize = 3000;
 
 lazy_static::lazy_static! {
     /// Mapping of DAO slugs to the Discourse category IDs that should be included
@@ -93,91 +89,14 @@ pub async fn run_grouper_task() -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NormalizedItem {
-    pub dao_id: String,
-    pub id: String, // Composite: "proposal_{external_id}" or "topic_{external_id}"
-    pub title: String,
-    pub body: String,
-    pub created_at: DateTime<Utc>,
-    pub item_type: ItemType,
-    pub keywords: Vec<String>,
-    pub raw_data: ProposalGroupItem, // Original ProposalItem or TopicItem
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ItemType {
-    Proposal,
-    Topic,
-}
-
 pub struct Grouper {
     db: DatabaseConnection,
-    // llm_client: LlmClient,
 }
 
 impl Grouper {
     pub async fn new(db: DatabaseConnection) -> Result<Self> {
-        // // Initialize LLM client with proper error handling
-        // info!("Initializing LLM client for grouper");
-
-        // // Use Hugging Face URL to download the model automatically
-        // // This is Llama 3.1 8B Instruct with Q4_K_M quantization (~4.9GB)
-        // let model_url = "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf";
-
-        // info!("Downloading/using LLM model from: {}", model_url);
-
-        // let mut builder = LlmClient::llama_cpp();
-        // builder.hf_quant_file_url(model_url);
-
-        // let llm_client = builder
-        //     .logging_enabled(false) // Disable llm_devices logging to prevent it from replacing our JSON logger
-        //     .init()
-        //     .await
-        //     .context("Failed to initialize LLM client - make sure llama.cpp server can start and model can be downloaded")?;
-
-        // // Log device configuration
-        // if let Ok(llama_backend) = llm_client.backend.llama_cpp() {
-        //     let gpu_count = llama_backend.server.device_config.gpu_count();
-        //     info!(
-        //         "LLM client initialized successfully with {} GPU(s)",
-        //         gpu_count
-        //     );
-        // } else {
-        //     info!("LLM client initialized successfully");
-        // }
-
-        info!("Initializing grouper (LLM functionality disabled)");
+        info!("Initializing grouper");
         Ok(Self { db })
-    }
-
-    // Helper function to safely truncate text with character-based counting
-    // Simplified version without LLM token counting dependencies
-    fn truncate_text(text: &str, max_tokens: usize) -> String {
-        if text.is_empty() {
-            return String::new();
-        }
-
-        // Rough estimate: 1 token ≈ 4 chars, so convert token limit to char limit.
-        let char_limit = max_tokens.saturating_mul(4);
-
-        let mut byte_index = text.len();
-        let mut char_count = 0;
-
-        for (idx, _) in text.char_indices() {
-            if char_count >= char_limit {
-                byte_index = idx;
-                break;
-            }
-            char_count += 1;
-        }
-
-        if byte_index == text.len() {
-            return text.to_string();
-        }
-
-        // Simple truncation with ellipsis using character-safe boundary.
-        format!("{}...", &text[..byte_index])
     }
 
     // Load proposals for a DAO
@@ -255,76 +174,10 @@ impl Grouper {
             .context("Failed to load existing groups")
     }
 
-    // Normalize a proposal into our common format
-    async fn normalize_proposal(&self, proposal: proposal::Model) -> Result<NormalizedItem> {
-        let external_id = proposal.external_id.clone();
-        let id = format!("proposal_{external_id}");
-
-        let raw_data = ProposalGroupItem::Proposal(ProposalItem {
-            name: proposal.name.clone(),
-            external_id: external_id.clone(),
-            governor_id: proposal.governor_id,
-        });
-
-        let body = proposal.body.clone();
-
-        Ok(NormalizedItem {
-            id,
-            dao_id: proposal.dao_id.to_string(),
-            title: proposal.name,
-            body,
-            created_at: Utc.from_utc_datetime(&proposal.created_at),
-            item_type: ItemType::Proposal,
-            keywords: vec![], // Will be filled by extract_keywords
-            raw_data,
-        })
-    }
-
-    // Normalize a discourse topic into our common format
-    async fn normalize_topic(
-        &self,
-        topic: discourse_topic::Model,
-        dao_id: Uuid,
-    ) -> Result<NormalizedItem> {
-        let external_id = topic.external_id.to_string();
-        let id = format!("topic_{external_id}");
-
-        // Get the first post content
-        let first_post = discourse_post::Entity::find()
-            .filter(discourse_post::Column::TopicId.eq(topic.external_id))
-            .filter(discourse_post::Column::PostNumber.eq(1))
-            .one(&self.db)
-            .await
-            .context("Failed to load first post")?;
-
-        let full_body = first_post
-            .and_then(|p| p.cooked)
-            .unwrap_or_else(|| String::from("No content available"));
-
-        let body_preview = Self::truncate_text(&full_body, BODY_PREVIEW_MAX_TOKENS);
-
-        let raw_data = ProposalGroupItem::Topic(TopicItem {
-            name: topic.title.clone(),
-            external_id: external_id.clone(),
-            dao_discourse_id: topic.dao_discourse_id,
-        });
-
-        Ok(NormalizedItem {
-            id,
-            dao_id: dao_id.to_string(),
-            title: topic.title,
-            body: body_preview,
-            created_at: Utc.from_utc_datetime(&topic.created_at),
-            item_type: ItemType::Topic,
-            keywords: vec![], // Will be filled by extract_keywords
-            raw_data,
-        })
-    }
-
     // Persist grouping results
     async fn persist_results(
         &self,
-        groups: &HashMap<Uuid, Vec<NormalizedItem>>,
+        groups: &HashMap<Uuid, Vec<ProposalGroupItem>>,
         dao_id: Uuid,
     ) -> Result<()> {
         // Get existing group IDs
@@ -341,12 +194,13 @@ impl Grouper {
                 continue;
             }
 
-            // Convert to ProposalGroupItem format
-            let proposal_items: Vec<ProposalGroupItem> =
-                items.iter().map(|item| item.raw_data.clone()).collect();
+            let items_json = serde_json::to_value(items)?;
 
-            let items_json = serde_json::to_value(&proposal_items)?;
-            let group_name = items[0].title.to_string();
+            // Extract name from the first item
+            let group_name = match &items[0] {
+                ProposalGroupItem::Proposal(p) => p.name.clone(),
+                ProposalGroupItem::Topic(t) => t.name.clone(),
+            };
 
             if existing_group_ids.contains(group_id) {
                 // Update existing group
@@ -379,20 +233,71 @@ impl Grouper {
         Ok(())
     }
 
-    // Procedural grouping step: match proposals with discourse topics based on discussion URLs
-    async fn procedural_grouping_pass(
+    // Step 1: Create groups for all ungrouped topics
+    async fn create_topic_groups(
         &self,
-        proposals: &[proposal::Model],
         topics: &[discourse_topic::Model],
-        all_items: &[NormalizedItem],
-        groups: &mut HashMap<Uuid, Vec<NormalizedItem>>,
+        groups: &mut HashMap<Uuid, Vec<ProposalGroupItem>>,
         grouped_item_ids: &mut HashSet<String>,
         dao_id: Uuid,
     ) -> Result<()> {
         info!(
-            "Starting procedural grouping pass for {} proposals and {} topics",
-            proposals.len(),
+            "Step 1: Creating groups for {} topics in monitored categories",
             topics.len()
+        );
+
+        let mut groups_created = 0;
+
+        for topic in topics {
+            let topic_item_id = format!("topic_{}", topic.external_id);
+
+            // Skip if already in a group
+            if grouped_item_ids.contains(&topic_item_id) {
+                continue;
+            }
+
+            // Create ProposalGroupItem directly from topic
+            let topic_item = ProposalGroupItem::Topic(TopicItem {
+                name: topic.title.clone(),
+                external_id: topic.external_id.to_string(),
+                dao_discourse_id: topic.dao_discourse_id,
+            });
+
+            // Create a new group with just this topic
+            let new_group_id = Uuid::new_v4();
+            groups.insert(new_group_id, vec![topic_item]);
+            grouped_item_ids.insert(topic_item_id.clone());
+            groups_created += 1;
+
+            info!(
+                dao_id = %dao_id,
+                action = "CREATE_TOPIC_GROUP",
+                topic_id = %topic_item_id,
+                topic_title = %topic.title,
+                group_id = %new_group_id,
+                "Created new group for topic"
+            );
+        }
+
+        info!(
+            "Step 1 completed: Created {} new groups for topics",
+            groups_created
+        );
+        Ok(())
+    }
+
+    // Step 2: Match proposals to existing topic groups via discussion URLs
+    async fn match_proposals_to_groups(
+        &self,
+        proposals: &[proposal::Model],
+        topics: &[discourse_topic::Model],
+        groups: &mut HashMap<Uuid, Vec<ProposalGroupItem>>,
+        grouped_item_ids: &mut HashSet<String>,
+        dao_id: Uuid,
+    ) -> Result<()> {
+        info!(
+            "Step 2: Matching {} proposals to topic groups",
+            proposals.len()
         );
 
         // Build a map of topic external_id -> topic for fast lookup
@@ -405,10 +310,12 @@ impl Grouper {
 
         let mut matched_count = 0;
         let mut proposals_with_urls = 0;
+        let mut unmatched_count = 0;
 
         for proposal in proposals {
-            // Skip if already grouped
             let proposal_item_id = format!("proposal_{}", proposal.external_id);
+
+            // Skip if already grouped
             if grouped_item_ids.contains(&proposal_item_id) {
                 continue;
             }
@@ -435,73 +342,63 @@ impl Grouper {
                 if let Some(topic) = matched_topic {
                     let topic_item_id = format!("topic_{}", topic.external_id);
 
-                    // Find the normalized items
-                    let proposal_item = all_items.iter().find(|item| {
-                        matches!(&item.raw_data, ProposalGroupItem::Proposal(p) if p.external_id == proposal.external_id)
+                    // Create ProposalGroupItem directly from proposal
+                    let proposal_item = ProposalGroupItem::Proposal(ProposalItem {
+                        name: proposal.name.clone(),
+                        external_id: proposal.external_id.clone(),
+                        governor_id: proposal.governor_id,
                     });
 
-                    let topic_item = all_items.iter().find(|item| {
-                        matches!(&item.raw_data, ProposalGroupItem::Topic(t) if t.external_id == topic.external_id.to_string())
+                    // Find which group contains the topic
+                    let existing_group = groups.iter_mut().find(|(_, items)| {
+                        items.iter().any(|item| {
+                            matches!(item, ProposalGroupItem::Topic(t) if t.external_id == topic.external_id.to_string())
+                        })
                     });
 
-                    if let Some(prop_item) = proposal_item {
-                        // Check if topic is already in a group
-                        if grouped_item_ids.contains(&topic_item_id) {
-                            // Find which group contains the topic
-                            let existing_group = groups.iter_mut().find(|(_, items)| {
-                                items.iter().any(|item| {
-                                    matches!(&item.raw_data, ProposalGroupItem::Topic(t) if t.external_id == topic.external_id.to_string())
-                                })
-                            });
+                    if let Some((group_id, group_items)) = existing_group {
+                        // Add proposal to the topic's group
+                        group_items.push(proposal_item);
+                        grouped_item_ids.insert(proposal_item_id.clone());
+                        matched_count += 1;
 
-                            if let Some((_group_id, group_items)) = existing_group {
-                                // Add proposal to existing group
-                                group_items.push(prop_item.clone());
-                                grouped_item_ids.insert(proposal_item_id.clone());
-
-                                matched_count += 1;
-                                info!(
-                                    dao_id = %dao_id,
-                                    action = "PROCEDURAL_ADD_TO_GROUP",
-                                    proposal_id = %proposal_item_id,
-                                    proposal_title = %proposal.name,
-                                    topic_id = %topic_item_id,
-                                    topic_title = %topic.title,
-                                    discussion_url = %discussion_url,
-                                    "Added proposal to existing group via discussion URL"
-                                );
-                            }
-                        } else if let Some(topic_item) = topic_item {
-                            // Create a new group with both items
-                            let new_group_id = Uuid::new_v4();
-                            groups
-                                .insert(new_group_id, vec![prop_item.clone(), topic_item.clone()]);
-
-                            // Mark both as grouped
-                            grouped_item_ids.insert(proposal_item_id.clone());
-                            grouped_item_ids.insert(topic_item_id.clone());
-
-                            matched_count += 1;
-                            info!(
-                                dao_id = %dao_id,
-                                action = "PROCEDURAL_CREATE_GROUP",
-                                proposal_id = %proposal_item_id,
-                                proposal_title = %proposal.name,
-                                topic_id = %topic_item_id,
-                                topic_title = %topic.title,
-                                discussion_url = %discussion_url,
-                                new_group_id = %new_group_id,
-                                "Created new group from proposal and topic via discussion URL"
-                            );
-                        }
+                        info!(
+                            dao_id = %dao_id,
+                            action = "MATCH_PROPOSAL_TO_GROUP",
+                            proposal_id = %proposal_item_id,
+                            proposal_title = %proposal.name,
+                            topic_id = %topic_item_id,
+                            topic_title = %topic.title,
+                            group_id = %group_id,
+                            discussion_url = %discussion_url,
+                            "Added proposal to topic's group via discussion URL"
+                        );
+                    } else {
+                        warn!(
+                            dao_id = %dao_id,
+                            action = "TOPIC_NOT_IN_GROUP",
+                            proposal_id = %proposal_item_id,
+                            topic_id = %topic_item_id,
+                            "Found matching topic but it's not in any group"
+                        );
                     }
+                } else {
+                    unmatched_count += 1;
+                    info!(
+                        dao_id = %dao_id,
+                        action = "NO_TOPIC_MATCH",
+                        proposal_id = %proposal_item_id,
+                        proposal_title = %proposal.name,
+                        discussion_url = %discussion_url,
+                        "Proposal has discussion URL but no matching topic found"
+                    );
                 }
             }
         }
 
         info!(
-            "Procedural grouping completed: {} matches found from {} proposals with discussion URLs",
-            matched_count, proposals_with_urls
+            "Step 2 completed: Matched {} proposals to groups, {} unmatched (out of {} with discussion URLs)",
+            matched_count, unmatched_count, proposals_with_urls
         );
         Ok(())
     }
@@ -516,54 +413,23 @@ impl Grouper {
         let topics = self.load_topics(dao_id).await?;
         let existing_groups = self.load_groups(dao_id).await?;
 
-        let total_items = proposals.len() + topics.len();
         info!(
-            "Loaded {} proposals, {} topics ({} total items), {} existing groups",
+            "Loaded {} proposals, {} topics, {} existing groups",
             proposals.len(),
             topics.len(),
-            total_items,
             existing_groups.len()
         );
 
-        // Normalize items (without keywords for now)
-        let mut all_items = Vec::new();
-        info!("Normalizing {} items...", total_items);
-
-        for (idx, proposal) in proposals.iter().enumerate() {
-            info!("Normalized {}/{} proposals", idx, proposals.len());
-            let normalized = self.normalize_proposal(proposal.clone()).await?;
-            all_items.push(normalized);
-        }
-
-        for (idx, topic) in topics.iter().enumerate() {
-            info!("Normalized {}/{} topics", idx, topics.len());
-            match self.normalize_topic(topic.clone(), dao_id).await {
-                Ok(normalized) => {
-                    all_items.push(normalized);
-                }
-                Err(e) => {
-                    warn!("Failed to normalize topic: {}", e);
-                    continue;
-                }
-            }
-        }
-
-        // Sort by created_at
-        all_items.sort_by_key(|item| item.created_at);
-
-        // Step 1: Get all ungrouped items and extract all grouped items from existing groups
-        let mut groups: HashMap<Uuid, Vec<NormalizedItem>> = HashMap::new();
+        // Load existing groups and track which items are already grouped
+        let mut groups: HashMap<Uuid, Vec<ProposalGroupItem>> = HashMap::new();
         let mut grouped_item_ids = HashSet::new();
 
-        // Load existing groups
         for group in existing_groups {
             let items: Vec<ProposalGroupItem> = serde_json::from_value(group.items.clone())
                 .context("Failed to deserialize group items")?;
 
-            let mut group_items = Vec::new();
-
+            // Track IDs of items already in groups
             for item in &items {
-                // Track IDs to filter ungrouped items later
                 match item {
                     ProposalGroupItem::Proposal(p) => {
                         grouped_item_ids.insert(format!("proposal_{}", p.external_id));
@@ -572,131 +438,60 @@ impl Grouper {
                         grouped_item_ids.insert(format!("topic_{}", t.external_id));
                     }
                 }
-
-                // Find the normalized version of this item
-                match item {
-                    ProposalGroupItem::Proposal(p) => {
-                        if let Some(full_item) = all_items.iter().find(|ai| {
-                            matches!(&ai.raw_data, ProposalGroupItem::Proposal(pi) if pi.external_id == p.external_id)
-                        }) {
-                            group_items.push(full_item.clone());
-                        }
-                    }
-                    ProposalGroupItem::Topic(t) => {
-                        if let Some(full_item) = all_items.iter().find(|ai| {
-                            matches!(&ai.raw_data, ProposalGroupItem::Topic(ti) if ti.external_id == t.external_id)
-                        }) {
-                            group_items.push(full_item.clone());
-                        }
-                    }
-                }
             }
 
-            groups.insert(group.id, group_items);
+            groups.insert(group.id, items);
         }
 
-        // Step 2: Run procedural grouping FIRST (before AI grouping)
-        self.procedural_grouping_pass(
+        // Step 1: Create groups for all ungrouped topics in monitored categories
+        info!("===== STEP 1: Creating topic groups =====");
+        self.create_topic_groups(&topics, &mut groups, &mut grouped_item_ids, dao_id)
+            .await?;
+
+        // Persist groups after Step 1
+        info!(
+            "Persisting {} groups after Step 1 (topic groups)",
+            groups.len()
+        );
+        self.persist_results(&groups, dao_id).await?;
+
+        // Step 2: Match proposals to existing topic groups via discussion URLs
+        info!("===== STEP 2: Matching proposals to topic groups =====");
+        self.match_proposals_to_groups(
             &proposals,
             &topics,
-            &all_items,
             &mut groups,
             &mut grouped_item_ids,
             dao_id,
         )
         .await?;
 
-        // Persist groups after procedural grouping
+        // Persist groups after Step 2
         info!(
-            "Persisting {} groups after procedural grouping",
+            "Persisting {} groups after Step 2 (proposal matching)",
             groups.len()
         );
         self.persist_results(&groups, dao_id).await?;
 
-        // // Extract keywords for all items after procedural grouping
-        // let total_items = all_items.len();
-        // info!("Extracting keywords for {} items", total_items);
-        // for (idx, item) in all_items.iter_mut().enumerate() {
-        //     if idx.is_multiple_of(10) {
-        //         info!(
-        //             "Extracting keywords: {}/{} items processed",
-        //             idx, total_items
-        //         );
-        //     }
-        //     item.keywords = self.extract_keywords(item).await?;
-        // }
-        // info!("Keyword extraction complete for all {} items", total_items);
-
-        // Get ungrouped items (after procedural grouping)
-        let ungrouped_items: Vec<_> = all_items
-            .into_iter()
-            .filter(|item| !grouped_item_ids.contains(&item.id))
-            .collect();
+        // Calculate final statistics
+        let total_groups = groups.len();
+        let single_item_groups = groups
+            .values()
+            .filter(|items| items.len() == 1)
+            .count();
+        let multi_item_groups = groups
+            .values()
+            .filter(|items| items.len() > 1)
+            .count();
 
         info!(
-            "After procedural grouping: {} ungrouped items remaining for AI grouping",
-            ungrouped_items.len()
+            dao_id = %dao_id,
+            total_groups = total_groups,
+            single_item_groups = single_item_groups,
+            multi_item_groups = multi_item_groups,
+            "===== Grouping complete ====="
         );
 
-        // // Step 3-5: Run the AI-based grouping algorithm on remaining ungrouped items
-        // let final_groups = self
-        //     .ai_grouping_pass(ungrouped_items, groups, dao_id)
-        //     .await?;
-
-        // No need to persist again here since we persist after each item in ai_grouping_pass
-
-        // // Calculate final statistics
-        // let total_groups = final_groups.len();
-        // let single_item_groups = final_groups
-        //     .values()
-        //     .filter(|items| items.len() == 1)
-        //     .count();
-        // let multi_item_groups = final_groups
-        //     .values()
-        //     .filter(|items| items.len() > 1)
-        //     .count();
-        // let largest_group_size = final_groups
-        //     .values()
-        //     .map(|items| items.len())
-        //     .max()
-        //     .unwrap_or(0);
-        // let avg_group_size = if total_groups > 0 {
-        //     final_groups
-        //         .values()
-        //         .map(|items| items.len())
-        //         .sum::<usize>() as f64
-        //         / total_groups as f64
-        // } else {
-        //     0.0
-        // };
-
-        // let procedural_matches_count = final_groups
-        //     .values()
-        //     .filter(|items| {
-        //         items.len() > 1
-        //             && items
-        //                 .iter()
-        //                 .any(|item| matches!(&item.raw_data, ProposalGroupItem::Proposal(_)))
-        //             && items
-        //                 .iter()
-        //                 .any(|item| matches!(&item.raw_data, ProposalGroupItem::Topic(_)))
-        //     })
-        //     .count();
-
-        // info!(
-        //     dao_id = %dao_id,
-        //     total_items = total_items,
-        //     total_groups = total_groups,
-        //     single_item_groups = single_item_groups,
-        //     multi_item_groups = multi_item_groups,
-        //     largest_group_size = largest_group_size,
-        //     avg_group_size = format!("{:.2}", avg_group_size),
-        //     procedural_matches = procedural_matches_count,
-        //     ai_matches = multi_item_groups - procedural_matches_count,
-        //     proposals_processed = proposals.len(),
-        //     topics_processed = topics.len(),
-        //     "Grouping complete - detailed statistics"
-        // );
         Ok(())
     }
 }
@@ -740,55 +535,6 @@ pub fn extract_discourse_id_or_slug(url: &str) -> (Option<i32>, Option<String>) 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_truncate_text_with_unicode() {
-        // Test with non-breaking space (the character that caused the panic)
-        let text_with_nbsp = "Hello\u{a0}world this is a test with non-breaking space";
-        // Using ~3 tokens (roughly 10 chars at ~3.3 chars/token)
-        let truncated = Grouper::truncate_text(text_with_nbsp, 3);
-        assert!(truncated.ends_with("..."));
-        assert!(truncated.len() <= text_with_nbsp.len());
-
-        // Test with emoji
-        let text_with_emoji = "Hello 🧑‍🔬 scientist emoji test";
-        // Using ~3 tokens (roughly 10 chars)
-        let truncated = Grouper::truncate_text(text_with_emoji, 3);
-        assert!(truncated.ends_with("..."));
-
-        // Test with mixed Unicode characters
-        let mixed_unicode = "English русский 中文 العربية mixed text";
-        // Using ~6 tokens (roughly 20 chars)
-        let truncated = Grouper::truncate_text(mixed_unicode, 6);
-        assert!(truncated.ends_with("..."));
-
-        // Test with exact boundary - the problematic case from the error
-        let problematic_text = "# Deploy Uniswap v3 on Gnosis Chain\nContext\n-------\n\nAfter passing the\u{a0}[Temperature Check vote](https://snapshot.org/#/uniswap/proposal/0xb328c7583c0f1ea85f8a273dd36977c95e47c3713744caf7143e68b65efcc8a5)\u{a0}with 7M UNI voting in favor of deploying Uniswap v";
-        // This should not panic
-        // Using ~50 tokens (roughly 200 chars at ~4 chars/token)
-        let truncated = Grouper::truncate_text(problematic_text, 50);
-        assert!(!truncated.is_empty());
-
-        // Test middle truncation with unicode
-        let long_unicode = format!(
-            "Start текст с unicode символами {}end часть с unicode",
-            "middle part ".repeat(50)
-        );
-        // Using ~25 tokens (roughly 100 chars at ~4 chars/token)
-        let truncated = Grouper::truncate_text(&long_unicode, 25);
-        assert!(truncated.ends_with("..."));
-        assert!(truncated.len() < long_unicode.len());
-    }
-
-    #[test]
-    fn test_truncate_text_curly_quote_boundary() {
-        // Craft a string where the truncation limit would fall in the middle of a multi-byte char
-        let text = format!("{}”{}", "a".repeat(15), " trailing content");
-        // 4 tokens -> ~16 char budget; ensures the quote sits at the boundary
-        let truncated = Grouper::truncate_text(&text, 4);
-        assert!(truncated.ends_with("..."));
-        assert!(truncated.len() < text.len());
-    }
 
     // Tests for ID-only format: /t/12345
     #[test]
