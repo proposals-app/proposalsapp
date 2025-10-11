@@ -13,31 +13,31 @@ networks:
     chain_id: 1
     rpc: ${ETHEREUM_NODE_URL}
     max_block_range: 10000
-    block_poll_frequency: optimized
+    block_poll_frequency: 60000
 
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
     max_block_range: 10000
-    block_poll_frequency: optimized
+    block_poll_frequency: 60000
 
   - name: optimism
     chain_id: 10
     rpc: ${OPTIMISM_NODE_URL}
     max_block_range: 10000
-    block_poll_frequency: optimized
+    block_poll_frequency: 60000
 
   - name: polygon
     chain_id: 137
     rpc: ${POLYGON_NODE_URL}
     max_block_range: 10000
-    block_poll_frequency: optimized
+    block_poll_frequency: 60000
 
   - name: avalanche
     chain_id: 43114
     rpc: ${AVALANCHE_NODE_URL}
     max_block_range: 10000
-    block_poll_frequency: optimized
+    block_poll_frequency: 60000
 
 contracts:
   - name: ARBToken
