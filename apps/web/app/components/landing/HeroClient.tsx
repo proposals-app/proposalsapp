@@ -32,7 +32,7 @@ export function HeroClient({ activeProposals, daoLogos }: HeroClientProps) {
           variants={staggerChildren}
           className='mx-auto max-w-5xl text-center'
         >
-          <div className='xs:text-5xl text-4xl font-black tracking-tight text-stone-900 sm:text-5xl md:text-6xl lg:text-7xl'>
+          <div className='text-4xl font-black tracking-tight text-stone-900 xs:text-5xl sm:text-5xl md:text-6xl lg:text-7xl'>
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -50,7 +50,7 @@ export function HeroClient({ activeProposals, daoLogos }: HeroClientProps) {
             </motion.span>
           </div>
 
-          <div className='xs:text-4xl mt-2 text-3xl font-black tracking-tight text-stone-900 sm:text-4xl md:text-5xl lg:text-6xl'>
+          <div className='mt-2 text-3xl font-black tracking-tight text-stone-900 xs:text-4xl sm:text-4xl md:text-5xl lg:text-6xl'>
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -72,7 +72,7 @@ export function HeroClient({ activeProposals, daoLogos }: HeroClientProps) {
 
       {/* Bottom Section with Counter and Logos */}
       <div
-        className='absolute right-0 bottom-0 left-0 pb-8 sm:pb-12 md:pb-16'
+        className='absolute bottom-0 left-0 right-0 pb-8 sm:pb-12 md:pb-16'
         style={{
           paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))',
         }}

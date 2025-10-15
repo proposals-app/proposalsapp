@@ -58,7 +58,7 @@ export function ResultsList({ results, onchain }: ResultsListProps) {
   // Bars are now rendered separately in ResultsListBars to avoid coupling
 
   return (
-    <div className='flex w-72 flex-col gap-4 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
+    <div className='flex w-72 flex-col gap-4 text-neutral-700 dark:text-neutral-200 sm:ml-6'>
       <div className='flex items-center sm:h-28'>
         <StatusMessage
           endTime={toZonedTime(deserializedResults.proposal.endAt, 'UTC')}
@@ -340,7 +340,7 @@ export function ParticipationPercentage({
     <div>
       <div className='relative h-2 w-full overflow-hidden border border-neutral-800 dark:border-neutral-200'>
         <div
-          className='absolute top-0 left-0 h-full bg-neutral-800 dark:bg-neutral-200'
+          className='absolute left-0 top-0 h-full bg-neutral-800 dark:bg-neutral-200'
           style={{
             width: `${percentage}%`,
           }}
@@ -413,7 +413,7 @@ export function ResultsListBars({
     : undefined;
 
   return (
-    <div className='mt-4 flex min-h-[112px] w-72 flex-col gap-2 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
+    <div className='mt-4 flex min-h-[112px] w-72 flex-col gap-2 text-neutral-700 dark:text-neutral-200 sm:ml-6'>
       {deserializedResults.quorum !== null && totalDelegatedVp && (
         <MajoritySupportCheckmark hasMajoritySupport={hasMajoritySupport} />
       )}
@@ -442,7 +442,7 @@ export function ResultsListBars({
 // Skeleton to occupy exact space of bars to avoid CLS - matches real components exactly
 export function ResultsListBarsSkeleton() {
   return (
-    <div className='mt-4 flex min-h-[112px] w-72 flex-col gap-2 text-neutral-700 sm:ml-6 dark:text-neutral-200'>
+    <div className='mt-4 flex min-h-[112px] w-72 flex-col gap-2 text-neutral-700 dark:text-neutral-200 sm:ml-6'>
       {/* Majority support row - matches MajoritySupportCheckmark */}
       <div className='flex w-full items-center gap-1 text-sm font-semibold'>
         {/* Icon skeleton - SVG is 24x24 but rendered at different size via CSS */}
@@ -469,7 +469,7 @@ export function ResultsListBarsSkeleton() {
       {/* Participation bar - matches ParticipationPercentage */}
       <div>
         <div className='relative h-2 w-full overflow-hidden border border-neutral-300 dark:border-neutral-700'>
-          <div className='skeleton-blueprint skeleton-text absolute top-0 left-0 h-full w-1/2' />
+          <div className='skeleton-blueprint skeleton-text absolute left-0 top-0 h-full w-1/2' />
         </div>
         <div className='mt-2 text-xs'>
           <span className='skeleton-blueprint skeleton-text inline-block h-3 w-12 font-semibold' />

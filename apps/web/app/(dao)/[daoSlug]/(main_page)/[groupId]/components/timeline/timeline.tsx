@@ -468,7 +468,7 @@ export function Timeline({
   return (
     <div
       ref={refs.timelineRef}
-      className='fixed top-0 right-0 hidden h-full min-w-96 flex-col items-end justify-start pt-24 pl-4 md:flex'
+      className='fixed right-0 top-0 hidden h-full min-w-96 flex-col items-end justify-start pl-4 pt-24 md:flex'
     >
       <div
         ref={refs.containerRef}
@@ -476,7 +476,7 @@ export function Timeline({
         data-aggregation-level={aggregationLevel}
       >
         <div
-          className={`dark:bg-neutral-350 absolute top-4 bottom-4 left-[14px] w-0.5 origin-bottom translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
+          className={`absolute bottom-4 left-[14px] top-4 w-0.5 origin-bottom translate-x-[1px] bg-neutral-800 transition-transform duration-1000 ease-in-out dark:bg-neutral-350 ${animationStarted ? 'scale-y-100' : 'scale-y-0'}`}
         />
 
         <div className='flex h-full flex-col justify-between'>

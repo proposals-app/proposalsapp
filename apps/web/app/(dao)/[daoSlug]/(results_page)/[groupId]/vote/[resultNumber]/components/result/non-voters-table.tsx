@@ -83,7 +83,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
 
   return (
     <div className='mt-6'>
-      <div className='sticky top-[88px] z-40 border-t border-r border-l border-neutral-800 bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+      <div className='sticky top-[88px] z-40 border-l border-r border-t border-neutral-800 bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className='flex w-full cursor-pointer items-center justify-between bg-neutral-50 p-3 text-left dark:bg-neutral-900'

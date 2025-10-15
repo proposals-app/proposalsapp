@@ -4,12 +4,12 @@
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.10",
     "headless-web3-provider": "^0.3.2",
-    "npm-check-updates": "^19.0.0"
+    "npm-check-updates": "^19.1.0"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@10.18.1",
+  "packageManager": "pnpm@10.18.3",
   "private": true,
   "scripts": {
     "build-email-service": "pnpm --filter @proposalsapp/email-service run build",

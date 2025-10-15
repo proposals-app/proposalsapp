@@ -239,7 +239,7 @@ export function OnchainArbitrumCoreBasicVoteModalContent({
 
       {/* Display errors */}
       {voteError && (
-        <p className='text-sm break-all text-red-500 dark:text-red-400'>
+        <p className='break-all text-sm text-red-500 dark:text-red-400'>
           {voteError}
         </p>
       )}

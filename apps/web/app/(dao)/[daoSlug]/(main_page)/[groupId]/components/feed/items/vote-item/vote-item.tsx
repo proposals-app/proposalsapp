@@ -118,7 +118,7 @@ export async function VoteItem({
         )}
       </div>
 
-      <div className='flex cursor-default flex-row justify-between select-none'>
+      <div className='flex cursor-default select-none flex-row justify-between'>
         <VoterAuthor
           voterAddress={voteWithVoter.voterAddress}
           ens={voteWithVoter.ens}
@@ -128,24 +128,24 @@ export async function VoteItem({
           eventVotingPower={voteWithVoter.votingPower}
         />
 
-        <div className='dark:text-neutral-350 text-sm text-neutral-600'>
+        <div className='text-sm text-neutral-600 dark:text-neutral-350'>
           <span>voted </span>
           <span className='font-bold'>{relativeCreateTime}</span>
         </div>
       </div>
 
-      <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
+      <div className='cursor-default select-none text-neutral-700 dark:text-neutral-200'>
         <span className=''>{formattedVotingPower} ARB </span>
         <span className='font-bold'>{choiceText}</span>
       </div>
 
       <div className='flex flex-col'>
-        <p className='break-words text-ellipsis'>{item.reason}</p>
+        <p className='text-ellipsis break-words'>{item.reason}</p>
         {match && (
           <p className='self-end'>
             <a
               href={anchorHref ?? ''}
-              className='dark:text-neutral-350 text-sm font-bold text-neutral-600 hover:underline'
+              className='text-sm font-bold text-neutral-600 hover:underline dark:text-neutral-350'
             >
               jump to post →
             </a>

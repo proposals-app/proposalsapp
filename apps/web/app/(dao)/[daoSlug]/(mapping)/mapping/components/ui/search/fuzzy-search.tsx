@@ -133,7 +133,7 @@ export const FuzzySearch = <T extends object>({
         placeholder={placeholder}
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className='focus:ring-brand-accent focus:ring-opacity-50 w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm focus:ring-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:shadow-neutral-950'
+        className='w-full rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 shadow-sm focus:ring-2 focus:ring-brand-accent focus:ring-opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:shadow-neutral-950'
         disabled={isLoading}
         onFocus={() => {
           // Show dropdown on focus if there's a search term
@@ -149,7 +149,7 @@ export const FuzzySearch = <T extends object>({
       {dropdownVisible && (
         <div
           ref={dropdownRef}
-          className='absolute top-full left-0 z-[9999] mt-1 w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-neutral-950'
+          className='absolute left-0 top-full z-[9999] mt-1 w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:shadow-neutral-950'
           style={{ maxHeight: '300px' }}
         >
           {searchLoading ? (

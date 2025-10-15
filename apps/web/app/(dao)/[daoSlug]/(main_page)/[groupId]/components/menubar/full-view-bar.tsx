@@ -84,11 +84,11 @@ export const FullViewBar = ({
   return (
     <div
       ref={fullViewBarRef}
-      className={`mt-4 w-full min-w-full self-center overflow-visible sm:min-w-4xl sm:px-2 ${
+      className={`sm:min-w-4xl mt-4 w-full min-w-full self-center overflow-visible sm:px-2 ${
         _view === ViewEnum.FULL ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-3 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 sm:flex-row sm:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
+      <div className='rounded-xs flex w-full flex-col items-stretch justify-between gap-3 border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 dark:border-neutral-450 dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200 sm:flex-row sm:items-center'>
         <div className='flex w-full flex-col justify-between gap-3 sm:flex-row sm:items-center'>
           {/* Collapse/Expand Button */}
           <div className='hidden justify-between sm:flex sm:justify-start sm:pl-2'>
@@ -145,7 +145,7 @@ export const FullViewBar = ({
                 </SelectContent>
               </Select>
             ) : (
-              <div className='flex h-8 items-center justify-center rounded-xs px-3 text-sm'>
+              <div className='rounded-xs flex h-8 items-center justify-center px-3 text-sm'>
                 Comments
               </div>
             )}

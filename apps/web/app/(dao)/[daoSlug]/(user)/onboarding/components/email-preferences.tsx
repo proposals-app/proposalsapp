@@ -42,7 +42,7 @@ export const EmailPreferences = () => {
       <div
         className={`relative inline-flex h-6 w-11 cursor-pointer items-center ${
           checked
-            ? 'bg-brand-accent dark:bg-brand-accent-bright'
+            ? 'dark:bg-brand-accent-bright bg-brand-accent'
             : 'bg-neutral-200 dark:bg-neutral-700'
         }`}
         onClick={() => onChange(!checked)}
@@ -71,7 +71,7 @@ export const EmailPreferences = () => {
           </p>
         </div>
 
-        <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 shadow-lg dark:bg-neutral-950'>
+        <div className='border border-neutral-350 bg-neutral-50 shadow-lg dark:border-neutral-650 dark:bg-neutral-950'>
           <div className='p-6'>
             <h2 className='mb-6 text-xl font-semibold'>Email Notifications</h2>
 

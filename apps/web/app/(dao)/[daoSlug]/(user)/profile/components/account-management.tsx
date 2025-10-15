@@ -78,7 +78,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
       </h1>
 
       {error && (
-        <div className='mb-4 bg-red-50 p-3 sm:mb-6 sm:p-4 dark:bg-red-900/20'>
+        <div className='mb-4 bg-red-50 p-3 dark:bg-red-900/20 sm:mb-6 sm:p-4'>
           <div className='flex'>
             <div className='flex-shrink-0'>
               <svg
@@ -103,7 +103,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
       )}
 
       {success && (
-        <div className='mb-4 bg-green-50 p-3 sm:mb-6 sm:p-4 dark:bg-green-900/20'>
+        <div className='mb-4 bg-green-50 p-3 dark:bg-green-900/20 sm:mb-6 sm:p-4'>
           <div className='flex'>
             <div className='flex-shrink-0'>
               <svg
@@ -127,9 +127,9 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
         </div>
       )}
 
-      <div className='border-neutral-350 dark:border-neutral-650 rounded-xs border bg-neutral-50 shadow-sm dark:bg-neutral-950'>
-        <div className='px-4 pt-4 pb-2 sm:px-6 sm:pt-6'>
-          <h2 className='text-base font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
+      <div className='rounded-xs border border-neutral-350 bg-neutral-50 shadow-sm dark:border-neutral-650 dark:bg-neutral-950'>
+        <div className='px-4 pb-2 pt-4 sm:px-6 sm:pt-6'>
+          <h2 className='text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg'>
             Email Address
           </h2>
           <p className='text-sm text-neutral-500 dark:text-neutral-400'>
@@ -138,37 +138,37 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
         </div>
         <div className='space-y-4 px-4 py-3 sm:space-y-6 sm:px-6 sm:py-4'>
           <div className='flex items-start space-x-2 sm:space-x-3'>
-            <Mail className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
+            <Mail className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 dark:text-neutral-400 sm:h-5 sm:w-5' />
             <div className='w-full'>
               <label
                 htmlFor='current-email'
-                className='text-sm font-medium text-neutral-900 sm:text-base dark:text-neutral-100'
+                className='text-sm font-medium text-neutral-900 dark:text-neutral-100 sm:text-base'
               >
                 Current Email
               </label>
-              <p className='mb-3 text-sm text-neutral-500 sm:mb-4 dark:text-neutral-400'>
+              <p className='mb-3 text-sm text-neutral-500 dark:text-neutral-400 sm:mb-4'>
                 {session.user.email}
               </p>
 
               <label
                 htmlFor='new-email'
-                className='text-sm font-medium text-neutral-900 sm:text-base dark:text-neutral-100'
+                className='text-sm font-medium text-neutral-900 dark:text-neutral-100 sm:text-base'
               >
                 New Email
               </label>
-              <div className='mt-1 flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2'>
+              <div className='mt-1 flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0'>
                 <input
                   type='email'
                   id='new-email'
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder='Enter your new email address'
-                  className='w-full rounded-xs border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100'
+                  className='rounded-xs w-full border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100'
                 />
                 <button
                   onClick={handleChangeEmail}
                   disabled={isChangingEmail || !newEmail.trim()}
-                  className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 hover:bg-neutral-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
+                  className='rounded-xs inline-flex items-center justify-center whitespace-nowrap bg-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600 sm:px-4 sm:py-2'
                 >
                   {isChangingEmail && (
                     <RefreshCw className='mr-1 h-3 w-3 animate-spin sm:mr-2 sm:h-4 sm:w-4' />
@@ -181,9 +181,9 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
         </div>
       </div>
 
-      <div className='border-neutral-350 dark:border-neutral-650 mt-6 rounded-xs border bg-neutral-50 shadow-sm sm:mt-8 dark:bg-neutral-950'>
-        <div className='px-4 pt-4 pb-2 sm:px-6 sm:pt-6'>
-          <h2 className='text-base font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
+      <div className='rounded-xs mt-6 border border-neutral-350 bg-neutral-50 shadow-sm dark:border-neutral-650 dark:bg-neutral-950 sm:mt-8'>
+        <div className='px-4 pb-2 pt-4 sm:px-6 sm:pt-6'>
+          <h2 className='text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg'>
             Delete Account
           </h2>
           <p className='text-sm text-neutral-500 dark:text-neutral-400'>
@@ -195,7 +195,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
           <div className='flex items-start space-x-2 sm:space-x-3'>
             <Trash2 className='mt-0.5 h-4 w-4 flex-shrink-0 text-red-500 sm:h-5 sm:w-5' />
             <div className='flex-1'>
-              <p className='mb-3 text-sm text-neutral-500 sm:mb-4 dark:text-neutral-400'>
+              <p className='mb-3 text-sm text-neutral-500 dark:text-neutral-400 sm:mb-4'>
                 Once you delete your account, there is no going back. All of
                 your data will be permanently removed.
               </p>
@@ -203,21 +203,21 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
               {!showConfirmDelete ? (
                 <button
                   onClick={() => setShowConfirmDelete(true)}
-                  className='inline-flex items-center justify-center rounded-xs bg-red-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-red-700 hover:bg-red-200 focus:outline-none sm:px-4 sm:py-2 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30'
+                  className='rounded-xs inline-flex items-center justify-center whitespace-nowrap bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 focus:outline-none dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30 sm:px-4 sm:py-2'
                 >
                   Delete Account
                 </button>
               ) : (
-                <div className='space-y-3 rounded-xs bg-red-50 p-3 sm:space-y-4 sm:p-4 dark:bg-red-900/10'>
+                <div className='rounded-xs space-y-3 bg-red-50 p-3 dark:bg-red-900/10 sm:space-y-4 sm:p-4'>
                   <p className='text-sm font-medium text-red-800 dark:text-red-200'>
                     Are you sure you want to delete your account? This action
                     cannot be undone.
                   </p>
-                  <div className='flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-3'>
+                  <div className='flex flex-col space-y-2 sm:flex-row sm:space-x-3 sm:space-y-0'>
                     <button
                       onClick={handleDeleteAccount}
                       disabled={isDeleting}
-                      className='inline-flex items-center justify-center rounded-xs bg-red-600 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-red-700 disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-red-700 dark:hover:bg-red-600'
+                      className='rounded-xs inline-flex items-center justify-center whitespace-nowrap bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 dark:bg-red-700 dark:hover:bg-red-600 sm:px-4 sm:py-2'
                     >
                       {isDeleting && (
                         <RefreshCw className='mr-1 h-3 w-3 animate-spin sm:mr-2 sm:h-4 sm:w-4' />
@@ -227,7 +227,7 @@ export const AccountManagement = ({ session }: AccountManagementProps) => {
                     <button
                       onClick={() => setShowConfirmDelete(false)}
                       disabled={isDeleting}
-                      className='focu inline-flex items-center justify-center rounded-xs bg-neutral-100 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 hover:bg-neutral-200 disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+                      className='focu rounded-xs inline-flex items-center justify-center whitespace-nowrap bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-200 disabled:opacity-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 sm:px-4 sm:py-2'
                     >
                       Cancel
                     </button>

@@ -54,7 +54,7 @@ export async function AggregateVoteItem({
 
   return (
     <div className='flex w-full flex-col gap-2 py-4 opacity-50'>
-      <div className='flex cursor-default flex-row justify-between select-none'>
+      <div className='flex cursor-default select-none flex-row justify-between'>
         <VoterAuthor
           voterAddress={'Multiple voters'}
           ens={'Multiple voters'}
@@ -64,14 +64,14 @@ export async function AggregateVoteItem({
           eventVotingPower={null}
         />
 
-        <div className='dark:text-neutral-350 flex flex-col items-end text-sm text-neutral-600'>
+        <div className='flex flex-col items-end text-sm text-neutral-600 dark:text-neutral-350'>
           <div>
             voted <span className='font-bold'>{relativeCreateTime}</span>
           </div>
         </div>
       </div>
 
-      <div className='cursor-default text-neutral-700 select-none dark:text-neutral-200'>
+      <div className='cursor-default select-none text-neutral-700 dark:text-neutral-200'>
         <span className=''>{formattedVotingPower} ARB </span>
         <span className='font-bold'>{choiceDisplay}</span>
       </div>

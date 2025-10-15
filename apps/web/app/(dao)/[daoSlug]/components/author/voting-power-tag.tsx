@@ -25,7 +25,7 @@ export function VotingPowerTag({
 
   return (
     <div className='flex gap-1'>
-      <div className='border-neutral-350 text-neutral-650 dark:text-neutral-350 flex w-fit cursor-default gap-4 rounded-xs border bg-neutral-100 p-0.5 px-2 text-xs font-normal dark:border-neutral-600 dark:bg-neutral-900'>
+      <div className='rounded-xs flex w-fit cursor-default gap-4 border border-neutral-350 bg-neutral-100 p-0.5 px-2 text-xs font-normal text-neutral-650 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-350'>
         <div className='flex gap-2'>
           {formatNumberWithSuffix(currentVotingPower)} ARB
         </div>
@@ -35,10 +35,10 @@ export function VotingPowerTag({
           {percentageChange > 0 ? '+' : ''}
           {percentageChange.toFixed(1)}%
           {percentageChange > 0 ? (
-            <ArrowUpIcon className='text-for-600 inline-block h-3 w-3' />
+            <ArrowUpIcon className='inline-block h-3 w-3 text-for-600' />
           ) : null}
           {percentageChange < 0 ? (
-            <ArrowDownIcon className='text-against-600 inline-block h-3 w-3' />
+            <ArrowDownIcon className='inline-block h-3 w-3 text-against-600' />
           ) : null}
         </span>
       ) : null}

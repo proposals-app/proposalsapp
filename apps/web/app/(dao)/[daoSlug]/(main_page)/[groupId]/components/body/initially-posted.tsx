@@ -7,7 +7,7 @@ export function InitiallyPosted({ createdAt }: { createdAt: Date }) {
 
   return (
     <div className={'flex w-[140px] flex-row items-center gap-2 p-2'}>
-      <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
+      <div className='flex flex-col items-start text-xs text-neutral-600 dark:text-neutral-350'>
         <span className='truncate'>initially posted</span>
         <span className='truncate font-bold'>{relativeTime}</span>
       </div>

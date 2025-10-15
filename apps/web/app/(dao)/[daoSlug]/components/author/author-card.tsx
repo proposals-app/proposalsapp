@@ -40,7 +40,7 @@ export function AuthorCard({
           <div>
             <span className='font-bold'>{primaryName}</span>
             <span className='text-neutral-450'> from </span>
-            <span className='dark:text-neutral-350 text-neutral-450 font-bold'>
+            <span className='font-bold text-neutral-450 dark:text-neutral-350'>
               {secondaryName}
             </span>
           </div>

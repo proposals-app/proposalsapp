@@ -40,7 +40,7 @@ export function Navigation() {
   }, []);
 
   return (
-    <nav className='fixed top-10 right-0 left-0 z-40 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-6 lg:px-8'>
+    <nav className='fixed left-0 right-0 top-10 z-40 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-6 lg:px-8'>
       <div className='flex items-center gap-2'>
         <div className='relative h-8 w-8'>
           <img

@@ -60,7 +60,7 @@ async function GroupPage({
   const timelineKey = `timeline-${groupId}-${feedFilter}-${fromFilter}`;
 
   return (
-    <div className='flex w-full flex-col items-center px-4 md:pt-10 md:pr-96'>
+    <div className='flex w-full flex-col items-center px-4 md:pr-96 md:pt-10'>
       <div className='flex w-full max-w-3xl flex-col gap-4 overflow-visible'>
         <Suspense>
           <LastReadUpdater groupId={groupId} daoSlug={daoSlug} />

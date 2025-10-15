@@ -109,10 +109,10 @@ export function GroupList({ initialGroups, signedIn }: GroupListProps) {
               placeholder='Search by name or author...'
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className='w-full rounded-xs border border-neutral-200 bg-white py-2 pr-4 pl-10 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-600'
+              className='rounded-xs w-full border border-neutral-200 bg-white py-2 pl-10 pr-4 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:border-neutral-600'
             />
             {(isPending || isSearchPending) && (
-              <div className='absolute top-1/2 right-3 -translate-y-1/2'>
+              <div className='absolute right-3 top-1/2 -translate-y-1/2'>
                 <Spinner size='sm' />
               </div>
             )}
@@ -123,7 +123,7 @@ export function GroupList({ initialGroups, signedIn }: GroupListProps) {
           <button
             onClick={() => handleFilterChange('all')}
             disabled={isPending}
-            className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
+            className={`rounded-xs cursor-pointer px-4 py-1.5 text-sm font-medium ${
               filter === 'all'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                 : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
@@ -134,7 +134,7 @@ export function GroupList({ initialGroups, signedIn }: GroupListProps) {
           <button
             onClick={() => handleFilterChange('active')}
             disabled={isPending}
-            className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
+            className={`rounded-xs cursor-pointer px-4 py-1.5 text-sm font-medium ${
               filter === 'active'
                 ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                 : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
@@ -147,7 +147,7 @@ export function GroupList({ initialGroups, signedIn }: GroupListProps) {
             <button
               onClick={() => handleFilterChange('unread')}
               disabled={isPending}
-              className={`cursor-pointer rounded-xs px-4 py-1.5 text-sm font-medium ${
+              className={`rounded-xs cursor-pointer px-4 py-1.5 text-sm font-medium ${
                 filter === 'unread'
                   ? `border border-neutral-200 bg-neutral-300 px-2 py-1 text-sm font-medium text-neutral-700 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-600 dark:text-neutral-200`
                   : `border border-neutral-200 bg-white px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-70 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-600`
@@ -161,7 +161,7 @@ export function GroupList({ initialGroups, signedIn }: GroupListProps) {
 
       {/* Groups List */}
       {filteredGroups.length === 0 ? (
-        <div className='flex flex-col items-center justify-center rounded-xs border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-800/50'>
+        <div className='rounded-xs dark:bg-neutral-800/50 flex flex-col items-center justify-center border border-neutral-200 bg-white p-4 dark:border-neutral-700'>
           <Filter className='mb-2 h-10 w-10 text-neutral-400' />
           <p className='text-lg font-medium text-neutral-800 dark:text-neutral-200'>
             No results found

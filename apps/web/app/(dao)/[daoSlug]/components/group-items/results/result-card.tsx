@@ -42,18 +42,18 @@ export function ResultCard({ content, result }: ResultCardProps) {
   return (
     <div className='flex w-full items-center sm:w-96'>
       <div className='flex w-full'>
-        <div className='h-full w-full flex-col rounded-l-xs text-neutral-800 transition-all duration-200 ease-in-out dark:text-neutral-200'>
+        <div className='rounded-l-xs h-full w-full flex-col text-neutral-800 transition-all duration-200 ease-in-out dark:text-neutral-200'>
           <div className='flex items-center'>
             {onchain ? (
               <OnchainEventIcon
-                className='dark:fill-neutral-350 fill-neutral-800'
+                className='fill-neutral-800 dark:fill-neutral-350'
                 width={24}
                 height={24}
                 alt={'Timeline event'}
               />
             ) : (
               <OffchainEventIcon
-                className='dark:fill-neutral-350 fill-neutral-800'
+                className='fill-neutral-800 dark:fill-neutral-350'
                 width={24}
                 height={24}
                 alt={'Timeline event'}

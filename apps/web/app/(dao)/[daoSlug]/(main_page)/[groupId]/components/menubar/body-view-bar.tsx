@@ -76,7 +76,7 @@ export const BodyViewBar = ({
     <div
       className={`fixed ${includesProposals ? 'bottom-20' : 'bottom-0'} mt-4 w-full max-w-4xl self-center px-4 pb-4 sm:bottom-0 sm:px-2 ${_view === ViewEnum.BODY ? 'opacity-100' : 'opacity-0'}`}
     >
-      <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-2 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 md:flex-row md:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
+      <div className='rounded-xs flex w-full flex-col items-stretch justify-between gap-2 border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 dark:border-neutral-450 dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200 md:flex-row md:items-center'>
         <div className='flex w-full flex-row justify-between gap-2'>
           <div className='flex w-auto items-center justify-start sm:pl-2'>
             <button

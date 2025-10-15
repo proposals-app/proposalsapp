@@ -52,7 +52,7 @@ export function PostedRevisions({
           withChevron={false}
           className='w-full'
         >
-          <div className='dark:text-neutral-350 flex flex-col items-start text-xs text-neutral-600'>
+          <div className='flex flex-col items-start text-xs text-neutral-600 dark:text-neutral-350'>
             <span className='truncate'>
               {latestVersion.type === 'topic'
                 ? 'discourse revision'

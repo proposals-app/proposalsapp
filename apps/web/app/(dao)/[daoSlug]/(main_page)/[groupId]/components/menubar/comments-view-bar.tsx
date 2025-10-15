@@ -51,11 +51,11 @@ export const CommentsViewBar = ({
 
   return (
     <div
-      className={`fixed top-0 mt-22 w-full max-w-4xl self-center px-4 pb-4 sm:mt-24 sm:px-2 ${
+      className={`mt-22 fixed top-0 w-full max-w-4xl self-center px-4 pb-4 sm:mt-24 sm:px-2 ${
         _view === ViewEnum.COMMENTS ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <div className='dark:border-neutral-450 flex w-full flex-col items-stretch justify-between gap-3 rounded-xs border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 sm:flex-row sm:items-center dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200'>
+      <div className='rounded-xs flex w-full flex-col items-stretch justify-between gap-3 border-2 border-neutral-800 bg-white fill-neutral-800 p-2 text-sm font-bold text-neutral-800 dark:border-neutral-450 dark:bg-neutral-950 dark:fill-neutral-200 dark:text-neutral-200 sm:flex-row sm:items-center'>
         <div className='flex w-full flex-col justify-between gap-3 sm:flex-row sm:items-center'>
           {/* Read Full Proposal Button */}
           <div className='hidden sm:flex sm:justify-start sm:pl-2'>
@@ -98,7 +98,7 @@ export const CommentsViewBar = ({
                 </SelectContent>
               </Select>
             ) : (
-              <div className='flex h-8 items-center justify-center rounded-xs px-3 text-sm'>
+              <div className='rounded-xs flex h-8 items-center justify-center px-3 text-sm'>
                 Comments
               </div>
             )}

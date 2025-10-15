@@ -43,16 +43,16 @@ export function ActiveGroupItem({
   return (
     <Link
       href={`/${group.slug}`}
-      className='group block rounded-xs border border-neutral-200 bg-white p-2 hover:bg-neutral-200/50 sm:p-3 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:bg-neutral-800'
+      className='rounded-xs hover:bg-neutral-200/50 group block border border-neutral-200 bg-white p-2 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:bg-neutral-800 sm:p-3'
     >
       <div className='relative flex flex-col gap-1 sm:gap-2'>
         <div className='absolute right-0 flex min-h-5 min-w-5 items-center justify-center sm:min-h-6 sm:min-w-6'>
-          <span className='bg-for-400 dark:bg-for-600 absolute inline-flex h-3 w-3 animate-ping rounded-full opacity-75'></span>
-          <span className='bg-for-400 dark:bg-for-600 relative inline-flex h-2 w-2 rounded-full'></span>
+          <span className='absolute inline-flex h-3 w-3 animate-ping rounded-full bg-for-400 opacity-75 dark:bg-for-600'></span>
+          <span className='relative inline-flex h-2 w-2 rounded-full bg-for-400 dark:bg-for-600'></span>
         </div>
         <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
-          <div className='flex max-w-[60%] items-start gap-2 sm:max-w-3/4'>
-            <div className='relative flex min-h-[32px] min-w-[32px] items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 sm:min-h-[40px] sm:min-w-[40px] dark:border-neutral-300'>
+          <div className='sm:max-w-3/4 flex max-w-[60%] items-start gap-2'>
+            <div className='relative flex min-h-[32px] min-w-[32px] items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300 sm:min-h-[40px] sm:min-w-[40px]'>
               <Image
                 src={group.authorAvatarUrl}
                 alt={group.authorName}
@@ -62,10 +62,10 @@ export function ActiveGroupItem({
               />
             </div>
             <div>
-              <h2 className='line-clamp-2 text-sm font-bold text-neutral-800 group-hover:text-neutral-900 sm:text-lg dark:text-neutral-200 dark:group-hover:text-neutral-50'>
+              <h2 className='line-clamp-2 text-sm font-bold text-neutral-800 group-hover:text-neutral-900 dark:text-neutral-200 dark:group-hover:text-neutral-50 sm:text-lg'>
                 {group.name}
               </h2>
-              <p className='text-xs text-neutral-600 sm:text-sm dark:text-neutral-400'>
+              <p className='text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm'>
                 By {group.authorName}
               </p>
             </div>

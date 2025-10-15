@@ -59,7 +59,7 @@ export const ApprovalVote = ({
     <div className='flex-col items-center justify-between'>
       <div className='flex h-4 w-full overflow-hidden bg-neutral-100 dark:bg-neutral-700'>
         <div
-          className='bg-for-600 h-full'
+          className='h-full bg-for-600'
           style={{ width: `${winningPercentage}%` }}
         />
       </div>

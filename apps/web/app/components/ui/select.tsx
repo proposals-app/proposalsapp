@@ -76,7 +76,7 @@ export const SelectTrigger = ({
       aria-haspopup='listbox'
       aria-expanded={isOpen}
       aria-label={ariaLabel}
-      className={`flex h-8 cursor-pointer items-center justify-between rounded-xs px-3 text-sm outline-none ${className}`}
+      className={`rounded-xs flex h-8 cursor-pointer items-center justify-between px-3 text-sm outline-none ${className}`}
       onClick={() => setIsOpen(!isOpen)}
     >
       {children}
@@ -163,7 +163,7 @@ export const SelectContent = ({
       {createPortal(
         <div
           ref={contentRef}
-          className={`dark:border-neutral-450 z-[1001] min-w-48 overflow-hidden border border-neutral-800 bg-white dark:bg-neutral-950 dark:text-neutral-200 ${className} ${
+          className={`z-[1001] min-w-48 overflow-hidden border border-neutral-800 bg-white dark:border-neutral-450 dark:bg-neutral-950 dark:text-neutral-200 ${className} ${
             isMobile ? 'fixed' : 'absolute'
           }`}
           style={{
@@ -198,7 +198,7 @@ export const SelectItem = ({ children, value }: SelectItemProps) => {
     <div
       role='option'
       aria-selected={isSelected}
-      className={`group font-condensed relative flex cursor-pointer items-center py-3 pr-10 pl-4 text-base font-bold text-neutral-800 will-change-transform outline-none hover:bg-neutral-100 sm:py-2 sm:pl-2 sm:text-sm dark:text-neutral-200 dark:hover:bg-neutral-800`} // Adjusted styles for mobile and desktop
+      className={`group relative flex cursor-pointer items-center py-3 pl-4 pr-10 font-condensed text-base font-bold text-neutral-800 outline-none will-change-transform hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800 sm:py-2 sm:pl-2 sm:text-sm`} // Adjusted styles for mobile and desktop
       onClick={() => {
         onSelectValue(value);
         setIsOpen(false);

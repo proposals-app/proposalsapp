@@ -42,11 +42,11 @@ export function BasicEvent({
 
   return (
     <div className='my-1 mr-4 flex h-8 w-full items-center pr-8'>
-      <div className='text-neutral-650 flex h-full w-full items-center justify-between rounded-xs border border-neutral-300 bg-neutral-100 px-1 py-1 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300'>
+      <div className='rounded-xs flex h-full w-full items-center justify-between border border-neutral-300 bg-neutral-100 px-1 py-1 text-neutral-650 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300'>
         <div className='flex items-center'>
           {IconComponent && (
             <IconComponent
-              className='dark:fill-neutral-350 fill-neutral-800'
+              className='fill-neutral-800 dark:fill-neutral-350'
               width={24}
               height={24}
               alt={'Timeline event'}

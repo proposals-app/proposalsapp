@@ -79,7 +79,7 @@ function RankedChoiceSortableItem({
           overlay:
             'bg-white shadow-lg ring-2 ring-blue-500 dark:border-blue-400 dark:bg-neutral-800', // Style for the drag overlay
           default:
-            'border-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700/80', // Default and hover style with visible border
+            'dark:hover:bg-neutral-700/80 border-neutral-200 bg-neutral-100 hover:bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-800', // Default and hover style with visible border
         },
       },
     }
@@ -106,8 +106,8 @@ function RankedChoiceSortableItem({
         <span className='sr-only'>Move item</span>
         <GripVertical className='h-4 w-4' />
       </Button>
-      <span className='font-medium select-none'>{index + 1}.</span>
-      <span className='flex-1 text-sm select-none'>{item.content}</span>
+      <span className='select-none font-medium'>{index + 1}.</span>
+      <span className='flex-1 select-none text-sm'>{item.content}</span>
     </div>
   );
 }

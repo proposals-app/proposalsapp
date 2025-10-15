@@ -32,7 +32,7 @@ export const MappingTable: React.FC<MappingTableProps> = ({
               <th
                 key={index}
                 scope='col'
-                className={`px-6 py-3 text-left text-xs font-medium tracking-wider text-neutral-500 uppercase dark:text-neutral-400 ${index === headers.length - 1 ? 'w-[200px] min-w-[200px]' : ''}`}
+                className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400 ${index === headers.length - 1 ? 'w-[200px] min-w-[200px]' : ''}`}
               >
                 {header}
               </th>

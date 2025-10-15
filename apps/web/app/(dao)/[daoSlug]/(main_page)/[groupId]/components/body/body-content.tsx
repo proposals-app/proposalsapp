@@ -24,7 +24,7 @@ const BodyContent = memo(
             id='body'
           />
           {!expanded && (
-            <div className='absolute right-0 bottom-0 left-0 flex h-32 flex-col items-center justify-end bg-linear-to-t from-neutral-50 to-transparent dark:from-neutral-900'>
+            <div className='bg-linear-to-t absolute bottom-0 left-0 right-0 flex h-32 flex-col items-center justify-end from-neutral-50 to-transparent dark:from-neutral-900'>
               <span className='rounded-sm border border-neutral-300 bg-neutral-50 px-3 py-1 text-sm text-neutral-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'>
                 Read more
               </span>

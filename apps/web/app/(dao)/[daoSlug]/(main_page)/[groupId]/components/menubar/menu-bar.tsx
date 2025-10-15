@@ -69,7 +69,7 @@ export const MenuBar = ({
   );
 
   return (
-    <div className='font-condensed z-40 flex w-full justify-center'>
+    <div className='z-40 flex w-full justify-center font-condensed'>
       <FullViewBar
         view={view}
         setView={setView}

@@ -19,7 +19,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
   return (
     <div className='fill-neutral-800 dark:fill-neutral-200'>
       {/* Mobile navbar (top) */}
-      <div className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 flex h-16 w-full items-center justify-between border-b bg-neutral-50 px-4 md:hidden dark:bg-neutral-900'>
+      <div className='fixed left-0 top-0 z-20 flex h-16 w-full items-center justify-between border-b border-neutral-350 bg-neutral-50 px-4 dark:border-neutral-650 dark:bg-neutral-900 md:hidden'>
         <Link
           href={`/`}
           prefetch
@@ -71,7 +71,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
       </div>
 
       {/* Desktop navbar (left side) */}
-      <div className='border-neutral-350 dark:border-neutral-650 fixed top-0 left-0 z-20 hidden h-full min-h-screen w-20 flex-col items-center justify-between border-r px-4 py-6 md:flex'>
+      <div className='fixed left-0 top-0 z-20 hidden h-full min-h-screen w-20 flex-col items-center justify-between border-r border-neutral-350 px-4 py-6 dark:border-neutral-650 md:flex'>
         <div className='flex flex-col items-center justify-center gap-8'>
           <Link href={`/`} prefetch className='mb-8 h-12 w-12'>
             <Image

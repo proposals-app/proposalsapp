@@ -26,7 +26,7 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
           position: 'relative',
         }}
       >
-        <div className='absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-neutral-300/20 to-transparent dark:via-neutral-600/20' />
+        <div className='via-neutral-300/20 dark:via-neutral-600/20 absolute inset-0 rounded-full bg-gradient-to-r from-transparent to-transparent' />
       </div>
     </div>
   );

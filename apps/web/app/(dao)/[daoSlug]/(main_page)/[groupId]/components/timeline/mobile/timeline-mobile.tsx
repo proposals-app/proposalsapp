@@ -45,7 +45,7 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
   }
 
   return (
-    <div className='fixed right-0 bottom-0 left-0 z-40 md:hidden'>
+    <div className='fixed bottom-0 left-0 right-0 z-40 md:hidden'>
       <div
         ref={containerRef}
         className={`border-t border-neutral-200 bg-white p-2 shadow-md transition-all duration-300 ease-in-out dark:border-neutral-800 dark:bg-neutral-900 ${

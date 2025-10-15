@@ -44,7 +44,7 @@ export function ResultsTitle({
           </span>
         </div>
         <Link
-          className='flex items-center gap-1 rounded-xs bg-neutral-100 px-1 dark:bg-neutral-800'
+          className='rounded-xs flex items-center gap-1 bg-neutral-100 px-1 dark:bg-neutral-800'
           href={deserializedResults.proposal.url}
           target='_blank'
         >

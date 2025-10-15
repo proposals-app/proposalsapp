@@ -56,20 +56,20 @@ export function Result({
       <div
         className={`flex flex-col gap-1 py-1.5 ${last ? 'pl-5' : 'pl-3'} ${
           resultNumber == selectedResult
-            ? 'w-32 border-t border-b border-l'
-            : 'w-28 rounded-xs border'
-        } dark:border-neutral-650 rounded-l-xs border-neutral-800 bg-white dark:bg-neutral-950 ${heightClass}`}
+            ? 'w-32 border-b border-l border-t'
+            : 'rounded-xs w-28 border'
+        } rounded-l-xs border-neutral-800 bg-white dark:border-neutral-650 dark:bg-neutral-950 ${heightClass}`}
       >
         {onchain ? (
           <OnchainEventIcon
-            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
+            className='absolute left-1 top-3 fill-neutral-800 dark:fill-neutral-350'
             width={24}
             height={24}
             alt={'Timeline event'}
           />
         ) : (
           <OffchainEventIcon
-            className='dark:fill-neutral-350 absolute top-3 left-1 fill-neutral-800'
+            className='absolute left-1 top-3 fill-neutral-800 dark:fill-neutral-350'
             width={24}
             height={24}
             alt={'Timeline event'}

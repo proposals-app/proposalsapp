@@ -163,7 +163,7 @@ const PostContent = ({
 
   return (
     <>
-      <div className='flex cursor-default flex-row justify-between select-none'>
+      <div className='flex cursor-default select-none flex-row justify-between'>
         {author ? (
           <DiscourseAuthor
             username={author.username}
@@ -175,7 +175,7 @@ const PostContent = ({
           />
         ) : null}
 
-        <div className='dark:text-neutral-350 flex cursor-default flex-col items-end text-sm text-neutral-600 select-none'>
+        <div className='flex cursor-default select-none flex-col items-end text-sm text-neutral-600 dark:text-neutral-350'>
           <div className='flex flex-col items-end'>
             <div>
               posted <span className='font-bold'>{relativeCreateTime}</span>
@@ -197,7 +197,7 @@ const PostContent = ({
                 dangerouslySetInnerHTML={{ __html: preview }}
                 className='break-words group-open:hidden'
               />
-              <div className='absolute right-0 bottom-0 left-0 h-36 bg-gradient-to-t from-neutral-50 to-transparent group-open:hidden dark:from-neutral-900' />
+              <div className='absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-neutral-50 to-transparent group-open:hidden dark:from-neutral-900' />
               <div className='relative my-4 flex items-end justify-end group-open:hidden'>
                 <div className='absolute w-full border-t border-neutral-300 dark:border-neutral-700' />
                 <span className='relative flex flex-row gap-4 bg-neutral-200 px-4 text-sm text-neutral-600 dark:bg-neutral-600 dark:text-neutral-300'>
@@ -222,7 +222,7 @@ const PostContent = ({
           <div className='w-full'>
             <div
               dangerouslySetInnerHTML={{ __html: processedContent }}
-              className='prose prose-lg mt-4 max-w-none break-words text-ellipsis'
+              className='prose prose-lg mt-4 max-w-none text-ellipsis break-words'
             />
 
             <div className='flex flex-row items-center gap-4 self-end justify-self-end'>
@@ -246,7 +246,7 @@ const PostContent = ({
         <div className='w-full'>
           <div
             dangerouslySetInnerHTML={{ __html: processedContent }}
-            className='prose prose-lg mt-4 max-w-none break-words text-ellipsis'
+            className='prose prose-lg mt-4 max-w-none text-ellipsis break-words'
           />
 
           <div className='flex flex-row items-center gap-4 self-end justify-self-end'>

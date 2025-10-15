@@ -39,8 +39,8 @@ export default async function Page({
           'flex w-full grow -translate-x-[1px] py-2 sm:-translate-y-2 sm:py-28'
         }
       >
-        <div className='h-full w-full pr-2 pl-2 sm:pr-4 sm:pl-0'>
-          <div className='dark:border-neutral-650 flex h-full min-h-[calc(100vh-114px)] w-full flex-col rounded-r-xs border border-neutral-800 bg-white p-6 dark:bg-neutral-950'>
+        <div className='h-full w-full pl-2 pr-2 sm:pl-0 sm:pr-4'>
+          <div className='rounded-r-xs flex h-full min-h-[calc(100vh-114px)] w-full flex-col border border-neutral-800 bg-white p-6 dark:border-neutral-650 dark:bg-neutral-950'>
             <Suspense fallback={<ResultsLoading />}>
               <ResultsContainer group={group} resultNumber={resultNumber} />
             </Suspense>
@@ -110,7 +110,7 @@ async function ResultsContainer({
 function LoadingHeaderPlaceholder() {
   return (
     <div
-      className={`border-neutral-350 dark:border-neutral-650 fixed top-0 right-0 left-0 z-50 flex h-20 items-center border-b bg-neutral-50 px-2 transition-transform duration-300 sm:ml-20 sm:px-6 dark:bg-neutral-900`}
+      className={`fixed left-0 right-0 top-0 z-50 flex h-20 items-center border-b border-neutral-350 bg-neutral-50 px-2 transition-transform duration-300 dark:border-neutral-650 dark:bg-neutral-900 sm:ml-20 sm:px-6`}
     >
       {/* Enhanced Back Button Placeholder */}
       <div className='flex items-center gap-2 rounded-full px-3 py-2'>

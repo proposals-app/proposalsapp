@@ -75,7 +75,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
       <div
         className={`relative inline-flex h-6 w-11 cursor-pointer items-center ${
           checked
-            ? 'bg-brand-accent dark:bg-brand-accent-bright'
+            ? 'dark:bg-brand-accent-bright bg-brand-accent'
             : 'bg-neutral-200 dark:bg-neutral-700'
         }`}
         onClick={() => onChange(!checked)}
@@ -107,9 +107,9 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
         </h1>
       </div>
 
-      <div className='border-neutral-350 dark:border-neutral-650 rounded-xs border bg-neutral-50 shadow-sm dark:bg-neutral-950'>
-        <div className='px-4 pt-4 pb-2 sm:px-6 sm:pt-6'>
-          <h2 className='text-base font-semibold text-neutral-900 sm:text-lg dark:text-neutral-100'>
+      <div className='rounded-xs border border-neutral-350 bg-neutral-50 shadow-sm dark:border-neutral-650 dark:bg-neutral-950'>
+        <div className='px-4 pb-2 pt-4 sm:px-6 sm:pt-6'>
+          <h2 className='text-base font-semibold text-neutral-900 dark:text-neutral-100 sm:text-lg'>
             Email Notifications
           </h2>
           <p className='text-sm text-neutral-500 dark:text-neutral-400'>
@@ -120,11 +120,11 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           {/* New discussions setting */}
           <div className='sm:grid sm:grid-cols-8 sm:items-center sm:gap-4'>
             <div className='flex items-start space-x-2 sm:col-span-6 sm:space-x-3'>
-              <Bell className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
+              <Bell className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 dark:text-neutral-400 sm:h-5 sm:w-5' />
               <div>
                 <label
                   htmlFor='new-discussions'
-                  className='text-sm font-medium text-neutral-900 sm:text-base dark:text-neutral-100'
+                  className='text-sm font-medium text-neutral-900 dark:text-neutral-100 sm:text-base'
                 >
                   New discussions
                 </label>
@@ -145,11 +145,11 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           {/* New proposals setting */}
           <div className='sm:grid sm:grid-cols-8 sm:items-center sm:gap-4'>
             <div className='flex items-start space-x-2 sm:col-span-6 sm:space-x-3'>
-              <Bell className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
+              <Bell className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 dark:text-neutral-400 sm:h-5 sm:w-5' />
               <div>
                 <label
                   htmlFor='new-proposals'
-                  className='text-sm font-medium text-neutral-900 sm:text-base dark:text-neutral-100'
+                  className='text-sm font-medium text-neutral-900 dark:text-neutral-100 sm:text-base'
                 >
                   New proposals
                 </label>
@@ -170,11 +170,11 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           {/* Ending proposals setting */}
           <div className='sm:grid sm:grid-cols-8 sm:items-center sm:gap-4'>
             <div className='flex items-start space-x-2 sm:col-span-6 sm:space-x-3'>
-              <Mail className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
+              <Mail className='mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-500 dark:text-neutral-400 sm:h-5 sm:w-5' />
               <div>
                 <label
                   htmlFor='ending-proposals'
-                  className='text-sm font-medium text-neutral-900 sm:text-base dark:text-neutral-100'
+                  className='text-sm font-medium text-neutral-900 dark:text-neutral-100 sm:text-base'
                 >
                   Ending proposals
                 </label>
@@ -193,7 +193,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           </div>
         </div>
 
-        <div className='flex justify-end border-t border-neutral-200 px-4 py-3 sm:px-6 sm:py-4 dark:border-neutral-700'>
+        <div className='flex justify-end border-t border-neutral-200 px-4 py-3 dark:border-neutral-700 sm:px-6 sm:py-4'>
           {saveSuccess && (
             <div className='mr-3 flex items-center text-green-600 dark:text-green-400'>
               <svg
@@ -213,7 +213,7 @@ export const UserSettings = ({ session }: UserSettingsProps) => {
           <button
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className='inline-flex items-center justify-center rounded-xs bg-neutral-200 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-neutral-900 hover:bg-neutral-300 disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:py-2 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600'
+            className='rounded-xs inline-flex items-center justify-center whitespace-nowrap bg-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-300 disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600 sm:px-4 sm:py-2'
           >
             {isSaving && (
               <RefreshCw className='mr-2 h-3 w-3 animate-spin sm:h-4 sm:w-4' />

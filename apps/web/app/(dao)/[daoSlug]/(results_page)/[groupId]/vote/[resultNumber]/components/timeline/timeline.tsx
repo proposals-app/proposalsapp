@@ -54,13 +54,13 @@ export async function Timeline({
   return (
     <div>
       <ResultsMobile events={mobileResultEvents} group={group} />
-      <div className='fixed top-24 left-28 z-20 hidden h-screen w-44 flex-col items-end justify-start sm:flex'>
+      <div className='fixed left-28 top-24 z-20 hidden h-screen w-44 flex-col items-end justify-start sm:flex'>
         <div className='relative h-[calc(100vh-96px)] w-full'>
           {/* Conditionally render the top SVG */}
           {isProposalEnded && (
-            <div className='absolute top-2 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>
+            <div className='rounded-xs absolute top-2 flex h-8 w-8 items-center justify-center border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>
               <TimelineEventIcon
-                className='dark:fill-neutral-350 fill-neutral-800'
+                className='fill-neutral-800 dark:fill-neutral-350'
                 width={24}
                 height={24}
                 alt={'Timeline event'}
@@ -68,12 +68,12 @@ export async function Timeline({
             </div>
           )}
 
-          <div className='dark:bg-neutral-350 absolute top-5 bottom-5 left-[15px] z-10 w-0.5 bg-neutral-800' />
+          <div className='absolute bottom-5 left-[15px] top-5 z-10 w-0.5 bg-neutral-800 dark:bg-neutral-350' />
 
           {/* Bottom SVG */}
-          <div className='absolute bottom-1 flex h-8 w-8 items-center justify-center rounded-xs border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>
+          <div className='rounded-xs absolute bottom-1 flex h-8 w-8 items-center justify-center border-2 border-neutral-300 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800'>
             <TimelineEventIcon
-              className='dark:fill-neutral-350 fill-neutral-800'
+              className='fill-neutral-800 dark:fill-neutral-350'
               width={24}
               height={24}
               alt={'Timeline event'}

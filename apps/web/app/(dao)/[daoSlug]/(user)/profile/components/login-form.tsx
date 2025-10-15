@@ -110,12 +110,12 @@ export const LoginForm = () => {
   return (
     <div className='flex w-full flex-col items-center pt-24'>
       <div className='w-full max-w-sm'>
-        <div className='border-neutral-350 dark:border-neutral-650 border bg-neutral-50 dark:bg-neutral-950'>
+        <div className='border border-neutral-350 bg-neutral-50 dark:border-neutral-650 dark:bg-neutral-950'>
           <div className='flex flex-col space-y-1.5 p-4 sm:p-6'>
             <h3 className='text-xl font-semibold tracking-tight sm:text-2xl'>
               Welcome Back
             </h3>
-            <p className='text-xs text-neutral-500 sm:text-sm dark:text-neutral-400'>
+            <p className='text-xs text-neutral-500 dark:text-neutral-400 sm:text-sm'>
               Sign in to your account using your email
             </p>
           </div>
@@ -134,17 +134,17 @@ export const LoginForm = () => {
                       id='email'
                       type='email'
                       placeholder='your.email@example.com'
-                      className={`w-full border bg-white px-3 py-2 pl-10 text-xs text-neutral-900 outline-none sm:py-2.5 sm:text-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 ${signInError ? 'border-red-500 dark:border-red-500' : 'border-neutral-300'}`}
+                      className={`w-full border bg-white px-3 py-2 pl-10 text-xs text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 sm:py-2.5 sm:text-sm ${signInError ? 'border-red-500 dark:border-red-500' : 'border-neutral-300'}`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
-                    <Mail className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-500 sm:h-5 sm:w-5 dark:text-neutral-400' />
+                    <Mail className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 sm:h-5 sm:w-5' />
                   </div>
                 </div>
                 <button
                   type='submit'
-                  className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2 text-xs font-medium whitespace-nowrap outline-none disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm dark:bg-neutral-700 ${isPending || !email.trim() ? 'cursor-not-allowed opacity-50' : ''}`}
+                  className={`inline-flex h-9 w-full items-center justify-center whitespace-nowrap bg-neutral-200 px-4 py-2 text-xs font-medium outline-none disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-700 sm:h-10 sm:text-sm ${isPending || !email.trim() ? 'cursor-not-allowed opacity-50' : ''}`}
                   disabled={isPending || !email.trim()}
                 >
                   {isPending ? 'Sending...' : 'Sign in with Email'}
@@ -170,7 +170,7 @@ export const LoginForm = () => {
                     <path d='M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z' />
                     <path d='m9 12 2 2 4-4' />
                   </svg>
-                  <p className='text-center text-xs text-neutral-500 sm:text-sm dark:text-neutral-400'>
+                  <p className='text-center text-xs text-neutral-500 dark:text-neutral-400 sm:text-sm'>
                     We&apos;ve sent a verification code to {email}. Please check
                     your inbox and enter the code below to sign in.
                   </p>
@@ -189,7 +189,7 @@ export const LoginForm = () => {
                           ref={(el) => {
                             otpInputs.current[index] = el;
                           }}
-                          className={`h-9 w-9 border bg-white text-center text-base text-neutral-900 outline-none sm:h-12 sm:w-12 sm:text-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 ${signInError ? 'border-red-500 dark:border-red-500' : 'border-neutral-300'}`}
+                          className={`h-9 w-9 border bg-white text-center text-base text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 sm:h-12 sm:w-12 sm:text-lg ${signInError ? 'border-red-500 dark:border-red-500' : 'border-neutral-300'}`}
                           value={digit}
                           onChange={(e) =>
                             handleOtpChange(index, e.target.value)
@@ -204,13 +204,13 @@ export const LoginForm = () => {
 
                   <button
                     type='submit'
-                    className={`inline-flex h-9 w-full items-center justify-center bg-neutral-200 px-4 py-2 text-xs font-medium whitespace-nowrap outline-none disabled:pointer-events-none disabled:opacity-50 sm:h-10 sm:text-sm dark:bg-neutral-700 ${isPending || otp.some((d) => !d) ? 'cursor-not-allowed opacity-50' : ''}`}
+                    className={`inline-flex h-9 w-full items-center justify-center whitespace-nowrap bg-neutral-200 px-4 py-2 text-xs font-medium outline-none disabled:pointer-events-none disabled:opacity-50 dark:bg-neutral-700 sm:h-10 sm:text-sm ${isPending || otp.some((d) => !d) ? 'cursor-not-allowed opacity-50' : ''}`}
                     disabled={isPending || otp.some((d) => !d)}
                   >
                     {isPending ? 'Verifying...' : 'Verify Code'}
                   </button>
 
-                  <div className='text-center text-xs text-neutral-500 sm:text-sm dark:text-neutral-400'>
+                  <div className='text-center text-xs text-neutral-500 dark:text-neutral-400 sm:text-sm'>
                     <button
                       type='button'
                       onClick={handleDifferentEmail}
@@ -223,7 +223,7 @@ export const LoginForm = () => {
               </div>
             )}
           </div>
-          <div className='border-t border-neutral-200 px-4 py-3 text-center sm:px-6 sm:py-4 dark:border-neutral-700'>
+          <div className='border-t border-neutral-200 px-4 py-3 text-center dark:border-neutral-700 sm:px-6 sm:py-4'>
             <p className='text-xs text-neutral-500 dark:text-neutral-400'>
               By continuing, you agree to our{' '}
               <a href='#' className='underline underline-offset-2'>

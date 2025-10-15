@@ -85,19 +85,19 @@ export function ArbitrumSummaryHeader({
           {metric.format(metric.value)}
         </span>
       ) : (
-        <span className='font-semibold text-neutral-700 sm:text-lg dark:text-neutral-300'>
+        <span className='font-semibold text-neutral-700 dark:text-neutral-300 sm:text-lg'>
           N/A
         </span>
       )}
 
-      <span className='dark:text-neutral-350 mt-1 text-xs font-medium text-neutral-600 sm:text-sm'>
+      <span className='mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-350 sm:text-sm'>
         {metric.label}
       </span>
     </div>
   );
 
   return (
-    <div className='mb-8 overflow-hidden rounded-xs border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800/50'>
+    <div className='rounded-xs dark:bg-neutral-800/50 mb-8 overflow-hidden border border-neutral-200 bg-white dark:border-neutral-700'>
       {/* Mobile layout */}
       <div className='block md:hidden'>
         {/* Header with profile picture */}
@@ -197,13 +197,13 @@ export function ArbitrumSummaryHeader({
           </div>
 
           {/* Primary metrics in row 3, columns 1-3 */}
-          <div className='col-start-1 col-end-2 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
+          <div className='col-start-1 col-end-2 row-start-3 row-end-4 border-r border-t border-neutral-200 dark:border-neutral-700'>
             {renderMetric(primaryMetrics[0])} {/* Active */}
           </div>
-          <div className='col-start-2 col-end-3 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
+          <div className='col-start-2 col-end-3 row-start-3 row-end-4 border-r border-t border-neutral-200 dark:border-neutral-700'>
             {renderMetric(primaryMetrics[1])} {/* Proposals */}
           </div>
-          <div className='col-start-3 col-end-4 row-start-3 row-end-4 border-t border-r border-neutral-200 dark:border-neutral-700'>
+          <div className='col-start-3 col-end-4 row-start-3 row-end-4 border-r border-t border-neutral-200 dark:border-neutral-700'>
             {renderMetric(primaryMetrics[2])} {/* Discussions */}
           </div>
         </div>

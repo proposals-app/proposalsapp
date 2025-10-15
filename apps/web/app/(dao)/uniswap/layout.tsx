@@ -14,7 +14,7 @@ export default async function UniswapLayout({
         <Suspense>
           <NavBar daoSlug='uniswap' />
         </Suspense>
-        <div className='flex w-full pt-20 pl-0 md:pt-0 md:pl-20'>
+        <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>
           {children}
         </div>
         <Suspense>

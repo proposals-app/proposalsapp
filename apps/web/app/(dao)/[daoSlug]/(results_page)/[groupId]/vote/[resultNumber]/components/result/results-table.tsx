@@ -161,7 +161,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
       >
         {/* Color bar */}
         <div
-          className='absolute top-0 left-0 h-2 opacity-50'
+          className='absolute left-0 top-0 h-2 opacity-50'
           style={{ width: barWidth }}
         >
           {vote.choice.length > 0 && (
@@ -217,7 +217,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
                 {choiceText}
               </div>
               {vote.reason && (
-                <div className='text-neutral-450 mt-0.5 hidden text-sm sm:block'>
+                <div className='mt-0.5 hidden text-sm text-neutral-450 sm:block'>
                   {isUrl(vote.reason) ? (
                     <Link
                       className='block break-all underline' // Allow URL to break
@@ -299,7 +299,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
                 </div>
               </div>
               {vote.reason && (
-                <div className='text-neutral-450 mt-1 text-sm'>
+                <div className='mt-1 text-sm text-neutral-450'>
                   {isUrl(vote.reason) ? (
                     <Link
                       className='block truncate underline'
@@ -338,7 +338,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
 
   const TableHeader = () => (
     // Desktop header remains the same structure
-    <div className='sticky top-[88px] z-10 mb-2 hidden border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 sm:grid sm:grid-cols-7 sm:items-center sm:justify-between sm:gap-2 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200'>
+    <div className='sticky top-[88px] z-10 mb-2 hidden border border-neutral-800 bg-neutral-200 p-2 text-sm font-bold text-neutral-800 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 sm:grid sm:grid-cols-7 sm:items-center sm:justify-between sm:gap-2'>
       {/* Col 1: Delegate */}
       <div className='col-span-2 flex items-center gap-1 text-left'>
         Delegate
@@ -415,7 +415,7 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
 
   // Mobile Filter Header remains the same
   const MobileFilterHeader = () => (
-    <div className='sticky top-[88px] z-10 mb-2 block border border-neutral-800 bg-neutral-200 p-2 font-bold sm:hidden dark:border-neutral-600 dark:bg-neutral-800'>
+    <div className='sticky top-[88px] z-10 mb-2 block border border-neutral-800 bg-neutral-200 p-2 font-bold dark:border-neutral-600 dark:bg-neutral-800 sm:hidden'>
       <Select value={selectedChoice} onValueChange={setSelectedChoice}>
         <SelectTrigger aria-label='Filter by choice'>
           <SelectValue>

@@ -37,7 +37,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           <Link
             key={link.href}
             href={link.href}
-            className='focus:ring-opacity-50 border-brand-accent bg-brand-accent hover:bg-brand-accent-darker focus:ring-brand-accent w-48 rounded-md border px-4 py-2 text-center text-sm font-medium text-white focus:ring-2 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
+            className='hover:bg-brand-accent-darker w-48 rounded-md border border-brand-accent bg-brand-accent px-4 py-2 text-center text-sm font-medium text-white focus:ring-2 focus:ring-brand-accent focus:ring-opacity-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700'
           >
             {link.label}
           </Link>
