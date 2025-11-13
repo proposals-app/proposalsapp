@@ -1,8 +1,8 @@
 ARG APP_NAME=mapper
 # Default to latest stable Rust version - update this when Rust releases new stable versions
 # Can be overridden in build command with --build-arg RUST_VERSION=1.XX
-# Note: Rust 1.85+ required for Edition 2024 support
-ARG RUST_VERSION=1.85
+# Note: Rust 1.91+ required for edition 2024 plus alloy/sol dependencies
+ARG RUST_VERSION=1.91
 
 # Stage 1: Planner
 FROM rust:${RUST_VERSION}-slim-bookworm AS planner
