@@ -437,8 +437,8 @@ export async function saveGroups(
       })
     );
 
-    revalidateTag('groupsData');
-    revalidateTag('ungroupedProposals');
+    revalidateTag('groupsData', 'max');
+    revalidateTag('ungroupedProposals', 'max');
   }, 'saveGroups');
 }
 
@@ -476,8 +476,8 @@ export async function createGroup(
       })
       .execute();
 
-    revalidateTag('groupsData');
-    revalidateTag('ungroupedProposals');
+    revalidateTag('groupsData', 'max');
+    revalidateTag('ungroupedProposals', 'max');
   }, 'createGroup');
 }
 
@@ -487,8 +487,8 @@ export async function createGroup(
 export async function deleteGroup(groupId: string) {
   await db.deleteFrom('proposalGroup').where('id', '=', groupId).execute();
 
-  revalidateTag('groupsData');
-  revalidateTag('ungroupedProposals');
+  revalidateTag('groupsData', 'max');
+  revalidateTag('ungroupedProposals', 'max');
 }
 
 /**

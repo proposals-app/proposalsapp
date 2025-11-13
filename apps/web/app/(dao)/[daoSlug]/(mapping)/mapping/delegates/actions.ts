@@ -289,7 +289,7 @@ export async function mapDiscourseUserToDelegate(
     })
     .execute();
 
-  revalidateTag('delegatesWithMappings');
+  revalidateTag('delegatesWithMappings', 'max');
 }
 
 export async function mapVoterToDelegate(delegateId: string, voterId: string) {
@@ -303,7 +303,7 @@ export async function mapVoterToDelegate(delegateId: string, voterId: string) {
     })
     .execute();
 
-  revalidateTag('delegatesWithMappings');
+  revalidateTag('delegatesWithMappings', 'max');
 }
 
 export async function unmapDiscourseUserFromDelegate(
@@ -316,7 +316,7 @@ export async function unmapDiscourseUserFromDelegate(
     .where('discourseUserId', '=', discourseUserId)
     .execute();
 
-  revalidateTag('delegatesWithMappings');
+  revalidateTag('delegatesWithMappings', 'max');
 }
 
 export async function unmapVoterFromDelegate(
@@ -329,7 +329,7 @@ export async function unmapVoterFromDelegate(
     .where('voterId', '=', voterId)
     .execute();
 
-  revalidateTag('delegatesWithMappings');
+  revalidateTag('delegatesWithMappings', 'max');
 }
 
 export async function createDelegate(daoSlug: string) {
@@ -351,7 +351,7 @@ export async function createDelegate(daoSlug: string) {
     })
     .execute();
 
-  revalidateTag('delegatesWithMappings');
+  revalidateTag('delegatesWithMappings', 'max');
 }
 
 export async function deleteDelegate(delegateId: string) {
@@ -369,5 +369,5 @@ export async function deleteDelegate(delegateId: string) {
     await trx.deleteFrom('delegate').where('id', '=', delegateId).execute();
   });
 
-  revalidateTag('delegatesWithMappings');
+  revalidateTag('delegatesWithMappings', 'max');
 }

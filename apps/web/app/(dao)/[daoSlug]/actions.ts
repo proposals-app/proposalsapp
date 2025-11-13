@@ -43,7 +43,7 @@ export async function markAllAsRead(daoSlug: string) {
       .execute();
 
     // Revalidate the groups cache
-    revalidateTag('groups');
+    revalidateTag('groups', 'max');
   } catch (error) {
     console.error('[markAllAsRead] Error:', error);
     throw error;

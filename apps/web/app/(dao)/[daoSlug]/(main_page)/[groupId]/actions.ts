@@ -61,7 +61,7 @@ export async function updateLastReadAt(groupId: string, daoSlug: string) {
       )
       .execute();
 
-    revalidateTag(`groups-user-${userId}-${daoSlug}`);
+    revalidateTag(`groups-user-${userId}-${daoSlug}`, 'max');
   } catch (_error) {
     // Silently fail for this function as it's not critical
   }
