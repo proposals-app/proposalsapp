@@ -10,11 +10,11 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-alloy = { version = "1.1.0", features = ["full"] }
-alloy-ens = { version = "1.1.0", features = ["contract", "provider"] }
+alloy = { version = "1.1.1", features = ["full"] }
+alloy-ens = { version = "1.1.1", features = ["contract", "provider"] }
 anyhow = "1.0.100"
 async-trait = "0.1.89"
-axum = "0.8.6"
+axum = "0.8.7"
 backtrace = "0.3.76"
 bincode = "2.0.1"
 chrono = "0.4.42"
@@ -40,14 +40,14 @@ regex = "1.12.2"
 reqwest = { version = "0.12.24", default-features = false }
 reqwest-middleware = "0.4.2"
 reqwest-retry = "0.7.0"
-rindexer = { git = "https://github.com/joshstevens19/rindexer", branch = "release/0.28.1", package = "rindexer" }
+rindexer = { git = "https://github.com/joshstevens19/rindexer", branch = "release/0.28.2", package = "rindexer" }
 scraper = "0.24.0"
 sea-orm = { version = "1.1.19", default-features = false }
 serde = "1.0.228"
 serde_json = "1.0.145"
 serial_test = "3.2.0"
 thiserror = "2.0.17"
-tiktoken-rs = "0.7.0"
+tiktoken-rs = "0.9.1"
 tokio = "1.48.0"
 tokio-retry = "0.3.0"
 tracing = "0.1.41"

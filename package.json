@@ -2,7 +2,7 @@
   "name": "proposalsapp",
   "version": "0.1.0",
   "devDependencies": {
-    "@tsconfig/recommended": "^1.0.12",
+    "@tsconfig/recommended": "^1.0.13",
     "headless-web3-provider": "^0.3.2",
     "npm-check-updates": "^19.1.2"
   },
@@ -37,6 +37,7 @@
     },
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide",
+      "esbuild",
       "ws"
     ]
   }

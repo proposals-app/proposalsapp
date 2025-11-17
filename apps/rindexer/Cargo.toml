@@ -11,7 +11,6 @@ path = "src/main.rs"
 alloy = { workspace = true, features = ["full"] }
 alloy-ens = { workspace = true, features = ["contract", "provider"] }
 anyhow = { workspace = true }
-async-trait = { workspace = true }
 axum = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
@@ -19,7 +18,6 @@ futures = { workspace = true }
 lazy_static = { workspace = true }
 once_cell = { workspace = true }
 proposalsapp-db = { workspace = true }
-rand = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 rindexer = { workspace = true }
@@ -42,9 +40,6 @@ tracing-subscriber = { workspace = true, features = [
     "json",
     "env-filter",
 ] }
-utils = { workspace = true }
 
 [dev-dependencies]
 dotenv = { workspace = true }
-mockito = { workspace = true }
-proptest = { workspace = true }
