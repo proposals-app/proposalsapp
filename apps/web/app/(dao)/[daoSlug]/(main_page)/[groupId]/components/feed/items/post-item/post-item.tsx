@@ -26,7 +26,13 @@ export async function PostItem({
     return null;
   }
 
-  const author = await getDiscourseUser(item.userId, item.daoDiscourseId);
+  // Validate userId is within acceptable range before querying (negative values are system users)
+  const isValidUserId =
+    (item.userId >= 1 && item.userId <= 2147483647) || item.userId < 0;
+
+  const author = isValidUserId
+    ? await getDiscourseUser(item.userId, item.daoDiscourseId)
+    : undefined;
 
   const likesCount = await getPostLikesCount(
     item.externalId,
@@ -36,13 +42,15 @@ export async function PostItem({
   const proposalIds = Array.from(new Set(group.proposals.map((p) => p.id)));
   const topicIds = Array.from(new Set(group.topics.map((t) => t.id)));
 
-  const delegate = await getDelegateByDiscourseUser(
-    item.userId,
-    group.daoSlug,
-    false,
-    topicIds,
-    proposalIds
-  );
+  const delegate = isValidUserId
+    ? await getDelegateByDiscourseUser(
+        item.userId,
+        group.daoSlug,
+        false,
+        topicIds,
+        proposalIds
+      )
+    : null;
 
   const currentVotingPower =
     delegate?.delegatetovoter?.latestVotingPower?.votingPower;

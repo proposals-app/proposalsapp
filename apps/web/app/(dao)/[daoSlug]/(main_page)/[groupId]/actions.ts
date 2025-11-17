@@ -1104,8 +1104,14 @@ export async function getFeed(
       .orderBy('createdAt', 'desc')
       .execute();
 
+    // Filter out posts with invalid userId values (must be between 1-2147483647 or negative for system users)
+    const validPosts = allPosts.filter(
+      (post) =>
+        (post.userId >= 1 && post.userId <= 2147483647) || post.userId < 0
+    );
+
     const filteredPosts = await Promise.all(
-      allPosts.map(async (post) => {
+      validPosts.map(async (post) => {
         const delegate = await getDelegateByDiscourseUser(
           post.userId,
           dao.slug,
