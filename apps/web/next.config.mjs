@@ -8,12 +8,19 @@ const _withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  reactCompiler: true,
+  serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
   turbopack: {
     rules: {
       '*.svg': {
         loaders: ['@svgr/webpack'],
         as: '*.js',
       },
+    },
+    resolveAlias: {
+      // Exclude WalletConnect's bundled pino and thread-stream to prevent test file inclusion
+      'pino': 'pino',
+      'thread-stream': 'thread-stream',
     },
   },
   allowedDevOrigins: [
@@ -42,7 +49,6 @@ const nextConfig = {
   // This is required to support PostHog trailing slash API requests
   skipTrailingSlashRedirect: true,
   experimental: {
-    reactCompiler: true,
     // cacheComponents: true,
     serverActions: {
       bodySizeLimit: '10mb',

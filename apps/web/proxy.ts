@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 export const config = {
-  runtime: 'nodejs', // Specify the runtime environment as Node.js
   matcher: [
     /*
      * Match all paths except for:
@@ -15,7 +14,7 @@ export const config = {
   ],
 };
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
