@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { Web3Provider } from '@ethersproject/providers';
+import { clientToWeb3Provider } from '@/lib/wallet/adapters';
 import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/app/components/ui/button';
 import { Textarea } from '@/app/components/ui/textarea';
@@ -213,10 +213,7 @@ export function OffchainRankedChoiceVoteModalContent({
         throw new Error('Duplicate choice indices detected.');
       }
 
-      const web3Provider = new Web3Provider(
-        walletClient.transport,
-        walletClient.chain.id
-      );
+      const web3Provider = clientToWeb3Provider(walletClient);
 
       const receipt = await client.vote(web3Provider, address, {
         space: snapshotSpace ?? '',

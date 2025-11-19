@@ -34,7 +34,7 @@ export default function ChangeEmailTemplate({
         <Preview>Confirm your email address change on proposals.app</Preview>
         <Body className='bg-neutral-100 font-sans dark:bg-neutral-900'>
           <Container className='mx-auto max-w-[600px] p-2 lg:p-8'>
-            <Section className='my-8 bg-neutral-50 p-4 shadow-sm lg:p-8 dark:bg-neutral-800'>
+            <Section className='my-8 bg-neutral-50 p-4 shadow-sm dark:bg-neutral-800 lg:p-8'>
               <Row className='flex items-start pb-2'>
                 <Column>
                   <Img

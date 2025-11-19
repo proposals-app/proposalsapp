@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { Web3Provider } from '@ethersproject/providers';
+import { clientToWeb3Provider } from '@/lib/wallet/adapters';
 import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/app/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
@@ -56,10 +56,7 @@ export function OffchainQuadraticVoteModalContent({
       : reason;
 
     try {
-      const web3Provider = new Web3Provider(
-        walletClient.transport,
-        walletClient.chain.id
-      );
+      const web3Provider = clientToWeb3Provider(walletClient);
 
       // The backend/snapshot client handles the sqrt(vp) calculation.
       // We just send the selected choice index (1-based).

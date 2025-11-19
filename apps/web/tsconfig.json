@@ -1,12 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2018",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "webworker"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,27 +15,17 @@
     "downlevelIteration": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "types": [
-      "@serwist/next/typings"
-    ],
+    "types": ["@serwist/next/typings"],
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@proposalsapp/db": [
-        "../../libs/ts/db/src/index.ts"
-      ],
-      "@proposalsapp/emails": [
-        "../../libs/ts/emails/src/index.ts"
-      ],
-      "@proposalsapp/visual-dom-diff": [
-        "../../libs/ts/visual-dom-diff/src/index.ts"
-      ],
-      "@/*": [
-        "./*"
-      ]
+      "@proposalsapp/db": ["../../libs/ts/db/src/index.ts"],
+      "@proposalsapp/emails": ["../../libs/ts/emails/src/index.ts"],
+      "@proposalsapp/visual-dom-diff": ["../../libs/ts/visual-dom-diff/src/index.ts"],
+      "@/*": ["./*"]
     }
   },
   "include": [
@@ -53,8 +38,5 @@
     ".ladle",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "public/sw.js"
-  ]
+  "exclude": ["node_modules", "public/sw.js"]
 }

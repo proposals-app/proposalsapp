@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import snapshot from '@snapshot-labs/snapshot.js';
-import { Web3Provider } from '@ethersproject/providers';
+import { clientToWeb3Provider } from '@/lib/wallet/adapters';
 import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/app/components/ui/button';
 import { Checkbox } from '@/app/components/ui/checkbox';
@@ -58,10 +58,7 @@ export function OffchainApprovalVoteModalContent({
       : reason;
 
     try {
-      const web3Provider = new Web3Provider(
-        walletClient.transport,
-        walletClient.chain.id
-      );
+      const web3Provider = clientToWeb3Provider(walletClient);
 
       const receipt = await client.vote(web3Provider, address, {
         space: snapshotSpace ?? '',

@@ -39,7 +39,7 @@ export default function EndingProposalEmailTemplate({
         <Preview>Proposal ending soon in {daoName}</Preview>
         <Body className='bg-neutral-100 font-sans dark:bg-neutral-900'>
           <Container className='mx-auto max-w-[600px] p-2 lg:p-8'>
-            <Section className='my-8 bg-white p-4 shadow-sm lg:p-8 dark:bg-neutral-800'>
+            <Section className='my-8 bg-white p-4 shadow-sm dark:bg-neutral-800 lg:p-8'>
               <Row className='flex items-start pb-2'>
                 <Column>
                   <Img

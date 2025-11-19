@@ -19,7 +19,7 @@ const nextConfig = {
     },
     resolveAlias: {
       // Exclude WalletConnect's bundled pino and thread-stream to prevent test file inclusion
-      'pino': 'pino',
+      pino: 'pino',
       'thread-stream': 'thread-stream',
     },
   },

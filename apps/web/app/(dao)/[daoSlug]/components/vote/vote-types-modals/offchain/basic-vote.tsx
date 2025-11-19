@@ -6,7 +6,7 @@ import { DialogClose, DialogFooter } from '@/app/components/ui/dialog';
 import { Label } from '@/app/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
 import { Textarea } from '@/app/components/ui/textarea';
-import { Web3Provider } from '@ethersproject/providers';
+import { clientToWeb3Provider } from '@/lib/wallet/adapters';
 import snapshot from '@snapshot-labs/snapshot.js';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -51,10 +51,7 @@ export function OffchainBasicVoteModalContent({
       : reason;
 
     try {
-      const web3Provider = new Web3Provider(
-        walletClient.transport,
-        walletClient.chain.id
-      );
+      const web3Provider = clientToWeb3Provider(walletClient);
 
       const receipt = await client.vote(web3Provider, address, {
         space: snapshotSpace || '',
