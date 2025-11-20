@@ -9,7 +9,7 @@
     "dotenv": "^17.2.3",
     "node-cron": "^4.2.1",
     "pino": "^10.1.0",
-    "resend": "^6.4.2"
+    "resend": "^6.5.2"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
