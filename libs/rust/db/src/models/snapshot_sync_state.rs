@@ -8,37 +8,33 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "job_queue"
+        "snapshot_sync_state"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: i32,
-    pub r#type: String,
-    pub data: Json,
-    pub status: String,
-    pub created_at: DateTime,
+    pub space: String,
+    pub last_mci: i64,
+    pub updated_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
-    Id,
-    Type,
-    Data,
-    Status,
-    CreatedAt,
+    Space,
+    LastMci,
+    UpdatedAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
 pub enum PrimaryKey {
-    Id,
+    Space,
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = i32;
+    type ValueType = String;
     fn auto_increment() -> bool {
-        true
+        false
     }
 }
 
@@ -49,11 +45,9 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::Integer.def(),
-            Self::Type => ColumnType::Text.def(),
-            Self::Data => ColumnType::JsonBinary.def(),
-            Self::Status => ColumnType::Text.def(),
-            Self::CreatedAt => ColumnType::DateTime.def(),
+            Self::Space => ColumnType::String(StringLen::N(255u32)).def(),
+            Self::LastMci => ColumnType::BigInteger.def(),
+            Self::UpdatedAt => ColumnType::DateTime.def(),
         }
     }
 }

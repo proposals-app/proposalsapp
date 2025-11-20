@@ -6,6 +6,11 @@ import {
   PostgresDialect,
 } from 'kysely';
 import { Pool } from 'pg';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
   dialect: new PostgresDialect({
@@ -22,9 +27,9 @@ export default defineConfig({
   ],
 
   migrations: {
-    migrationFolder: '/migrations',
+    migrationFolder: join(__dirname, '../migrations'),
   },
   seeds: {
-    seedFolder: '/seeds',
+    seedFolder: join(__dirname, '../seeds'),
   },
 });

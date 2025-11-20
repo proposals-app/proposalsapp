@@ -1,10 +1,14 @@
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use reqwest::Client;
-use serde::Deserialize;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, instrument, warn};
+
+pub mod models;
+use models::*;
 
 pub const SNAPSHOT_GRAPHQL_ENDPOINT: &str = "https://hub.snapshot.org/graphql";
 
@@ -69,166 +73,34 @@ impl RateLimiter {
 /// Global rate limiter instance for Snapshot API
 static RATE_LIMITER: Lazy<RateLimiter> = Lazy::new(RateLimiter::new);
 
-// Response structures for Snapshot API
-
-/// Response from Snapshot GraphQL API for proposals query
-#[derive(Deserialize, Debug)]
-pub struct SnapshotProposalsResponse {
-    pub data: Option<SnapshotProposalData>,
-}
-
-/// Container for proposals data in the GraphQL response
-#[derive(Deserialize, Debug)]
-pub struct SnapshotProposalData {
-    pub proposals: Vec<SnapshotProposal>,
-}
-
-/// Represents a proposal from Snapshot
-#[derive(Clone, Deserialize, Debug)]
-pub struct SnapshotProposal {
-    pub id: String,
-    pub author: String,
-    pub title: String,
-    pub body: String,
-    pub discussion: String,
-    pub choices: Vec<String>,
-    pub scores_state: String,
-    pub privacy: String,
-    pub created: i64,
-    pub start: i64,
-    pub end: i64,
-    pub quorum: f64,
-    pub link: String,
-    pub state: String,
-    #[serde(rename = "type")]
-    pub proposal_type: String,
-    pub flagged: Option<bool>,
-    pub ipfs: String,
-    pub votes: Option<u64>,
-}
-
-/// Response from Snapshot GraphQL API for votes query
-#[derive(Deserialize, Debug)]
-pub struct SnapshotVotesResponse {
-    pub data: Option<SnapshotVoteData>,
-}
-
-/// Container for votes data in the GraphQL response
-#[derive(Deserialize, Debug)]
-pub struct SnapshotVoteData {
-    pub votes: Option<Vec<SnapshotVote>>,
-}
-
-/// Represents a vote from Snapshot
-#[derive(Deserialize, Debug, Clone)]
-pub struct SnapshotVote {
-    pub voter: String,
-    pub reason: Option<String>,
-    pub choice: serde_json::Value,
-    pub vp: f64,
-    pub created: i64,
-    pub proposal: SnapshotProposalRef,
-    pub ipfs: String,
-}
-
-impl SnapshotVote {
-    /// Check if this vote has a hidden (hex hash) choice indicating encrypted vote
-    pub fn has_hidden_choice(&self) -> bool {
-        match &self.choice {
-            serde_json::Value::String(choice_str) => {
-                // Check if it's a hex hash (0x followed by hex characters)
-                choice_str.starts_with("0x")
-                    && choice_str.len() >= 10
-                    && choice_str[2..].chars().all(|c| c.is_ascii_hexdigit())
-            }
-            _ => false,
-        }
-    }
-    /// Converts a SnapshotVote to a database vote model
-    pub fn to_active_model(
-        &self,
-        governor_id: sea_orm::prelude::Uuid,
-        dao_id: sea_orm::prelude::Uuid,
-    ) -> Result<Option<proposalsapp_db::models::vote::ActiveModel>> {
-        use chrono::DateTime;
-        use proposalsapp_db::models::vote;
-        use sea_orm::{ActiveValue::NotSet, Set};
-        use tracing::warn;
-
-        // Parse the created timestamp
-        let created_at = match DateTime::from_timestamp(self.created, 0) {
-            Some(dt) => dt.naive_utc(),
-            None => {
-                warn!(
-                    voter = self.voter,
-                    proposal_id = self.proposal.id,
-                    created = self.created,
-                    "Invalid created timestamp for vote, skipping."
-                );
-                return Ok(None);
-            }
-        };
-
-        // Process the choice value
-        let choice_value = if self.choice.is_number() {
-            match self.choice.as_i64() {
-                Some(choice) => (choice - 1).into(),
-                None => {
-                    warn!(
-                        voter = self.voter,
-                        proposal_id = self.proposal.id,
-                        choice = ?self.choice,
-                        "Invalid choice value for vote, skipping."
-                    );
-                    return Ok(None);
-                }
-            }
-        } else {
-            self.choice.clone()
-        };
-
-        // Create the vote model
-        let vote_model = vote::ActiveModel {
-            id: NotSet,
-            governor_id: Set(governor_id),
-            dao_id: Set(dao_id),
-            proposal_external_id: Set(self.proposal.id.clone()),
-            voter_address: Set(self.voter.clone()),
-            voting_power: Set(self.vp),
-            choice: Set(choice_value),
-            reason: Set(self.reason.clone()),
-            created_at: Set(created_at),
-            block_created_at: NotSet,
-            txid: Set(Some(self.ipfs.clone())),
-            proposal_id: NotSet, // Proposal id will be set in store_vote if proposal exists
-        };
-
-        tracing::debug!(
-            voter = self.voter,
-            proposal_id = self.proposal.id,
-            created_at = ?created_at,
-            "Snapshot vote processed"
-        );
-
-        Ok(Some(vote_model))
-    }
-}
-
-/// Reference to a Snapshot proposal
-#[derive(Deserialize, Debug, Clone)]
-pub struct SnapshotProposalRef {
-    pub id: String,
-}
-
 /// Simplified Snapshot API client
 pub struct SnapshotApi {
-    client: Client,
+    client: ClientWithMiddleware,
+    endpoint: String,
 }
 
 impl SnapshotApi {
     pub fn new() -> Self {
+        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
+        let client = ClientBuilder::new(Client::new())
+            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+            .build();
+
         Self {
-            client: Client::new(),
+            client,
+            endpoint: SNAPSHOT_GRAPHQL_ENDPOINT.to_string(),
+        }
+    }
+
+    pub fn new_with_endpoint(endpoint: String) -> Self {
+        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
+        let client = ClientBuilder::new(Client::new())
+            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+            .build();
+
+        Self {
+            client,
+            endpoint,
         }
     }
 
@@ -270,6 +142,9 @@ impl SnapshotApi {
                     flagged
                     ipfs
                     votes
+                    space {{
+                        id
+                    }}
                 }}
             }}"#
         );
@@ -331,6 +206,9 @@ impl SnapshotApi {
                     proposal {{
                         id
                     }}
+                    space {{
+                        id
+                    }}
                 }}
             }}"#
         );
@@ -378,6 +256,9 @@ impl SnapshotApi {
                     flagged
                     ipfs
                     votes
+                    space {{
+                        id
+                    }}
                 }}
             }}"#
         );
@@ -422,6 +303,9 @@ impl SnapshotApi {
                     flagged
                     ipfs
                     votes
+                    space {{
+                        id
+                    }}
                 }}
             }}"#
         );
@@ -469,6 +353,9 @@ impl SnapshotApi {
                     proposal {{
                         id
                     }}
+                    space {{
+                        id
+                    }}
                 }}
             }}"#
         );
@@ -512,6 +399,9 @@ impl SnapshotApi {
                     flagged
                     ipfs
                     votes
+                    space {{
+                        id
+                    }}
                 }}
             }}"#
         );
@@ -572,6 +462,156 @@ impl SnapshotApi {
         self.fetch_all_proposal_votes(proposal_id).await
     }
 
+    /// Fetch messages from the MCI stream
+    #[instrument(name = "fetch_messages", skip(self))]
+    pub async fn fetch_messages(
+        &self,
+        spaces: &[String],
+        mci_gt: i64,
+        limit: usize,
+    ) -> Result<Vec<SnapshotMessage>> {
+        let space_in = spaces
+            .iter()
+            .map(|s| format!("\"{}\"", s))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let query = format!(
+            r#"
+            {{
+                messages(
+                    first: {limit},
+                    where: {{
+                        space_in: [{space_in}],
+                        mci_gt: {mci_gt}
+                    }},
+                    orderBy: "mci",
+                    orderDirection: asc
+                ) {{
+                    id
+                    mci
+                    timestamp
+                    space
+                    type
+                }}
+            }}"#
+        );
+
+        debug!(mci_gt = mci_gt, limit = limit, "Fetching messages from MCI stream");
+
+        let response: SnapshotMessagesResponse = self.fetch_graphql(&query).await?;
+        Ok(response.data.map(|d| d.messages).unwrap_or_default())
+    }
+
+    /// Fetch proposals by IDs
+    #[instrument(name = "fetch_proposals_by_ids", skip(self))]
+    pub async fn fetch_proposals_by_ids(
+        &self,
+        proposal_ids: &[String],
+    ) -> Result<Vec<SnapshotProposal>> {
+        if proposal_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let ids_str = proposal_ids
+            .iter()
+            .map(|id| format!("\"{}\"", id))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let limit = proposal_ids.len();
+        let query = format!(
+            r#"
+            {{
+                proposals(
+                    where: {{
+                        id_in: [{ids_str}]
+                    }},
+                    first: {limit},
+                    orderBy: "created",
+                    orderDirection: asc
+                ) {{
+                    id
+                    author
+                    title
+                    body
+                    discussion
+                    choices
+                    scores_state
+                    privacy
+                    created
+                    start
+                    end
+                    quorum
+                    link
+                    state
+                    type
+                    flagged
+                    ipfs
+                    votes
+                    space {{
+                        id
+                    }}
+                }}
+            }}"#
+        );
+
+        debug!(count = proposal_ids.len(), "Fetching proposals by IDs");
+
+        let response: SnapshotProposalsResponse = self.fetch_graphql(&query).await?;
+        Ok(response.data.map(|d| d.proposals).unwrap_or_default())
+    }
+
+    /// Fetch votes by IDs
+    #[instrument(name = "fetch_votes_by_ids", skip(self))]
+    pub async fn fetch_votes_by_ids(
+        &self,
+        vote_ids: &[String],
+    ) -> Result<Vec<SnapshotVote>> {
+        if vote_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let ids_str = vote_ids
+            .iter()
+            .map(|id| format!("\"{}\"", id))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let limit = vote_ids.len();
+        let query = format!(
+            r#"
+            {{
+                votes(
+                    where: {{
+                        id_in: [{ids_str}]
+                    }},
+                    first: {limit},
+                    orderBy: "created",
+                    orderDirection: asc
+                ) {{
+                    voter
+                    reason
+                    choice
+                    vp
+                    created
+                    ipfs
+                    proposal {{
+                        id
+                    }}
+                    space {{
+                        id
+                    }}
+                }}
+            }}"#
+        );
+
+        debug!(count = vote_ids.len(), "Fetching votes by IDs");
+
+        let response: SnapshotVotesResponse = self.fetch_graphql(&query).await?;
+        Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
+    }
+
     /// Execute a GraphQL query with rate limiting
     async fn fetch_graphql<T>(&self, query: &str) -> Result<T>
     where
@@ -582,21 +622,27 @@ impl SnapshotApi {
 
         let response = self
             .client
-            .post(SNAPSHOT_GRAPHQL_ENDPOINT)
-            .json(&serde_json::json!({"query": query}))
+            .post(&self.endpoint)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&serde_json::json!({"query": query}))?)
             .header("User-Agent", "proposals.app/1.0")
             .send()
             .await?;
 
         if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await?;
             return Err(anyhow::anyhow!(
-                "HTTP error {}: {}",
-                response.status(),
-                response.text().await?
+                "Snapshot API error: status={}, body={}",
+                status,
+                text
             ));
         }
 
-        let result: T = response.json().await?;
-        Ok(result)
+        let response_body = response.text().await?;
+        // debug!("Response body: {}", response_body);
+
+        let parsed: T = serde_json::from_str(&response_body)?;
+        Ok(parsed)
     }
 }

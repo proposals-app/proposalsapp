@@ -20,6 +20,8 @@ once_cell = { workspace = true }
 proposalsapp-db = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest-middleware = { workspace = true }
+reqwest-retry = { workspace = true }
 rindexer = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-mysql",
@@ -43,3 +45,4 @@ tracing-subscriber = { workspace = true, features = [
 
 [dev-dependencies]
 dotenv = { workspace = true }
+mockito = { workspace = true }

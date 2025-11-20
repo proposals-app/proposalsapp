@@ -1,5 +1,5 @@
 use crate::{
-    extensions::snapshot_api::SnapshotProposal,
+    extensions::snapshot::models::SnapshotProposal,
     rindexer_lib::typings::networks::get_ethereum_provider,
 };
 use alloy::primitives::Address;
@@ -8,7 +8,8 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use once_cell::sync::{Lazy, OnceCell};
 use proposalsapp_db::models::{
-    dao, dao_governor, delegation, proposal, vote, voter, voting_power_timeseries,
+    dao, dao_governor, delegation, proposal, snapshot_indexer_state, vote, voter,
+    voting_power_timeseries,
 };
 use rindexer::provider::RindexerProvider;
 use sea_orm::{
@@ -914,4 +915,37 @@ pub async fn store_snapshot_proposal(
     };
 
     store_proposal(proposal_active_model).await
+}
+
+#[instrument(name = "db_get_last_mci")]
+pub async fn get_last_mci() -> Result<i64> {
+    let db = DB
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
+
+    let state = snapshot_indexer_state::Entity::find_by_id(1)
+        .one(db)
+        .await?;
+
+    Ok(state.map(|s| s.last_mci).unwrap_or(0))
+}
+
+#[instrument(name = "db_update_last_mci", skip(mci))]
+pub async fn update_last_mci(mci: i64) -> Result<()> {
+    let db = DB
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
+
+    // We use update because the row should always exist (inserted in migration)
+    let active_model = snapshot_indexer_state::ActiveModel {
+        id: Set(1),
+        last_mci: Set(mci),
+    };
+
+    snapshot_indexer_state::Entity::update(active_model)
+        .exec(db)
+        .await?;
+
+    debug!(mci = mci, "Updated last MCI");
+    Ok(())
 }
