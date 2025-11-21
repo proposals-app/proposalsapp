@@ -46,7 +46,7 @@
     "micromark-extension-gfm-table": "^2.1.1",
     "next": "^16.0.3",
     "next-themes": "^0.4.6",
-    "nuqs": "^2.8.0",
+    "nuqs": "^2.8.1",
     "ollama-ai-provider": "^1.2.0",
     "pino-pretty": "^13.1.2",
     "posthog-js": "^1.297.2",
