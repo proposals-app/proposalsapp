@@ -9,8 +9,8 @@ import {
   PledgeSection,
   FinalSection,
   Navigation,
-} from '@/app/components/landing';
-import { FullPageSection } from '@/app/components/landing/FullPageSection';
+} from '@/app/(marketing)/components/landing';
+import { FullPageSection } from '@/app/(marketing)/components/landing/FullPageSection';
 
 export default async function Page() {
   return (
