@@ -14,30 +14,44 @@ import {
 } from 'wagmi';
 import { arbitrum } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useMemo, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Create a stable QueryClient instance outside the component
 const queryClient = new QueryClient();
 
-// Create config only once, outside the component
-let configInstance: ReturnType<typeof getDefaultConfig> | null = null;
+// Module-level singleton for wagmi config
+// This ensures the same config is used across all components
+// and prevents recreation on re-renders or hot module reloads
+let configSingleton: ReturnType<typeof getDefaultConfig> | null = null;
+let configInitialized = false;
 
-function getOrCreateConfig() {
-  if (!configInstance && typeof window !== 'undefined') {
-    configInstance = getDefaultConfig({
-      appName: 'proposalsapp',
-      projectId: 'e18a2020baa088921415dd06caf2bfb4',
-      chains: [arbitrum],
-      ssr: true,
-      storage: createStorage({
-        storage: cookieStorage,
-      }),
-      transports: {
-        [arbitrum.id]: http(),
-      },
-    });
+function getWagmiConfig() {
+  // Only create config on client-side
+  if (typeof window === 'undefined') {
+    return null;
   }
-  return configInstance;
+
+  // Return existing singleton if available
+  if (configInitialized && configSingleton) {
+    return configSingleton;
+  }
+
+  // Create new config (this should only happen once per page load)
+  configSingleton = getDefaultConfig({
+    appName: 'proposalsapp',
+    projectId: 'e18a2020baa088921415dd06caf2bfb4',
+    chains: [arbitrum],
+    ssr: true,
+    storage: createStorage({
+      storage: cookieStorage,
+    }),
+    transports: {
+      [arbitrum.id]: http(),
+    },
+  });
+
+  configInitialized = true;
+  return configSingleton;
 }
 
 export default function WalletProvider({
@@ -48,21 +62,19 @@ export default function WalletProvider({
   cookie?: string | null;
 }) {
   const [mounted, setMounted] = useState(false);
+  const [config, setConfig] = useState<ReturnType<
+    typeof getDefaultConfig
+  > | null>(null);
 
+  // Initialize config only on client-side after mount
   useEffect(() => {
     setMounted(true);
+    const wagmiConfig = getWagmiConfig();
+    setConfig(wagmiConfig);
   }, []);
 
-  // Get or create config
-  const config = useMemo(() => {
-    if (typeof window === 'undefined') {
-      // Return a dummy config for SSR that won't initialize WalletConnect
-      return null;
-    }
-    return getOrCreateConfig();
-  }, []);
-
-  // Don't render until mounted and config is available
+  // Don't render wallet providers until mounted and config is available
+  // This prevents hydration mismatches between server and client
   if (!mounted || !config) {
     return <>{children}</>;
   }

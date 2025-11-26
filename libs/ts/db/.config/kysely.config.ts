@@ -22,9 +22,9 @@ export default defineConfig({
   ],
 
   migrations: {
-    migrationFolder: '/migrations',
+    migrationFolder: process.env.NODE_ENV === 'production' ? '/migrations' : '../migrations',
   },
   seeds: {
-    seedFolder: '/seeds',
+    seedFolder: process.env.NODE_ENV === 'production' ? '/seeds' : '../seeds',
   },
 });

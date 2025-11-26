@@ -24,6 +24,21 @@ import {
   QUOTE_STYLES_POST,
 } from './markdown_styles';
 
+/**
+ * Escape HTML special characters to prevent XSS attacks.
+ * This is used for user-provided content that gets inserted into HTML templates.
+ */
+function escapeHtml(text: string): string {
+  const htmlEscapes: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+}
+
 // Create a JSDOM instance for server-side DOM manipulation
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
 const serverDocument = dom.window.document;
@@ -41,11 +56,13 @@ function processQuotesBody(html: string): string {
   if (!html.includes('[quote="')) return html;
 
   function createQuoteHtml(username: string, content: string) {
+    // Escape username to prevent XSS - content is already sanitized HTML from rehype-sanitize
+    const safeUsername = escapeHtml(username);
     return `
       <div class="${QUOTE_STYLES.wrapper}">
         <div class="${QUOTE_STYLES.header}">
           <span>Quoted from&nbsp;</span>
-          <span>${username}</span>
+          <span>${safeUsername}</span>
         </div>
         <div class="${QUOTE_STYLES.content}">
           ${content.trim()}
@@ -82,26 +99,32 @@ function processQuotesPost(html: string): string {
     topicId: string,
     content: string
   ) {
+    // Escape user-provided content to prevent XSS
+    const safeUsername = escapeHtml(username);
+    // postNumber and topicId are validated by regex to be digits only, but escape for safety
+    const safePostNumber = escapeHtml(postNumber);
+    const safeTopicId = escapeHtml(topicId);
+
     const formattedContent = content
       .split('\n\n')
       .map((paragraph) => paragraph.trim())
       .filter((paragraph) => paragraph.length > 0)
-      .map((paragraph) => `<p class="${MARKDOWN_STYLES.p}">${paragraph}</p>`)
+      .map((paragraph) => `<p class="${MARKDOWN_STYLES.p}">${escapeHtml(paragraph)}</p>`)
       .join('\n');
 
     return `
       <div class="${QUOTE_STYLES_POST.wrapper}">
         <div class="${QUOTE_STYLES_POST.header}">
           <span>Quoted from&nbsp;</span>
-          <span>${username}</span>
+          <span>${safeUsername}</span>
         </div>
         <div class="${QUOTE_STYLES_POST.content}">
           ${formattedContent}
         </div>
         <div class="${QUOTE_STYLES_POST.linkWrapper}">
-          <a href="${postNumber === '1' ? '#body' : `#post-${postNumber}-${topicId}`}"
+          <a href="${safePostNumber === '1' ? '#body' : `#post-${safePostNumber}-${safeTopicId}`}"
              class="${QUOTE_STYLES_POST.link}">
-            ${postNumber === '1' ? 'back to top ↑' : 'jump to post →'}
+            ${safePostNumber === '1' ? 'back to top ↑' : 'jump to post →'}
           </a>
         </div>
       </div>
@@ -143,9 +166,11 @@ function processDetails(html: string): string {
   if (!html.includes('[details="')) return html;
 
   function createDetailsHtml(summary: string, content: string) {
+    // Escape summary to prevent XSS - content is already sanitized HTML from rehype-sanitize
+    const safeSummary = escapeHtml(summary);
     return `
       <details class="${COLLAPSIBLE_STYLES.details}">
-        <summary class="${COLLAPSIBLE_STYLES.summary}">${summary}</summary>
+        <summary class="${COLLAPSIBLE_STYLES.summary}">${safeSummary}</summary>
         <div class="${COLLAPSIBLE_STYLES.content}">
           ${content.trim()}
         </div>

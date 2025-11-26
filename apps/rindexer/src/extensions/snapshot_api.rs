@@ -572,31 +572,118 @@ impl SnapshotApi {
         self.fetch_all_proposal_votes(proposal_id).await
     }
 
-    /// Execute a GraphQL query with rate limiting
+    /// Maximum number of retry attempts for transient failures
+    const MAX_RETRIES: u32 = 3;
+    /// Initial delay between retries (doubles with each attempt)
+    const INITIAL_RETRY_DELAY_MS: u64 = 1000;
+
+    /// Execute a GraphQL query with rate limiting and exponential backoff retry
     async fn fetch_graphql<T>(&self, query: &str) -> Result<T>
     where
         T: for<'de> serde::Deserialize<'de>,
     {
-        // Wait for rate limiter before making request
-        RATE_LIMITER.acquire().await;
+        let mut last_error: Option<anyhow::Error> = None;
+        let mut retry_delay = Duration::from_millis(Self::INITIAL_RETRY_DELAY_MS);
 
-        let response = self
-            .client
-            .post(SNAPSHOT_GRAPHQL_ENDPOINT)
-            .json(&serde_json::json!({"query": query}))
-            .header("User-Agent", "proposals.app/1.0")
-            .send()
-            .await?;
+        for attempt in 0..=Self::MAX_RETRIES {
+            // Wait for rate limiter before making request
+            RATE_LIMITER.acquire().await;
 
-        if !response.status().is_success() {
-            return Err(anyhow::anyhow!(
-                "HTTP error {}: {}",
-                response.status(),
-                response.text().await?
-            ));
+            let result = self
+                .client
+                .post(SNAPSHOT_GRAPHQL_ENDPOINT)
+                .json(&serde_json::json!({"query": query}))
+                .header("User-Agent", "proposals.app/1.0")
+                .timeout(Duration::from_secs(30))
+                .send()
+                .await;
+
+            match result {
+                Ok(response) => {
+                    let status = response.status();
+
+                    // Handle rate limiting (429) with immediate retry after delay
+                    if status.as_u16() == 429 {
+                        let retry_after = response
+                            .headers()
+                            .get("retry-after")
+                            .and_then(|v| v.to_str().ok())
+                            .and_then(|s| s.parse::<u64>().ok())
+                            .unwrap_or(60);
+
+                        warn!(
+                            attempt = attempt + 1,
+                            max_retries = Self::MAX_RETRIES + 1,
+                            retry_after_secs = retry_after,
+                            "Snapshot API rate limited, waiting before retry"
+                        );
+
+                        tokio::time::sleep(Duration::from_secs(retry_after)).await;
+                        continue;
+                    }
+
+                    // Retry on server errors (5xx)
+                    if status.is_server_error() {
+                        let error_text = response.text().await.unwrap_or_default();
+                        last_error = Some(anyhow::anyhow!(
+                            "Server error {}: {}",
+                            status,
+                            error_text
+                        ));
+
+                        if attempt < Self::MAX_RETRIES {
+                            warn!(
+                                attempt = attempt + 1,
+                                max_retries = Self::MAX_RETRIES + 1,
+                                status = %status,
+                                delay_ms = retry_delay.as_millis(),
+                                "Snapshot API server error, retrying with backoff"
+                            );
+                            tokio::time::sleep(retry_delay).await;
+                            retry_delay *= 2; // Exponential backoff
+                            continue;
+                        }
+                    }
+
+                    // Client errors (4xx except 429) are not retried
+                    if !status.is_success() {
+                        let error_text = response.text().await.unwrap_or_default();
+                        return Err(anyhow::anyhow!(
+                            "HTTP error {}: {}",
+                            status,
+                            error_text
+                        ));
+                    }
+
+                    // Success - parse response
+                    match response.json::<T>().await {
+                        Ok(result) => return Ok(result),
+                        Err(e) => {
+                            // JSON parse errors are not retried (indicates API response format issue)
+                            return Err(anyhow::anyhow!("Failed to parse response: {}", e));
+                        }
+                    }
+                }
+                Err(e) => {
+                    // Network errors are retried
+                    last_error = Some(anyhow::anyhow!("Request failed: {}", e));
+
+                    if attempt < Self::MAX_RETRIES {
+                        warn!(
+                            attempt = attempt + 1,
+                            max_retries = Self::MAX_RETRIES + 1,
+                            error = %e,
+                            delay_ms = retry_delay.as_millis(),
+                            "Snapshot API request failed, retrying with backoff"
+                        );
+                        tokio::time::sleep(retry_delay).await;
+                        retry_delay *= 2; // Exponential backoff
+                        continue;
+                    }
+                }
+            }
         }
 
-        let result: T = response.json().await?;
-        Ok(result)
+        Err(last_error.unwrap_or_else(|| anyhow::anyhow!("Max retries exceeded")))
     }
 }

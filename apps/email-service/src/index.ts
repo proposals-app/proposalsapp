@@ -393,12 +393,12 @@ function generateIdempotencyKey(
   targetId: string,
   type: 'new_proposal' | 'ending_proposal' | 'new_discussion'
 ): string {
-  // Use daily buckets to ensure retries within the same day use the same key
-  const date = new Date();
-  const dayBucket = `${date.getUTCFullYear()}-${String(
-    date.getUTCMonth() + 1
-  ).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
-  return `${userId}-${targetId}-${type}-${dayBucket}`;
+  // Use a stable key based on user, target, and type only.
+  // The alreadySent() function handles the 24-hour cooldown period.
+  // Note: Resend idempotency keys expire after 24 hours, which aligns
+  // with our cooldown period, so duplicate sends are prevented both
+  // by our database check and by Resend's idempotency.
+  return `${userId}-${targetId}-${type}`;
 }
 
 // Check if we already sent this notification

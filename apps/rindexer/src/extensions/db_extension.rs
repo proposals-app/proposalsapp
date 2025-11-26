@@ -20,6 +20,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
+use tokio::sync::Semaphore;
 use tracing::{debug, error, info, instrument, warn};
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
@@ -49,12 +50,12 @@ pub async fn initialize_db() -> Result<()> {
         std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = sea_orm::ConnectOptions::new(database_url);
-    opt.max_connections(10) // Reduced from 25
-        .min_connections(2) // Reduced from 5
-        .connect_timeout(Duration::from_secs(10)) // Reduced from 30
-        .acquire_timeout(Duration::from_secs(20)) // Reduced from 30
-        .idle_timeout(Duration::from_secs(5 * 60)) // Reduced from 10 * 60
-        .max_lifetime(Duration::from_secs(30 * 60)) // Keep at 30 minutes
+    opt.max_connections(25) // Increased to handle concurrent indexing operations
+        .min_connections(5)
+        .connect_timeout(Duration::from_secs(15))
+        .acquire_timeout(Duration::from_secs(30))
+        .idle_timeout(Duration::from_secs(5 * 60))
+        .max_lifetime(Duration::from_secs(30 * 60))
         .sqlx_logging(false);
 
     let db = sea_orm::Database::connect(opt)
@@ -500,6 +501,17 @@ pub async fn store_voting_powers(
     Ok(())
 }
 
+/// Maximum concurrent ENS lookups to avoid rate limiting
+const ENS_CONCURRENCY_LIMIT: usize = 5;
+
+/// Result of an ENS lookup operation
+struct EnsLookupResult {
+    address: String,
+    ens: Option<String>,
+    is_new_voter: bool,
+    existing_voter_id: Option<Uuid>,
+}
+
 #[instrument(name = "db_store_voters", skip(voter_addresses), fields(voter_address_count = voter_addresses.len()))]
 async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
     let db = DB
@@ -516,6 +528,9 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
         "Starting voter storage with ENS lookups"
     );
 
+    // Semaphore to limit concurrent ENS lookups to avoid rate limiting
+    let semaphore = Arc::new(Semaphore::new(ENS_CONCURRENCY_LIMIT));
+
     for (chunk_index, addresses_chunk) in voter_list.chunks(BATCH_SIZE).enumerate() {
         let chunk_start = chunk_index * BATCH_SIZE;
         let chunk_end = std::cmp::min(chunk_start + BATCH_SIZE, total_voters);
@@ -526,7 +541,7 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
             "Processing voter chunk with ENS lookups"
         );
 
-        // Fetch existing voters with address and ens
+        // Fetch existing voters with address and ens in a single query
         let existing_voters_models: Vec<voter::Model> = voter::Entity::find()
             .filter(voter::Column::Address.is_in(addresses_chunk.to_vec()))
             .all(db)
@@ -538,207 +553,138 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
             .map(|v| (v.address.clone(), v))
             .collect();
 
-        let mut voters_to_insert: Vec<voter::ActiveModel> = Vec::new();
-        let mut voters_to_update: Vec<voter::ActiveModel> = Vec::new();
+        // Collect addresses that need ENS lookup
+        let twenty_four_hours_ago = Utc::now() - Duration::from_secs(24 * 60 * 60);
+        let mut ens_lookup_tasks = Vec::new();
 
         for address in addresses_chunk {
-            if let Some(existing_voter) = existing_voters_map.get(address) {
-                // Voter exists, check and update ENS and Avatar if needed
+            let existing_voter = existing_voters_map.get(address);
 
-                // Check if updated_at is older than 24 hours
-                let twenty_four_hours_ago = Utc::now() - Duration::from_secs(24 * 60 * 60);
-                if existing_voter.updated_at > twenty_four_hours_ago.naive_utc() {
-                    // Voter was updated recently, skip ENS lookup
+            // Skip if voter was updated recently
+            if let Some(voter) = existing_voter {
+                if voter.updated_at > twenty_four_hours_ago.naive_utc() {
                     debug!(
                         address = address,
                         "Voter updated recently, skipping ENS lookup"
                     );
                     continue;
                 }
+            }
 
-                let addr_clone = address.clone();
-
-                // Safely convert address string to Address type
-                let eth_address = match addr_clone.parse::<Address>() {
-                    Ok(addr) => addr,
-                    Err(e) => {
-                        debug!(address = addr_clone, error = %e, "Failed to parse address");
-                        continue; // Skip this address and move to the next one
+            // Parse address
+            let eth_address = match address.parse::<Address>() {
+                Ok(addr) => addr,
+                Err(e) => {
+                    debug!(address = address, error = %e, "Failed to parse address");
+                    // For new voters with invalid addresses, still insert them without ENS
+                    if existing_voter.is_none() {
+                        ens_lookup_tasks.push(tokio::spawn(async move {
+                            EnsLookupResult {
+                                address: address.clone(),
+                                ens: None,
+                                is_new_voter: true,
+                                existing_voter_id: None,
+                            }
+                        }));
                     }
-                };
+                    continue;
+                }
+            };
 
-                // Try to do ENS lookup with timeout
+            // Prepare ENS lookup task with rate limiting via semaphore
+            let sem = semaphore.clone();
+            let prov = provider.clone();
+            let addr_clone = address.clone();
+            let is_new = existing_voter.is_none();
+            let voter_id = existing_voter.map(|v| v.id);
+            let old_ens = existing_voter.and_then(|v| v.ens.clone());
+
+            let task = tokio::spawn(async move {
+                // Acquire semaphore permit to limit concurrency
+                let _permit = sem.acquire().await.expect("Semaphore closed");
+
+                // Try ENS lookup with timeout
                 let ens_result = match tokio::time::timeout(
                     std::time::Duration::from_secs(5),
-                    isolated_ens_lookup(eth_address, addr_clone.clone(), provider.clone()),
+                    isolated_ens_lookup(eth_address, addr_clone.clone(), prov),
                 )
                 .await
                 {
-                    Ok(result) => result,
+                    Ok(result) => result.ok(),
                     Err(_) => {
                         debug!(address = addr_clone, "ENS lookup timed out");
-                        continue;
+                        None
                     }
                 };
 
-                if let Ok(fetched_ens) = ens_result {
-                    let mut needs_update = false;
-                    let mut updated_ens: Option<String> = None;
-                    // let mut updated_avatar: Option<String> = None;
+                // Only update if ENS changed (for existing voters)
+                let should_update = if is_new {
+                    true
+                } else {
+                    ens_result.is_some() && ens_result != old_ens
+                };
 
-                    if existing_voter.ens != Some(fetched_ens.clone()) {
-                        debug!(
-                            address = address,
-                            old_ens = existing_voter.ens,
-                            new_ens = fetched_ens,
-                            "Updating ENS for address"
-                        );
-                        updated_ens = Some(fetched_ens.clone());
-                        needs_update = true;
+                if should_update {
+                    EnsLookupResult {
+                        address: addr_clone,
+                        ens: ens_result,
+                        is_new_voter: is_new,
+                        existing_voter_id: voter_id,
                     }
-
-                    // Try to resolve avatar with timeout
-                    // let avatar_result = match tokio::time::timeout(
-                    //     std::time::Duration::from_secs(5),
-                    //     isolated_avatar_resolve(fetched_ens.clone(), addr_clone.clone(), provider.clone()),
-                    // )
-                    // .await
-                    // {
-                    //     Ok(result) => result,
-                    //     Err(_) => {
-                    //         debug!(
-                    //             address = addr_clone,
-                    //             ens = fetched_ens,
-                    //             "Avatar resolution timed out"
-                    //         );
-                    //         Err(anyhow::anyhow!("Avatar resolution timed out"))
-                    //     }
-                    // };
-
-                    // if let Ok(avatar_url) = avatar_result {
-                    //     if existing_voter.avatar != Some(avatar_url.clone()) {
-                    //         debug!(
-                    //             address = address,
-                    //             old_avatar = existing_voter.avatar,
-                    //             new_avatar = avatar_url,
-                    //             "Updating avatar for address"
-                    //         );
-                    //         updated_avatar = Some(avatar_url);
-                    //         needs_update = true;
-                    //     }
-                    // }
-
-                    if needs_update {
-                        let mut voter_active_model = voter::ActiveModel {
-                            id: Set(existing_voter.id),
-                            address: NotSet,
-                            ens: NotSet,
-                            avatar: NotSet,
-                            updated_at: Set(Utc::now().naive_utc()),
-                        };
-                        if let Some(ens) = updated_ens {
-                            voter_active_model.ens = Set(Some(ens));
-                        }
-                        // if let Some(avatar) = updated_avatar {
-                        //     voter_active_model.avatar = Set(Some(avatar));
-                        // }
-                        voters_to_update.push(voter_active_model);
+                } else {
+                    EnsLookupResult {
+                        address: addr_clone,
+                        ens: None,
+                        is_new_voter: false,
+                        existing_voter_id: None, // Signal no update needed
                     }
-                } else if let Err(e) = ens_result {
-                    debug!(address = addr_clone, error = %e, "ENS lookup failed");
-                    // Do not update ENS or Avatar if ENS lookup fails
                 }
-            } else {
-                // Voter does not exist, perform ENS and Avatar lookup and prepare for insert
-                let addr_clone = address.clone();
+            });
 
-                // Safely convert address string to Address type
-                let eth_address = match addr_clone.parse::<Address>() {
-                    Ok(addr) => addr,
-                    Err(e) => {
-                        debug!(address = addr_clone, error = %e, "Failed to parse address for new voter");
-                        // Add the voter with just the address since we couldn't resolve ENS
-                        voters_to_insert.push(voter::ActiveModel {
-                            id: NotSet,
-                            address: Set(address.clone()),
-                            ens: NotSet,
-                            avatar: NotSet,
-                            updated_at: Set(Utc::now().naive_utc()),
-                        });
-                        continue; // Continue to the next address
-                    }
-                };
+            ens_lookup_tasks.push(task);
+        }
 
-                // Try to do ENS lookup with timeout
-                let ens_result = match tokio::time::timeout(
-                    std::time::Duration::from_secs(5),
-                    isolated_ens_lookup(eth_address, addr_clone.clone(), provider.clone()),
-                )
-                .await
-                {
-                    Ok(result) => result,
-                    Err(_) => {
-                        debug!(address = addr_clone, "ENS lookup timed out for new voter");
-                        // Just add the voter with the address
-                        voters_to_insert.push(voter::ActiveModel {
-                            id: NotSet,
-                            address: Set(address.clone()),
-                            ens: NotSet,
-                            avatar: NotSet,
-                            updated_at: Set(Utc::now().naive_utc()),
-                        });
-                        continue;
-                    }
-                };
+        // Wait for all ENS lookups to complete (with controlled concurrency)
+        let lookup_results: Vec<EnsLookupResult> = futures::future::join_all(ens_lookup_tasks)
+            .await
+            .into_iter()
+            .filter_map(|r| r.ok())
+            .collect();
 
-                if let Ok(ens) = ens_result {
-                    // Try to resolve avatar with timeout
-                    // let avatar_result = match tokio::time::timeout(
-                    //     std::time::Duration::from_secs(5),
-                    //     isolated_avatar_resolve(ens.clone(), addr_clone.clone(), provider.clone()),
-                    // )
-                    // .await
-                    // {
-                    //     Ok(result) => result,
-                    //     Err(_) => {
-                    //         debug!(
-                    //             address = addr_clone,
-                    //             ens = ens,
-                    //             "Avatar resolution timed out for new voter"
-                    //         );
-                    //         Err(anyhow::anyhow!("Avatar resolution timed out"))
-                    //     }
-                    // };
+        info!(
+            completed_lookups = lookup_results.len(),
+            "Completed ENS lookups for chunk"
+        );
 
-                    // let avatar = match avatar_result {
-                    //     Ok(avatar_url) => Some(avatar_url),
-                    //     Err(e) => {
-                    //         debug!(address = addr_clone, ens = ens, error = %e, "Avatar resolution error for new
-                    // voter");         None
-                    //     }
-                    // };
+        // Separate results into inserts and updates
+        let mut voters_to_insert: Vec<voter::ActiveModel> = Vec::new();
+        let mut voters_to_update: Vec<voter::ActiveModel> = Vec::new();
 
-                    // voters_to_insert.push(voter::ActiveModel {
-                    //     id: NotSet,
-                    //     address: Set(address.clone()),
-                    //     ens: Set(Some(ens)),
-                    //     avatar: Set(avatar),
-                    // });
-                    //
-                    voters_to_insert.push(voter::ActiveModel {
-                        id: NotSet,
-                        address: Set(address.clone()),
+        for result in lookup_results {
+            if result.is_new_voter {
+                voters_to_insert.push(voter::ActiveModel {
+                    id: NotSet,
+                    address: Set(result.address),
+                    ens: if result.ens.is_some() {
+                        Set(result.ens)
+                    } else {
+                        NotSet
+                    },
+                    avatar: NotSet,
+                    updated_at: Set(Utc::now().naive_utc()),
+                });
+            } else if let Some(voter_id) = result.existing_voter_id {
+                // Only update if we have a voter_id (means ENS changed)
+                if let Some(ens) = result.ens {
+                    debug!(
+                        address = result.address,
+                        new_ens = ens,
+                        "Updating ENS for existing voter"
+                    );
+                    voters_to_update.push(voter::ActiveModel {
+                        id: Set(voter_id),
+                        address: NotSet,
                         ens: Set(Some(ens)),
-                        avatar: NotSet,
-                        updated_at: Set(Utc::now().naive_utc()),
-                    });
-                } else if let Err(e) = ens_result {
-                    debug!(address = addr_clone, error = %e, "ENS lookup failed for new voter");
-                    // Just add the voter with the address
-                    voters_to_insert.push(voter::ActiveModel {
-                        id: NotSet,
-                        address: Set(address.clone()),
-                        ens: NotSet,
                         avatar: NotSet,
                         updated_at: Set(Utc::now().naive_utc()),
                     });
@@ -748,7 +694,10 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
 
         // Perform bulk insert for new voters
         if !voters_to_insert.is_empty() {
-            // Insert voters one by one to handle potential duplicates
+            info!(
+                insert_count = voters_to_insert.len(),
+                "Inserting new voters"
+            );
             for voter_model in voters_to_insert {
                 if let Err(e) = voter::Entity::insert(voter_model).exec(db).await {
                     // Log but continue if a voter already exists
@@ -757,14 +706,18 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
             }
         }
 
-        // Perform bulk update for existing voters with new ENS and/or Avatar
+        // Perform bulk update for existing voters with new ENS
         if !voters_to_update.is_empty() {
-            for voter_update in voters_to_update.into_iter() {
+            info!(
+                update_count = voters_to_update.len(),
+                "Updating existing voters with new ENS"
+            );
+            for voter_update in voters_to_update {
                 let update_result = voter::Entity::update(voter_update).exec(db).await;
                 if let Err(e) = update_result {
-                    error!(error = %e, "Failed to update voter ENS/Avatar");
+                    error!(error = %e, "Failed to update voter ENS");
                 } else {
-                    debug!("Voter ENS/Avatar updated");
+                    debug!("Voter ENS updated");
                 }
             }
         }

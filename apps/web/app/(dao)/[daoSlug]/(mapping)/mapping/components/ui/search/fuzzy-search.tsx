@@ -44,25 +44,12 @@ export const FuzzySearch = <T extends object>({
 
       setSearchLoading(true);
       try {
-        console.log(`Executing search for term: "${term}"`);
         const results = await onSearch(term);
-        console.log(`Search returned ${results.length} results`, results);
 
         setSearchResults(results);
         // Always show dropdown with results or no results message
         setDropdownVisible(true);
-
-        // Force a re-render to ensure the dropdown is visible
-        setTimeout(() => {
-          if (results.length > 0) {
-            console.log(
-              'Search results available, ensuring dropdown is visible'
-            );
-            setDropdownVisible(true);
-          }
-        }, 0);
-      } catch (error) {
-        console.error('Search failed', error);
+      } catch {
         setSearchResults([]);
         setDropdownVisible(true); // Show dropdown with error message
       } finally {
@@ -83,9 +70,6 @@ export const FuzzySearch = <T extends object>({
     // Always show dropdown with loading state when typing
     setDropdownVisible(true);
     setSearchLoading(true);
-
-    // Log that we're searching
-    console.log(`Searching for: "${searchTerm}"`);
 
     const timer = setTimeout(() => {
       handleSearch(searchTerm);

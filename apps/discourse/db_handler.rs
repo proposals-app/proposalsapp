@@ -26,12 +26,12 @@ pub async fn initialize_db() -> Result<()> {
         std::env::var("DATABASE_URL").context("DATABASE_URL environment variable not set")?;
 
     let mut opt = sea_orm::ConnectOptions::new(database_url);
-    opt.max_connections(10) // Reduced from 25
-        .min_connections(2) // Reduced from 5
-        .connect_timeout(Duration::from_secs(10)) // Reduced from 30
-        .acquire_timeout(Duration::from_secs(20)) // Reduced from 30
-        .idle_timeout(Duration::from_secs(5 * 60)) // Reduced from 10 * 60
-        .max_lifetime(Duration::from_secs(30 * 60)) // Keep at 30 minutes
+    opt.max_connections(25) // Increased to handle concurrent API requests
+        .min_connections(5)
+        .connect_timeout(Duration::from_secs(15))
+        .acquire_timeout(Duration::from_secs(30))
+        .idle_timeout(Duration::from_secs(5 * 60))
+        .max_lifetime(Duration::from_secs(30 * 60))
         .sqlx_logging(false);
 
     let db = sea_orm::Database::connect(opt)
@@ -44,10 +44,23 @@ pub async fn initialize_db() -> Result<()> {
 
 /// Retrieves the global database connection.
 /// Panics if the database is not initialized.
+///
+/// # Safety
+/// This function should only be called after `initialize_db()` has completed successfully.
+/// The initialization happens at service startup before any database operations.
 #[inline(always)]
 pub fn db() -> &'static DatabaseConnection {
     DB.get()
         .expect("Database connection not initialized. Call initialize_db first.")
+}
+
+/// Retrieves the global database connection, returning an error if not initialized.
+/// Use this in contexts where graceful error handling is preferred over panicking.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn try_db() -> Result<&'static DatabaseConnection> {
+    DB.get()
+        .ok_or_else(|| anyhow::anyhow!("Database connection not initialized. Call initialize_db first."))
 }
 
 /// Gets or creates a generic 'unknown' user record for associating orphaned content.

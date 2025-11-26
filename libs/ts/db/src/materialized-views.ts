@@ -58,8 +58,21 @@ export interface ProposalNonVoters {
   computedAvatar: string;
 }
 
-// Extended database interface that includes materialized views
+/**
+ * Extended database interface that includes materialized views.
+ *
+ * Currently empty - materialized views are disabled.
+ * The type definitions above (ProposalGroupSummary, etc.) are kept
+ * for reference and can be re-enabled when materialized views are needed.
+ *
+ * To enable a materialized view:
+ * 1. Create the view in a database migration
+ * 2. Uncomment the corresponding property below
+ * 3. The view will then be queryable via db.selectFrom('viewName')
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface MaterializedViews {
+  // Uncomment to enable:
   // proposalGroupSummary: ProposalGroupSummary;
   // proposalVotesWithVoters: ProposalVotesWithVoters;
   // proposalNonVoters: ProposalNonVoters;

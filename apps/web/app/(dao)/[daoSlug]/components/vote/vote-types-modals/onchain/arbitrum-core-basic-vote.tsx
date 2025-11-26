@@ -76,18 +76,18 @@ export function OnchainArbitrumCoreBasicVoteModalContent({
   // Combined submitting state: wallet confirmation or block confirmation
   const isSubmitting = isWritePending || isConfirming;
 
+  // Track if we've already handled the success to prevent multiple callbacks
+  const [hasHandledSuccess, setHasHandledSuccess] = React.useState(false);
+
   // Effect to handle transaction success and close modal
   React.useEffect(() => {
-    if (isConfirmed) {
+    if (isConfirmed && !hasHandledSuccess) {
+      setHasHandledSuccess(true);
       setVoteError(null); // Clear any previous error
-      // Call onVoteSubmit if needed, though on-chain might not need a parent callback
-      // other than closing the modal. Keeping it available based on interface.
-      // if (onVoteSubmit) {
-      //   onVoteSubmit(...); // You might want to structure this differently
-      // }
-      onClose(); // Close the modal on successful confirmation
+      // Close the modal after a brief delay to ensure UI feedback is visible
+      onClose();
     }
-  }, [isConfirmed, onClose]);
+  }, [isConfirmed, hasHandledSuccess, onClose]);
 
   // Effect to handle errors from write or confirm stages
   React.useEffect(() => {
@@ -99,16 +99,9 @@ export function OnchainArbitrumCoreBasicVoteModalContent({
       setVoteError(
         `Transaction confirmation failed: ${confirmError.message || 'An unknown confirmation error occurred.'}`
       );
-    } else if (!isSubmitting && voteError) {
-      // Clear the error only if no longer submitting and there was a previous error
-      // Note: Consider if clearing the error here is always the desired behavior,
-      // maybe only clear on explicit user action or successful retry.
-      // For now, keeping the logic as it was.
-      setVoteError(null);
     }
-    // Intentionally keeping voteError out of deps if we only want to set/clear based on new external errors or submission state changes.
-    // If you want the effect to re-run whenever voteError itself changes, add it back.
-  }, [writeError, confirmError, isSubmitting, voteError]);
+    // Only set errors, don't auto-clear - let user explicitly retry or close
+  }, [writeError, confirmError]);
 
   const handleSubmit = async () => {
     setVoteError(null); // Clear previous errors on new submission attempt
