@@ -643,6 +643,8 @@ impl SnapshotApi {
                             retry_delay *= 2; // Exponential backoff
                             continue;
                         }
+                        // Max retries exhausted for server error
+                        return Err(last_error.unwrap());
                     }
 
                     // Client errors (4xx except 429) are not retried

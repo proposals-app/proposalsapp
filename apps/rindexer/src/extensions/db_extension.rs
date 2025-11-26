@@ -578,9 +578,10 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
                     debug!(address = address, error = %e, "Failed to parse address");
                     // For new voters with invalid addresses, still insert them without ENS
                     if existing_voter.is_none() {
+                        let address_owned = address.to_string();
                         ens_lookup_tasks.push(tokio::spawn(async move {
                             EnsLookupResult {
-                                address: address.clone(),
+                                address: address_owned,
                                 ens: None,
                                 is_new_voter: true,
                                 existing_voter_id: None,
