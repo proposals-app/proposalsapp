@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation';
 import { PostItem } from './items/post-item/post-item';
 import { VoteItem } from './items/vote-item/vote-item';
 import type { FeedReturnType, GroupReturnType } from '../../actions';
@@ -11,14 +10,10 @@ export async function Feed({
   feed,
   allVotesWithVoters,
 }: {
-  group: GroupReturnType;
+  group: NonNullable<GroupReturnType>;
   feed: FeedReturnType;
   allVotesWithVoters: VotesWithVoters;
 }) {
-  if (!group) {
-    notFound();
-  }
-
   const combinedItems = [
     ...feed.votes.map((vote) => ({
       ...vote,

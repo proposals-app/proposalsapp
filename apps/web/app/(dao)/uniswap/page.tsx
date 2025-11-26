@@ -159,48 +159,50 @@ export default async function Page() {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
+  // Fetch groups data once at page level to avoid redundant fetches
+  const result = await getGroups(daoSlug, userId);
+  if (!result) return null;
+
+  const { groups, daoId } = result;
+
   return (
     <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
         {/* Summary Header - loads financial data independently */}
         <Suspense fallback={<LoadingHeader />}>
-          <UniswapSummaryContainer daoSlug={daoSlug} userId={userId} />
+          <UniswapSummaryContainer groups={groups} daoId={daoId} />
         </Suspense>
 
-        {/* Action Bar - loads groups data independently */}
-        <Suspense fallback={<SkeletonActionBar />}>
-          <ActionBarContainer daoSlug={daoSlug} userId={userId} />
-        </Suspense>
+        {/* Action Bar - uses pre-fetched groups data */}
+        <ActionBarContainer groups={groups} signedIn={!!userId} />
 
         {/* Groups List - loads with pre-fetched active feeds */}
         <Suspense fallback={<LoadingGroupList />}>
-          <GroupsContainer daoSlug={daoSlug} userId={userId} />
+          <GroupsContainer groups={groups} signedIn={!!userId} />
         </Suspense>
       </div>
     </div>
   );
 }
 
-// Optimized header that fetches financial data and groups data in parallel
+type GroupsData = Awaited<ReturnType<typeof getGroups>>;
+type Groups = NonNullable<GroupsData>['groups'];
+
+// Header that fetches financial data in parallel using pre-fetched groups
 async function UniswapSummaryContainer({
-  daoSlug,
-  userId,
+  groups,
+  daoId,
 }: {
-  daoSlug: string;
-  userId?: string;
+  groups: Groups;
+  daoId: string;
 }) {
-  // Fetch groups data and financial data in parallel
-  const [result, tokenPrice, treasuryBalance] = await Promise.all([
-    getGroups(daoSlug, userId),
+  // Fetch financial data in parallel
+  const [tokenPrice, treasuryBalance] = await Promise.all([
     getTokenPrice(),
     getTreasuryBalance(),
   ]);
 
-  if (!result) return null;
-
-  const { groups, daoId } = result;
-
-  // Get active and inactive groups counts
+  // Calculate stats from pre-fetched groups
   const activeGroupsCount = groups.filter((g) => g.hasActiveProposal).length;
   const totalProposalsCount = groups.reduce(
     (sum, group) => sum + group.proposalsCount,
@@ -226,42 +228,32 @@ async function UniswapSummaryContainer({
   );
 }
 
-// Optimized action bar that only fetches what it needs
-async function ActionBarContainer({
-  daoSlug,
-  userId,
+// Action bar using pre-fetched groups data (no async, no Suspense needed)
+function ActionBarContainer({
+  groups,
+  signedIn,
 }: {
-  daoSlug: string;
-  userId?: string;
+  groups: Groups;
+  signedIn: boolean;
 }) {
-  const result = await getGroups(daoSlug, userId);
-  if (!result) return null;
-
-  const hasNewActivityInGroups = result.groups.some(
-    (group) => group.hasNewActivity
-  );
+  const hasNewActivityInGroups = groups.some((group) => group.hasNewActivity);
 
   return (
     <UniswapActionBarClient
       hasNewActivity={hasNewActivityInGroups}
-      signedIn={userId ? true : false}
+      signedIn={signedIn}
     />
   );
 }
 
-// Optimized groups container with pre-fetched active feeds
+// Groups container with pre-fetched active feeds
 async function GroupsContainer({
-  daoSlug,
-  userId,
+  groups,
+  signedIn,
 }: {
-  daoSlug: string;
-  userId?: string;
+  groups: Groups;
+  signedIn: boolean;
 }) {
-  const result = await getGroups(daoSlug, userId);
-  if (!result) return null;
-
-  const { groups } = result;
-
   // Get IDs of groups with active proposals and fetch feeds in parallel
   const activeGroupIds = groups
     .filter((group) => group.hasActiveProposal)
@@ -296,10 +288,5 @@ async function GroupsContainer({
     };
   });
 
-  return (
-    <GroupList
-      initialGroups={groupsWithInfo}
-      signedIn={userId ? true : false}
-    />
-  );
+  return <GroupList initialGroups={groupsWithInfo} signedIn={signedIn} />;
 }

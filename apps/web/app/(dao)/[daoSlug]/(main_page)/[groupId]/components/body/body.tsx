@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation';
 import type { BodyVersionType, GroupReturnType } from '../../actions';
 import { BodyContent } from './body-content';
 import { processMarkdown } from '@/lib/markdown-converter';
@@ -10,15 +9,11 @@ export function Body({
   bodyVersions,
   currentVersion,
 }: {
-  group: GroupReturnType;
+  group: NonNullable<GroupReturnType>;
   diff: boolean;
   bodyVersions: BodyVersionType[];
   currentVersion: number;
 }) {
-  if (!group) {
-    notFound();
-  }
-
   if (!bodyVersions || bodyVersions.length === 0) {
     return <div className='w-full'>No bodies found.</div>;
   }

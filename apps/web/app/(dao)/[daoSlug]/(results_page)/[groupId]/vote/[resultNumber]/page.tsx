@@ -21,6 +21,18 @@ export default async function Page({
   const { groupId, resultNumber } = await params;
   const group = await getGroup(groupId);
 
+  // Validate group and proposal existence BEFORE Suspense boundaries
+  // This ensures proper 404 status code before streaming starts
+  if (!group) {
+    notFound();
+  }
+
+  const proposalIndex = parseInt(resultNumber, 10) - 1;
+  const proposal = group.proposals[proposalIndex];
+  if (!proposal) {
+    notFound();
+  }
+
   return (
     <div className='flex min-h-screen w-full flex-row'>
       {/* Header loads independently */}
@@ -42,7 +54,7 @@ export default async function Page({
         <div className='h-full w-full pl-2 pr-2 sm:pl-0 sm:pr-4'>
           <div className='rounded-r-xs flex h-full min-h-[calc(100vh-114px)] w-full flex-col border border-neutral-800 bg-white p-6 dark:border-neutral-650 dark:bg-neutral-950'>
             <Suspense fallback={<ResultsLoading />}>
-              <ResultsContainer group={group} resultNumber={resultNumber} />
+              <ResultsContainer proposal={proposal} />
             </Suspense>
           </div>
         </div>
@@ -68,41 +80,24 @@ async function HeaderContainer({ groupId }: { groupId: string }) {
   );
 }
 
-// Separate component for timeline rendering with pre-fetched group
+// Separate component for timeline rendering with pre-validated group
 async function TimelineContainer({
   group,
   resultNumber,
 }: {
-  group: Awaited<ReturnType<typeof getGroup>>;
+  group: NonNullable<Awaited<ReturnType<typeof getGroup>>>;
   resultNumber: string;
 }) {
-  if (!group) {
-    notFound();
-  }
-
   const proposalIndex = parseInt(resultNumber, 10) - 1;
   return <Timeline group={group} selectedResult={proposalIndex + 1} />;
 }
 
-// Separate component for results rendering with pre-fetched group
+// Separate component for results rendering with pre-validated proposal
 async function ResultsContainer({
-  group,
-  resultNumber,
+  proposal,
 }: {
-  group: Awaited<ReturnType<typeof getGroup>>;
-  resultNumber: string;
+  proposal: NonNullable<Awaited<ReturnType<typeof getGroup>>>['proposals'][0];
 }) {
-  if (!group) {
-    notFound();
-  }
-
-  const proposalIndex = parseInt(resultNumber, 10) - 1;
-  const proposal = group.proposals[proposalIndex];
-
-  if (!proposal) {
-    notFound();
-  }
-
   return <Results proposal={proposal} />;
 }
 

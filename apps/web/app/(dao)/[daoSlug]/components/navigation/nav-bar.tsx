@@ -6,6 +6,13 @@ import Delegate from '@/public/assets/web/icons/delegates.svg';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 
+// Skeleton for mode toggle button while loading
+function ModeToggleSkeleton() {
+  return (
+    <div className='h-6 w-6 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700' />
+  );
+}
+
 export async function NavBar({ daoSlug }: { daoSlug: string }) {
   const DAO_PICTURE_PATH = daoSlug
     ? `assets/project-logos/${daoSlug}`
@@ -63,7 +70,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
           </Link>
 
           <div className='flex h-10 items-center justify-center'>
-            <Suspense>
+            <Suspense fallback={<ModeToggleSkeleton />}>
               <ModeToggle initialTheme={theme} />
             </Suspense>
           </div>
@@ -107,7 +114,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
           </Link>
         </div>
         <div className='flex flex-col items-center gap-8'>
-          <Suspense>
+          <Suspense fallback={<ModeToggleSkeleton />}>
             <ModeToggle initialTheme={theme} />
           </Suspense>
 

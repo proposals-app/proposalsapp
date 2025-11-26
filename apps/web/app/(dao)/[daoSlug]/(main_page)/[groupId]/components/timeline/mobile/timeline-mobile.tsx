@@ -1,6 +1,5 @@
 'use client';
 
-import { notFound } from 'next/navigation';
 import type { GroupReturnType } from '../../../actions';
 import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
@@ -10,7 +9,7 @@ import type { ResultEvent } from '@/lib/types';
 
 interface ResultsMobileProps {
   events: ResultEvent[];
-  group: GroupReturnType;
+  group: NonNullable<GroupReturnType>;
 }
 
 export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
@@ -25,10 +24,6 @@ export const ResultsMobile = ({ events, group }: ResultsMobileProps) => {
 
     return () => clearTimeout(timer);
   }, []);
-
-  if (!group) {
-    notFound();
-  }
 
   const toggleExpanded = () => {
     setExpanded(!expanded);

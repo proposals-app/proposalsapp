@@ -1,5 +1,3 @@
-import { notFound } from 'next/navigation';
-
 import {
   getFeed,
   type GroupReturnType,
@@ -17,13 +15,9 @@ export async function Timeline({
   group,
   selectedResult,
 }: {
-  group: GroupReturnType;
+  group: NonNullable<GroupReturnType>;
   selectedResult: number;
 }) {
-  if (!group) {
-    notFound();
-  }
-
   // Use the cached version of extractEvents
   const feed = await getFeed(
     group.group.id,

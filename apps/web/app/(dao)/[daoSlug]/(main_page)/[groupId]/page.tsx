@@ -31,6 +31,15 @@ export default async function Page({
   params: Promise<{ daoSlug: string; groupId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const { groupId } = await params;
+
+  // Validate group exists BEFORE Suspense boundary
+  // This ensures proper 404 status code before streaming starts
+  const group = await getGroupCached(groupId);
+  if (!group) {
+    notFound();
+  }
+
   return (
     <Suspense fallback={<Loading />}>
       <GroupPage params={params} searchParams={searchParams} />
@@ -91,7 +100,7 @@ async function GroupPage({
         </Suspense>
       </div>
 
-      <Suspense key={timelineKey} fallback={<SkeletonTimelineWrapper />}>
+      <Suspense key={timelineKey} fallback={null}>
         <TimelineSection
           groupId={groupId}
           feedFilter={feedFilter}
@@ -100,13 +109,6 @@ async function GroupPage({
       </Suspense>
     </div>
   );
-}
-
-function SkeletonTimelineWrapper() {
-  // A small wrapper to reuse the existing SkeletonTimeline component
-  // without changing its positioning.
-  const { SkeletonTimeline } = require('@/app/components/ui/skeleton');
-  return <SkeletonTimeline />;
 }
 
 async function BodySection({

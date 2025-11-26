@@ -20,7 +20,6 @@ import { CommentsVolume } from './comments-volume';
 import { VotesVolume } from './votes-volume';
 import { Result } from './result';
 import { Basic } from './basic';
-import { notFound } from 'next/navigation';
 
 /**
  * Aggregates volume events to reduce visual clutter based on a specified level
@@ -443,14 +442,10 @@ export function Timeline({
   fromFilter,
 }: {
   events: FeedEvent[];
-  group: GroupReturnType;
+  group: NonNullable<GroupReturnType>;
   feedFilter: FeedFilterEnum;
   fromFilter: FromFilterEnum;
 }) {
-  if (!group) {
-    notFound();
-  }
-
   const {
     displayEvents,
     visibleEvents,

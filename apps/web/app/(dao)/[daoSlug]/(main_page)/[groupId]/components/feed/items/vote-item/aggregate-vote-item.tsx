@@ -1,6 +1,5 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { notFound } from 'next/navigation';
 import type { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-voter';
 import type { ProposalMetadata } from '@/lib/types';
@@ -10,12 +9,8 @@ export async function AggregateVoteItem({
   group,
 }: {
   item: FeedReturnType['votes'][0];
-  group: GroupReturnType;
+  group: NonNullable<GroupReturnType>;
 }) {
-  if (!group) {
-    notFound();
-  }
-
   const proposal = group.proposals.find((p) => p.id === item.proposalId);
   const proposalMetadata = proposal?.metadata as ProposalMetadata;
   const isWeightedVoting = proposalMetadata.voteType === 'weighted';

@@ -1,6 +1,5 @@
 import { formatNumberWithSuffix } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { notFound } from 'next/navigation';
 import type { FeedReturnType, GroupReturnType } from '../../../../actions';
 import type { ProcessedVote } from '@/lib/results_processing';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-voter';
@@ -30,12 +29,8 @@ export async function VoteItem({
 }: {
   item: FeedReturnType['votes'][0];
   voteWithVoter: VotesWithVoters[0];
-  group: GroupReturnType;
+  group: NonNullable<GroupReturnType>;
 }) {
-  if (!group) {
-    notFound();
-  }
-
   const topicExternalIds = Array.from(
     new Set(group.topics.map((t) => t.externalId))
   );
