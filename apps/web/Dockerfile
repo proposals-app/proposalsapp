@@ -3,6 +3,9 @@ FROM node:22-alpine AS builder
 # Set the working directory
 WORKDIR /app
 
+# Install libc6-compat for sharp compatibility on Alpine
+RUN apk add --no-cache libc6-compat
+
 # Install and enable Corepack
 RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
 
@@ -30,11 +33,14 @@ RUN touch apps/web/.env \
   && pnpm build-web \
   && CI=true pnpm prune --prod
 
-# Use Debian Bookworm for the final stage
+# Final stage
 FROM node:22-alpine
 
 # Set the working directory
 WORKDIR /app
+
+# Install libc6-compat for sharp compatibility on Alpine
+RUN apk add --no-cache libc6-compat
 
 # Enable pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
@@ -51,6 +57,8 @@ COPY --from=builder /app/.npmrc /app/
 COPY --from=builder /app/pnpm-workspace.yaml /app/
 
 ENV NODE_ENV=production
+# Set sharp path for Next.js image optimization
+ENV NEXT_SHARP_PATH=/app/node_modules/sharp
 
 # Expose Next.js default port
 EXPOSE 3000
