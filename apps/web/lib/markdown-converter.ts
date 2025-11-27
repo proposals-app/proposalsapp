@@ -99,18 +99,14 @@ function processQuotesPost(html: string): string {
     topicId: string,
     content: string
   ) {
-    // Escape user-provided content to prevent XSS
+    // Escape user metadata (username, IDs) - content is already sanitized HTML
     const safeUsername = escapeHtml(username);
     // postNumber and topicId are validated by regex to be digits only, but escape for safety
     const safePostNumber = escapeHtml(postNumber);
     const safeTopicId = escapeHtml(topicId);
 
-    const formattedContent = content
-      .split('\n\n')
-      .map((paragraph) => paragraph.trim())
-      .filter((paragraph) => paragraph.length > 0)
-      .map((paragraph) => `<p class="${MARKDOWN_STYLES.p}">${escapeHtml(paragraph)}</p>`)
-      .join('\n');
+    // Content is already sanitized HTML from rehype-sanitize - use it directly
+    const formattedContent = content.trim();
 
     return `
       <div class="${QUOTE_STYLES_POST.wrapper}">

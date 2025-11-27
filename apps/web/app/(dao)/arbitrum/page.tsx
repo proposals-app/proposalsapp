@@ -200,17 +200,11 @@ export default async function Page() {
       <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
         {/* Summary Header - loads financial data independently */}
         <Suspense fallback={<LoadingHeader />}>
-          <ArbitrumSummaryContainer
-            groups={groups}
-            daoId={daoId}
-          />
+          <ArbitrumSummaryContainer groups={groups} daoId={daoId} />
         </Suspense>
 
         {/* Action Bar - uses pre-fetched groups data */}
-        <ActionBarContainer
-          groups={groups}
-          signedIn={!!userId}
-        />
+        <ActionBarContainer groups={groups} signedIn={!!userId} />
 
         {/* Groups List - loads with pre-fetched active feeds */}
         <Suspense fallback={<LoadingGroupList />}>
