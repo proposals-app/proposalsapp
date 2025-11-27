@@ -51,7 +51,7 @@ const getDocument = () => {
   return serverDocument;
 };
 
-// Process quotes for body content
+// Process quotes for body content (handles nested quotes)
 function processQuotesBody(html: string): string {
   if (!html.includes('[quote="')) return html;
 
@@ -71,25 +71,76 @@ function processQuotesBody(html: string): string {
     `;
   }
 
+  // Helper to find matching closing tag for a quote, handling nesting
+  function findMatchingClosingTag(text: string, startPos: number): number {
+    let depth = 1;
+    let pos = startPos;
+
+    while (depth > 0 && pos < text.length) {
+      const nextOpen = text.indexOf('[quote=', pos);
+      const nextClose = text.indexOf('[/quote]', pos);
+
+      if (nextClose === -1) return -1; // No closing tag found
+
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++;
+        pos = nextOpen + 7;
+      } else {
+        depth--;
+        if (depth === 0) return nextClose;
+        pos = nextClose + 8;
+      }
+    }
+
+    return -1;
+  }
+
+  // Process quotes from innermost to outermost
   let processedHtml = html;
   let wasProcessed = true;
+  let iterations = 0;
+  const maxIterations = 50; // Prevent infinite loops
 
-  while (wasProcessed) {
+  while (wasProcessed && iterations < maxIterations) {
     wasProcessed = false;
+    iterations++;
 
-    processedHtml = processedHtml.replace(
-      /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)(?:,\s*full:\w+)?"]((?!\[quote=)[\s\S]*?)\[\/quote\]/g,
-      (_, username, _postNumber, _topicId, content) => {
-        wasProcessed = true;
-        return createQuoteHtml(username, content);
+    // Find all quote opening tags
+    const quotePattern = /\[quote="([^"]+)"\]/g;
+    let match;
+    const quotes: Array<{ start: number; end: number; username: string; content: string }> = [];
+
+    while ((match = quotePattern.exec(processedHtml)) !== null) {
+      const startPos = match.index;
+      const contentStart = startPos + match[0].length;
+      const endPos = findMatchingClosingTag(processedHtml, contentStart);
+
+      if (endPos !== -1) {
+        const userInfo = match[1];
+        const username = userInfo.split(',')[0].trim();
+        const content = processedHtml.substring(contentStart, endPos);
+
+        quotes.push({ start: startPos, end: endPos + 8, username, content });
       }
-    );
+    }
+
+    // Process from last to first (innermost to outermost, since later quotes are more nested)
+    for (let i = quotes.length - 1; i >= 0; i--) {
+      const quote = quotes[i];
+      const before = processedHtml.substring(0, quote.start);
+      const after = processedHtml.substring(quote.end);
+      const replacement = createQuoteHtml(quote.username, quote.content);
+
+      processedHtml = before + replacement + after;
+      wasProcessed = true;
+      break; // Process one quote at a time to handle nesting correctly
+    }
   }
 
   return processedHtml;
 }
 
-// Process quotes for post content
+// Process quotes for post content (handles nested quotes)
 function processQuotesPost(html: string): string {
   if (!html.includes('[quote="')) return html;
 
@@ -127,18 +178,116 @@ function processQuotesPost(html: string): string {
     `;
   }
 
-  const segments = html.split(/(\[quote="[^"]*"[\s\S]*?\[\/quote\])/g);
+  // Helper to find matching closing tag for a quote, handling nesting
+  function findMatchingClosingTag(text: string, startPos: number): number {
+    let depth = 1;
+    let pos = startPos;
 
-  return segments
-    .map((segment) => {
-      if (segment.startsWith('[quote="')) {
-        const match = segment.match(
-          /\[quote="([^,]+),\s*post:(\d+),\s*topic:(\d+)(?:,\s*full:\w+)?"\]([\s\S]*?)\[\/quote\]/
-        );
-        if (match) {
-          const [, username, postNumber, topicId, content] = match;
-          return createQuoteHtml(username, postNumber, topicId, content);
+    while (depth > 0 && pos < text.length) {
+      const nextOpen = text.indexOf('[quote=', pos);
+      const nextClose = text.indexOf('[/quote]', pos);
+
+      if (nextClose === -1) return -1; // No closing tag found
+
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++;
+        pos = nextOpen + 7;
+      } else {
+        depth--;
+        if (depth === 0) return nextClose;
+        pos = nextClose + 8;
+      }
+    }
+
+    return -1;
+  }
+
+  // Process quotes from innermost to outermost
+  let processedHtml = html;
+  let wasProcessed = true;
+  let iterations = 0;
+  const maxIterations = 50; // Prevent infinite loops
+
+  while (wasProcessed && iterations < maxIterations) {
+    wasProcessed = false;
+    iterations++;
+
+    // Find all quote opening tags with post metadata
+    const quotePattern = /\[quote="([^"]+)"\]/g;
+    let match;
+    const quotes: Array<{
+      start: number;
+      end: number;
+      username: string;
+      postNumber: string;
+      topicId: string;
+      content: string;
+      hasMetadata: boolean;
+    }> = [];
+
+    while ((match = quotePattern.exec(processedHtml)) !== null) {
+      const startPos = match.index;
+      const contentStart = startPos + match[0].length;
+      const endPos = findMatchingClosingTag(processedHtml, contentStart);
+
+      if (endPos !== -1) {
+        const userInfo = match[1];
+        // Parse post metadata if available
+        const metadataMatch = userInfo.match(/([^,]+),\s*post:(\d+),\s*topic:(\d+)/);
+
+        if (metadataMatch) {
+          const [, username, postNumber, topicId] = metadataMatch;
+          const content = processedHtml.substring(contentStart, endPos);
+          quotes.push({
+            start: startPos,
+            end: endPos + 8,
+            username: username.trim(),
+            postNumber,
+            topicId,
+            content,
+            hasMetadata: true,
+          });
         }
+      }
+    }
+
+    // Process from last to first (innermost to outermost)
+    for (let i = quotes.length - 1; i >= 0; i--) {
+      const quote = quotes[i];
+      const before = processedHtml.substring(0, quote.start);
+      const after = processedHtml.substring(quote.end);
+
+      // Format non-quote content as paragraphs
+      const formattedContent = quote.content
+        .split('\n\n')
+        .map((paragraph) => paragraph.trim())
+        .filter((paragraph) => paragraph.length > 0)
+        .map((paragraph) => {
+          if (!paragraph.startsWith('<') && !paragraph.includes('class=')) {
+            return `<p class="${MARKDOWN_STYLES.p}">${paragraph}</p>`;
+          }
+          return paragraph;
+        })
+        .join('\n');
+
+      const replacement = createQuoteHtml(
+        quote.username,
+        quote.postNumber,
+        quote.topicId,
+        formattedContent
+      );
+
+      processedHtml = before + replacement + after;
+      wasProcessed = true;
+      break; // Process one quote at a time to handle nesting correctly
+    }
+  }
+
+  // Format remaining non-quote content as paragraphs
+  const finalSegments = processedHtml
+    .split(/(<div class="[^"]*quote[^"]*"[\s\S]*?<\/div>)/g)
+    .map((segment) => {
+      if (segment.includes('class="') && segment.includes('quote')) {
         return segment;
       } else {
         return segment
@@ -146,7 +295,7 @@ function processQuotesPost(html: string): string {
           .map((paragraph) => paragraph.trim())
           .filter((paragraph) => paragraph.length > 0)
           .map((paragraph) => {
-            if (!paragraph.startsWith('<p') && !paragraph.startsWith('<')) {
+            if (!paragraph.startsWith('<p') && !paragraph.startsWith('<div')) {
               return `<p class="${MARKDOWN_STYLES.p}">${paragraph}</p>`;
             }
             return paragraph;
@@ -155,6 +304,8 @@ function processQuotesPost(html: string): string {
       }
     })
     .join('\n');
+
+  return finalSegments;
 }
 
 // Process collapsible details
