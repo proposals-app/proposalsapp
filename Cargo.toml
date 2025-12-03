@@ -21,7 +21,7 @@ chrono = "0.4.42"
 csv = "1.4.0"
 dotenv = "0.15.0"
 fancy-regex = "0.16.2"
-fastembed = "5.3.0"
+fastembed = "5.3.1"
 futures = "0.3.31"
 gag = "1.0"
 html-escape = "0.2.13"
@@ -50,10 +50,10 @@ thiserror = "2.0.17"
 tiktoken-rs = "0.9.1"
 tokio = "1.48.0"
 tokio-retry = "0.3.0"
-tracing = "0.1.41"
-tracing-subscriber = "0.3.20"
+tracing = "0.1.43"
+tracing-subscriber = "0.3.22"
 utils = { path = "libs/rust/utils" }
-uuid = "1.18"
+uuid = "1.19"
 
 [profile.release]
 opt-level = 3
