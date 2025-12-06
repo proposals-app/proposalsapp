@@ -49,12 +49,6 @@ static ETHEREUM_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const
 
 static ARBITRUM_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
 
-static OPTIMISM_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
-
-static POLYGON_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
-
-static AVALANCHE_PROVIDER: OnceCell<Arc<JsonRpcCachedProvider>> = OnceCell::const_new();
-
 pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
     ETHEREUM_PROVIDER
         .get_or_init(|| async {
@@ -64,9 +58,9 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("ETHEREUM_NODE_URL")
                     .unwrap_or("ETHEREUM_NODE_URL".to_string()),
                 1,
-                None,
+                Some(60),
                 Some(U64::from(10000)),
-                Some(BlockPollFrequency::PollRateMs { millis: 60000 }),
+                Some(BlockPollFrequency::PollRateMs { millis: 120000 }),
                 HeaderMap::new(),
                 None,
                 chain_state_notification,
@@ -91,9 +85,9 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("ARBITRUM_NODE_URL")
                     .unwrap_or("ARBITRUM_NODE_URL".to_string()),
                 42161,
-                None,
+                Some(60),
                 Some(U64::from(10000)),
-                Some(BlockPollFrequency::PollRateMs { millis: 60000 }),
+                Some(BlockPollFrequency::PollRateMs { millis: 120000 }),
                 HeaderMap::new(),
                 None,
                 chain_state_notification,
@@ -109,87 +103,6 @@ pub async fn get_arbitrum_provider() -> Arc<RindexerProvider> {
     get_arbitrum_provider_cache().await.get_inner_provider()
 }
 
-pub async fn get_optimism_provider_cache() -> Arc<JsonRpcCachedProvider> {
-    OPTIMISM_PROVIDER
-        .get_or_init(|| async {
-            let chain_state_notification = None;
-
-            create_client(
-                &public_read_env_value("OPTIMISM_NODE_URL")
-                    .unwrap_or("OPTIMISM_NODE_URL".to_string()),
-                10,
-                None,
-                Some(U64::from(10000)),
-                Some(BlockPollFrequency::PollRateMs { millis: 60000 }),
-                HeaderMap::new(),
-                None,
-                chain_state_notification,
-            )
-            .await
-            .expect("Error creating provider")
-        })
-        .await
-        .clone()
-}
-
-pub async fn get_optimism_provider() -> Arc<RindexerProvider> {
-    get_optimism_provider_cache().await.get_inner_provider()
-}
-
-pub async fn get_polygon_provider_cache() -> Arc<JsonRpcCachedProvider> {
-    POLYGON_PROVIDER
-        .get_or_init(|| async {
-            let chain_state_notification = None;
-
-            create_client(
-                &public_read_env_value("POLYGON_NODE_URL")
-                    .unwrap_or("POLYGON_NODE_URL".to_string()),
-                137,
-                None,
-                Some(U64::from(10000)),
-                Some(BlockPollFrequency::PollRateMs { millis: 60000 }),
-                HeaderMap::new(),
-                None,
-                chain_state_notification,
-            )
-            .await
-            .expect("Error creating provider")
-        })
-        .await
-        .clone()
-}
-
-pub async fn get_polygon_provider() -> Arc<RindexerProvider> {
-    get_polygon_provider_cache().await.get_inner_provider()
-}
-
-pub async fn get_avalanche_provider_cache() -> Arc<JsonRpcCachedProvider> {
-    AVALANCHE_PROVIDER
-        .get_or_init(|| async {
-            let chain_state_notification = None;
-
-            create_client(
-                &public_read_env_value("AVALANCHE_NODE_URL")
-                    .unwrap_or("AVALANCHE_NODE_URL".to_string()),
-                43114,
-                None,
-                Some(U64::from(10000)),
-                Some(BlockPollFrequency::PollRateMs { millis: 60000 }),
-                HeaderMap::new(),
-                None,
-                chain_state_notification,
-            )
-            .await
-            .expect("Error creating provider")
-        })
-        .await
-        .clone()
-}
-
-pub async fn get_avalanche_provider() -> Arc<RindexerProvider> {
-    get_avalanche_provider_cache().await.get_inner_provider()
-}
-
 pub async fn get_provider_cache_for_network(network: &str) -> Arc<JsonRpcCachedProvider> {
     if network == "ethereum" {
         return get_ethereum_provider_cache().await;
@@ -197,18 +110,6 @@ pub async fn get_provider_cache_for_network(network: &str) -> Arc<JsonRpcCachedP
 
     if network == "arbitrum" {
         return get_arbitrum_provider_cache().await;
-    }
-
-    if network == "optimism" {
-        return get_optimism_provider_cache().await;
-    }
-
-    if network == "polygon" {
-        return get_polygon_provider_cache().await;
-    }
-
-    if network == "avalanche" {
-        return get_avalanche_provider_cache().await;
     }
     panic!("Network not supported")
 }
