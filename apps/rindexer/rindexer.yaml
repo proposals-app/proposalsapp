@@ -12,16 +12,16 @@ networks:
   - name: ethereum
     chain_id: 1
     rpc: ${ETHEREUM_NODE_URL}
-    max_block_range: 500
+    max_block_range: 100
     block_poll_frequency: 120000
-    compute_units_per_second: 30
+    compute_units_per_second: 20
 
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
-    max_block_range: 2000
+    max_block_range: 500
     block_poll_frequency: 120000
-    compute_units_per_second: 60
+    compute_units_per_second: 40
 
 contracts:
   - name: ARBToken
