@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 const staggerChildren = {
   animate: {
@@ -107,7 +108,14 @@ export function HeroClient({ activeProposals, daoLogos }: HeroClientProps) {
               target='_blank'
               rel='noopener noreferrer'
             >
-              <img src={dao.logo} alt={dao.name} className='h-8 w-auto' />
+              <Image
+                src={dao.logo}
+                alt={dao.name}
+                width={32}
+                height={32}
+                className='h-8 w-auto'
+                unoptimized
+              />
             </a>
           ))}
         </motion.div>

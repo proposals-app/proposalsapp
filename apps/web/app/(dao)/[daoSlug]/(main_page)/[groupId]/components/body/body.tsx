@@ -4,7 +4,7 @@ import { processMarkdown } from '@/lib/markdown-converter';
 import { SkeletonBody } from '@/app/components/ui/skeleton';
 
 export function Body({
-  group,
+  group: _group,
   diff,
   bodyVersions,
   currentVersion,

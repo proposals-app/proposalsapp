@@ -108,7 +108,12 @@ function processQuotesBody(html: string): string {
     // Find all quote opening tags
     const quotePattern = /\[quote="([^"]+)"\]/g;
     let match;
-    const quotes: Array<{ start: number; end: number; username: string; content: string }> = [];
+    const quotes: Array<{
+      start: number;
+      end: number;
+      username: string;
+      content: string;
+    }> = [];
 
     while ((match = quotePattern.exec(processedHtml)) !== null) {
       const startPos = match.index;
@@ -233,7 +238,9 @@ function processQuotesPost(html: string): string {
       if (endPos !== -1) {
         const userInfo = match[1];
         // Parse post metadata if available
-        const metadataMatch = userInfo.match(/([^,]+),\s*post:(\d+),\s*topic:(\d+)/);
+        const metadataMatch = userInfo.match(
+          /([^,]+),\s*post:(\d+),\s*topic:(\d+)/
+        );
 
         if (metadataMatch) {
           const [, username, postNumber, topicId] = metadataMatch;

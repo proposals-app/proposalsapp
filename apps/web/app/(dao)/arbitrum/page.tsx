@@ -9,11 +9,7 @@ import { auth } from '@/lib/auth/auth';
 import { headers } from 'next/headers';
 import { ArbitrumSummaryHeader } from './components/arbitrum-summary-header';
 import { ArbitrumActionBarClient } from './components/arbitrum-action-bar-client';
-import {
-  LoadingGroupList,
-  LoadingHeader,
-  SkeletonActionBar,
-} from '@/app/components/ui/skeleton';
+import { LoadingGroupList, LoadingHeader } from '@/app/components/ui/skeleton';
 
 // Treasury addresses from Tally's actual implementation
 const TREASURY_ADDRESSES = [

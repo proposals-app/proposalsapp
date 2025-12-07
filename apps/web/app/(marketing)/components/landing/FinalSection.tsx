@@ -69,12 +69,12 @@ export function FinalSection() {
               </h4>
               <ul className='space-y-1.5 text-xs text-zinc-400 sm:space-y-2 sm:text-sm'>
                 <li>
-                  <a
+                  <Link
                     href='/docs'
                     className='transition-colors hover:text-zinc-100'
                   >
                     Documentation
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <a

@@ -9,11 +9,7 @@ import { Suspense } from 'react';
 import { auth } from '@/lib/auth/auth';
 import { headers } from 'next/headers';
 import { UniswapSummaryHeader } from './components/uniswap-summary-header';
-import {
-  LoadingGroupList,
-  LoadingHeader,
-  SkeletonActionBar,
-} from '@/app/components/ui/skeleton';
+import { LoadingGroupList, LoadingHeader } from '@/app/components/ui/skeleton';
 
 const TREASURY_ADDRESSES = [
   { address: '0x1a9C8182C09F50C8318d769245beA52c32BE35BC', chainId: 1 },
