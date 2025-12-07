@@ -36,7 +36,6 @@ contracts:
     index_event_in_order:
       - DelegateVotesChanged
       - DelegateChanged
-    reorg_safe_distance: true
 
   - name: ArbitrumCoreGovernor
     details:
@@ -66,7 +65,6 @@ contracts:
           then:
             events:
               - ProposalExecuted
-    reorg_safe_distance: true
 
   - name: ArbitrumTreasuryGovernor
     details:
@@ -96,7 +94,6 @@ contracts:
           then:
             events:
               - ProposalExecuted
-    reorg_safe_distance: true
 
   - name: ArbitrumSCNominations
     details:
@@ -116,7 +113,6 @@ contracts:
       then:
         events:
           - ProposalExecuted
-    reorg_safe_distance: true
 
   - name: UNIToken
     details:
@@ -130,7 +126,6 @@ contracts:
     index_event_in_order:
       - DelegateVotesChanged
       - DelegateChanged
-    reorg_safe_distance: true
 
   - name: UniGovernor
     details:
