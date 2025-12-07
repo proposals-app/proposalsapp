@@ -45,20 +45,28 @@ RUN apk add --no-cache libc6-compat
 # Enable pnpm via corepack
 RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
 
+# Create non-root user with UID >= 10000 for security
+# UIDs below 10000 can conflict with host system users if container escapes
+RUN addgroup -g 10001 -S appgroup && \
+    adduser -u 10000 -S appuser -G appgroup
+
 # Copy the built project and required files from the builder stage
-COPY --from=builder /app/apps/web/ /app/apps/web/
-COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
-COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
-COPY --from=builder /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
-COPY --from=builder /app/node_modules/ /app/node_modules/
-COPY --from=builder /app/package.json /app/
-COPY --from=builder /app/pnpm-lock.yaml /app/
-COPY --from=builder /app/.npmrc /app/
-COPY --from=builder /app/pnpm-workspace.yaml /app/
+COPY --from=builder --chown=appuser:appgroup /app/apps/web/ /app/apps/web/
+COPY --from=builder --chown=appuser:appgroup /app/libs/ts/db/ /app/libs/ts/db/
+COPY --from=builder --chown=appuser:appgroup /app/libs/ts/emails/ /app/libs/ts/emails/
+COPY --from=builder --chown=appuser:appgroup /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
+COPY --from=builder --chown=appuser:appgroup /app/node_modules/ /app/node_modules/
+COPY --from=builder --chown=appuser:appgroup /app/package.json /app/
+COPY --from=builder --chown=appuser:appgroup /app/pnpm-lock.yaml /app/
+COPY --from=builder --chown=appuser:appgroup /app/.npmrc /app/
+COPY --from=builder --chown=appuser:appgroup /app/pnpm-workspace.yaml /app/
 
 ENV NODE_ENV=production
 # Set sharp path for Next.js image optimization
 ENV NEXT_SHARP_PATH=/app/node_modules/sharp
+
+# Switch to non-root user
+USER appuser:appgroup
 
 # Expose Next.js default port
 EXPOSE 3000

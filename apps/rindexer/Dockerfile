@@ -109,10 +109,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdw1 \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user with UID >= 10000 for security
+# UIDs below 10000 can conflict with host system users if container escapes
+RUN groupadd -g 10001 appgroup && \
+    useradd -u 10000 -g appgroup -s /bin/false appuser && \
+    chown -R appuser:appgroup /app
+
 # Copy the built binary from the builder stage
-COPY --from=builder /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
-COPY --from=builder /app/apps/rindexer/abis /app/abis
-COPY --from=builder /app/apps/rindexer/rindexer.yaml /app/rindexer.yaml
+COPY --from=builder --chown=appuser:appgroup /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
+COPY --from=builder --chown=appuser:appgroup /app/apps/rindexer/abis /app/abis
+COPY --from=builder --chown=appuser:appgroup /app/apps/rindexer/rindexer.yaml /app/rindexer.yaml
+
+# Switch to non-root user
+USER appuser:appgroup
 
 # Expose health server port
 EXPOSE 3000

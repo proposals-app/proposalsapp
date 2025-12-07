@@ -34,17 +34,25 @@ RUN apk update && apk add --no-cache curl
 
 RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
 
+# Create non-root user with UID >= 10000 for security
+# UIDs below 10000 can conflict with host system users if container escapes
+RUN addgroup -g 10001 -S appgroup && \
+    adduser -u 10000 -S appuser -G appgroup
+
 # Copy only necessary files
-COPY --from=builder /app/apps/${APP_NAME}/ /app/apps/${APP_NAME}/
-COPY --from=builder /app/libs/ts/db/ /app/libs/ts/db/
-COPY --from=builder /app/libs/ts/emails/ /app/libs/ts/emails/
-COPY --from=builder /app/node_modules/ /app/node_modules/
-COPY --from=builder /app/package.json /app/
-COPY --from=builder /app/pnpm-lock.yaml /app/
-COPY --from=builder /app/.npmrc /app/
-COPY --from=builder /app/pnpm-workspace.yaml /app/
+COPY --from=builder --chown=appuser:appgroup /app/apps/${APP_NAME}/ /app/apps/${APP_NAME}/
+COPY --from=builder --chown=appuser:appgroup /app/libs/ts/db/ /app/libs/ts/db/
+COPY --from=builder --chown=appuser:appgroup /app/libs/ts/emails/ /app/libs/ts/emails/
+COPY --from=builder --chown=appuser:appgroup /app/node_modules/ /app/node_modules/
+COPY --from=builder --chown=appuser:appgroup /app/package.json /app/
+COPY --from=builder --chown=appuser:appgroup /app/pnpm-lock.yaml /app/
+COPY --from=builder --chown=appuser:appgroup /app/.npmrc /app/
+COPY --from=builder --chown=appuser:appgroup /app/pnpm-workspace.yaml /app/
 
 ENV NODE_ENV=production
+
+# Switch to non-root user
+USER appuser:appgroup
 
 # Expose health server port
 EXPOSE 3000
