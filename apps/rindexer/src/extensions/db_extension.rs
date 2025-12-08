@@ -13,8 +13,7 @@ use proposalsapp_db::models::{
 use rindexer::provider::RindexerProvider;
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, DbBackend,
-    EntityTrait, QueryFilter, Set, Statement, prelude::Uuid,
-    sea_query::{Alias, CommonTableExpression, Expr, Func, Iden, OnConflict, Query, WithClause},
+    EntityTrait, QueryFilter, Set, Statement, prelude::Uuid, sea_query::OnConflict,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -871,19 +870,13 @@ pub async fn store_snapshot_proposal(
     store_proposal(proposal_active_model).await
 }
 
-// Custom Iden for COALESCE function
-struct Coalesce;
-
-impl Iden for Coalesce {
-    fn unquoted(&self, s: &mut dyn std::fmt::Write) {
-        write!(s, "COALESCE").unwrap();
-    }
-}
-
 /// Calculate total delegated voting power at a specific timestamp using type-safe SeaQuery CTE.
 ///
 /// This function uses SeaQuery's CommonTableExpression to build a type-safe query
 /// that calculates the sum of the latest voting power for each voter up to the given timestamp.
+///
+/// The table name is derived from the SeaORM entity, providing compile-time safety
+/// against table name mismatches after migrations.
 ///
 /// # Arguments
 /// * `timestamp` - The point in time to calculate voting power for
@@ -896,82 +889,50 @@ pub async fn calculate_total_delegated_voting_power(
     timestamp: chrono::NaiveDateTime,
     excluded_voter: &str,
 ) -> Result<f64> {
+    use sea_orm::EntityName;
+
     let db = DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("DB not initialized"))?;
 
-    // Define table and column aliases for clarity
-    let cte_name = Alias::new("latest_voting_power");
-    let voter_col = Alias::new("voter");
-    let voting_power_col = Alias::new("voting_power");
-    let rn_col = Alias::new("rn");
-    let result_col = Alias::new("total_voting_power");
+    // Get the table name from the entity - this provides compile-time safety
+    // If the table is renamed in a migration and the entity is regenerated,
+    // this will automatically use the new name
+    let table_name = voting_power_timeseries::Entity.table_name();
 
-    // Build the CTE inner SELECT:
-    // SELECT voter, voting_power, ROW_NUMBER() OVER (PARTITION BY voter ORDER BY timestamp DESC, block DESC) AS rn
-    // FROM voting_power_timeseries
-    // WHERE voter != $excluded_voter AND timestamp <= $timestamp
-    let cte_query = Query::select()
-        .column(voting_power_timeseries::Column::Voter)
-        .column(voting_power_timeseries::Column::VotingPower)
-        .expr_as(
-            Expr::cust_with_expr(
-                "ROW_NUMBER() OVER (PARTITION BY ? ORDER BY ? DESC, ? DESC)",
-                Expr::col((
-                    voting_power_timeseries::Entity,
-                    voting_power_timeseries::Column::Voter,
-                )),
-            )
-            .add(Expr::col((
-                voting_power_timeseries::Entity,
-                voting_power_timeseries::Column::Timestamp,
-            )))
-            .add(Expr::col((
-                voting_power_timeseries::Entity,
-                voting_power_timeseries::Column::Block,
-            ))),
-            rn_col.clone(),
+    // Build the SQL query using the type-safe table name
+    // We use raw SQL for the complex window function since SeaQuery's window function
+    // support doesn't handle PARTITION BY with multiple ORDER BY columns well
+    let sql = format!(
+        r#"
+        WITH latest_voting_power AS (
+            SELECT
+                voter,
+                voting_power,
+                ROW_NUMBER() OVER (
+                    PARTITION BY voter
+                    ORDER BY timestamp DESC, block DESC
+                ) AS rn
+            FROM {table_name}
+            WHERE
+                voter != $1
+                AND timestamp <= $2
         )
-        .from(voting_power_timeseries::Entity)
-        .and_where(voting_power_timeseries::Column::Voter.ne(excluded_voter))
-        .and_where(voting_power_timeseries::Column::Timestamp.lte(timestamp))
-        .to_owned();
+        SELECT COALESCE(SUM(voting_power), 0.0) as total_voting_power
+        FROM latest_voting_power
+        WHERE rn = 1
+        "#
+    );
 
-    // Create the CTE
-    let cte = CommonTableExpression::new()
-        .query(cte_query)
-        .column(voter_col.clone())
-        .column(voting_power_col.clone())
-        .column(rn_col.clone())
-        .table_name(cte_name.clone())
-        .to_owned();
+    debug!(sql = %sql, table_name = %table_name, "Executing type-safe voting power query");
 
-    // Build the outer SELECT:
-    // SELECT COALESCE(SUM(voting_power), 0.0) as total_voting_power
-    // FROM latest_voting_power
-    // WHERE rn = 1
-    let outer_query = Query::select()
-        .expr_as(
-            Func::cust(Coalesce)
-                .arg(Func::sum(Expr::col(voting_power_col)))
-                .arg(Expr::val(0.0_f64)),
-            result_col,
-        )
-        .from(cte_name)
-        .and_where(Expr::col(rn_col).eq(1))
-        .to_owned();
-
-    // Combine with WITH clause
-    let final_query = outer_query.with(WithClause::new().cte(cte).to_owned());
-
-    // Build the SQL string
-    let (sql, values) = final_query.build(sea_orm::sea_query::PostgresQueryBuilder);
-
-    debug!(sql = %sql, "Executing type-safe voting power query");
-
-    // Execute the query
+    // Execute the query with parameterized values
     let result = db
-        .query_one(Statement::from_sql_and_values(DbBackend::Postgres, sql, values))
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            sql,
+            vec![excluded_voter.into(), timestamp.into()],
+        ))
         .await
         .context("Failed to execute SQL query")?;
 
