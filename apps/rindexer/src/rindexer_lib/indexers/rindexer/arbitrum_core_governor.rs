@@ -763,7 +763,7 @@ async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
                     PARTITION BY voter
                     ORDER BY timestamp DESC, block DESC
                 ) AS rn
-            FROM voting_power
+            FROM public.voting_power_timeseries
             WHERE
                 voter != '0x00000000000000000000000000000000000A4B86'
                 AND timestamp <= $1
