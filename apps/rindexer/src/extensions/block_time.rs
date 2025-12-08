@@ -17,9 +17,12 @@ use tracing::{debug, error, instrument, warn};
 #[derive(Clone, Debug)]
 struct ChainConfig {
     network: &'static str,
-    scan_api_url: Option<String>,
+    chain_id: Option<u64>,
     scan_api_key: Option<String>,
 }
+
+// Etherscan V2 API base URL (works for all chains)
+const ETHERSCAN_V2_API_URL: &str = "https://api.etherscan.io/v2/api";
 
 // Job structure for queue processing
 struct TimestampJob {
@@ -44,45 +47,48 @@ lazy_static! {
 
 // Function-based configuration to allow dynamic initialization
 fn get_chain_configs() -> HashMap<&'static str, ChainConfig> {
+    // Etherscan V2 API uses a single API key for all chains
+    let etherscan_api_key = std::env::var("ETHERSCAN_API_KEY").ok();
+
     let mut map = HashMap::new();
     map.insert(
         "ethereum",
         ChainConfig {
             network: "ethereum",
-            scan_api_url: Some("https://api.etherscan.io/api".to_string()),
-            scan_api_key: std::env::var("ETHERSCAN_API_KEY").ok(),
+            chain_id: Some(1),
+            scan_api_key: etherscan_api_key.clone(),
         },
     );
     map.insert(
         "arbitrum",
         ChainConfig {
             network: "arbitrum",
-            scan_api_url: Some("https://api.arbiscan.io/api".to_string()),
-            scan_api_key: std::env::var("ARBISCAN_API_KEY").ok(),
+            chain_id: Some(42161),
+            scan_api_key: etherscan_api_key.clone(),
         },
     );
     map.insert(
         "optimism",
         ChainConfig {
             network: "optimism",
-            scan_api_url: Some("https://api-optimistic.etherscan.io/api".to_string()),
-            scan_api_key: std::env::var("OPTIMISTIC_SCAN_API_KEY").ok(),
+            chain_id: Some(10),
+            scan_api_key: etherscan_api_key.clone(),
         },
     );
     map.insert(
         "polygon",
         ChainConfig {
             network: "polygon",
-            scan_api_url: Some("https://api.polygonscan.com/api".to_string()),
-            scan_api_key: std::env::var("POLYGONSCAN_API_KEY").ok(),
+            chain_id: Some(137),
+            scan_api_key: etherscan_api_key.clone(),
         },
     );
     map.insert(
         "avalanche",
         ChainConfig {
             network: "avalanche",
-            scan_api_url: None,
-            scan_api_key: None,
+            chain_id: Some(43114),
+            scan_api_key: etherscan_api_key,
         },
     );
     map
@@ -325,8 +331,8 @@ async fn process_past_block_timestamp(
     }
 
     // Step 3: Try scan API as last resort
-    if let (Some(scan_api_url), Some(scan_api_key)) = (&config.scan_api_url, &config.scan_api_key) {
-        match get_timestamp_from_past_scan_api(scan_api_url, scan_api_key, block_number).await {
+    if let (Some(chain_id), Some(scan_api_key)) = (config.chain_id, &config.scan_api_key) {
+        match get_timestamp_from_past_scan_api(chain_id, scan_api_key, block_number).await {
             Ok(timestamp) => {
                 debug!("Got timestamp from scan API");
                 Ok(timestamp)
@@ -370,8 +376,8 @@ async fn process_future_block_timestamp(
     config: ChainConfig,
     block_number: u64,
 ) -> Result<NaiveDateTime> {
-    if let (Some(scan_api_url), Some(scan_api_key)) = (&config.scan_api_url, &config.scan_api_key) {
-        get_timestamp_from_future_scan_api(scan_api_url, scan_api_key, block_number).await
+    if let (Some(chain_id), Some(scan_api_key)) = (config.chain_id, &config.scan_api_key) {
+        get_timestamp_from_future_scan_api(chain_id, scan_api_key, block_number).await
     } else {
         Err(anyhow::anyhow!(
             "Scan API not configured for network {}",
@@ -498,13 +504,13 @@ async fn get_timestamp_from_raw_rpc(
 }
 
 // Step 3: Get timestamp from past scan API
-#[instrument(name = "block_time_past_scan_api", skip_all, fields(block_number = block_number, scan_api = scan_api_url))]
+#[instrument(name = "block_time_past_scan_api", skip_all, fields(block_number = block_number, chain_id = chain_id))]
 async fn get_timestamp_from_past_scan_api(
-    scan_api_url: &str,
+    chain_id: u64,
     scan_api_key: &str,
     block_number: u64,
 ) -> Result<NaiveDateTime> {
-    let response = past_scan_api_request(scan_api_url, scan_api_key, block_number)
+    let response = past_scan_api_request(chain_id, scan_api_key, block_number)
         .await
         .context("Past scan API request failed")?;
 
@@ -522,7 +528,7 @@ async fn get_timestamp_from_past_scan_api(
                 .context("Timestamp from past scan API out of range");
         }
         error!(
-            scan_api = scan_api_url,
+            chain_id = chain_id,
             block_number = block_number,
             response_status = response.status,
             response_message = response.message,
@@ -539,13 +545,13 @@ async fn get_timestamp_from_past_scan_api(
 }
 
 // Get timestamp from future scan API
-#[instrument(name = "block_time_future_scan_api", skip_all, fields(block_number = block_number))]
+#[instrument(name = "block_time_future_scan_api", skip_all, fields(block_number = block_number, chain_id = chain_id))]
 async fn get_timestamp_from_future_scan_api(
-    scan_api_url: &str,
+    chain_id: u64,
     scan_api_key: &str,
     block_number: u64,
 ) -> Result<NaiveDateTime> {
-    let response = future_scan_api_request(scan_api_url, scan_api_key, block_number)
+    let response = future_scan_api_request(chain_id, scan_api_key, block_number)
         .await
         .context("Future scan API request failed")?;
 
@@ -577,14 +583,15 @@ async fn get_timestamp_from_future_scan_api(
 }
 
 // Low-level API request functions
-#[instrument(name = "block_time_past_api_request", skip(api_key), fields(block_number = block_number))]
+#[instrument(name = "block_time_past_api_request", skip(api_key), fields(block_number = block_number, chain_id = chain_id))]
 async fn past_scan_api_request(
-    api_url: &str,
+    chain_id: u64,
     api_key: &str,
     block_number: u64,
 ) -> Result<Option<BlockRewardResponse>> {
     let url = format!(
-        "{api_url}?module=block&action=getblockreward&blockno={block_number}&apikey={api_key}"
+        "{}?chainid={}&module=block&action=getblockreward&blockno={}&apikey={}",
+        ETHERSCAN_V2_API_URL, chain_id, block_number, api_key
     );
 
     let response = HTTP_CLIENT
@@ -616,14 +623,15 @@ async fn past_scan_api_request(
         .context("Failed to deserialize past scan API response")
 }
 
-#[instrument(name = "block_time_future_api_request", skip(api_key), fields(block_number = block_number))]
+#[instrument(name = "block_time_future_api_request", skip(api_key), fields(block_number = block_number, chain_id = chain_id))]
 async fn future_scan_api_request(
-    api_url: &str,
+    chain_id: u64,
     api_key: &str,
     block_number: u64,
 ) -> Result<Option<EstimateTimestamp>> {
     let url = format!(
-        "{api_url}?module=block&action=getblockcountdown&blockno={block_number}&apikey={api_key}"
+        "{}?chainid={}&module=block&action=getblockcountdown&blockno={}&apikey={}",
+        ETHERSCAN_V2_API_URL, chain_id, block_number, api_key
     );
 
     let response = HTTP_CLIENT
@@ -696,11 +704,11 @@ mod tests {
 
         let config = get_chain_config("ethereum").unwrap();
         assert_eq!(config.network, "ethereum");
-        assert!(config.scan_api_url.is_some());
+        assert_eq!(config.chain_id, Some(1));
 
         let config = get_chain_config("arbitrum").unwrap();
         assert_eq!(config.network, "arbitrum");
-        assert!(config.scan_api_url.is_some());
+        assert_eq!(config.chain_id, Some(42161));
 
         let result = get_chain_config("unsupported");
         assert!(result.is_err());
@@ -764,8 +772,8 @@ mod tests {
         let current_block = get_current_block_number(&provider).await?;
         let past_block = current_block.saturating_sub(10000);
 
-        let response =
-            past_scan_api_request("https://api.etherscan.io/api", &api_key, past_block).await?;
+        // Ethereum chain_id = 1
+        let response = past_scan_api_request(1, &api_key, past_block).await?;
 
         assert!(response.is_some());
         let response = response.unwrap();
@@ -786,8 +794,8 @@ mod tests {
         let current_block = get_current_block_number(&provider).await?;
         let future_block = current_block + 100;
 
-        let response =
-            future_scan_api_request("https://api.etherscan.io/api", &api_key, future_block).await?;
+        // Ethereum chain_id = 1
+        let response = future_scan_api_request(1, &api_key, future_block).await?;
 
         assert!(response.is_some());
         let response = response.unwrap();
@@ -913,8 +921,8 @@ mod tests {
         // Use a block number that's definitely in the future to trigger API error
         let future_block = u64::MAX;
 
-        let response =
-            past_scan_api_request("https://api.etherscan.io/api", &api_key, future_block).await?;
+        // Ethereum chain_id = 1
+        let response = past_scan_api_request(1, &api_key, future_block).await?;
 
         // API should return error status for non-existent blocks
         assert!(response.is_some());
@@ -938,8 +946,8 @@ mod tests {
         // Use a recent past block
         let past_block = current_block - 10;
 
-        let response =
-            future_scan_api_request("https://api.etherscan.io/api", &api_key, past_block).await?;
+        // Ethereum chain_id = 1
+        let response = future_scan_api_request(1, &api_key, past_block).await?;
 
         assert!(response.is_some());
         let response = response.unwrap();
@@ -957,35 +965,18 @@ mod tests {
         Ok(())
     }
 
-    // Test with invalid API URL
+    // Test with invalid API key
     #[tokio::test]
     #[serial]
-    async fn test_invalid_api_url() -> Result<()> {
-        let result = past_scan_api_request(
-            "https://invalid-domain-that-does-not-exist.com/api",
-            "fake_key",
-            100,
-        )
-        .await;
+    async fn test_invalid_api_key() -> Result<()> {
+        // Using an invalid API key should return an error response from the V2 API
+        let result = past_scan_api_request(1, "invalid_api_key", 100).await?;
 
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to send"));
-        Ok(())
-    }
-
-    // Test with wrong API endpoint
-    #[tokio::test]
-    #[serial]
-    async fn test_wrong_api_endpoint() -> Result<()> {
-        ensure_test_env().await?;
-
-        let api_key = std::env::var("ETHERSCAN_API_KEY")?;
-
-        let result =
-            past_scan_api_request("https://api.etherscan.io/wrong-endpoint", &api_key, 100).await;
-
-        assert!(result.is_err());
-        // Should get HTTP error
+        // V2 API returns a response even with invalid key, just with error status
+        assert!(result.is_some());
+        let response = result.unwrap();
+        // Invalid API key typically returns status "0"
+        assert_eq!(response.status, "0");
         Ok(())
     }
 
@@ -1265,9 +1256,10 @@ mod integration_tests {
     async fn test_network_without_scan_api() -> Result<()> {
         dotenv::dotenv().ok();
 
+        // Test with no chain_id or API key configured
         let config = ChainConfig {
-            network: "avalanche",
-            scan_api_url: None,
+            network: "test_network",
+            chain_id: None,
             scan_api_key: None,
         };
 
@@ -1379,29 +1371,25 @@ mod integration_tests {
     async fn test_network_specific_behaviors() -> Result<()> {
         dotenv::dotenv().ok();
 
-        // Test Ethereum
+        // Test Ethereum (chain_id = 1)
         let eth_config = get_chain_config("ethereum")?;
-        assert!(eth_config.scan_api_url.is_some());
-        assert_eq!(
-            eth_config.scan_api_url.unwrap(),
-            "https://api.etherscan.io/api"
-        );
+        assert_eq!(eth_config.chain_id, Some(1));
 
-        // Test Arbitrum (L2 with potential null mixHash)
+        // Test Arbitrum (L2 with potential null mixHash, chain_id = 42161)
         let arb_config = get_chain_config("arbitrum")?;
-        assert!(arb_config.scan_api_url.is_some());
+        assert_eq!(arb_config.chain_id, Some(42161));
 
-        // Test Optimism (another L2)
+        // Test Optimism (another L2, chain_id = 10)
         let opt_config = get_chain_config("optimism")?;
-        assert!(opt_config.scan_api_url.is_some());
+        assert_eq!(opt_config.chain_id, Some(10));
 
-        // Test Polygon
+        // Test Polygon (chain_id = 137)
         let poly_config = get_chain_config("polygon")?;
-        assert!(poly_config.scan_api_url.is_some());
+        assert_eq!(poly_config.chain_id, Some(137));
 
-        // Test Avalanche (no scan API)
+        // Test Avalanche (chain_id = 43114)
         let avax_config = get_chain_config("avalanche")?;
-        assert!(avax_config.scan_api_url.is_none());
+        assert_eq!(avax_config.chain_id, Some(43114));
 
         Ok(())
     }
