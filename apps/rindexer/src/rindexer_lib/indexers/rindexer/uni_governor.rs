@@ -6,7 +6,8 @@ use crate::{
     extensions::{
         block_time::estimate_timestamp,
         db_extension::{
-            DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_proposal, store_votes,
+            DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, calculate_total_delegated_voting_power,
+            store_proposal, store_votes,
         },
     },
     rindexer_lib::typings::rindexer::events::uni_governor::uni_governor_contract,
@@ -645,49 +646,10 @@ async fn calculate_final_proposal_state(
     }
 }
 
+/// Uniswap excluded voter address (Uniswap timelock contract)
+const UNISWAP_EXCLUDED_VOTER: &str = "0x1a9C8182C09F50C8318d769245beA52c32BE35BC";
+
 #[instrument(name = "uni_governor_calculate_total_delegated_vp", skip(timestamp), fields(timestamp = ?timestamp))]
 async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
-    use sea_orm::{DbBackend, Statement};
-
-    let db = DB.get().unwrap();
-
-    // Construct the raw SQL query - for Uniswap, we need to exclude the Uniswap timelock
-    let sql = r#"
-        WITH latest_voting_power AS (
-            SELECT
-                voter,
-                voting_power,
-                ROW_NUMBER() OVER (
-                    PARTITION BY voter
-                    ORDER BY timestamp DESC, block DESC
-                ) AS rn
-            FROM public.voting_power_timeseries
-            WHERE
-                voter != '0x1a9C8182C09F50C8318d769245beA52c32BE35BC'
-                AND timestamp <= $1
-        )
-        SELECT COALESCE(SUM(voting_power), 0.0) as total_voting_power
-        FROM latest_voting_power
-        WHERE rn = 1
-    "#;
-
-    // Execute the raw SQL query
-    let result = db
-        .query_one(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            sql,
-            vec![timestamp.into()],
-        ))
-        .await
-        .context("Failed to execute SQL query")?;
-
-    // Extract the total voting power from the result
-    let total_vp: f64 = result
-        .map(|qr| qr.try_get::<f64>("", "total_voting_power"))
-        .transpose()
-        .context("Failed to get total_voting_power from query result")?
-        .unwrap_or(0.0);
-    debug!(total_voting_power = total_vp, timestamp = ?timestamp, "Total delegated voting power calculated");
-
-    Ok(total_vp)
+    calculate_total_delegated_voting_power(timestamp, UNISWAP_EXCLUDED_VOTER).await
 }
