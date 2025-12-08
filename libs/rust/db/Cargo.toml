@@ -3,6 +3,10 @@ name = "proposalsapp-db"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "proposalsapp_db"
+path = "src/lib.rs"
+
 [dependencies]
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
