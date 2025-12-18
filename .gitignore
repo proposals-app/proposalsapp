@@ -35,3 +35,6 @@ infrastructure/ansible/.vault_pass
 __pycache__/
 
 llm_logs
+
+CLAUDE.md
+AGENTS.md
