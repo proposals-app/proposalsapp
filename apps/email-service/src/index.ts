@@ -497,10 +497,25 @@ if (BETTERSTACK_KEY) {
   logger.info('BETTERSTACK_KEY not set, uptime monitoring disabled');
 }
 
+let isProcessingNotifications = false;
+
 // Schedule cron job - runs every minute
-cron.schedule('* * * * *', () => {
+cron.schedule('* * * * *', async () => {
+  if (isProcessingNotifications) {
+    logger.warn('Skipping notification check; previous run still in progress');
+    return;
+  }
+
+  isProcessingNotifications = true;
   logger.info('Running notification check');
-  void processNotifications();
+
+  try {
+    await processNotifications();
+  } catch (error) {
+    logger.error({ err: error }, 'Notification check failed');
+  } finally {
+    isProcessingNotifications = false;
+  }
 });
 
 // Start the service
