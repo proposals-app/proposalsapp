@@ -60,7 +60,6 @@ async fn main() -> Result<()> {
         .add_directive("llama_cpp_sys=off".parse().unwrap())
         .add_directive("llm=off".parse().unwrap())
         // Tokenizers
-        .add_directive("tiktoken_rs=off".parse().unwrap())
         .add_directive("tokenizers=off".parse().unwrap())
         // Other potential LLM-related crates
         .add_directive("fastembed=off".parse().unwrap())
