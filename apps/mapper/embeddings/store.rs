@@ -160,7 +160,7 @@ impl EmbeddingStore {
             SELECT
                 entity_id,
                 external_id,
-                1 - (embedding <=> '{}'::vector) as similarity
+                (1 - (embedding <=> '{}'::vector))::float4 as similarity
             FROM public.embedding
             WHERE entity_type = $1
               AND 1 - (embedding <=> '{}'::vector) > $2
@@ -213,7 +213,7 @@ impl EmbeddingStore {
                     SELECT
                         e.entity_id,
                         e.external_id,
-                        1 - (e.embedding <=> '{}'::vector) as similarity
+                        (1 - (e.embedding <=> '{}'::vector))::float4 as similarity
                     FROM public.embedding e
                     JOIN public.discourse_topic dt ON dt.id = e.entity_id
                     JOIN public.dao_discourse dd ON dd.id = dt.dao_discourse_id
@@ -238,7 +238,7 @@ impl EmbeddingStore {
                     SELECT
                         e.entity_id,
                         e.external_id,
-                        1 - (e.embedding <=> '{}'::vector) as similarity
+                        (1 - (e.embedding <=> '{}'::vector))::float4 as similarity
                     FROM public.embedding e
                     JOIN public.proposal p ON p.id = e.entity_id
                     WHERE e.entity_type = $1

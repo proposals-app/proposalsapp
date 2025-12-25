@@ -15,15 +15,15 @@ const DEFAULT_BATCH_SIZE: usize = 32;
 /// Expected embedding dimension for nomic-embed-text
 pub const EMBEDDING_DIMENSION: usize = 768;
 
-/// Maximum tokens for nomic-embed-text (supports up to 8192 via RoPE scaling)
-const MAX_TOKENS: usize = 8192;
+/// Maximum tokens for nomic-embed-text (Ollama defaults to 2048 context)
+const MAX_TOKENS: usize = 2048;
 
 /// Context length to request from Ollama (matches MAX_TOKENS)
-const CONTEXT_LENGTH: u64 = 8192;
+const CONTEXT_LENGTH: u64 = 2048;
 
 /// Conservative character-to-token ratio for BERT WordPiece tokenization
-/// BERT typically produces ~1 token per 3-4 characters for English text
-const CHARS_PER_TOKEN: usize = 3;
+/// Using 2 chars/token to handle HTML content, code, and special characters safely
+const CHARS_PER_TOKEN: usize = 2;
 
 /// Wrapper around Ollama client for generating embeddings
 pub struct OllamaEmbedder {
@@ -179,19 +179,21 @@ pub fn strip_html(html: &str) -> String {
 }
 
 /// Prepare proposal text for embedding
-/// Uses character-based truncation to fit within nomic-embed-text's 8192 token limit
+/// Uses character-based truncation to fit within nomic-embed-text's 2048 token limit
 pub fn prepare_proposal_text(name: &str, body: &str, description: Option<&str>) -> String {
     let desc = description.unwrap_or("");
+    // Strip HTML from body since proposals often contain raw HTML
+    let clean_body = strip_html(body);
     // Format the text first, then truncate to fit token limit
     let full_text = format!(
         "Title: {}\n\nDescription: {}\n\nBody: {}",
-        name, desc, body
+        name, desc, clean_body
     );
     truncate_to_tokens(&full_text, MAX_TOKENS)
 }
 
 /// Prepare topic text for embedding
-/// Uses character-based truncation to fit within nomic-embed-text's 8192 token limit
+/// Uses character-based truncation to fit within nomic-embed-text's 2048 token limit
 pub fn prepare_topic_text(title: &str, first_post_content: Option<&str>) -> String {
     let content = first_post_content.unwrap_or("");
     // Format the text first, then truncate to fit token limit
@@ -200,10 +202,10 @@ pub fn prepare_topic_text(title: &str, first_post_content: Option<&str>) -> Stri
 }
 
 /// Truncate text to fit within max_tokens using conservative character estimation
-/// Uses ~3 chars per BERT WordPiece token, which is conservative for English text
+/// Uses ~2 chars per token to safely handle HTML, code, and special characters
 fn truncate_to_tokens(text: &str, max_tokens: usize) -> String {
-    // Conservative estimate: ~3 chars per token for BERT WordPiece
-    // With 8192 max tokens, this gives us ~24576 chars max
+    // Conservative estimate: ~2 chars per token to safely fit within context
+    // With 2048 max tokens, this gives us ~4096 chars max
     let max_chars = max_tokens * CHARS_PER_TOKEN;
     truncate_text_by_chars(text, max_chars).to_string()
 }
