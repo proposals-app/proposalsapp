@@ -23,6 +23,12 @@ impl OllamaEmbedder {
     /// Create a new embedder with default settings
     pub fn new() -> Self {
         let host = std::env::var("OLLAMA_HOST").unwrap_or_else(|_| "http://localhost".to_string());
+        // Ensure host has a protocol prefix
+        let host = if !host.starts_with("http://") && !host.starts_with("https://") {
+            format!("http://{}", host)
+        } else {
+            host
+        };
         let port = std::env::var("OLLAMA_PORT")
             .ok()
             .and_then(|p| p.parse().ok())
