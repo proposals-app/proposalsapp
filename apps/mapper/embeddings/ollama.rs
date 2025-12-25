@@ -1,10 +1,9 @@
 use anyhow::{Context, Result};
-use ollama_rs::{generation::embeddings::request::GenerateEmbeddingsRequest, Ollama};
-use once_cell::sync::Lazy;
+use ollama_rs::{
+    generation::embeddings::request::GenerateEmbeddingsRequest, models::ModelOptions, Ollama,
+};
 use scraper::Html;
 use sha2::{Digest, Sha256};
-use std::sync::Mutex;
-use tokenizers::Tokenizer;
 use tracing::{info, warn};
 
 /// Default embedding model
@@ -16,22 +15,15 @@ const DEFAULT_BATCH_SIZE: usize = 32;
 /// Expected embedding dimension for nomic-embed-text
 pub const EMBEDDING_DIMENSION: usize = 768;
 
-/// Maximum tokens for nomic-embed-text (Ollama defaults to 2048 context)
-const MAX_TOKENS: usize = 2048;
+/// Maximum tokens for nomic-embed-text (supports up to 8192 via RoPE scaling)
+const MAX_TOKENS: usize = 8192;
 
-/// BERT tokenizer for nomic-embed-text (uses bert-base-uncased tokenizer)
-static TOKENIZER: Lazy<Mutex<Option<Tokenizer>>> = Lazy::new(|| {
-    match Tokenizer::from_pretrained("bert-base-uncased", None) {
-        Ok(tokenizer) => {
-            info!("BERT tokenizer loaded successfully");
-            Mutex::new(Some(tokenizer))
-        }
-        Err(e) => {
-            warn!(error = %e, "Failed to load BERT tokenizer, falling back to character-based truncation");
-            Mutex::new(None)
-        }
-    }
-});
+/// Context length to request from Ollama (matches MAX_TOKENS)
+const CONTEXT_LENGTH: u64 = 8192;
+
+/// Conservative character-to-token ratio for BERT WordPiece tokenization
+/// BERT typically produces ~1 token per 3-4 characters for English text
+const CHARS_PER_TOKEN: usize = 3;
 
 /// Wrapper around Ollama client for generating embeddings
 pub struct OllamaEmbedder {
@@ -98,7 +90,9 @@ impl OllamaEmbedder {
     /// Generate embedding for a single text
     pub async fn embed_single(&self, text: &str) -> Result<Vec<f32>> {
         let request =
-            GenerateEmbeddingsRequest::new(self.model.clone(), vec![text.to_string()].into());
+            GenerateEmbeddingsRequest::new(self.model.clone(), vec![text.to_string()].into())
+                .options(ModelOptions::default().num_ctx(CONTEXT_LENGTH))
+                .truncate(true); // Let Ollama handle overflow as safety net
 
         let response = self
             .client
@@ -130,7 +124,9 @@ impl OllamaEmbedder {
             return Ok(vec![]);
         }
 
-        let request = GenerateEmbeddingsRequest::new(self.model.clone(), texts.clone().into());
+        let request = GenerateEmbeddingsRequest::new(self.model.clone(), texts.clone().into())
+            .options(ModelOptions::default().num_ctx(CONTEXT_LENGTH))
+            .truncate(true); // Let Ollama handle overflow as safety net
 
         let response = self
             .client
@@ -183,7 +179,7 @@ pub fn strip_html(html: &str) -> String {
 }
 
 /// Prepare proposal text for embedding
-/// Uses token-based truncation to fit within nomic-embed-text's 2048 token limit
+/// Uses character-based truncation to fit within nomic-embed-text's 8192 token limit
 pub fn prepare_proposal_text(name: &str, body: &str, description: Option<&str>) -> String {
     let desc = description.unwrap_or("");
     // Format the text first, then truncate to fit token limit
@@ -195,7 +191,7 @@ pub fn prepare_proposal_text(name: &str, body: &str, description: Option<&str>) 
 }
 
 /// Prepare topic text for embedding
-/// Uses token-based truncation to fit within nomic-embed-text's 2048 token limit
+/// Uses character-based truncation to fit within nomic-embed-text's 8192 token limit
 pub fn prepare_topic_text(title: &str, first_post_content: Option<&str>) -> String {
     let content = first_post_content.unwrap_or("");
     // Format the text first, then truncate to fit token limit
@@ -203,30 +199,12 @@ pub fn prepare_topic_text(title: &str, first_post_content: Option<&str>) -> Stri
     truncate_to_tokens(&full_text, MAX_TOKENS)
 }
 
-/// Truncate text to fit within max_tokens using BERT tokenizer
-/// Falls back to character-based truncation if tokenizer unavailable
+/// Truncate text to fit within max_tokens using conservative character estimation
+/// Uses ~3 chars per BERT WordPiece token, which is conservative for English text
 fn truncate_to_tokens(text: &str, max_tokens: usize) -> String {
-    // Try to use the BERT tokenizer
-    if let Ok(guard) = TOKENIZER.lock() {
-        if let Some(ref tokenizer) = *guard {
-            // Encode the text
-            if let Ok(encoding) = tokenizer.encode(text, false) {
-                let token_count = encoding.get_ids().len();
-                if token_count <= max_tokens {
-                    return text.to_string();
-                }
-
-                // Truncate tokens and decode back
-                let truncated_ids: Vec<u32> = encoding.get_ids()[..max_tokens].to_vec();
-                if let Ok(decoded) = tokenizer.decode(&truncated_ids, true) {
-                    return decoded;
-                }
-            }
-        }
-    }
-
-    // Fallback: character-based truncation (~4 chars per token for English)
-    let max_chars = max_tokens * 4;
+    // Conservative estimate: ~3 chars per token for BERT WordPiece
+    // With 8192 max tokens, this gives us ~24576 chars max
+    let max_chars = max_tokens * CHARS_PER_TOKEN;
     truncate_text_by_chars(text, max_chars).to_string()
 }
 

@@ -9,7 +9,7 @@ path = "main.rs"
 
 [features]
 default = []
-llm-grouping = ["ollama-rs", "sha2", "tokenizers"]
+llm-grouping = ["ollama-rs", "sha2"]
 
 [dependencies]
 alloy = { workspace = true }
@@ -39,7 +39,6 @@ sea-orm = { workspace = true, features = [
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true, optional = true }
-tokenizers = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = [
