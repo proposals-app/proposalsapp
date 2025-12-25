@@ -10,6 +10,16 @@ use tracing::{error, info, warn};
 use utils::types::{ProposalGroupItem, ProposalItem, TopicItem};
 use uuid::Uuid;
 
+/// Result of the grouping operation, including which proposals were matched via URL
+#[derive(Debug, Default)]
+#[allow(dead_code)]
+pub struct GroupingResult {
+    /// Set of proposal item IDs that were matched via URL (format: "proposal_{external_id}")
+    pub url_matched_proposal_ids: HashSet<String>,
+    /// Number of groups created or updated
+    pub groups_count: usize,
+}
+
 lazy_static::lazy_static! {
     /// Mapping of DAO slugs to the Discourse category IDs that should be included
     /// in proposal grouping. Topics in other categories will be ignored.
@@ -22,8 +32,15 @@ lazy_static::lazy_static! {
     };
 }
 
+/// Results from all DAOs processed by the grouper
+#[derive(Debug, Default)]
+pub struct AllGroupingResults {
+    /// Map of DAO ID to its grouping result
+    pub results: HashMap<Uuid, GroupingResult>,
+}
+
 // Public function to run from main.rs
-pub async fn run_grouper_task() -> Result<()> {
+pub async fn run_grouper_task() -> Result<AllGroupingResults> {
     let db = crate::DB
         .get()
         .ok_or_else(|| anyhow::anyhow!("Database not initialized"))?;
@@ -45,9 +62,11 @@ pub async fn run_grouper_task() -> Result<()> {
         filtered_daos.len()
     );
 
+    let mut all_results = AllGroupingResults::default();
+
     if filtered_daos.is_empty() {
         info!("No DAOs to process, skipping grouper initialization");
-        return Ok(());
+        return Ok(all_results);
     }
 
     // Only initialize the grouper if we have DAOs to process
@@ -70,12 +89,16 @@ pub async fn run_grouper_task() -> Result<()> {
             dao.slug
         );
         match grouper.run_grouping_for_dao(dao.id).await {
-            Ok(_) => info!(
-                "Successfully completed grouping for DAO {}/{}: {}",
-                idx + 1,
-                total_daos,
-                dao.name
-            ),
+            Ok(result) => {
+                info!(
+                    "Successfully completed grouping for DAO {}/{}: {} (matched {} proposals via URL)",
+                    idx + 1,
+                    total_daos,
+                    dao.name,
+                    result.url_matched_proposal_ids.len()
+                );
+                all_results.results.insert(dao.id, result);
+            }
             Err(e) => error!(
                 "Failed to run grouping for DAO {}/{} ({}): {}",
                 idx + 1,
@@ -86,7 +109,7 @@ pub async fn run_grouper_task() -> Result<()> {
         }
     }
 
-    Ok(())
+    Ok(all_results)
 }
 
 pub struct Grouper {
@@ -404,7 +427,7 @@ impl Grouper {
     }
 
     // Main entry point
-    pub async fn run_grouping_for_dao(&self, dao_id: Uuid) -> Result<()> {
+    pub async fn run_grouping_for_dao(&self, dao_id: Uuid) -> Result<GroupingResult> {
         info!("Starting grouping for DAO {}", dao_id);
 
         // Load all data
@@ -443,6 +466,13 @@ impl Grouper {
             groups.insert(group.id, items);
         }
 
+        // Track which proposals are matched via URL (for semantic grouper to skip)
+        let proposals_before_matching: HashSet<String> = grouped_item_ids
+            .iter()
+            .filter(|id| id.starts_with("proposal_"))
+            .cloned()
+            .collect();
+
         // Step 1: Create groups for all ungrouped topics in monitored categories
         info!("===== STEP 1: Creating topic groups =====");
         self.create_topic_groups(&topics, &mut groups, &mut grouped_item_ids, dao_id)
@@ -473,6 +503,13 @@ impl Grouper {
         );
         self.persist_results(&groups, dao_id).await?;
 
+        // Calculate which proposals were matched via URL (new ones added in Step 2)
+        let url_matched_proposal_ids: HashSet<String> = grouped_item_ids
+            .iter()
+            .filter(|id| id.starts_with("proposal_"))
+            .cloned()
+            .collect();
+
         // Calculate final statistics
         let total_groups = groups.len();
         let single_item_groups = groups
@@ -483,16 +520,22 @@ impl Grouper {
             .values()
             .filter(|items| items.len() > 1)
             .count();
+        let newly_matched = url_matched_proposal_ids.len() - proposals_before_matching.len();
 
         info!(
             dao_id = %dao_id,
             total_groups = total_groups,
             single_item_groups = single_item_groups,
             multi_item_groups = multi_item_groups,
+            url_matched_proposals = url_matched_proposal_ids.len(),
+            newly_matched = newly_matched,
             "===== Grouping complete ====="
         );
 
-        Ok(())
+        Ok(GroupingResult {
+            url_matched_proposal_ids,
+            groups_count: total_groups,
+        })
     }
 }
 

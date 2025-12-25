@@ -8,25 +8,27 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "kysely_migration_lock"
+        "snapshot_sync_state"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: String,
-    pub is_locked: i32,
+    pub space: String,
+    pub last_mci: i64,
+    pub updated_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
-    Id,
-    IsLocked,
+    Space,
+    LastMci,
+    UpdatedAt,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
 pub enum PrimaryKey {
-    Id,
+    Space,
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
@@ -43,8 +45,9 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::String(StringLen::N(255u32)).def(),
-            Self::IsLocked => ColumnType::Integer.def(),
+            Self::Space => ColumnType::String(StringLen::N(255u32)).def(),
+            Self::LastMci => ColumnType::BigInteger.def(),
+            Self::UpdatedAt => ColumnType::DateTime.def(),
         }
     }
 }

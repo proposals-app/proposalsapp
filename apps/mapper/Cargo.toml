@@ -9,7 +9,7 @@ path = "main.rs"
 
 [features]
 default = []
-llm-grouping = []
+llm-grouping = ["ollama-rs", "sha2"]
 
 [dependencies]
 alloy = { workspace = true }
@@ -17,13 +17,17 @@ anyhow = { workspace = true, features = ["backtrace"] }
 axum = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
+futures = { workspace = true }
 lazy_static = { workspace = true }
+
+# Optional dependencies for LLM-based grouping
+ollama-rs = { workspace = true, optional = true }
 once_cell = { workspace = true }
 proposalsapp-db = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 sea-orm = { workspace = true, features = [
-    "sqlx-mysql",
+    "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
     "with-chrono",
@@ -33,6 +37,7 @@ sea-orm = { workspace = true, features = [
 ] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = [

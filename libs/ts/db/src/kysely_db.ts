@@ -3,31 +3,26 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from 'kysely';
+import type { ColumnType } from "kysely";
 
 export enum ProposalState {
-  ACTIVE = 'ACTIVE',
-  CANCELED = 'CANCELED',
-  DEFEATED = 'DEFEATED',
-  EXECUTED = 'EXECUTED',
-  EXPIRED = 'EXPIRED',
-  HIDDEN = 'HIDDEN',
-  PENDING = 'PENDING',
-  QUEUED = 'QUEUED',
-  SUCCEEDED = 'SUCCEEDED',
-  UNKNOWN = 'UNKNOWN',
+  ACTIVE = "ACTIVE",
+  CANCELED = "CANCELED",
+  DEFEATED = "DEFEATED",
+  EXECUTED = "EXECUTED",
+  EXPIRED = "EXPIRED",
+  HIDDEN = "HIDDEN",
+  PENDING = "PENDING",
+  QUEUED = "QUEUED",
+  SUCCEEDED = "SUCCEEDED",
+  UNKNOWN = "UNKNOWN",
 }
 
-export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<
-  string,
-  bigint | number | string,
-  bigint | number | string
->;
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
 export type Json = JsonValue;
 
@@ -40,6 +35,8 @@ export type JsonObject = {
 export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+
+export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
@@ -272,6 +269,111 @@ export interface ProposalGroup {
   name: string;
 }
 
+export interface RindexerInternalLatestBlock {
+  block: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorProposalCreated {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorProposalExtended {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumCoreGovernorVoteCast {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumScNominationsProposalCreated {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumScNominationsProposalExecuted {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbTokenDelegateChanged {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerArbTokenDelegateVotesChanged {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerLastKnownIndexesDroppingSql {
+  key: number;
+  value: string;
+}
+
+export interface RindexerInternalRindexerLastKnownRelationshipDroppingSql {
+  key: number;
+  value: string;
+}
+
+export interface RindexerInternalRindexerLastRunMigrationsSql {
+  migrationApplied: boolean;
+  version: number;
+}
+
+export interface RindexerInternalRindexerUniGovernorProposalCreated {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerUniGovernorProposalExecuted {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerUniGovernorVoteCast {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerUniTokenDelegateChanged {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
+export interface RindexerInternalRindexerUniTokenDelegateVotesChanged {
+  lastSyncedBlock: Numeric | null;
+  network: string;
+}
+
 export interface Session {
   createdAt: Timestamp;
   expiresAt: Timestamp;
@@ -281,6 +383,24 @@ export interface Session {
   updatedAt: Timestamp;
   userAgent: string | null;
   userId: string;
+}
+
+export interface SnapshotMessage {
+  address: string;
+  createdAt: Generated<Timestamp>;
+  id: string;
+  ipfs: string;
+  mci: Int8;
+  relatedProposalId: string | null;
+  space: string;
+  timestamp: Int8;
+  type: string;
+}
+
+export interface SnapshotSyncState {
+  lastMci: Generated<Int8>;
+  space: string;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface User {
@@ -383,7 +503,30 @@ export interface DB {
   jobQueue: JobQueue;
   proposal: Proposal;
   proposalGroup: ProposalGroup;
+  "rindexerInternal.latestBlock": RindexerInternalLatestBlock;
+  "rindexerInternal.rindexerArbitrumCoreGovernorProposalCreated": RindexerInternalRindexerArbitrumCoreGovernorProposalCreated;
+  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExecuted": RindexerInternalRindexerArbitrumCoreGovernorProposalExecuted;
+  "rindexerInternal.rindexerArbitrumCoreGovernorProposalExtended": RindexerInternalRindexerArbitrumCoreGovernorProposalExtended;
+  "rindexerInternal.rindexerArbitrumCoreGovernorVoteCast": RindexerInternalRindexerArbitrumCoreGovernorVoteCast;
+  "rindexerInternal.rindexerArbitrumScNominationsProposalCreated": RindexerInternalRindexerArbitrumScNominationsProposalCreated;
+  "rindexerInternal.rindexerArbitrumScNominationsProposalExecuted": RindexerInternalRindexerArbitrumScNominationsProposalExecuted;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalCreated": RindexerInternalRindexerArbitrumTreasuryGovernorProposalCreated;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExecuted": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExecuted;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorProposalExtended": RindexerInternalRindexerArbitrumTreasuryGovernorProposalExtended;
+  "rindexerInternal.rindexerArbitrumTreasuryGovernorVoteCast": RindexerInternalRindexerArbitrumTreasuryGovernorVoteCast;
+  "rindexerInternal.rindexerArbTokenDelegateChanged": RindexerInternalRindexerArbTokenDelegateChanged;
+  "rindexerInternal.rindexerArbTokenDelegateVotesChanged": RindexerInternalRindexerArbTokenDelegateVotesChanged;
+  "rindexerInternal.rindexerLastKnownIndexesDroppingSql": RindexerInternalRindexerLastKnownIndexesDroppingSql;
+  "rindexerInternal.rindexerLastKnownRelationshipDroppingSql": RindexerInternalRindexerLastKnownRelationshipDroppingSql;
+  "rindexerInternal.rindexerLastRunMigrationsSql": RindexerInternalRindexerLastRunMigrationsSql;
+  "rindexerInternal.rindexerUniGovernorProposalCreated": RindexerInternalRindexerUniGovernorProposalCreated;
+  "rindexerInternal.rindexerUniGovernorProposalExecuted": RindexerInternalRindexerUniGovernorProposalExecuted;
+  "rindexerInternal.rindexerUniGovernorVoteCast": RindexerInternalRindexerUniGovernorVoteCast;
+  "rindexerInternal.rindexerUniTokenDelegateChanged": RindexerInternalRindexerUniTokenDelegateChanged;
+  "rindexerInternal.rindexerUniTokenDelegateVotesChanged": RindexerInternalRindexerUniTokenDelegateVotesChanged;
   session: Session;
+  snapshotMessage: SnapshotMessage;
+  snapshotSyncState: SnapshotSyncState;
   user: User;
   userNotification: UserNotification;
   userProposalGroupLastRead: UserProposalGroupLastRead;

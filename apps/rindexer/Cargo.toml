@@ -22,7 +22,7 @@ regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 rindexer = { workspace = true }
 sea-orm = { workspace = true, features = [
-    "sqlx-mysql",
+    "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
     "with-chrono",

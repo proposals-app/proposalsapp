@@ -8,26 +8,34 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "discourse_post_like"
+        "snapshot_message"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub id: Uuid,
-    pub external_discourse_post_id: i32,
-    pub external_user_id: i32,
+    pub id: String,
+    pub mci: i64,
+    pub space: String,
+    pub r#type: String,
+    pub ipfs: String,
+    pub address: String,
+    pub timestamp: i64,
+    pub related_proposal_id: Option<String>,
     pub created_at: DateTime,
-    pub dao_discourse_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
-    ExternalDiscoursePostId,
-    ExternalUserId,
+    Mci,
+    Space,
+    Type,
+    Ipfs,
+    Address,
+    Timestamp,
+    RelatedProposalId,
     CreatedAt,
-    DaoDiscourseId,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -36,44 +44,35 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = Uuid;
+    type ValueType = String;
     fn auto_increment() -> bool {
         false
     }
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
-pub enum Relation {
-    DaoDiscourse,
-}
+pub enum Relation {}
 
 impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Id => ColumnType::Uuid.def(),
-            Self::ExternalDiscoursePostId => ColumnType::Integer.def(),
-            Self::ExternalUserId => ColumnType::Integer.def(),
+            Self::Id => ColumnType::String(StringLen::N(255u32)).def(),
+            Self::Mci => ColumnType::BigInteger.def(),
+            Self::Space => ColumnType::String(StringLen::N(255u32)).def(),
+            Self::Type => ColumnType::String(StringLen::N(50u32)).def(),
+            Self::Ipfs => ColumnType::String(StringLen::N(255u32)).def(),
+            Self::Address => ColumnType::String(StringLen::N(255u32)).def(),
+            Self::Timestamp => ColumnType::BigInteger.def(),
+            Self::RelatedProposalId => ColumnType::String(StringLen::N(255u32)).def().null(),
             Self::CreatedAt => ColumnType::DateTime.def(),
-            Self::DaoDiscourseId => ColumnType::Uuid.def(),
         }
     }
 }
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
-        match self {
-            Self::DaoDiscourse => Entity::belongs_to(super::dao_discourse::Entity)
-                .from(Column::DaoDiscourseId)
-                .to(super::dao_discourse::Column::Id)
-                .into(),
-        }
-    }
-}
-
-impl Related<super::dao_discourse::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::DaoDiscourse.def()
+        panic!("No RelationDef")
     }
 }
 

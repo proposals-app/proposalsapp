@@ -1083,9 +1083,8 @@ mod tests {
         // Get timestamp from provider
         let provider_result = get_timestamp_from_provider(&provider, 0, 1000).await;
 
-        // Get timestamp from scan API
-        let scan_result =
-            past_scan_api_request("https://api.etherscan.io/api", &api_key, 0).await?;
+        // Get timestamp from scan API (chain_id 1 = Ethereum mainnet)
+        let scan_result = past_scan_api_request(1, &api_key, 0).await?;
 
         if let Ok(provider_timestamp) = provider_result {
             println!(
@@ -1095,20 +1094,19 @@ mod tests {
             );
         }
 
-        if let Some(scan_response) = scan_result {
-            if scan_response.status == "1"
-                && let Some(BlockRewardResult::Success(result)) = scan_response.result
-            {
-                let timestamp: i64 = result.timestamp.parse()?;
-                let scan_timestamp = DateTime::<Utc>::from_timestamp(timestamp, 0)
-                    .unwrap()
-                    .naive_utc();
-                println!(
-                    "Scan API returned genesis timestamp: {} (year: {})",
-                    scan_timestamp,
-                    scan_timestamp.year()
-                );
-            }
+        if let Some(scan_response) = scan_result
+            && scan_response.status == "1"
+            && let Some(BlockRewardResult::Success(result)) = scan_response.result
+        {
+            let timestamp: i64 = result.timestamp.parse()?;
+            let scan_timestamp = DateTime::<Utc>::from_timestamp(timestamp, 0)
+                .unwrap()
+                .naive_utc();
+            println!(
+                "Scan API returned genesis timestamp: {} (year: {})",
+                scan_timestamp,
+                scan_timestamp.year()
+            );
         }
 
         // This test is just for observation, not assertion

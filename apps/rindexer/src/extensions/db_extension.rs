@@ -561,14 +561,14 @@ async fn store_voters(voter_addresses: HashSet<String>) -> Result<()> {
             let existing_voter = existing_voters_map.get(address);
 
             // Skip if voter was updated recently
-            if let Some(voter) = existing_voter {
-                if voter.updated_at > twenty_four_hours_ago.naive_utc() {
-                    debug!(
-                        address = address,
-                        "Voter updated recently, skipping ENS lookup"
-                    );
-                    continue;
-                }
+            if let Some(voter) = existing_voter
+                && voter.updated_at > twenty_four_hours_ago.naive_utc()
+            {
+                debug!(
+                    address = address,
+                    "Voter updated recently, skipping ENS lookup"
+                );
+                continue;
             }
 
             // Parse address

@@ -43,14 +43,14 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/sccache,sharing=locked \
-    cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
+    cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME} --features llm-grouping
 
 # Copy source and build application
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/sccache,sharing=locked \
-    cargo build --release --bin ${APP_NAME}
+    cargo build --release --bin ${APP_NAME} --features llm-grouping
 
 # Stage 3: Runtime - minimal production image
 FROM debian:bookworm-slim AS runtime

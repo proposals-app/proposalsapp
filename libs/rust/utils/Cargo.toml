@@ -8,7 +8,7 @@ anyhow = { workspace = true }
 chrono = { workspace = true }
 proposalsapp-db = { workspace = true }
 sea-orm = { workspace = true, features = [
-    "sqlx-mysql",
+    "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
     "with-chrono",

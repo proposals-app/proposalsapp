@@ -9,8 +9,12 @@ use tokio::time::Duration;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
+#[cfg(feature = "llm-grouping")]
+mod embeddings;
 mod grouper;
 mod karma;
+#[cfg(feature = "llm-grouping")]
+mod semantic_grouper;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
@@ -55,9 +59,6 @@ async fn main() -> Result<()> {
         .add_directive("llama_cpp_rs=off".parse().unwrap())
         .add_directive("llama_cpp_sys=off".parse().unwrap())
         .add_directive("llm=off".parse().unwrap())
-        // Hugging Face and model downloading
-        .add_directive("hf_hub=off".parse().unwrap())
-        .add_directive("huggingface_hub=off".parse().unwrap())
         // Tokenizers
         .add_directive("tiktoken_rs=off".parse().unwrap())
         .add_directive("tokenizers=off".parse().unwrap())
@@ -103,7 +104,41 @@ async fn main() -> Result<()> {
             info!("Running grouper task");
 
             match crate::grouper::run_grouper_task().await {
-                Ok(_) => info!("Grouper task completed successfully"),
+                Ok(_results) => {
+                    info!("URL-based grouper completed successfully");
+
+                    // Run semantic grouping if the feature is enabled
+                    #[cfg(feature = "llm-grouping")]
+                    {
+                        let db = crate::DB.get().expect("Database not initialized");
+                        let semantic = semantic_grouper::SemanticGrouper::new(db.clone());
+
+                        for (dao_id, result) in _results.results {
+                            info!(dao_id = %dao_id, "Running semantic grouping");
+                            match semantic
+                                .run_semantic_grouping(dao_id, result.url_matched_proposal_ids)
+                                .await
+                            {
+                                Ok(applied) => {
+                                    info!(
+                                        dao_id = %dao_id,
+                                        semantic_matches_applied = applied,
+                                        "Semantic grouping completed"
+                                    );
+                                }
+                                Err(e) => {
+                                    error!(
+                                        dao_id = %dao_id,
+                                        error = %e,
+                                        "Semantic grouping failed"
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    info!("Grouper task completed successfully");
+                }
                 Err(e) => error!(error = %e, "Grouper task runtime error"),
             }
 
