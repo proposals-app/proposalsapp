@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use ollama_rs::{generation::embeddings::request::GenerateEmbeddingsRequest, Ollama};
+use scraper::Html;
 use sha2::{Digest, Sha256};
 use tracing::{info, warn};
 
@@ -85,11 +86,22 @@ impl OllamaEmbedder {
             .await
             .context("Failed to generate embedding")?;
 
-        response
+        let embedding = response
             .embeddings
             .into_iter()
             .next()
-            .context("No embedding returned")
+            .context("No embedding returned")?;
+
+        // Validate embedding dimension
+        if embedding.len() != EMBEDDING_DIMENSION {
+            anyhow::bail!(
+                "Embedding dimension mismatch: expected {}, got {}",
+                EMBEDDING_DIMENSION,
+                embedding.len()
+            );
+        }
+
+        Ok(embedding)
     }
 
     /// Generate embeddings for a batch of texts
@@ -137,10 +149,24 @@ pub fn hash_content(content: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+/// Strip HTML tags and normalize whitespace
+pub fn strip_html(html: &str) -> String {
+    let document = Html::parse_document(html);
+    document
+        .root_element()
+        .text()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// Prepare proposal text for embedding
+/// nomic-embed-text supports 8192 tokens (~30K chars)
 pub fn prepare_proposal_text(name: &str, body: &str, description: Option<&str>) -> String {
     let desc = description.unwrap_or("");
-    let truncated_body = truncate_text(body, 6000);
+    let truncated_body = truncate_text(body, 30000);
 
     format!(
         "Title: {}\n\nDescription: {}\n\nBody: {}",
@@ -149,9 +175,12 @@ pub fn prepare_proposal_text(name: &str, body: &str, description: Option<&str>) 
 }
 
 /// Prepare topic text for embedding
-pub fn prepare_topic_text(title: &str, excerpt: Option<&str>) -> String {
-    let exc = excerpt.unwrap_or("");
-    format!("Title: {}\n\nExcerpt: {}", title, exc)
+/// Uses first post content for full context
+pub fn prepare_topic_text(title: &str, first_post_content: Option<&str>) -> String {
+    let content = first_post_content.unwrap_or("");
+    // nomic-embed-text supports 8192 tokens (~30K chars)
+    let truncated_content = truncate_text(content, 30000);
+    format!("Title: {}\n\nContent: {}", title, truncated_content)
 }
 
 /// Truncate text to approximately max_chars bytes, breaking at word boundaries
@@ -222,8 +251,15 @@ mod tests {
 
     #[test]
     fn test_prepare_topic_text() {
-        let text = prepare_topic_text("Discussion Title", Some("Brief excerpt"));
+        let text = prepare_topic_text("Discussion Title", Some("First post content here"));
         assert!(text.contains("Title: Discussion Title"));
-        assert!(text.contains("Excerpt: Brief excerpt"));
+        assert!(text.contains("Content: First post content here"));
+    }
+
+    #[test]
+    fn test_strip_html() {
+        let html = "<p>Hello <strong>world</strong>!</p><br><div>More text</div>";
+        let stripped = strip_html(html);
+        assert_eq!(stripped, "Hello world ! More text");
     }
 }

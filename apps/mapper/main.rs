@@ -130,6 +130,7 @@ async fn main() -> Result<()> {
                                     error!(
                                         dao_id = %dao_id,
                                         error = %e,
+                                        error_chain = ?e,
                                         "Semantic grouping failed"
                                     );
                                 }

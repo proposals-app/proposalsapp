@@ -183,7 +183,7 @@ impl EmbeddingStore {
         let rows = SimilarityRow::find_by_statement(stmt)
             .all(&self.db)
             .await
-            .context("Failed to find similar embeddings")?;
+            .with_context(|| format!("Failed to find similar embeddings for entity_type={}", entity_type))?;
 
         Ok(rows
             .into_iter()
@@ -267,7 +267,7 @@ impl EmbeddingStore {
         let rows = SimilarityRow::find_by_statement(stmt)
             .all(&self.db)
             .await
-            .context("Failed to find similar embeddings")?;
+            .with_context(|| format!("Failed to find similar embeddings for entity_type={}, dao_id={}", entity_type, dao_id))?;
 
         Ok(rows
             .into_iter()

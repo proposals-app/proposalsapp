@@ -1,6 +1,6 @@
 use crate::embeddings::{
-    hash_content, prepare_proposal_text, prepare_topic_text, EmbeddingInput, EmbeddingStore,
-    EntityType, OllamaEmbedder,
+    hash_content, prepare_proposal_text, prepare_topic_text, strip_html, EmbeddingInput,
+    EmbeddingStore, EntityType, OllamaEmbedder,
 };
 use anyhow::{Context, Result};
 use proposalsapp_db::models::*;
@@ -87,7 +87,23 @@ impl SemanticGrouper {
 
         // Process topics that need embedding
         for topic in &topics {
-            let text = prepare_topic_text(&topic.title, None); // Note: excerpt not in model
+            // Load first post content (post_number = 1) for this topic
+            let first_post = discourse_post::Entity::find()
+                .filter(discourse_post::Column::TopicId.eq(topic.external_id))
+                .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse.id))
+                .filter(discourse_post::Column::PostNumber.eq(1))
+                .filter(discourse_post::Column::Deleted.eq(false))
+                .one(&self.db)
+                .await
+                .context("Failed to load first post")?;
+
+            // Extract and strip HTML from cooked field
+            let post_content = first_post
+                .and_then(|p| p.cooked)
+                .map(|html| strip_html(&html))
+                .unwrap_or_default();
+
+            let text = prepare_topic_text(&topic.title, Some(&post_content));
             let content_hash = hash_content(&text);
 
             // Skip if already indexed with same content
@@ -188,10 +204,23 @@ impl SemanticGrouper {
                 .await?;
 
             // Search for similar topics
-            let similar_topics = self
+            let similar_topics = match self
                 .store
                 .find_similar_for_dao(&embedding, EntityType::Topic, dao_id, 1)
-                .await?;
+                .await
+            {
+                Ok(topics) => topics,
+                Err(e) => {
+                    warn!(
+                        proposal_id = %proposal.id,
+                        proposal_name = %proposal.name,
+                        error = %e,
+                        error_chain = ?e,
+                        "Failed to find similar topics for proposal"
+                    );
+                    return Err(e);
+                }
+            };
 
             // Take the best match if above threshold
             if let Some(best_match) = similar_topics.first() {
