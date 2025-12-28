@@ -79,7 +79,7 @@ pub async fn run_grouper_task() -> Result<AllGroupingResults> {
     };
 
     let total_daos = filtered_daos.len();
-    for (idx, dao) in filtered_daos.into_iter().enumerate() {
+    for (idx, dao) in filtered_daos.iter().enumerate() {
         info!(
             "Processing DAO {}/{}: {} ({}) with slug: {}",
             idx + 1,
@@ -88,7 +88,7 @@ pub async fn run_grouper_task() -> Result<AllGroupingResults> {
             dao.id,
             dao.slug
         );
-        match grouper.run_grouping_for_dao(dao.id).await {
+        match grouper.run_grouping_for_dao(dao).await {
             Ok(result) => {
                 info!(
                     "Successfully completed grouping for DAO {}/{}: {} (matched {} proposals via URL)",
@@ -145,29 +145,28 @@ impl Grouper {
             .context("Failed to load proposals")
     }
 
-    // Load discourse topics for a DAO with category filtering
-    async fn load_topics(&self, dao_id: Uuid) -> Result<Vec<discourse_topic::Model>> {
-        // Get DAO info first
-        let dao = dao::Entity::find_by_id(dao_id)
-            .one(&self.db)
-            .await
-            .context("Failed to load DAO")?
-            .ok_or_else(|| anyhow::anyhow!("DAO not found"))?;
-
-        // Get DAO discourse info
-        let dao_discourse = dao_discourse::Entity::find()
+    // Load DAO discourse config
+    async fn load_dao_discourse(&self, dao_id: Uuid) -> Result<Option<dao_discourse::Model>> {
+        dao_discourse::Entity::find()
             .filter(dao_discourse::Column::DaoId.eq(dao_id))
             .one(&self.db)
             .await
-            .context("Failed to load DAO discourse")?
-            .ok_or_else(|| anyhow::anyhow!("No discourse configured for DAO"))?;
+            .context("Failed to load DAO discourse")
+    }
 
+    // Load discourse topics for a DAO with category filtering
+    // Takes DAO slug and discourse config to avoid duplicate queries
+    async fn load_topics(
+        &self,
+        dao_slug: &str,
+        dao_discourse: &dao_discourse::Model,
+    ) -> Result<Vec<discourse_topic::Model>> {
         // Get category filters based on DAO slug
         let category_filter = DAO_DISCOURSE_CATEGORY_FILTERS
-            .get(dao.slug.as_str())
+            .get(dao_slug)
             .cloned()
             .unwrap_or_else(|| {
-                warn!("No category filter configured for DAO: {}", dao.slug);
+                warn!("No category filter configured for DAO: {}", dao_slug);
                 vec![]
             });
 
@@ -197,20 +196,18 @@ impl Grouper {
             .context("Failed to load existing groups")
     }
 
-    // Persist grouping results
-    async fn persist_results(
+    // Persist grouping results - optimized to skip unchanged groups
+    // Takes pre-loaded existing_group_ids to avoid duplicate query
+    async fn persist_results_optimized(
         &self,
         groups: &HashMap<Uuid, Vec<ProposalGroupItem>>,
+        original_groups: &HashMap<Uuid, serde_json::Value>,
+        existing_group_ids: &HashSet<Uuid>,
         dao_id: Uuid,
     ) -> Result<()> {
-        // Get existing group IDs
-        let existing_group_ids: HashSet<Uuid> = proposal_group::Entity::find()
-            .filter(proposal_group::Column::DaoId.eq(dao_id))
-            .all(&self.db)
-            .await?
-            .into_iter()
-            .map(|g| g.id)
-            .collect();
+        let mut updated_count = 0;
+        let mut created_count = 0;
+        let mut skipped_count = 0;
 
         for (group_id, items) in groups.iter() {
             if items.is_empty() {
@@ -226,6 +223,14 @@ impl Grouper {
             };
 
             if existing_group_ids.contains(group_id) {
+                // Check if items actually changed before updating
+                if let Some(original_items) = original_groups.get(group_id) {
+                    if &items_json == original_items {
+                        skipped_count += 1;
+                        continue; // Skip unchanged groups
+                    }
+                }
+
                 // Update existing group
                 proposal_group::Entity::update_many()
                     .filter(proposal_group::Column::Id.eq(*group_id))
@@ -239,6 +244,7 @@ impl Grouper {
                     )
                     .exec(&self.db)
                     .await?;
+                updated_count += 1;
             } else {
                 // Create new group
                 let new_group = proposal_group::ActiveModel {
@@ -250,8 +256,17 @@ impl Grouper {
                 };
 
                 new_group.insert(&self.db).await?;
+                created_count += 1;
             }
         }
+
+        info!(
+            dao_id = %dao_id,
+            updated = updated_count,
+            created = created_count,
+            skipped = skipped_count,
+            "Persist results completed"
+        );
 
         Ok(())
     }
@@ -426,14 +441,24 @@ impl Grouper {
         Ok(())
     }
 
-    // Main entry point
-    pub async fn run_grouping_for_dao(&self, dao_id: Uuid) -> Result<GroupingResult> {
+    // Main entry point - takes DAO model to avoid duplicate queries
+    pub async fn run_grouping_for_dao(&self, dao: &dao::Model) -> Result<GroupingResult> {
+        let dao_id = dao.id;
         info!("Starting grouping for DAO {}", dao_id);
+
+        // Load DAO discourse config (single query instead of inside load_topics)
+        let dao_discourse = match self.load_dao_discourse(dao_id).await? {
+            Some(dd) => dd,
+            None => {
+                info!("No discourse configured for DAO {}, skipping", dao.slug);
+                return Ok(GroupingResult::default());
+            }
+        };
 
         // Load all data
         info!("Loading data from database for DAO {}", dao_id);
         let proposals = self.load_proposals(dao_id).await?;
-        let topics = self.load_topics(dao_id).await?;
+        let topics = self.load_topics(&dao.slug, &dao_discourse).await?;
         let existing_groups = self.load_groups(dao_id).await?;
 
         info!(
@@ -444,8 +469,11 @@ impl Grouper {
         );
 
         // Load existing groups and track which items are already grouped
+        // Also track original items for change detection
         let mut groups: HashMap<Uuid, Vec<ProposalGroupItem>> = HashMap::new();
+        let mut original_groups: HashMap<Uuid, serde_json::Value> = HashMap::new();
         let mut grouped_item_ids = HashSet::new();
+        let existing_group_ids: HashSet<Uuid> = existing_groups.iter().map(|g| g.id).collect();
 
         for group in existing_groups {
             let items: Vec<ProposalGroupItem> = serde_json::from_value(group.items.clone())
@@ -463,6 +491,8 @@ impl Grouper {
                 }
             }
 
+            // Store original items JSON for change detection
+            original_groups.insert(group.id, group.items.clone());
             groups.insert(group.id, items);
         }
 
@@ -478,13 +508,6 @@ impl Grouper {
         self.create_topic_groups(&topics, &mut groups, &mut grouped_item_ids, dao_id)
             .await?;
 
-        // Persist groups after Step 1
-        info!(
-            "Persisting {} groups after Step 1 (topic groups)",
-            groups.len()
-        );
-        self.persist_results(&groups, dao_id).await?;
-
         // Step 2: Match proposals to existing topic groups via discussion URLs
         info!("===== STEP 2: Matching proposals to topic groups =====");
         self.match_proposals_to_groups(
@@ -496,12 +519,14 @@ impl Grouper {
         )
         .await?;
 
-        // Persist groups after Step 2
+        // Persist groups once at the end (consolidated from two calls)
+        // Only persist groups that have changed
         info!(
-            "Persisting {} groups after Step 2 (proposal matching)",
+            "Persisting {} groups (checking for changes)",
             groups.len()
         );
-        self.persist_results(&groups, dao_id).await?;
+        self.persist_results_optimized(&groups, &original_groups, &existing_group_ids, dao_id)
+            .await?;
 
         // Calculate which proposals were matched via URL (new ones added in Step 2)
         let url_matched_proposal_ids: HashSet<String> = grouped_item_ids

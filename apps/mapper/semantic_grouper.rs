@@ -82,25 +82,32 @@ impl SemanticGrouper {
             .get_content_hashes(EntityType::Topic, &topics.iter().map(|t| t.id).collect::<Vec<_>>())
             .await?;
 
+        // Batch load all first posts for topics (fixes N+1 query)
+        let topic_ids: Vec<i32> = topics.iter().map(|t| t.external_id).collect();
+        let first_posts: HashMap<i32, discourse_post::Model> = discourse_post::Entity::find()
+            .filter(discourse_post::Column::TopicId.is_in(topic_ids))
+            .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse.id))
+            .filter(discourse_post::Column::PostNumber.eq(1))
+            .filter(discourse_post::Column::Deleted.eq(false))
+            .all(&self.db)
+            .await
+            .context("Failed to batch load first posts")?
+            .into_iter()
+            .map(|p| (p.topic_id, p))
+            .collect();
+
         let model_version = self.embedder.model_version().to_string();
         let mut indexed_count = 0;
 
         // Process topics that need embedding
         for topic in &topics {
-            // Load first post content (post_number = 1) for this topic
-            let first_post = discourse_post::Entity::find()
-                .filter(discourse_post::Column::TopicId.eq(topic.external_id))
-                .filter(discourse_post::Column::DaoDiscourseId.eq(dao_discourse.id))
-                .filter(discourse_post::Column::PostNumber.eq(1))
-                .filter(discourse_post::Column::Deleted.eq(false))
-                .one(&self.db)
-                .await
-                .context("Failed to load first post")?;
+            // Get first post from batch-loaded map
+            let first_post = first_posts.get(&topic.external_id);
 
             // Extract and strip HTML from cooked field
             let post_content = first_post
-                .and_then(|p| p.cooked)
-                .map(|html| strip_html(&html))
+                .and_then(|p| p.cooked.as_ref())
+                .map(|html| strip_html(html))
                 .unwrap_or_default();
 
             let text = prepare_topic_text(&topic.title, Some(&post_content));
