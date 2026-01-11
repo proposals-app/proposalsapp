@@ -145,6 +145,97 @@ impl EmbeddingStore {
         .await
     }
 
+    /// Find similar entities by using an existing embedding in the database
+    pub async fn find_similar_for_entity_for_dao(
+        &self,
+        source_entity_type: EntityType,
+        source_entity_id: Uuid,
+        target_entity_type: EntityType,
+        dao_id: Uuid,
+        limit: usize,
+    ) -> Result<Vec<SimilarityMatch>> {
+        let threshold = self.similarity_threshold;
+
+        let (sql, values): (String, Vec<sea_orm::Value>) = match target_entity_type {
+            EntityType::Topic => (
+                r#"
+                SELECT
+                    e.entity_id,
+                    e.external_id,
+                    (1 - (e.embedding <=> s.embedding))::float4 as similarity
+                FROM public.embedding e
+                JOIN public.embedding s
+                    ON s.entity_id = $1
+                    AND s.entity_type = $2
+                JOIN public.discourse_topic dt ON dt.id = e.entity_id
+                JOIN public.dao_discourse dd ON dd.id = dt.dao_discourse_id
+                WHERE e.entity_type = $3
+                  AND dd.dao_id = $4
+                  AND 1 - (e.embedding <=> s.embedding) > $5
+                ORDER BY e.embedding <=> s.embedding
+                LIMIT $6
+                "#
+                .to_string(),
+                vec![
+                    source_entity_id.into(),
+                    source_entity_type.as_str().into(),
+                    target_entity_type.as_str().into(),
+                    dao_id.into(),
+                    threshold.into(),
+                    (limit as i64).into(),
+                ],
+            ),
+            EntityType::Proposal => (
+                r#"
+                SELECT
+                    e.entity_id,
+                    e.external_id,
+                    (1 - (e.embedding <=> s.embedding))::float4 as similarity
+                FROM public.embedding e
+                JOIN public.embedding s
+                    ON s.entity_id = $1
+                    AND s.entity_type = $2
+                JOIN public.proposal p ON p.id = e.entity_id
+                WHERE e.entity_type = $3
+                  AND p.dao_id = $4
+                  AND 1 - (e.embedding <=> s.embedding) > $5
+                ORDER BY e.embedding <=> s.embedding
+                LIMIT $6
+                "#
+                .to_string(),
+                vec![
+                    source_entity_id.into(),
+                    source_entity_type.as_str().into(),
+                    target_entity_type.as_str().into(),
+                    dao_id.into(),
+                    threshold.into(),
+                    (limit as i64).into(),
+                ],
+            ),
+        };
+
+        let stmt = Statement::from_sql_and_values(sea_orm::DatabaseBackend::Postgres, &sql, values);
+
+        let rows = SimilarityRow::find_by_statement(stmt)
+            .all(&self.db)
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to find similar embeddings for entity_type={}, dao_id={} via source_entity_id={}",
+                    target_entity_type, dao_id, source_entity_id
+                )
+            })?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| SimilarityMatch {
+                entity_id: r.entity_id,
+                external_id: r.external_id,
+                similarity: r.similarity,
+            })
+            .collect())
+    }
+
     /// Find similar entities with custom threshold
     pub async fn find_similar_with_threshold(
         &self,
@@ -183,7 +274,12 @@ impl EmbeddingStore {
         let rows = SimilarityRow::find_by_statement(stmt)
             .all(&self.db)
             .await
-            .with_context(|| format!("Failed to find similar embeddings for entity_type={}", entity_type))?;
+            .with_context(|| {
+                format!(
+                    "Failed to find similar embeddings for entity_type={}",
+                    entity_type
+                )
+            })?;
 
         Ok(rows
             .into_iter()
@@ -258,16 +354,17 @@ impl EmbeddingStore {
             ),
         };
 
-        let stmt = Statement::from_sql_and_values(
-            sea_orm::DatabaseBackend::Postgres,
-            &sql,
-            values,
-        );
+        let stmt = Statement::from_sql_and_values(sea_orm::DatabaseBackend::Postgres, &sql, values);
 
         let rows = SimilarityRow::find_by_statement(stmt)
             .all(&self.db)
             .await
-            .with_context(|| format!("Failed to find similar embeddings for entity_type={}, dao_id={}", entity_type, dao_id))?;
+            .with_context(|| {
+                format!(
+                    "Failed to find similar embeddings for entity_type={}, dao_id={}",
+                    entity_type, dao_id
+                )
+            })?;
 
         Ok(rows
             .into_iter()
@@ -314,7 +411,10 @@ impl EmbeddingStore {
             .await
             .context("Failed to get content hashes")?;
 
-        Ok(rows.into_iter().map(|r| (r.entity_id, r.content_hash)).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.entity_id, r.content_hash))
+            .collect())
     }
 
     /// Get all entity IDs that have embeddings

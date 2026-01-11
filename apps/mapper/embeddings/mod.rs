@@ -11,6 +11,8 @@ mod ollama;
 mod store;
 mod types;
 
-pub use ollama::{hash_content, prepare_proposal_text, prepare_topic_text, strip_html, OllamaEmbedder};
+pub use ollama::{
+    OllamaEmbedder, hash_content, prepare_proposal_text, prepare_topic_text, strip_html,
+};
 pub use store::EmbeddingStore;
 pub use types::{EmbeddingInput, EntityType};

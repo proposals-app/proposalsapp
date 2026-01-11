@@ -1,6 +1,7 @@
+use crate::config;
 use crate::embeddings::{
-    hash_content, prepare_proposal_text, prepare_topic_text, strip_html, EmbeddingInput,
-    EmbeddingStore, EntityType, OllamaEmbedder,
+    EmbeddingInput, EmbeddingStore, EntityType, OllamaEmbedder, hash_content,
+    prepare_proposal_text, prepare_topic_text, strip_html,
 };
 use anyhow::{Context, Result};
 use proposalsapp_db::models::*;
@@ -30,27 +31,37 @@ pub struct SemanticGrouper {
     embedder: OllamaEmbedder,
     store: EmbeddingStore,
     similarity_threshold: f32,
+    category_filters: HashMap<String, Vec<i32>>,
 }
 
 impl SemanticGrouper {
     /// Create a new semantic grouper
     pub fn new(db: DatabaseConnection) -> Self {
-        let threshold = std::env::var("SEMANTIC_SIMILARITY_THRESHOLD")
-            .ok()
-            .and_then(|t| t.parse().ok())
-            .unwrap_or(0.75);
+        let config = config::get_config();
+        let threshold = config.semantic.similarity_threshold.unwrap_or(0.75);
+        let category_filters = config.grouping.dao_discourse_category_filters.clone();
 
         Self {
             embedder: OllamaEmbedder::new(),
             store: EmbeddingStore::with_threshold(db.clone(), threshold),
             db,
             similarity_threshold: threshold,
+            category_filters,
         }
     }
 
     /// Index all topics for a DAO that don't have embeddings yet
     pub async fn index_topics(&self, dao_id: Uuid) -> Result<usize> {
-        // Get DAO discourse info
+        let dao = dao::Entity::find_by_id(dao_id)
+            .one(&self.db)
+            .await
+            .context("Failed to load DAO")?;
+
+        let Some(dao) = dao else {
+            warn!(dao_id = %dao_id, "DAO not found, skipping topic indexing");
+            return Ok(0);
+        };
+
         let dao_discourse = dao_discourse::Entity::find()
             .filter(dao_discourse::Column::DaoId.eq(dao_id))
             .one(&self.db)
@@ -62,27 +73,36 @@ impl SemanticGrouper {
             return Ok(0);
         };
 
-        // Get all topics for this DAO
-        let topics = discourse_topic::Entity::find()
+        let Some(category_filter) = self.category_filters.get(dao.slug.as_str()) else {
+            warn!(dao_id = %dao_id, dao_slug = %dao.slug, "No category filter configured for DAO");
+            return Ok(0);
+        };
+
+        let mut query = discourse_topic::Entity::find()
             .filter(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse.id))
             .filter(discourse_topic::Column::Closed.eq(false))
             .filter(discourse_topic::Column::Archived.eq(false))
-            .filter(discourse_topic::Column::Visible.eq(true))
-            .all(&self.db)
-            .await
-            .context("Failed to load topics")?;
+            .filter(discourse_topic::Column::Visible.eq(true));
+
+        if !category_filter.is_empty() {
+            query =
+                query.filter(discourse_topic::Column::CategoryId.is_in(category_filter.clone()));
+        }
+
+        let topics = query.all(&self.db).await.context("Failed to load topics")?;
 
         if topics.is_empty() {
             return Ok(0);
         }
 
-        // Get existing embeddings
         let existing_hashes = self
             .store
-            .get_content_hashes(EntityType::Topic, &topics.iter().map(|t| t.id).collect::<Vec<_>>())
+            .get_content_hashes(
+                EntityType::Topic,
+                &topics.iter().map(|t| t.id).collect::<Vec<_>>(),
+            )
             .await?;
 
-        // Batch load all first posts for topics (fixes N+1 query)
         let topic_ids: Vec<i32> = topics.iter().map(|t| t.external_id).collect();
         let first_posts: HashMap<i32, discourse_post::Model> = discourse_post::Entity::find()
             .filter(discourse_post::Column::TopicId.is_in(topic_ids))
@@ -99,12 +119,9 @@ impl SemanticGrouper {
         let model_version = self.embedder.model_version().to_string();
         let mut indexed_count = 0;
 
-        // Process topics that need embedding
         for topic in &topics {
-            // Get first post from batch-loaded map
             let first_post = first_posts.get(&topic.external_id);
 
-            // Extract and strip HTML from cooked field
             let post_content = first_post
                 .and_then(|p| p.cooked.as_ref())
                 .map(|html| strip_html(html))
@@ -113,17 +130,14 @@ impl SemanticGrouper {
             let text = prepare_topic_text(&topic.title, Some(&post_content));
             let content_hash = hash_content(&text);
 
-            // Skip if already indexed with same content
             if let Some(existing_hash) = existing_hashes.get(&topic.id)
                 && existing_hash == &content_hash
             {
                 continue;
             }
 
-            // Generate embedding
             let embedding = self.embedder.embed_single(&text).await?;
 
-            // Store embedding
             self.store
                 .upsert_embedding(EmbeddingInput {
                     entity_type: EntityType::Topic,
@@ -154,7 +168,6 @@ impl SemanticGrouper {
         dao_id: Uuid,
         url_matched_proposal_ids: &HashSet<String>,
     ) -> Result<Vec<SemanticMatchResult>> {
-        // Get all proposals for this DAO
         let governors = dao_governor::Entity::find()
             .filter(dao_governor::Column::DaoId.eq(dao_id))
             .all(&self.db)
@@ -174,7 +187,6 @@ impl SemanticGrouper {
             .await
             .context("Failed to load proposals")?;
 
-        // Filter to only unmatched proposals
         let unmatched_proposals: Vec<_> = proposals
             .into_iter()
             .filter(|p| {
@@ -189,38 +201,132 @@ impl SemanticGrouper {
             "Finding semantic matches for unmatched proposals"
         );
 
+        if unmatched_proposals.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let proposal_ids: Vec<Uuid> = unmatched_proposals.iter().map(|p| p.id).collect();
+        let existing_hashes = self
+            .store
+            .get_content_hashes(EntityType::Proposal, &proposal_ids)
+            .await?;
+
+        struct ProposalCandidate {
+            proposal: proposal::Model,
+            text: String,
+            content_hash: String,
+        }
+
+        let mut reuse_candidates = Vec::new();
+        let mut embed_candidates = Vec::new();
+
+        for proposal in unmatched_proposals {
+            let text = prepare_proposal_text(&proposal.name, &proposal.body, None);
+            let content_hash = hash_content(&text);
+
+            if let Some(existing_hash) = existing_hashes.get(&proposal.id)
+                && existing_hash == &content_hash
+            {
+                reuse_candidates.push(ProposalCandidate {
+                    proposal,
+                    text,
+                    content_hash,
+                });
+            } else {
+                embed_candidates.push(ProposalCandidate {
+                    proposal,
+                    text,
+                    content_hash,
+                });
+            }
+        }
+
+        info!(
+            dao_id = %dao_id,
+            reuse_candidates = reuse_candidates.len(),
+            embed_candidates = embed_candidates.len(),
+            "Prepared proposal embeddings"
+        );
+
         let mut matches = Vec::new();
         let model_version = self.embedder.model_version().to_string();
 
-        for proposal in unmatched_proposals {
-            // Prepare text and generate embedding
-            let text = prepare_proposal_text(&proposal.name, &proposal.body, None);
-            let embedding = self.embedder.embed_single(&text).await?;
+        if !embed_candidates.is_empty() {
+            let texts: Vec<String> = embed_candidates
+                .iter()
+                .map(|candidate| candidate.text.clone())
+                .collect();
+            let embeddings = self.embedder.embed_all(texts).await?;
 
-            // Store the proposal embedding for future use
-            let content_hash = hash_content(&text);
-            self.store
-                .upsert_embedding(EmbeddingInput {
-                    entity_type: EntityType::Proposal,
-                    entity_id: proposal.id,
-                    external_id: proposal.external_id.clone(),
-                    embedding: embedding.clone(),
-                    content_hash,
-                    model_version: model_version.clone(),
-                })
-                .await?;
+            for (candidate, embedding) in embed_candidates.into_iter().zip(embeddings) {
+                self.store
+                    .upsert_embedding(EmbeddingInput {
+                        entity_type: EntityType::Proposal,
+                        entity_id: candidate.proposal.id,
+                        external_id: candidate.proposal.external_id.clone(),
+                        embedding: embedding.clone(),
+                        content_hash: candidate.content_hash,
+                        model_version: model_version.clone(),
+                    })
+                    .await?;
 
-            // Search for similar topics
+                let similar_topics = match self
+                    .store
+                    .find_similar_for_dao(&embedding, EntityType::Topic, dao_id, 1)
+                    .await
+                {
+                    Ok(topics) => topics,
+                    Err(e) => {
+                        warn!(
+                            proposal_id = %candidate.proposal.id,
+                            proposal_name = %candidate.proposal.name,
+                            error = %e,
+                            error_chain = ?e,
+                            "Failed to find similar topics for proposal"
+                        );
+                        return Err(e);
+                    }
+                };
+
+                if let Some(best_match) = similar_topics.first() {
+                    info!(
+                        proposal_id = %candidate.proposal.id,
+                        proposal_name = %candidate.proposal.name,
+                        topic_external_id = %best_match.external_id,
+                        similarity = best_match.similarity,
+                        "Found semantic match"
+                    );
+
+                    matches.push(SemanticMatchResult {
+                        proposal_id: candidate.proposal.id,
+                        proposal_external_id: candidate.proposal.external_id.clone(),
+                        proposal_name: candidate.proposal.name.clone(),
+                        topic_id: best_match.entity_id,
+                        topic_external_id: best_match.external_id.clone(),
+                        similarity_score: best_match.similarity,
+                        governor_id: candidate.proposal.governor_id,
+                    });
+                }
+            }
+        }
+
+        for candidate in reuse_candidates {
             let similar_topics = match self
                 .store
-                .find_similar_for_dao(&embedding, EntityType::Topic, dao_id, 1)
+                .find_similar_for_entity_for_dao(
+                    EntityType::Proposal,
+                    candidate.proposal.id,
+                    EntityType::Topic,
+                    dao_id,
+                    1,
+                )
                 .await
             {
                 Ok(topics) => topics,
                 Err(e) => {
                     warn!(
-                        proposal_id = %proposal.id,
-                        proposal_name = %proposal.name,
+                        proposal_id = %candidate.proposal.id,
+                        proposal_name = %candidate.proposal.name,
                         error = %e,
                         error_chain = ?e,
                         "Failed to find similar topics for proposal"
@@ -229,24 +335,23 @@ impl SemanticGrouper {
                 }
             };
 
-            // Take the best match if above threshold
             if let Some(best_match) = similar_topics.first() {
                 info!(
-                    proposal_id = %proposal.id,
-                    proposal_name = %proposal.name,
+                    proposal_id = %candidate.proposal.id,
+                    proposal_name = %candidate.proposal.name,
                     topic_external_id = %best_match.external_id,
                     similarity = best_match.similarity,
                     "Found semantic match"
                 );
 
                 matches.push(SemanticMatchResult {
-                    proposal_id: proposal.id,
-                    proposal_external_id: proposal.external_id.clone(),
-                    proposal_name: proposal.name.clone(),
+                    proposal_id: candidate.proposal.id,
+                    proposal_external_id: candidate.proposal.external_id.clone(),
+                    proposal_name: candidate.proposal.name.clone(),
                     topic_id: best_match.entity_id,
                     topic_external_id: best_match.external_id.clone(),
                     similarity_score: best_match.similarity,
-                    governor_id: proposal.governor_id,
+                    governor_id: candidate.proposal.governor_id,
                 });
             }
         }
@@ -297,7 +402,9 @@ impl SemanticGrouper {
 
         for match_result in matches {
             // Find the group for this topic
-            if let Some((group_id, mut items)) = topic_to_group.remove(&match_result.topic_external_id) {
+            if let Some((group_id, mut items)) =
+                topic_to_group.remove(&match_result.topic_external_id)
+            {
                 // Check if proposal is already in the group
                 let already_in_group = items.iter().any(|item| {
                     matches!(item, ProposalGroupItem::Proposal(p) if p.external_id == match_result.proposal_external_id)
@@ -305,7 +412,8 @@ impl SemanticGrouper {
 
                 if already_in_group {
                     // Put the group back
-                    topic_to_group.insert(match_result.topic_external_id.clone(), (group_id, items));
+                    topic_to_group
+                        .insert(match_result.topic_external_id.clone(), (group_id, items));
                     continue;
                 }
 

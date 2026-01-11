@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 ARG APP_NAME=discourse
 # Rust 1.88+ required for alloy dependency
-ARG RUST_VERSION=1.88
+ARG RUST_VERSION=1.92
 
 # Stage 1: Planner - generates recipe.json for dependency caching
-FROM rust:${RUST_VERSION}-slim-bookworm AS planner
+FROM dhi.io/rust:${RUST_VERSION}-debian13-dev AS planner
 ARG APP_NAME
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 2: Builder - compiles dependencies and application
-FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+FROM dhi.io/rust:${RUST_VERSION}-debian13-dev AS builder
 ARG APP_NAME
 WORKDIR /app
 
@@ -32,16 +32,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN cargo install cargo-chef@0.1.73 sccache --locked
 
 # Configure sccache and build environment
-ENV RUSTC_WRAPPER=sccache \
+ENV RUSTC_WRAPPER=/root/.cargo/bin/sccache \
     SCCACHE_DIR=/sccache \
+    CARGO_TARGET_DIR=/app/target \
     CARGO_NET_GIT_FETCH_WITH_CLI=true \
     CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse \
-    RUSTFLAGS="-C link-arg=-fuse-ld=lld"
+    RUSTFLAGS="-C link-arg=-fuse-ld=lld" \
+    PATH="/root/.cargo/bin:${PATH}"
 
 # Copy recipe and cook dependencies (cached layer)
 COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,id=cargo-target-discourse,target=/app/target,sharing=locked \
     --mount=type=cache,target=/sccache,sharing=locked \
     cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
 
@@ -49,27 +52,27 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,id=cargo-target-discourse,target=/app/target,sharing=locked \
     --mount=type=cache,target=/sccache,sharing=locked \
-    cargo build --release --bin ${APP_NAME}
+    cargo build --release --bin ${APP_NAME} \
+    && cp /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
 # Stage 3: Runtime - minimal production image
-FROM debian:bookworm-slim AS runtime
+FROM dhi.io/debian-base:trixie AS runtime
 ARG APP_NAME
 WORKDIR /app
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates libssl3 libunwind8 libdw1 \
+    ca-certificates libssl3t64 libunwind8 libdw1t64 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user with UID >= 10000 for security
-RUN groupadd -g 10001 appgroup && \
-    useradd -u 10000 -g appgroup -s /bin/false appuser && \
-    chown -R appuser:appgroup /app
+# Ensure nonroot user can access app files
+RUN chown -R nonroot:nonroot /app
 
 # Copy binary from builder
-COPY --from=builder --chown=appuser:appgroup /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
+COPY --from=builder --chown=nonroot:nonroot /usr/local/bin/${APP_NAME} /usr/local/bin/${APP_NAME}
 
-USER appuser:appgroup
+USER nonroot
 EXPOSE 3000
 CMD ["discourse"]

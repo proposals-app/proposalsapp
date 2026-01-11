@@ -1,0 +1,16 @@
+grouping:
+  dao_discourse_category_filters:
+    arbitrum:
+      - 7
+      - 8
+      - 9
+    uniswap:
+      - 5
+      - 8
+      - 9
+      - 10
+karma:
+  dao_slug_to_karma_name:
+    arbitrum: arbitrum
+semantic:
+  similarity_threshold: 0.75

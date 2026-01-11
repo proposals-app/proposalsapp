@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use ollama_rs::{
-    generation::embeddings::request::GenerateEmbeddingsRequest, models::ModelOptions, Ollama,
+    Ollama, generation::embeddings::request::GenerateEmbeddingsRequest, models::ModelOptions,
 };
 use scraper::Html;
 use sha2::{Digest, Sha256};
