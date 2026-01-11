@@ -70,7 +70,6 @@ export interface ProposalNonVoters {
  * 2. Uncomment the corresponding property below
  * 3. The view will then be queryable via db.selectFrom('viewName')
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface MaterializedViews {
   // Uncomment to enable:
   // proposalGroupSummary: ProposalGroupSummary;

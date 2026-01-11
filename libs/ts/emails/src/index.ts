@@ -3,12 +3,13 @@ import { Resend } from 'resend';
 // Lazy, safe Resend client that avoids requiring secrets at import-time.
 // It returns an error object when RESEND_API_KEY is not set.
 type SendResult = { data: unknown; error: unknown };
+type SendEmailArgs = Parameters<Resend['emails']['send']>[0];
 
 export const resend: {
-  emails: { send: (args: any) => Promise<SendResult> };
+  emails: { send: (args: SendEmailArgs) => Promise<SendResult> };
 } = {
   emails: {
-    async send(args: any): Promise<SendResult> {
+    async send(args: SendEmailArgs): Promise<SendResult> {
       const key = process.env.RESEND_API_KEY;
       if (!key) {
         return { data: null, error: new Error('RESEND_API_KEY is not set') };

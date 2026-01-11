@@ -2,7 +2,7 @@ use crate::{
     MAX_PAGES_PER_RUN,
     db_handler::{db, get_or_create_unknown_user, get_post_like_count, upsert_post},
     discourse_api::{DiscourseApi, process_upload_urls},
-    indexers::{likes::LikesIndexer, users::UserIndexer},
+    indexers::{PageCursor, likes::LikesIndexer, users::UserIndexer},
     models::posts::{Post, PostResponse},
 };
 use anyhow::{Context, Result};
@@ -13,8 +13,12 @@ use sea_orm::{
     ColumnTrait, Condition, EntityTrait, QueryFilter,
     prelude::{Expr, Uuid},
 };
-use std::{collections::HashSet, sync::Arc, time::Instant};
-use tokio::task;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+    time::Instant,
+};
+use tokio::{sync::Mutex, task};
 use tracing::{debug, error, info, instrument, warn};
 
 #[derive(Clone)] // Add Clone derive
@@ -23,6 +27,7 @@ pub struct PostIndexer {
     // Store UserIndexer and LikesIndexer to avoid recreating them repeatedly
     user_indexer: UserIndexer,
     likes_indexer: LikesIndexer,
+    user_cache: Arc<Mutex<HashMap<String, i32>>>,
 }
 
 impl PostIndexer {
@@ -30,10 +35,12 @@ impl PostIndexer {
         // Create dependent indexers here, reusing the API and HTTP clients
         let user_indexer = UserIndexer::new(Arc::clone(&discourse_api), Arc::clone(&http_client));
         let likes_indexer = LikesIndexer::new(Arc::clone(&discourse_api));
+        let user_cache = Arc::new(Mutex::new(HashMap::new()));
         Self {
             discourse_api,
             user_indexer,
             likes_indexer,
+            user_cache,
         }
     }
 
@@ -70,12 +77,13 @@ impl PostIndexer {
             "Found existing posts in DB"
         );
 
-        let mut page: u32 = 0; // Use u32 for page number
+        let mut pager = PageCursor::new(MAX_PAGES_PER_RUN);
         let mut total_api_posts_count: Option<i32> = None; // Initialize lazily from first response
         let mut total_processed_posts: i32 = 0;
         let mut seen_in_api_post_ids: HashSet<i32> = HashSet::new();
 
         loop {
+            let page = pager.page();
             let url = format!("/t/{}.json?include_raw=true&page={}", topic_id, page + 1); // API often 1-based page
             debug!(%url, "Fetching posts page");
 
@@ -123,6 +131,7 @@ impl PostIndexer {
                         .map(|post| {
                             let user_indexer = self.user_indexer.clone(); // Clone Arcs for the task
                             let likes_indexer = self.likes_indexer.clone();
+                            let user_cache = Arc::clone(&self.user_cache);
                             let api_handler = Arc::clone(&self.discourse_api); // Clone API handler Arc
 
                             task::spawn(async move {
@@ -132,6 +141,7 @@ impl PostIndexer {
                                     api_handler,
                                     user_indexer,
                                     likes_indexer,
+                                    user_cache,
                                     priority,
                                 )
                                 .await
@@ -198,16 +208,9 @@ impl PostIndexer {
                             break;
                         }
                     }
-                    // 2. Safety break after max pages
-                    if page >= MAX_PAGES_PER_RUN {
-                        error!(
-                            topic_id,
-                            page, MAX_PAGES_PER_RUN, "Reached maximum post page limit. Stopping."
-                        );
+                    if !pager.advance("topic post pages") {
                         break;
                     }
-
-                    page += 1;
                 }
                 Err(e) => {
                     // Handle 404 specifically - might indicate end of pages or deleted topic
@@ -285,41 +288,62 @@ impl PostIndexer {
 
     /// Processes a single post: ensures user exists, processes content, upserts post, fetches likes
     /// if needed.
-    #[instrument(skip(post, discourse_api, user_indexer, likes_indexer), fields(post_id = %post.id, username = %post.username, priority = priority))]
+    #[instrument(skip(post, discourse_api, user_indexer, likes_indexer, user_cache), fields(post_id = %post.id, username = %post.username, priority = priority))]
     async fn process_single_post(
         mut post: Post, // Take ownership
         dao_discourse_id: Uuid,
         discourse_api: Arc<DiscourseApi>,
         user_indexer: UserIndexer, // Receive cloned indexers
         likes_indexer: LikesIndexer,
+        user_cache: Arc<Mutex<HashMap<String, i32>>>,
         priority: bool,
     ) -> Result<()> {
         // Return Result for error propagation
         debug!("Processing single post.");
 
         // 1. Ensure User Exists or use Unknown User
-        match user_indexer
-            .fetch_and_upsert_user(&post.username, dao_discourse_id, priority)
-            .await
-        {
-            Ok(user_id) => {
+        let username = post.username.clone();
+        let cached_user_id = {
+            let cache = user_cache.lock().await;
+            cache.get(&username).copied()
+        };
+
+        match cached_user_id {
+            Some(user_id) => {
                 if post.user_id != user_id {
-                    warn!(post_id = post.id, post_user_id = post.user_id, fetched_user_id = user_id, username = %post.username, "Post user ID mismatch after fetching user. Updating post data.");
+                    warn!(post_id = post.id, post_user_id = post.user_id, cached_user_id = user_id, username = %username, "Post user ID mismatch after cache lookup. Updating post data.");
                     post.user_id = user_id;
                 }
             }
-            Err(e) => {
-                warn!(username = %post.username, error = ?e, "Failed to fetch or upsert user, assigning to 'unknown_user'.");
-                match get_or_create_unknown_user(dao_discourse_id).await {
-                    Ok(unknown_user) => {
-                        post.user_id = unknown_user.id;
-                        post.username = unknown_user.username.clone();
-                        post.avatar_template = unknown_user.avatar_template;
-                        post.display_username = unknown_user.name;
+            None => {
+                match user_indexer
+                    .fetch_and_upsert_user(&username, dao_discourse_id, priority)
+                    .await
+                {
+                    Ok(user_id) => {
+                        if post.user_id != user_id {
+                            warn!(post_id = post.id, post_user_id = post.user_id, fetched_user_id = user_id, username = %username, "Post user ID mismatch after fetching user. Updating post data.");
+                            post.user_id = user_id;
+                        }
+                        let mut cache = user_cache.lock().await;
+                        cache.insert(username.clone(), user_id);
                     }
-                    Err(e_unknown) => {
-                        error!(error = ?e_unknown, post_id = post.id, "Failed to get or create 'unknown_user'. Skipping post upsert.");
-                        return Err(e_unknown.context("Failed to get/create unknown user for post"));
+                    Err(e) => {
+                        warn!(username = %username, error = ?e, "Failed to fetch or upsert user, assigning to 'unknown_user'.");
+                        match get_or_create_unknown_user(dao_discourse_id).await {
+                            Ok(unknown_user) => {
+                                post.user_id = unknown_user.id;
+                                post.username = unknown_user.username.clone();
+                                post.avatar_template = unknown_user.avatar_template;
+                                post.display_username = unknown_user.name;
+                            }
+                            Err(e_unknown) => {
+                                error!(error = ?e_unknown, post_id = post.id, "Failed to get or create 'unknown_user'. Skipping post upsert.");
+                                return Err(
+                                    e_unknown.context("Failed to get/create unknown user for post")
+                                );
+                            }
+                        }
                     }
                 }
             }

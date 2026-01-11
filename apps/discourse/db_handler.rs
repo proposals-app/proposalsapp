@@ -59,8 +59,9 @@ pub fn db() -> &'static DatabaseConnection {
 #[inline(always)]
 #[allow(dead_code)]
 pub fn try_db() -> Result<&'static DatabaseConnection> {
-    DB.get()
-        .ok_or_else(|| anyhow::anyhow!("Database connection not initialized. Call initialize_db first."))
+    DB.get().ok_or_else(|| {
+        anyhow::anyhow!("Database connection not initialized. Call initialize_db first.")
+    })
 }
 
 /// Gets or creates a generic 'unknown' user record for associating orphaned content.
@@ -396,10 +397,8 @@ pub async fn upsert_revision(
     };
 
     let on_conflict = OnConflict::columns([
-        // Unique constraint should be on post_id (internal), version, and dao_discourse_id
-        // But since we only have external_post_id easily here, we use that + version + dao_id
-        // Ensure the DB schema reflects this constraint accurately.
-        discourse_post_revision::Column::ExternalPostId,
+        // Unique constraint should be on internal post ID, version, and DAO.
+        discourse_post_revision::Column::DiscoursePostId,
         discourse_post_revision::Column::Version,
         discourse_post_revision::Column::DaoDiscourseId,
     ])

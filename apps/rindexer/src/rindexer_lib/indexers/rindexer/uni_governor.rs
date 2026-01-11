@@ -6,8 +6,8 @@ use crate::{
     extensions::{
         block_time::estimate_timestamp,
         db_extension::{
-            DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, calculate_total_delegated_voting_power,
-            store_proposal, store_votes,
+            DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB,
+            calculate_total_delegated_voting_power, store_proposal, store_votes,
         },
     },
     rindexer_lib::typings::rindexer::events::uni_governor::uni_governor_contract,

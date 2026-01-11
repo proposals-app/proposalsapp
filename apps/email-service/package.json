@@ -8,11 +8,11 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "node-cron": "^4.2.1",
-    "pino": "^10.1.0",
-    "resend": "^6.6.0"
+    "pino": "^10.1.1",
+    "resend": "^6.7.0"
   },
   "devDependencies": {
-    "@types/node": "^25.0.3",
+    "@types/node": "^25.0.6",
     "@types/node-cron": "^3.0.11",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

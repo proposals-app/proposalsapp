@@ -5,3 +5,14 @@
 [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v2/monitor/1lv17.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
 
 ## The place where you can find all the 🌶️ and 🔥 proposals from your favorite DAOs.
+
+## Development
+- `pnpm install`
+- `pnpm --filter @proposalsapp/web dev`
+- `cargo build --workspace`
+
+## Testing
+- `pnpm lint` / `pnpm format` for JS/TS and
+  `pnpm lint:rust` for Rust.
+- Discourse integration tests require Docker + `pnpm` migrations:
+  `cargo test -p discourse --test discourse_integration`.

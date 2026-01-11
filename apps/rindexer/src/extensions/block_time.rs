@@ -83,14 +83,6 @@ fn get_chain_configs() -> HashMap<&'static str, ChainConfig> {
             scan_api_key: etherscan_api_key.clone(),
         },
     );
-    map.insert(
-        "avalanche",
-        ChainConfig {
-            network: "avalanche",
-            chain_id: Some(43114),
-            scan_api_key: etherscan_api_key,
-        },
-    );
     map
 }
 
@@ -1261,7 +1253,7 @@ mod integration_tests {
             scan_api_key: None,
         };
 
-        let provider = get_provider_cache_for_network("avalanche").await;
+        let provider = get_provider_cache_for_network("ethereum").await;
         let current_block = get_current_block_number(&provider).await?;
         let past_block = current_block.saturating_sub(10);
 
@@ -1384,10 +1376,6 @@ mod integration_tests {
         // Test Polygon (chain_id = 137)
         let poly_config = get_chain_config("polygon")?;
         assert_eq!(poly_config.chain_id, Some(137));
-
-        // Test Avalanche (chain_id = 43114)
-        let avax_config = get_chain_config("avalanche")?;
-        assert_eq!(avax_config.chain_id, Some(43114));
 
         Ok(())
     }

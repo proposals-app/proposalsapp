@@ -1,6 +1,9 @@
 use crate::{
-    MAX_PAGES_PER_RUN, RECENT_LOOKBACK_HOURS, db_handler::upsert_topic,
-    discourse_api::DiscourseApi, indexers::posts::PostIndexer, models::topics::TopicResponse,
+    MAX_PAGES_PER_RUN, RECENT_LOOKBACK_HOURS,
+    db_handler::upsert_topic,
+    discourse_api::DiscourseApi,
+    indexers::{PageCursor, handle_join_result, posts::PostIndexer},
+    models::topics::TopicResponse,
 };
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
@@ -8,7 +11,7 @@ use reqwest::Client;
 use sea_orm::prelude::Uuid;
 use std::{sync::Arc, time::Instant};
 use tokio::task::JoinSet;
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{debug, error, info, instrument};
 
 // Derive Clone for TopicIndexer
 #[derive(Clone)]
@@ -69,7 +72,7 @@ impl TopicIndexer {
         info!("Starting topic update process");
 
         let mut total_processed_topics = 0;
-        let mut page: u32 = 0; // Use u32 for page
+        let mut pager = PageCursor::new(MAX_PAGES_PER_RUN);
         let mut join_set = JoinSet::new(); // For concurrent post updates
         let max_concurrent_post_updates = 10; // Limit concurrency
 
@@ -83,6 +86,8 @@ impl TopicIndexer {
                 break;
             }
 
+            let page = pager.page();
+
             // Determine API endpoint parameters based on refresh type
             let (order_by, ascending_param) = if fetch_all {
                 ("created", "&ascending=true") // Full refresh: oldest first
@@ -90,9 +95,7 @@ impl TopicIndexer {
                 ("activity", "") // Recent updates: most recently active first (default desc)
             };
 
-            let url = format!(
-                "/latest.json?order={order_by}{ascending_param}&page={page}"
-            );
+            let url = format!("/latest.json?order={order_by}{ascending_param}&page={page}");
             debug!(%url, "Fetching topics page");
 
             match self
@@ -120,15 +123,14 @@ impl TopicIndexer {
 
                     for topic in topics_on_page {
                         // Check lookback cutoff for recent updates
-                        if !fetch_all
-                            && let Some(cutoff) = lookback_cutoff {
-                                // Use bumped_at or last_posted_at for activity check
-                                if topic.bumped_at < cutoff {
-                                    info!(topic_id = topic.id, bumped_at = %topic.bumped_at, ?cutoff, "Reached topic older than lookback cutoff. Stopping pagination.");
-                                    stop_pagination = true; // Signal outer loop break
-                                    break; // Stop processing this page
-                                }
+                        if !fetch_all && let Some(cutoff) = lookback_cutoff {
+                            // Use bumped_at or last_posted_at for activity check
+                            if topic.bumped_at < cutoff {
+                                info!(topic_id = topic.id, bumped_at = %topic.bumped_at, ?cutoff, "Reached topic older than lookback cutoff. Stopping pagination.");
+                                stop_pagination = true; // Signal outer loop break
+                                break; // Stop processing this page
                             }
+                        }
 
                         total_processed_topics += 1;
                         let topic_external_id = topic.id; // Store for logging/potential use
@@ -151,7 +153,7 @@ impl TopicIndexer {
                         // Limit concurrency
                         while join_set.len() >= max_concurrent_post_updates {
                             if let Some(res) = join_set.join_next().await {
-                                Self::handle_join_result(res);
+                                handle_join_result(res, "post update");
                             } else {
                                 // Should not happen unless JoinSet is already empty, but handle defensively
                                 break;
@@ -195,16 +197,10 @@ impl TopicIndexer {
                         );
                         stop_pagination = true; // Signal outer loop break
                     }
-                    // 2. Safety break
-                    if page >= MAX_PAGES_PER_RUN {
-                        error!(
-                            page,
-                            MAX_PAGES_PER_RUN, "Reached maximum topic page limit. Stopping."
-                        );
-                        stop_pagination = true; // Signal outer loop break
-                    }
 
-                    page += 1; // Increment page for the next iteration
+                    if !stop_pagination && !pager.advance("topic pages") {
+                        stop_pagination = true;
+                    }
                 }
                 Err(e) => {
                     // Handle 404 - could be end of pages or transient issue
@@ -216,7 +212,7 @@ impl TopicIndexer {
                         // Return error to stop the entire topic update process for this run
                         // Also wait for any spawned tasks before returning
                         while let Some(result) = join_set.join_next().await {
-                            Self::handle_join_result(result);
+                            handle_join_result(result, "post update");
                         }
                         return Err(e).context(format!("Failed to fetch topics page {page}"));
                     }
@@ -231,26 +227,11 @@ impl TopicIndexer {
 
         // Wait for all remaining spawned post update tasks to complete
         while let Some(result) = join_set.join_next().await {
-            Self::handle_join_result(result);
+            handle_join_result(result, "post update");
         }
 
         let duration = start_time.elapsed();
         info!(total_processed_topics, duration = ?duration, "Finished updating topics and associated posts.");
         Ok(())
-    }
-
-    /// Handles the result of a completed task from the JoinSet.
-    fn handle_join_result(result: Result<Result<()>, tokio::task::JoinError>) {
-        match result {
-            Ok(Ok(())) => { /* Task completed successfully */ }
-            Ok(Err(e)) => {
-                // Task completed with an application error (logged within the task's context)
-                warn!(error = ?e, "Post update task failed.");
-            }
-            Err(e) => {
-                // Task panicked or was cancelled
-                error!(error = ?e, "Post update task join error (panic or cancellation).");
-            }
-        }
     }
 }

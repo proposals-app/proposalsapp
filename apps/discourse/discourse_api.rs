@@ -69,9 +69,6 @@ pub struct DiscourseApi {
     forbidden_urls: Arc<Mutex<HashMap<String, SystemTime>>>,
     // Tracks ongoing requests to prevent duplicate fetches for the same endpoint.
     pending_requests: Arc<Mutex<HashMap<String, PendingRequest>>>,
-    // Internal queues managed by the worker task.
-    priority_queue: Arc<Mutex<VecDeque<Job>>>,
-    normal_queue: Arc<Mutex<VecDeque<Job>>>,
 }
 
 // --- Implementation ---
@@ -94,9 +91,6 @@ impl DiscourseApi {
         // Use a bounded channel to prevent unbounded memory growth if the worker falls behind.
         let (sender, receiver) = mpsc::channel(DEFAULT_QUEUE_SIZE);
 
-        let priority_queue = Arc::new(Mutex::new(VecDeque::with_capacity(DEFAULT_QUEUE_SIZE / 2))); // Smaller capacity hints
-        let normal_queue = Arc::new(Mutex::new(VecDeque::with_capacity(DEFAULT_QUEUE_SIZE / 2)));
-
         let api_handler = Self {
             client,
             max_retries: DEFAULT_MAX_RETRIES,
@@ -104,8 +98,6 @@ impl DiscourseApi {
             base_url: base_url.clone(),
             forbidden_urls: Arc::new(Mutex::new(HashMap::new())),
             pending_requests: Arc::new(Mutex::new(HashMap::new())),
-            priority_queue: priority_queue.clone(),
-            normal_queue: normal_queue.clone(),
         };
 
         // Spawn the queue runner task.
@@ -157,23 +149,6 @@ impl DiscourseApi {
         headers.insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1")); // Common browser header
 
         (headers, cookie_jar)
-    }
-
-    /// Checks if both internal processing queues (priority and normal) are empty.
-    /// Primarily used for graceful shutdown or pausing logic.
-    #[instrument(skip(self))]
-    pub fn are_queues_empty(&self) -> bool {
-        let pq_empty = self
-            .priority_queue
-            .lock()
-            .expect("Priority queue lock poisoned")
-            .is_empty();
-        let nq_empty = self
-            .normal_queue
-            .lock()
-            .expect("Normal queue lock poisoned")
-            .is_empty();
-        pq_empty && nq_empty
     }
 
     /// Queues an API request for a given endpoint.
@@ -267,6 +242,10 @@ impl DiscourseApi {
     /// The main loop for the background worker task. Receives jobs and processes them.
     async fn run_queue(self, mut receiver: mpsc::Receiver<Job>) {
         info!("Starting Discourse API queue runner worker.");
+
+        let mut priority_queue = VecDeque::with_capacity(DEFAULT_QUEUE_SIZE / 2); // Smaller capacity hints
+        let mut normal_queue = VecDeque::with_capacity(DEFAULT_QUEUE_SIZE / 2);
+
         loop {
             tokio::select! {
                 Some(job) = receiver.recv() => {
@@ -282,23 +261,19 @@ impl DiscourseApi {
 
                     // Add job to appropriate queue
                     if job_priority {
-                        let mut pq = self.priority_queue.lock().expect("Priority queue lock poisoned");
-                        pq.push_back(job); // Now safe to move job
-                        drop(pq); // Release lock promptly
+                        priority_queue.push_back(job); // Now safe to move job
                     } else {
-                        let mut nq = self.normal_queue.lock().expect("Normal queue lock poisoned");
-                        nq.push_back(job); // Now safe to move job
-                        drop(nq); // Release lock promptly
+                        normal_queue.push_back(job); // Now safe to move job
                     }
 
                     // Process queued jobs after receiving a new one
-                    self.process_queued_jobs().await;
+                    self.process_queued_jobs(&mut priority_queue, &mut normal_queue).await;
                 },
                 else => {
                     info!("Job channel closed. Starting shutdown sequence.");
-                    while !self.are_queues_empty() {
+                    while !priority_queue.is_empty() || !normal_queue.is_empty() {
                         warn!("Processing remaining jobs during shutdown...");
-                        self.process_queued_jobs().await;
+                        self.process_queued_jobs(&mut priority_queue, &mut normal_queue).await;
                         sleep(WORKER_YIELD_DURATION).await;
                     }
                     info!("All queues processed. Shutting down queue runner worker.");
@@ -311,19 +286,17 @@ impl DiscourseApi {
     }
 
     /// Processes jobs from the internal priority and normal queues.
-    #[instrument(skip(self), name = "process_queued_jobs")]
-    async fn process_queued_jobs(&self) {
+    #[instrument(skip(self, priority_queue, normal_queue), name = "process_queued_jobs")]
+    async fn process_queued_jobs(
+        &self,
+        priority_queue: &mut VecDeque<Job>,
+        normal_queue: &mut VecDeque<Job>,
+    ) {
         let mut processed_count = 0;
 
         // --- Process Priority Queue ---
         loop {
-            let job_opt = {
-                let mut pq = self
-                    .priority_queue
-                    .lock()
-                    .expect("Priority queue lock poisoned");
-                pq.pop_front()
-            };
+            let job_opt = priority_queue.pop_front();
 
             if let Some(job) = job_opt {
                 // Clone needed values for logging before moving job
@@ -344,13 +317,7 @@ impl DiscourseApi {
 
         // --- Process Normal Queue ---
         for _ in 0..NORMAL_JOBS_BATCH_SIZE {
-            let job_opt = {
-                let mut nq = self
-                    .normal_queue
-                    .lock()
-                    .expect("Normal queue lock poisoned");
-                nq.pop_front()
-            };
+            let job_opt = normal_queue.pop_front();
 
             if let Some(job) = job_opt {
                 // Clone needed values for logging before moving job

@@ -1,11 +1,13 @@
 use crate::{
-    db_handler::upsert_post_likes_batch, discourse_api::DiscourseApi,
-    models::likes::PostLikeResponse,
+    MAX_PAGES_PER_RUN, db_handler::upsert_post_likes_batch, discourse_api::DiscourseApi,
+    indexers::PageCursor, models::likes::PostLikeResponse,
 };
 use anyhow::{Context, Result};
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tracing::{debug, info, instrument};
+
+const LIKE_PAGE_SIZE: u32 = 50;
 
 #[derive(Clone)] // Add Clone derive
 pub struct LikesIndexer {
@@ -28,41 +30,66 @@ impl LikesIndexer {
     ) -> Result<()> {
         info!("Fetching and storing likes for post");
 
-        // API endpoint for fetching users who performed action type 2 (like) on a post
-        let url = format!(
-            "/post_action_users.json?id={post_id}&post_action_type_id=2"
-        );
+        let mut pager = PageCursor::new(MAX_PAGES_PER_RUN);
+        let mut total_rows: Option<i32> = None;
+        let mut total_processed = 0;
 
-        debug!(%url, "Fetching likes for post");
-        let response: PostLikeResponse = self
-            .discourse_api
-            .queue(&url, priority) // Use priority flag
-            .await
-            .with_context(|| format!("Failed to fetch likes for post_id {post_id}"))?;
+        loop {
+            let page = pager.page();
+            // API endpoint for fetching users who performed action type 2 (like) on a post
+            let url = format!(
+                "/post_action_users.json?id={post_id}&post_action_type_id=2&page={page}&limit={LIKE_PAGE_SIZE}"
+            );
 
-        // Extract user IDs from the response
-        let user_ids: Vec<i32> = response
-            .post_action_users
-            .into_iter()
-            .map(|user| user.id) // Extract just the ID
-            .collect();
+            debug!(%url, "Fetching likes for post");
+            let response: PostLikeResponse = self
+                .discourse_api
+                .queue(&url, priority) // Use priority flag
+                .await
+                .with_context(|| format!("Failed to fetch likes for post_id {post_id}"))?;
 
-        let num_users = user_ids.len();
-        debug!(
-            post_id,
-            num_users, "Received likes, preparing batch upsert."
-        );
+            let user_ids: Vec<i32> = response
+                .post_action_users
+                .into_iter()
+                .map(|user| user.id)
+                .collect();
 
-        // Perform batch upsert into the database
-        upsert_post_likes_batch(post_id, user_ids, dao_discourse_id)
-            .await
-            .with_context(|| format!("Failed to batch upsert likes for post_id {post_id}"))?;
+            if user_ids.is_empty() {
+                if total_processed == 0 {
+                    info!(post_id, "No likes returned by API.");
+                }
+                break;
+            }
 
-        info!(
-            post_id,
-            num_users_processed = num_users,
-            "Successfully processed likes."
-        );
+            if total_rows.is_none() {
+                total_rows = response.total_rows_post_action_users;
+            }
+
+            let num_users = user_ids.len();
+            debug!(
+                post_id,
+                num_users, "Received likes, preparing batch upsert."
+            );
+
+            // Perform batch upsert into the database
+            upsert_post_likes_batch(post_id, user_ids, dao_discourse_id)
+                .await
+                .with_context(|| format!("Failed to batch upsert likes for post_id {post_id}"))?;
+
+            total_processed += num_users as i32;
+
+            if let Some(total) = total_rows
+                && total_processed >= total
+            {
+                break;
+            }
+
+            if !pager.advance("post likes pages") {
+                break;
+            }
+        }
+
+        info!(post_id, total_processed, "Successfully processed likes.");
         Ok(())
     }
 }

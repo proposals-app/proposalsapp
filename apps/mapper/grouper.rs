@@ -224,11 +224,11 @@ impl Grouper {
 
             if existing_group_ids.contains(group_id) {
                 // Check if items actually changed before updating
-                if let Some(original_items) = original_groups.get(group_id) {
-                    if &items_json == original_items {
-                        skipped_count += 1;
-                        continue; // Skip unchanged groups
-                    }
+                if let Some(original_items) = original_groups.get(group_id)
+                    && &items_json == original_items
+                {
+                    skipped_count += 1;
+                    continue; // Skip unchanged groups
                 }
 
                 // Update existing group
@@ -521,10 +521,7 @@ impl Grouper {
 
         // Persist groups once at the end (consolidated from two calls)
         // Only persist groups that have changed
-        info!(
-            "Persisting {} groups (checking for changes)",
-            groups.len()
-        );
+        info!("Persisting {} groups (checking for changes)", groups.len());
         self.persist_results_optimized(&groups, &original_groups, &existing_group_ids, dao_id)
             .await?;
 
@@ -537,14 +534,8 @@ impl Grouper {
 
         // Calculate final statistics
         let total_groups = groups.len();
-        let single_item_groups = groups
-            .values()
-            .filter(|items| items.len() == 1)
-            .count();
-        let multi_item_groups = groups
-            .values()
-            .filter(|items| items.len() > 1)
-            .count();
+        let single_item_groups = groups.values().filter(|items| items.len() == 1).count();
+        let multi_item_groups = groups.values().filter(|items| items.len() > 1).count();
         let newly_matched = url_matched_proposal_ids.len() - proposals_before_matching.len();
 
         info!(

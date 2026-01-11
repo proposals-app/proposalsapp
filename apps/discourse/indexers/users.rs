@@ -2,6 +2,7 @@ use crate::{
     MAX_PAGES_PER_RUN,
     db_handler::upsert_user,
     discourse_api::DiscourseApi,
+    indexers::PageCursor,
     models::users::{User, UserDetailResponse, UserResponse},
 };
 use anyhow::{Context, Result};
@@ -16,6 +17,53 @@ use std::{
 use tracing::{debug, error, info, instrument, warn};
 
 const RECENT_USER_PAGE_LIMIT: u32 = 5; // Limit pages for recent user check
+
+#[derive(Clone, Copy)]
+enum DirectoryOrder {
+    Username,
+    PostCount,
+}
+
+impl DirectoryOrder {
+    fn as_str(self) -> &'static str {
+        match self {
+            DirectoryOrder::Username => "username",
+            DirectoryOrder::PostCount => "post_count",
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum DirectoryPeriod {
+    All,
+    Weekly,
+}
+
+impl DirectoryPeriod {
+    fn as_str(self) -> &'static str {
+        match self {
+            DirectoryPeriod::All => "all",
+            DirectoryPeriod::Weekly => "weekly",
+        }
+    }
+}
+
+fn build_directory_url(
+    page: u32,
+    order: DirectoryOrder,
+    asc: bool,
+    period: DirectoryPeriod,
+) -> String {
+    let mut url = format!(
+        "/directory_items.json?page={page}&order={}&period={}",
+        order.as_str(),
+        period.as_str()
+    );
+    if asc {
+        url.push_str("&asc=true");
+    }
+    url
+}
 
 // Derive Clone to allow easy cloning for tasks
 #[derive(Clone)]
@@ -32,7 +80,7 @@ impl UserIndexer {
         }
     }
 
-    /// Fetches and updates users based on recent activity (most recently active first).
+    /// Fetches and updates users based on recent activity (weekly activity ranking).
     /// Limited to a few pages. Uses high priority for API requests.
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_recent_users(&self, dao_discourse_id: Uuid) -> Result<()> {
@@ -46,7 +94,7 @@ impl UserIndexer {
         .await
     }
 
-    /// Fetches and updates *all* users from the directory, oldest first.
+    /// Fetches and updates *all* users from the directory in a stable order.
     /// This is a full refresh/backfill task. Uses low priority for API requests.
     #[instrument(skip(self), fields(dao_discourse_id = %dao_discourse_id))]
     pub async fn update_all_users(&self, dao_discourse_id: Uuid) -> Result<()> {
@@ -72,18 +120,20 @@ impl UserIndexer {
         let start_time = Instant::now();
         info!("Starting user update process");
 
-        let mut page: u32 = 0; // Use u32 for page number
+        let mut pager = PageCursor::new(MAX_PAGES_PER_RUN);
         let mut total_processed_users = 0;
         let mut last_response_hash: Option<u64> = None;
         let mut consecutive_identical_responses = 0;
 
-        // Determine API order based on recent flag
-        let order = if recent { "desc" } else { "asc" }; // `desc` for recent, `asc` for full
+        let (order, asc, period) = if recent {
+            (DirectoryOrder::PostCount, false, DirectoryPeriod::Weekly)
+        } else {
+            (DirectoryOrder::Username, true, DirectoryPeriod::All)
+        };
 
         loop {
-            let url = format!(
-                "/directory_items.json?page={page}&order={order}&period=all"
-            );
+            let page = pager.page();
+            let url = build_directory_url(page, order, asc, period);
             debug!(%url, "Fetching users page");
 
             let response: UserResponse = match self
@@ -185,20 +235,15 @@ impl UserIndexer {
 
             // Check termination conditions
             if let Some(limit) = page_limit
-                && page >= limit {
-                    info!(page, limit, "Reached page limit for user fetch. Stopping.");
-                    break;
-                }
-            // Safety break
-            if page >= MAX_PAGES_PER_RUN {
-                error!(
-                    page,
-                    MAX_PAGES_PER_RUN, "Reached maximum user page limit. Stopping."
-                );
+                && page >= limit
+            {
+                info!(page, limit, "Reached page limit for user fetch. Stopping.");
                 break;
             }
 
-            page += 1;
+            if !pager.advance("user directory pages") {
+                break;
+            }
         } // End loop
 
         let duration = start_time.elapsed();

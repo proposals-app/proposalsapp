@@ -1,6 +1,8 @@
 #![warn(unused_extern_crates)]
 
-use crate::{
+use anyhow::{Context, Error, Result};
+use axum::Router;
+use discourse::{
     db_handler::{db, initialize_db},
     discourse_api::DiscourseApi,
     indexers::{
@@ -8,13 +10,12 @@ use crate::{
         users::UserIndexer,
     },
 };
-use anyhow::{Context, Error, Result};
-use axum::Router;
 use dotenv::dotenv;
 use proposalsapp_db::models::dao_discourse;
 use reqwest::Client;
 use sea_orm::EntityTrait;
 use std::{
+    future::Future,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -22,20 +23,12 @@ use tokio::{task::JoinSet, time::interval_at};
 use tracing::{Instrument, error, info, instrument, warn};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
-mod db_handler;
-mod discourse_api;
-mod indexers;
-mod models;
-
 // --- Configuration Constants ---
 const FULL_REFRESH_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
 const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_secs(60);
 
 const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
-
-pub const MAX_PAGES_PER_RUN: u32 = 1000; // Safety break for pagination loops
-pub const RECENT_LOOKBACK_HOURS: i64 = 2; // How far back to look for "recent" items
 
 #[tokio::main]
 #[instrument]
@@ -159,100 +152,88 @@ async fn main() -> Result<()> {
 
         // --- Spawn Full Refresh Task ---
         let dao_id_full = dao_config.id;
-        let dao_name_full = dao_name.clone();
         let cat_idx_full = category_indexer.clone();
         let user_idx_full = user_indexer.clone();
         let topic_idx_full = topic_indexer.clone();
         let rev_idx_full = revision_indexer.clone();
 
-        indexer_tasks.spawn(
-            async move {
-                let task_name = format!("full_refresh_{dao_name_full}");
-                info!(task = %task_name, "Starting full refresh task loop");
-                let start_delay = tokio::time::Instant::now() + INITIAL_FULL_REFRESH_TASK_DELAY;
-                let mut interval = interval_at(start_delay, FULL_REFRESH_INTERVAL);
-                interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        spawn_refresh_loop(
+            &mut indexer_tasks,
+            dao_name.clone(),
+            "full_refresh",
+            INITIAL_FULL_REFRESH_TASK_DELAY,
+            FULL_REFRESH_INTERVAL,
+            "full refresh",
+            move || {
+                let cat_idx_full = cat_idx_full.clone();
+                let user_idx_full = user_idx_full.clone();
+                let topic_idx_full = topic_idx_full.clone();
+                let rev_idx_full = rev_idx_full.clone();
 
-                loop {
-                    tokio::select! {
-                               _ = interval.tick() => {
-                                    info!(task = %task_name, "Running full refresh cycle...");
-                                    let cycle_start = Instant::now();
+                async move {
+                    let cat_fut = cat_idx_full.update_all_categories(dao_id_full);
+                    let user_fut = user_idx_full.update_all_users(dao_id_full);
+                    let topic_fut = topic_idx_full.update_all_topics(dao_id_full);
+                    let rev_fut = rev_idx_full.update_all_revisions(dao_id_full);
 
-                             // Define indexer futures
-                             let cat_fut = cat_idx_full.update_all_categories(dao_id_full);
-                             let user_fut = user_idx_full.update_all_users(dao_id_full);
-                             let topic_fut = topic_idx_full.update_all_topics(dao_id_full);
-                             let rev_fut = rev_idx_full.update_all_revisions(dao_id_full);
+                    let (cat_res, user_res, topic_res, rev_res): (
+                        Result<()>,
+                        Result<()>,
+                        Result<()>,
+                        Result<()>,
+                    ) = tokio::join!(cat_fut, user_fut, topic_fut, rev_fut);
 
-                             // Run indexers concurrently
-                             let (cat_res, user_res, topic_res, rev_res): (Result<()>, Result<()>, Result<()>, Result<()>) =
-                                 tokio::join!(cat_fut, user_fut, topic_fut, rev_fut);
+                    log_indexer_result("Full Categories", &cat_res);
+                    log_indexer_result("Full Users", &user_res);
+                    log_indexer_result("Full Topics/Posts", &topic_res);
+                    log_indexer_result("Full Revisions", &rev_res);
 
-                             // Record metrics and log results
-                             log_indexer_result("Full Categories", &cat_res);
-
-                             log_indexer_result("Full Users", &user_res);
-
-                             log_indexer_result("Full Topics/Posts", &topic_res);
-
-                             log_indexer_result("Full Revisions", &rev_res);
-
-                             info!(task = %task_name, duration = ?cycle_start.elapsed(), "Full refresh cycle finished.");
-                        }
-                    }
+                    Ok(())
                 }
-            }
-            .instrument(tracing::info_span!("full_refresh_task", dao = %dao_name)),
+            },
         );
 
         // --- Spawn Recent Updates Task ---
         let dao_id_recent = dao_config.id;
-        let dao_name_recent = dao_name.clone();
         let cat_idx_recent = category_indexer.clone();
         let user_idx_recent = user_indexer.clone();
         let topic_idx_recent = topic_indexer.clone();
         let rev_idx_recent = revision_indexer.clone();
 
-        indexer_tasks.spawn(
-            async move {
-                let task_name = format!("recent_updates_{dao_name_recent}");
-                info!(task = %task_name, "Starting recent updates task loop");
-                let start_delay = tokio::time::Instant::now() + INITIAL_RECENT_UPDATE_TASK_DELAY;
-                let mut interval = interval_at(start_delay, RECENT_UPDATE_INTERVAL);
-                interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        spawn_refresh_loop(
+            &mut indexer_tasks,
+            dao_name.clone(),
+            "recent_updates",
+            INITIAL_RECENT_UPDATE_TASK_DELAY,
+            RECENT_UPDATE_INTERVAL,
+            "recent updates",
+            move || {
+                let cat_idx_recent = cat_idx_recent.clone();
+                let user_idx_recent = user_idx_recent.clone();
+                let topic_idx_recent = topic_idx_recent.clone();
+                let rev_idx_recent = rev_idx_recent.clone();
 
-                loop {
-                    tokio::select! {
-                        _ = interval.tick() => {
-                             info!(task = %task_name, "Running recent updates cycle...");
-                             let cycle_start = Instant::now();
+                async move {
+                    let cat_fut = cat_idx_recent.update_all_categories(dao_id_recent);
+                    let user_fut = user_idx_recent.update_recent_users(dao_id_recent);
+                    let topic_fut = topic_idx_recent.update_recent_topics(dao_id_recent);
+                    let rev_fut = rev_idx_recent.update_recent_revisions(dao_id_recent);
 
-                             // Define futures
-                             let cat_fut = cat_idx_recent.update_all_categories(dao_id_recent);
-                             let user_fut = user_idx_recent.update_recent_users(dao_id_recent);
-                             let topic_fut = topic_idx_recent.update_recent_topics(dao_id_recent);
-                             let rev_fut = rev_idx_recent.update_recent_revisions(dao_id_recent);
+                    let (cat_res, user_res, topic_res, rev_res): (
+                        Result<()>,
+                        Result<()>,
+                        Result<()>,
+                        Result<()>,
+                    ) = tokio::join!(cat_fut, user_fut, topic_fut, rev_fut);
 
-                             // Run recent updates concurrently
-                             let (cat_res,user_res, topic_res, rev_res): (Result<()>, Result<()>, Result<()>, Result<()>) =
-                                 tokio::join!(cat_fut,user_fut, topic_fut, rev_fut);
+                    log_indexer_result("Full Categories", &cat_res);
+                    log_indexer_result("Recent Users", &user_res);
+                    log_indexer_result("Recent Topics/Posts", &topic_res);
+                    log_indexer_result("Recent Revisions", &rev_res);
 
-                             // Record metrics and log results
-                             log_indexer_result("Full Categories", &cat_res);
-
-                             log_indexer_result("Recent Users", &user_res);
-
-                             log_indexer_result("Recent Topics/Posts", &topic_res);
-
-                             log_indexer_result("Recent Revisions", &rev_res);
-
-                             info!(task = %task_name, duration = ?cycle_start.elapsed(), "Recent updates cycle finished.");
-                        }
-                    }
+                    Ok(())
                 }
-            }
-            .instrument(tracing::info_span!("recent_updates_task", dao = %dao_name)),
+            },
         );
     }
 
@@ -289,6 +270,49 @@ async fn main() -> Result<()> {
 
     info!("Application shutting down");
     Ok(())
+}
+
+fn spawn_refresh_loop<F, Fut>(
+    indexer_tasks: &mut JoinSet<Result<(), Error>>,
+    dao_name: String,
+    task_prefix: &'static str,
+    start_delay: Duration,
+    interval_duration: Duration,
+    cycle_label: &'static str,
+    cycle: F,
+) where
+    F: Fn() -> Fut + Send + 'static,
+    Fut: Future<Output = Result<(), Error>> + Send + 'static,
+{
+    let task_name = format!("{task_prefix}_{dao_name}");
+    let span_dao_name = dao_name.clone();
+
+    indexer_tasks.spawn(
+        async move {
+            info!(task = %task_name, cycle = cycle_label, "Starting refresh task loop");
+            let start_delay = tokio::time::Instant::now() + start_delay;
+            let mut interval = interval_at(start_delay, interval_duration);
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+            loop {
+                interval.tick().await;
+                info!(task = %task_name, cycle = cycle_label, "Running refresh cycle...");
+                let cycle_start = Instant::now();
+
+                if let Err(e) = cycle().await {
+                    error!(task = %task_name, cycle = cycle_label, error = ?e, "Refresh cycle failed.");
+                }
+
+                info!(
+                    task = %task_name,
+                    cycle = cycle_label,
+                    duration = ?cycle_start.elapsed(),
+                    "Refresh cycle finished."
+                );
+            }
+        }
+        .instrument(tracing::info_span!("refresh_task", dao = %span_dao_name, task = task_prefix)),
+    );
 }
 
 /// Helper function to log the result of an indexer operation.

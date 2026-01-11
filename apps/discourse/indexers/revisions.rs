@@ -2,6 +2,7 @@ use crate::{
     RECENT_LOOKBACK_HOURS,
     db_handler::{db, upsert_revision},
     discourse_api::{DiscourseApi, process_upload_urls},
+    indexers::handle_join_result,
     models::revisions::Revision,
 };
 use anyhow::{Context, Result};
@@ -14,7 +15,7 @@ use sea_orm::{
 };
 use std::{collections::HashSet, sync::Arc};
 use tokio::task::JoinSet;
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{debug, error, info, instrument};
 
 #[derive(Clone)] // Add Clone derive
 pub struct RevisionIndexer {
@@ -92,7 +93,7 @@ impl RevisionIndexer {
             if join_set.len() >= max_concurrent_posts {
                 // Wait for one task to complete before spawning more
                 if let Some(result) = join_set.join_next().await {
-                    Self::handle_join_result(result);
+                    handle_join_result(result, "revision update");
                 }
             }
 
@@ -107,7 +108,7 @@ impl RevisionIndexer {
 
         // Wait for remaining tasks to complete
         while let Some(result) = join_set.join_next().await {
-            Self::handle_join_result(result);
+            handle_join_result(result, "revision update");
         }
 
         info!(
@@ -115,21 +116,6 @@ impl RevisionIndexer {
             recent_only, priority
         );
         Ok(())
-    }
-
-    /// Handles the result of a completed task from the JoinSet.
-    fn handle_join_result(result: Result<Result<()>, tokio::task::JoinError>) {
-        match result {
-            Ok(Ok(())) => { /* Task completed successfully */ }
-            Ok(Err(e)) => {
-                // Task completed with an application error (logged within the task)
-                warn!(error = ?e, "Revision update task for a post failed.");
-            }
-            Err(e) => {
-                // Task panicked or was cancelled
-                error!(error = ?e, "Revision update task join error (panic or cancellation).");
-            }
-        }
     }
 
     /// Fetches posts from the DB that might be missing revision data.

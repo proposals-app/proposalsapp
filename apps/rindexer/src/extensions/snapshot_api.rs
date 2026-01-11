@@ -625,11 +625,8 @@ impl SnapshotApi {
                     // Retry on server errors (5xx)
                     if status.is_server_error() {
                         let error_text = response.text().await.unwrap_or_default();
-                        last_error = Some(anyhow::anyhow!(
-                            "Server error {}: {}",
-                            status,
-                            error_text
-                        ));
+                        last_error =
+                            Some(anyhow::anyhow!("Server error {}: {}", status, error_text));
 
                         if attempt < Self::MAX_RETRIES {
                             warn!(
@@ -650,11 +647,7 @@ impl SnapshotApi {
                     // Client errors (4xx except 429) are not retried
                     if !status.is_success() {
                         let error_text = response.text().await.unwrap_or_default();
-                        return Err(anyhow::anyhow!(
-                            "HTTP error {}: {}",
-                            status,
-                            error_text
-                        ));
+                        return Err(anyhow::anyhow!("HTTP error {}: {}", status, error_text));
                     }
 
                     // Success - parse response
