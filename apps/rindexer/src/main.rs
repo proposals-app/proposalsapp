@@ -110,6 +110,7 @@ async fn main() -> Result<()> {
             indexing_details: Some(IndexingDetails {
                 registry: register_all_handlers(&manifest_path).await,
                 trace_registry: TraceCallbackRegistry { events: vec![] },
+                event_stream: None,
             }),
             graphql_details: GraphqlOverrideSettings {
                 enabled: false,
