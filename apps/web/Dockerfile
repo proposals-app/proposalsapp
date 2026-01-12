@@ -38,20 +38,20 @@ FROM dhi.io/node:22-debian13
 WORKDIR /app
 
 # Copy the built project and required files from the builder stage
-# DHI runtime images have nonroot user built-in
-COPY --from=builder --chown=nonroot:nonroot /app/apps/web/ /app/apps/web/
-COPY --from=builder --chown=nonroot:nonroot /app/libs/ts/db/ /app/libs/ts/db/
-COPY --from=builder --chown=nonroot:nonroot /app/libs/ts/emails/ /app/libs/ts/emails/
-COPY --from=builder --chown=nonroot:nonroot /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
-COPY --from=builder --chown=nonroot:nonroot /app/node_modules/ /app/node_modules/
-COPY --from=builder --chown=nonroot:nonroot /app/package.json /app/
+# Use the built-in node user in runtime images
+COPY --from=builder --chown=node:node /app/apps/web/ /app/apps/web/
+COPY --from=builder --chown=node:node /app/libs/ts/db/ /app/libs/ts/db/
+COPY --from=builder --chown=node:node /app/libs/ts/emails/ /app/libs/ts/emails/
+COPY --from=builder --chown=node:node /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
+COPY --from=builder --chown=node:node /app/node_modules/ /app/node_modules/
+COPY --from=builder --chown=node:node /app/package.json /app/
 
 ENV NODE_ENV=production
 # Set sharp path for Next.js image optimization
 ENV NEXT_SHARP_PATH=/app/node_modules/sharp
 
-# Switch to non-root user (nonroot is provided by DHI base images)
-USER nonroot
+# Switch to non-root user (node is provided by the base image)
+USER node
 
 # Expose Next.js default port
 EXPOSE 3000
