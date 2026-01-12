@@ -56,5 +56,5 @@ USER nonroot
 # Expose Next.js default port
 EXPOSE 3000
 
-# Run next start directly with node (no shell required)
-CMD ["node", "node_modules/.bin/next", "start", "-H", "0.0.0.0", "apps/web"]
+# Run Next.js CLI directly with node (no shell required)
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "apps/web"]
