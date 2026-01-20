@@ -25,7 +25,7 @@ ollama-rs = { workspace = true, optional = true }
 once_cell = { workspace = true }
 proposalsapp-db = { workspace = true }
 rand = { workspace = true }
-reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest = { workspace = true, features = ["json", "rustls"] }
 scraper = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",

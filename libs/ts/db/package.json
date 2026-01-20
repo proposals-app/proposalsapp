@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "dependencies": {
     "dotenv": "^17.2.3",
-    "kysely": "^0.28.9",
-    "pg": "8.16.3"
+    "kysely": "^0.28.10",
+    "pg": "8.17.1"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.13",
     "@types/dotenv": "^8.2.3",
     "@types/pg": "8",
     "kysely-codegen": "0.19.0",
-    "kysely-ctl": "^0.19.0",
+    "kysely-ctl": "^0.20.0",
     "typescript": "^5.9.3"
   },
   "main": "./src/index.ts",

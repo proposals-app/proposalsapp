@@ -22,7 +22,7 @@ oneshot = { workspace = true }
 proposalsapp-db = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
-reqwest = { workspace = true, features = ["json", "rustls-tls", "cookies"] }
+reqwest = { workspace = true, features = ["json", "rustls", "cookies"] }
 scraper = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",

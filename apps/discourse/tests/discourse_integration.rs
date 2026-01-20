@@ -23,7 +23,11 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
-use testcontainers::{Container, GenericImage, clients::Cli, core::WaitFor};
+use testcontainers::{
+    ContainerAsync, GenericImage, ImageExt,
+    core::{IntoContainerPort, WaitFor},
+    runners::AsyncRunner,
+};
 use tokio::runtime::{Builder, Runtime};
 use tokio::sync::OnceCell;
 
@@ -41,10 +45,8 @@ struct SeedData {
 struct TestContext {
     db: DatabaseConnection,
     dao_discourse_id: Uuid,
-    _container: Container<'static, GenericImage>,
+    _container: ContainerAsync<GenericImage>,
 }
-
-static DOCKER: Lazy<Cli> = Lazy::new(Cli::default);
 static DOCKER_AVAILABLE: Lazy<bool> = Lazy::new(|| {
     Command::new("docker")
         .arg("info")
@@ -75,19 +77,20 @@ async fn test_context() -> Result<&'static TestContext> {
 }
 
 async fn init_context() -> Result<TestContext> {
-    let container = DOCKER.run(
-        GenericImage::new(POSTGRES_IMAGE, POSTGRES_TAG)
-            .with_exposed_port(POSTGRES_PORT)
-            .with_env_var("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
-            .with_env_var("POSTGRES_USER", POSTGRES_USER)
-            .with_env_var("POSTGRES_DB", POSTGRES_DB)
-            .with_wait_for(WaitFor::message_on_stdout(
-                "database system is ready to accept connections",
-            )),
-    );
+    let container = GenericImage::new(POSTGRES_IMAGE, POSTGRES_TAG)
+        .with_exposed_port(POSTGRES_PORT.tcp())
+        .with_wait_for(WaitFor::message_on_stdout(
+            "database system is ready to accept connections",
+        ))
+        .with_env_var("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
+        .with_env_var("POSTGRES_USER", POSTGRES_USER)
+        .with_env_var("POSTGRES_DB", POSTGRES_DB)
+        .start()
+        .await
+        .context("failed to start postgres container")?;
 
     let host = "127.0.0.1";
-    let port = container.get_host_port_ipv4(POSTGRES_PORT);
+    let port = container.get_host_port_ipv4(POSTGRES_PORT).await?;
     let database_url =
         format!("postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{host}:{port}/{POSTGRES_DB}");
 
