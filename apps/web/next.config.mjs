@@ -1,9 +1,15 @@
 import withSerwistInit from '@serwist/next';
-import bundleAnalyzer from '@next/bundle-analyzer';
 
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
-});
+// Bundle analyzer is optional - only load when ANALYZE=true and package is available
+let withBundleAnalyzer = (config) => config;
+if (process.env.ANALYZE === 'true') {
+  try {
+    const bundleAnalyzer = (await import('@next/bundle-analyzer')).default;
+    withBundleAnalyzer = bundleAnalyzer({ enabled: true });
+  } catch {
+    console.warn('Bundle analyzer not available, skipping...');
+  }
+}
 
 const _withSerwist = withSerwistInit({
   swSrc: 'app/sw.ts',
