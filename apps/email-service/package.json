@@ -4,15 +4,15 @@
   "dependencies": {
     "@proposalsapp/db": "workspace:*",
     "@proposalsapp/emails": "workspace:*",
-    "@react-email/render": "^2.0.3",
+    "@react-email/render": "^2.0.4",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "node-cron": "^4.2.1",
-    "pino": "^10.2.1",
-    "resend": "^6.8.0"
+    "pino": "^10.3.0",
+    "resend": "^6.9.1"
   },
   "devDependencies": {
-    "@types/node": "^25.0.9",
+    "@types/node": "^25.1.0",
     "@types/node-cron": "^3.0.11",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
