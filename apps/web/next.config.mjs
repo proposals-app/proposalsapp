@@ -1,4 +1,9 @@
 import withSerwistInit from '@serwist/next';
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 const _withSerwist = withSerwistInit({
   swSrc: 'app/sw.ts',
@@ -48,14 +53,15 @@ const nextConfig = {
   },
   // This is required to support PostHog trailing slash API requests
   skipTrailingSlashRedirect: true,
+  cacheComponents: true,
   experimental: {
-    // cacheComponents: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },
   },
   async headers() {
     // Disable proxy buffering so streaming HTML is flushed progressively
+    // Add security headers including CSP
     return [
       {
         source: '/:path*{/}?',
@@ -63,6 +69,32 @@ const nextConfig = {
           {
             key: 'X-Accel-Buffering',
             value: 'no',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' blob: data: https:",
+              "font-src 'self'",
+              "connect-src 'self' https://eu.i.posthog.com https://eu-assets.i.posthog.com wss:",
+              "frame-ancestors 'none'",
+              "form-action 'self'",
+              "base-uri 'self'",
+            ].join('; '),
           },
         ],
       },
@@ -72,9 +104,60 @@ const nextConfig = {
   images: {
     minimumCacheTTL: 3600,
     remotePatterns: [
+      // DiceBear API for generated avatars
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'api.dicebear.com',
+      },
+      // GitHub avatars
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      // Raw GitHub content
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+      },
+      // Discourse CDN (various subdomains)
+      {
+        protocol: 'https',
+        hostname: '*.discourse-cdn.com',
+      },
+      // IPFS gateways
+      {
+        protocol: 'https',
+        hostname: '*.ipfs.io',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ipfs.io',
+      },
+      // Cloudflare IPFS
+      {
+        protocol: 'https',
+        hostname: 'cloudflare-ipfs.com',
+      },
+      // ENS avatars
+      {
+        protocol: 'https',
+        hostname: 'euc.li',
+      },
+      {
+        protocol: 'https',
+        hostname: 'metadata.ens.domains',
+      },
+      // Snapshot CDN
+      {
+        protocol: 'https',
+        hostname: 'cdn.stamp.fyi',
+      },
+      // Generic fallback for DAO logos and other static assets
+      // Note: This is still permissive, but more explicit than '**'
+      // Consider narrowing further as you identify specific domains
+      {
+        protocol: 'https',
+        hostname: '*.githubusercontent.com',
       },
     ],
   },
@@ -130,4 +213,5 @@ const nextConfig = {
 
 // export default nextConfig;
 // If you need Serwist support, uncomment the following line:
-export default _withSerwist(nextConfig);
+// Bundle analyzer can be enabled with ANALYZE=true npm run build
+export default withBundleAnalyzer(_withSerwist(nextConfig));

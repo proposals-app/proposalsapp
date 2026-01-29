@@ -3,7 +3,7 @@
 import Fuse from 'fuse.js';
 import { db } from '@proposalsapp/db';
 import type { AsyncReturnType } from '@/lib/utils';
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, cacheTag, cacheLife } from 'next/cache';
 import {
   type ServerActionVoidResult,
   handleSilentServerAction,
@@ -103,8 +103,9 @@ export interface FuzzySearchResult {
  * Fetches all proposal groups for a given DAO
  */
 export async function getGroupsData(daoSlug: string) {
-  // 'use cache';
-  // cacheTag('groupsData');
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('groupsData');
 
   const dao = await db
     .selectFrom('dao')
@@ -181,8 +182,9 @@ export async function getGroupsData(daoSlug: string) {
 export async function getUngroupedProposals(
   daoSlug: string
 ): Promise<ProposalItem[]> {
-  // 'use cache';
-  // cacheTag('ungroupedProposals');
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('ungroupedProposals');
 
   const dao = await db
     .selectFrom('dao')
@@ -439,6 +441,7 @@ export async function saveGroups(
 
     revalidateTag('groupsData', 'max');
     revalidateTag('ungroupedProposals', 'max');
+    revalidateTag('groups', 'max');
   }, 'saveGroups');
 }
 
@@ -478,6 +481,7 @@ export async function createGroup(
 
     revalidateTag('groupsData', 'max');
     revalidateTag('ungroupedProposals', 'max');
+    revalidateTag('groups', 'max');
   }, 'createGroup');
 }
 
@@ -489,14 +493,16 @@ export async function deleteGroup(groupId: string) {
 
   revalidateTag('groupsData', 'max');
   revalidateTag('ungroupedProposals', 'max');
+  revalidateTag('groups', 'max');
 }
 
 /**
  * Fetches DAO details by slug
  */
 export async function getDao(daoSlug: string) {
-  // 'use cache';
-  // cacheLife('hours');
+  'use cache';
+  cacheLife('hours');
+  cacheTag('dao');
 
   const dao = await db
     .selectFrom('dao')

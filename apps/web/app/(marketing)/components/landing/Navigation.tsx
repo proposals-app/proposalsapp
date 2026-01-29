@@ -49,6 +49,7 @@ export function Navigation() {
             alt='ProposalsApp'
             width={32}
             height={32}
+            priority
             className={`absolute inset-0 h-8 w-8 transition-opacity duration-500 ${
               isLight ? 'opacity-100' : 'opacity-0'
             }`}
@@ -58,6 +59,7 @@ export function Navigation() {
             alt='ProposalsApp'
             width={32}
             height={32}
+            priority
             className={`absolute inset-0 h-8 w-8 transition-opacity duration-500 ${
               isLight ? 'opacity-0' : 'opacity-100'
             }`}

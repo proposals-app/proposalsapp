@@ -1,5 +1,4 @@
 'use server';
-import { cache } from 'react';
 
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import {
@@ -31,7 +30,7 @@ import { getDelegateByDiscourseUser } from './components/feed/actions';
 import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
 import { requireAuth } from '@/lib/server-actions-utils';
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, cacheLife, cacheTag } from 'next/cache';
 import { groupIdSchema } from '@/lib/validations';
 
 export async function updateLastReadAt(groupId: string, daoSlug: string) {
@@ -73,8 +72,9 @@ export type SelectableProposalWithGovernor = Selectable<Proposal> & {
 };
 
 export async function getGroup(groupId: string) {
-  // 'use cache';
-  // cacheLife('hours');
+  'use cache';
+  cacheLife('hours');
+  cacheTag('group', `group-${groupId}`);
 
   // Handle special cases first
   if (
@@ -212,8 +212,8 @@ export async function getGroup(groupId: string) {
   }
 }
 
-// Cached wrappers to dedupe within a render pass
-export const getGroupCached = cache(getGroup);
+// Cached wrapper for getGroup - uses 'use cache' internally
+export const getGroupCached = getGroup;
 
 export type BodyVersionType = {
   title: string;
@@ -229,8 +229,9 @@ export type BodyVersionNoContentType = Omit<BodyVersionType, 'content'>;
 export type VersionType = 'topic' | 'onchain' | 'offchain';
 
 export async function getBodyVersions(groupId: string, withContent: boolean) {
-  // 'use cache';
-  // cacheLife('minutes');
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('body-versions', `body-versions-${groupId}`);
 
   // Validate groupId
   try {
@@ -393,7 +394,7 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
   return bodies;
 }
 
-export const getBodyVersionsCached = cache(getBodyVersions);
+export const getBodyVersionsCached = getBodyVersions;
 
 const MIN_VISIBLE_WIDTH_PERCENT = 1;
 
@@ -476,8 +477,9 @@ function calculateVoteSegments(processedResults: ProcessedResults): {
 }
 
 async function getAuthor(groupId: string) {
-  // 'use cache';
-  // cacheLife('hours');
+  'use cache';
+  cacheLife('hours');
+  cacheTag('author', `author-${groupId}`);
 
   // Validate groupId
   try {
@@ -715,8 +717,9 @@ export async function getFeed(
   posts: Selectable<DiscoursePost>[];
   events: FeedEvent[];
 }> {
-  // 'use cache';
-  // cacheLife('minutes');
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('feed', `feed-${groupId}`);
 
   // Validate groupId
   try {
@@ -1242,15 +1245,16 @@ export async function getFeed(
   };
 }
 
-export const getFeedCached = cache(getFeed);
+export const getFeedCached = getFeed;
 
 export async function getGroupHeader(groupId: string): Promise<{
   originalAuthorName: string;
   originalAuthorPicture: string;
   groupName: string;
 }> {
-  // 'use cache';
-  // cacheLife('hours');
+  'use cache';
+  cacheLife('hours');
+  cacheTag('group-header', `group-header-${groupId}`);
 
   // Validate groupId
   try {
@@ -1439,7 +1443,7 @@ export async function getGroupHeader(groupId: string): Promise<{
   };
 }
 
-export const getGroupHeaderCached = cache(getGroupHeader);
+export const getGroupHeaderCached = getGroupHeader;
 
 export type GroupReturnType = AsyncReturnType<typeof getGroup>;
 export type BodyVersionsReturnType = AsyncReturnType<typeof getBodyVersions>;

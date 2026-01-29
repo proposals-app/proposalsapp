@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import {
   searchParamsCache,
   type FeedFilterEnum,
@@ -24,6 +25,34 @@ import type { ResultEvent } from '@/lib/types';
 import Loading from './loading';
 import { Header } from '../../components/header/header';
 
+type Props = {
+  params: Promise<{ daoSlug: string; groupId: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { groupId } = await params;
+
+  try {
+    const headerInfo = await getGroupHeaderCached(groupId);
+
+    if (!headerInfo || headerInfo.groupName === 'Invalid Group') {
+      return {};
+    }
+
+    return {
+      title: headerInfo.groupName,
+      description: `View proposal details and voting results for ${headerInfo.groupName}`,
+      openGraph: {
+        title: headerInfo.groupName,
+        description: `Governance proposal: ${headerInfo.groupName}`,
+        type: 'article',
+      },
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default async function Page({
   params,
   searchParams,
@@ -31,15 +60,6 @@ export default async function Page({
   params: Promise<{ daoSlug: string; groupId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { groupId } = await params;
-
-  // Validate group exists BEFORE Suspense boundary
-  // This ensures proper 404 status code before streaming starts
-  const group = await getGroupCached(groupId);
-  if (!group) {
-    notFound();
-  }
-
   return (
     <Suspense fallback={<Loading />}>
       <GroupPage params={params} searchParams={searchParams} />
@@ -55,6 +75,13 @@ async function GroupPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { daoSlug, groupId } = await params;
+
+  // Validate group exists - inside Suspense boundary
+  const group = await getGroupCached(groupId);
+  if (!group) {
+    notFound();
+  }
+
   const {
     version,
     diff,

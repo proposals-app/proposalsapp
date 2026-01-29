@@ -4,7 +4,7 @@ import type { AsyncReturnType } from '@/lib/utils';
 import { db, sql } from '@proposalsapp/db';
 import { daoIdSchema, daoSlugSchema } from '@/lib/validations';
 import { requireAuthAndDao } from '@/lib/server-actions-utils';
-import { revalidateTag, unstable_cache } from 'next/cache';
+import { revalidateTag, cacheTag, cacheLife } from 'next/cache';
 import { getFeed } from './(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 
@@ -50,8 +50,12 @@ export async function markAllAsRead(daoSlug: string) {
   }
 }
 
-// Internal function for fetching groups data (without user-specific data)
-async function getGroupsDataInternal(daoSlug: string) {
+// Cached function for fetching groups data (without user-specific data)
+async function getGroupsDataCached(daoSlug: string) {
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('groups');
+
   daoSlugSchema.parse(daoSlug);
 
   const dao = await db
@@ -200,8 +204,6 @@ async function getGroupsDataInternal(daoSlug: string) {
     ])
     .execute();
 
-  // Note: User-specific data is handled in the main getGroups function
-
   // Transform the results
   const groups = groupsWithStats.map((group) => {
     const latestProposalActivity = group.latestProposalActivity?.getTime() || 0;
@@ -251,20 +253,10 @@ async function getGroupsDataInternal(daoSlug: string) {
   };
 }
 
-// Cached version of getGroupsData
-const getCachedGroupsData = unstable_cache(
-  getGroupsDataInternal,
-  ['groups-data'],
-  {
-    revalidate: 60, // Cache for 60 seconds
-    tags: ['groups'],
-  }
-);
-
 // Main export function that combines cached data with user-specific data
 export async function getGroups(daoSlug: string, userId?: string) {
   // Get the cached groups data
-  const cachedData = await getCachedGroupsData(daoSlug);
+  const cachedData = await getGroupsDataCached(daoSlug);
 
   if (!cachedData) return null;
 
@@ -313,13 +305,15 @@ export async function getGroups(daoSlug: string, userId?: string) {
  * Fetches feed data for multiple groups in parallel
  * This eliminates the N+1 query problem when rendering active groups
  */
-// Internal function for fetching active group feeds
-async function getActiveGroupsFeedsInternal(
+// Cached function for fetching active group feeds
+async function getActiveGroupsFeedsCached(
   groupIds: string[]
-): Promise<Map<string, FeedData | null>> {
-  if (!groupIds.length) return new Map();
+): Promise<[string, FeedData | null][]> {
+  'use cache';
+  cacheLife('seconds');
+  cacheTag('feeds');
 
-  // Using static imports instead of dynamic imports
+  if (!groupIds.length) return [];
 
   // Fetch all feeds in parallel
   const feedPromises = groupIds.map(async (groupId) => {
@@ -330,40 +324,24 @@ async function getActiveGroupsFeedsInternal(
         FromFilterEnum.ALL,
         true
       );
-      return { groupId, feedData };
+      return [groupId, feedData] as [string, FeedData | null];
     } catch (error) {
       console.error(`Error fetching feed for group ${groupId}:`, error);
-      return { groupId, feedData: null };
+      return [groupId, null] as [string, FeedData | null];
     }
   });
 
   const results = await Promise.all(feedPromises);
-
-  // Convert to map for easy lookup
-  return new Map(results.map(({ groupId, feedData }) => [groupId, feedData]));
+  return results;
 }
-
-// Cached version of getActiveGroupsFeeds
-const getCachedActiveGroupsFeeds = unstable_cache(
-  async (groupIds: string[]) => {
-    const result = await getActiveGroupsFeedsInternal(groupIds);
-    // Convert Map to array for serialization
-    return Array.from(result.entries());
-  },
-  ['active-groups-feeds'],
-  {
-    revalidate: 30, // Cache for 30 seconds
-    tags: ['feeds'],
-  }
-);
 
 // Export function that handles the cached data
 export async function getActiveGroupsFeeds(
   groupIds: string[]
 ): Promise<Map<string, FeedData | null>> {
   // Get cached data as array
-  const cachedArray = await getCachedActiveGroupsFeeds(groupIds);
-  // Convert back to Map
+  const cachedArray = await getActiveGroupsFeedsCached(groupIds);
+  // Convert to Map
   return new Map(cachedArray);
 }
 
@@ -381,8 +359,12 @@ export type FeedData = Awaited<
 // These seem reasonably optimized and appropriately cached already.
 // Keeping them as they are unless specific issues arise.
 
-// Internal function for fetching total voting power
-async function getTotalVotingPowerInternal(daoId: string): Promise<number> {
+// Cached function for fetching total voting power
+async function getTotalVotingPowerCached(daoId: string): Promise<number> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('voting-power');
+
   // Validate daoId
   try {
     daoIdSchema.parse(daoId);
@@ -416,17 +398,7 @@ async function getTotalVotingPowerInternal(daoId: string): Promise<number> {
   }
 }
 
-// Cached version of getTotalVotingPower
-const getCachedTotalVotingPower = unstable_cache(
-  getTotalVotingPowerInternal,
-  ['total-voting-power'],
-  {
-    revalidate: 1800, // Cache for 30 minutes
-    tags: ['voting-power'],
-  }
-);
-
 // Export function
 export async function getTotalVotingPower(daoId: string): Promise<number> {
-  return getCachedTotalVotingPower(daoId);
+  return getTotalVotingPowerCached(daoId);
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Results, ResultsLoading } from './components/results';
 import { LoadingTimeline, Timeline } from './components/timeline/timeline';
@@ -12,6 +13,36 @@ import {
   SkeletonText,
   SkeletonButton,
 } from '../../../../../../components/ui/skeleton';
+
+type Props = {
+  params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { groupId, resultNumber } = await params;
+  const group = await getGroup(groupId);
+
+  if (!group) {
+    return {};
+  }
+
+  const proposalIndex = parseInt(resultNumber, 10) - 1;
+  const proposal = group.proposals[proposalIndex];
+
+  if (!proposal) {
+    return {};
+  }
+
+  return {
+    title: `Vote Results - ${proposal.name}`,
+    description: `View voting results and breakdown for ${proposal.name}`,
+    openGraph: {
+      title: `Vote Results - ${proposal.name}`,
+      description: `Voting results for governance proposal: ${proposal.name}`,
+      type: 'article',
+    },
+  };
+}
 
 export default async function Page({
   params,

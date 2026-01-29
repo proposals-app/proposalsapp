@@ -8,12 +8,15 @@ import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/providers/posthog-provider';
 import { SafariViewportProvider } from './components/providers/safari-viewport-provider';
-import { headers, cookies } from 'next/headers';
+import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   // Use production base by default; Next can override per-request in advanced setups
   metadataBase: new URL(process.env.WEB_URL || `https://proposals.app`),
-  title: 'proposals.app',
+  title: {
+    template: '%s | proposals.app',
+    default: 'proposals.app',
+  },
   applicationName: 'proposals.app',
   appleWebApp: {
     capable: true,
@@ -21,9 +24,20 @@ export const metadata: Metadata = {
     title: 'proposals.app',
   },
   description:
-    'The place where you can find all the \ud83d\udd25 and \ud83c\udf36 info from your favorite DAOs.',
+    'The place where you can find all the info from your favorite DAOs.',
   icons: ['favicon.ico'],
   manifest: '/manifest.json',
+  twitter: {
+    card: 'summary_large_image',
+    title: 'proposals.app',
+    description: 'The place for DAO governance',
+  },
+  openGraph: {
+    type: 'website',
+    title: 'proposals.app',
+    description: 'The place for DAO governance',
+    siteName: 'proposals.app',
+  },
 };
 
 export const viewport: Viewport = {
@@ -34,31 +48,14 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default async function Layout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // Server-side read of theme cookies to set initial HTML class/attr
-  // to prevent any flash before the head script runs.
-  let initialModeClass = '';
-  let initialVariant: string | undefined = undefined;
-  try {
-    const cookieStore = await cookies();
-    const mode = cookieStore.get('theme-mode')?.value;
-    const variant = cookieStore.get('theme-variant')?.value;
-    if (mode === 'dark') initialModeClass = 'dark';
-    if (variant) initialVariant = variant;
-  } catch {
-    // nothing
-  }
-
+export default function Layout({ children }: { children: React.ReactNode }) {
+  // Theme is initialized via client-side script to avoid FOUC
+  // Server-side cookie reading removed - let the inline script handle it
   return (
     <html
       lang='en'
       suppressHydrationWarning
-      className={`${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable} ${initialModeClass}`}
-      {...(initialVariant ? { 'data-theme': initialVariant } : {})}
+      className={`${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable}`}
     >
       <head>
         <link rel='icon' href='/favicon.ico' />

@@ -36,6 +36,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
             src={`/${DAO_PICTURE_PATH}.svg`}
             width={32}
             height={32}
+            priority
             className='dark:hidden'
             alt={''}
           />
@@ -43,6 +44,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
             src={`/${DAO_PICTURE_PATH}_dark.svg`}
             width={32}
             height={32}
+            priority
             className='hidden dark:block'
             alt={''}
           />
@@ -85,6 +87,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
               src={`/${DAO_PICTURE_PATH}.svg`}
               width={64}
               height={64}
+              priority
               className='dark:hidden'
               alt={''}
             />
@@ -92,6 +95,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
               src={`/${DAO_PICTURE_PATH}_dark.svg`}
               width={64}
               height={64}
+              priority
               className='hidden dark:block'
               alt={''}
             />
