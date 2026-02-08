@@ -13,7 +13,8 @@ use proposalsapp_db::models::{
 use rindexer::provider::RindexerProvider;
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, DbBackend,
-    EntityTrait, QueryFilter, Set, Statement, prelude::Uuid, sea_query::OnConflict,
+    EntityTrait, QueryFilter, Set, Statement, prelude::Uuid,
+    sea_query::{Expr, OnConflict},
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -357,6 +358,7 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
                     vote::Column::VoterAddress,
                     vote::Column::Txid,
                 ])
+                .target_and_where(Expr::col(vote::Column::Txid).is_not_null())
                 .update_columns([
                     vote::Column::Choice,
                     vote::Column::VotingPower,
@@ -409,6 +411,7 @@ pub async fn store_delegations(delegations: Vec<delegation::ActiveModel>) -> Res
                     delegation::Column::DaoId,
                     delegation::Column::Txid,
                 ])
+                .target_and_where(Expr::col(delegation::Column::Txid).is_not_null())
                 .update_columns([
                     delegation::Column::Delegate,
                     delegation::Column::Timestamp,
@@ -467,6 +470,9 @@ pub async fn store_voting_powers(
                     voting_power_timeseries::Column::DaoId,
                     voting_power_timeseries::Column::Txid,
                 ])
+                .target_and_where(
+                    Expr::col(voting_power_timeseries::Column::Txid).is_not_null(),
+                )
                 .update_columns([
                     voting_power_timeseries::Column::VotingPower,
                     voting_power_timeseries::Column::Timestamp,
