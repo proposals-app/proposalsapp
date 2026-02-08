@@ -130,6 +130,15 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.discourse-cdn.com',
       },
+      // Discourse forum avatars (served directly, not via CDN)
+      {
+        protocol: 'https',
+        hostname: 'forum.arbitrum.foundation',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gov.uniswap.org',
+      },
       // IPFS gateways
       {
         protocol: 'https',
