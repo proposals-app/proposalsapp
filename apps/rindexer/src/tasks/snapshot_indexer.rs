@@ -7,13 +7,13 @@ use crate::extensions::{
 };
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use proposalsapp_db::models::{proposal, vote};
+use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use sea_orm::{
-    ColumnTrait, EntityTrait, QueryFilter, QueryOrder,
+    ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     prelude::{Expr, Uuid},
 };
 use std::time::Duration as StdDuration;
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info, instrument, warn};
 
 // Constants
 const REFRESH_INTERVAL: StdDuration = StdDuration::from_secs(60);
@@ -82,6 +82,11 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
                 // Index votes
                 if let Err(e) = index_votes(&space, governor_id, dao_id).await {
                     error!(space = %space, error = %e, "Failed to index votes");
+                }
+
+                // Reconcile vote counts for active proposals
+                if let Err(e) = reconcile_active_proposal_votes(&space, governor_id, dao_id).await {
+                    error!(space = %space, error = %e, "Failed to reconcile votes");
                 }
             }
         }
@@ -163,37 +168,31 @@ async fn index_votes(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()>
         // Get cursor before moving votes
         let last_cursor = votes.last().map(|v| v.created);
 
-        // Store votes in background (non-blocking)
+        // Convert SnapshotVotes to ActiveModels and persist before reconciliation runs.
         let vote_count = votes.len();
-        tokio::spawn(async move {
-            // Convert SnapshotVotes to ActiveModels
-            let mut vote_models = Vec::new();
-            for vote in votes {
-                match vote.to_active_model(governor_id, dao_id) {
-                    Ok(Some(vote_model)) => vote_models.push(vote_model),
-                    Ok(None) => {
-                        debug!(voter = %vote.voter, "Skipped invalid vote");
-                    }
-                    Err(e) => {
-                        error!(voter = %vote.voter, error = %e, "Failed to convert vote");
-                    }
+        let mut vote_models = Vec::new();
+        for vote in votes {
+            match vote.to_active_model(governor_id, dao_id) {
+                Ok(Some(vote_model)) => vote_models.push(vote_model),
+                Ok(None) => {
+                    debug!(voter = %vote.voter, "Skipped invalid vote");
+                }
+                Err(e) => {
+                    error!(voter = %vote.voter, error = %e, "Failed to convert vote");
                 }
             }
+        }
 
-            if !vote_models.is_empty() {
-                match store_votes(vote_models, governor_id).await {
-                    Ok(()) => {
-                        info!(
-                            vote_count = vote_count,
-                            "Successfully stored votes in background"
-                        );
-                    }
-                    Err(e) => {
-                        error!(error = %e, vote_count = vote_count, "Failed to store votes in background");
-                    }
+        if !vote_models.is_empty() {
+            match store_votes(vote_models, governor_id).await {
+                Ok(()) => {
+                    info!(vote_count = vote_count, "Successfully stored votes");
+                }
+                Err(e) => {
+                    error!(error = %e, vote_count = vote_count, "Failed to store votes");
                 }
             }
-        });
+        }
 
         // Log the latest vote timestamp (cursor is now from database)
         if let Some(cursor) = last_cursor {
@@ -374,4 +373,75 @@ async fn get_vote_cursor(space: &str) -> Result<i64> {
     let one_year_ago = (Utc::now() - Duration::days(10 * 365)).timestamp();
     debug!(space = %space, cursor = one_year_ago, "Using default vote cursor (1 year ago)");
     Ok(one_year_ago)
+}
+
+/// Reconcile vote counts for active proposals by comparing DB counts with Snapshot API counts.
+/// If a mismatch is detected, re-fetches all votes for the proposal using skip-based pagination.
+#[instrument(name = "reconcile_active_proposal_votes", skip_all, fields(space = space))]
+async fn reconcile_active_proposal_votes(
+    space: &str,
+    governor_id: Uuid,
+    dao_id: Uuid,
+) -> Result<()> {
+    let db = DB.get().context("DB not initialized")?;
+
+    // Find active proposals for this governor
+    let active_proposals = proposal::Entity::find()
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
+        .all(db)
+        .await?;
+
+    for prop in active_proposals {
+        // Get expected vote count from metadata
+        let expected_count = prop
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("snapshot_vote_count"))
+            .and_then(|v| v.as_u64());
+
+        let Some(expected_count) = expected_count else {
+            continue;
+        };
+
+        // Count actual votes in DB
+        let db_count = vote::Entity::find()
+            .filter(vote::Column::ProposalId.eq(prop.id))
+            .count(db)
+            .await?;
+
+        if db_count < expected_count {
+            warn!(
+                space = %space,
+                proposal_id = %prop.external_id,
+                expected = expected_count,
+                actual = db_count,
+                delta = expected_count - db_count,
+                "Vote count mismatch detected, reconciling"
+            );
+
+            let api = SnapshotApi::new();
+            let votes = api.fetch_all_proposal_votes(&prop.external_id).await?;
+
+            let mut vote_models = Vec::new();
+            for vote in votes {
+                match vote.to_active_model(governor_id, dao_id) {
+                    Ok(Some(m)) => vote_models.push(m),
+                    Ok(None) => {}
+                    Err(e) => error!(error = %e, "Failed to convert reconciliation vote"),
+                }
+            }
+
+            if !vote_models.is_empty() {
+                store_votes(vote_models, governor_id).await?;
+                info!(
+                    space = %space,
+                    proposal_id = %prop.external_id,
+                    "Reconciliation complete"
+                );
+            }
+        }
+    }
+
+    Ok(())
 }
