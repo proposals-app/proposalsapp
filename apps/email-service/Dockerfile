@@ -37,17 +37,17 @@ FROM dhi.io/node:22-debian13
 WORKDIR /app
 ARG APP_NAME
 
-# Copy only necessary files (using nonroot user from DHI base image)
-COPY --from=builder --chown=nonroot:nonroot /app/apps/${APP_NAME}/dist/ /app/apps/${APP_NAME}/dist/
-COPY --from=builder --chown=nonroot:nonroot /app/libs/ts/db/ /app/libs/ts/db/
-COPY --from=builder --chown=nonroot:nonroot /app/libs/ts/emails/ /app/libs/ts/emails/
-COPY --from=builder --chown=nonroot:nonroot /app/node_modules/ /app/node_modules/
-COPY --from=builder --chown=nonroot:nonroot /app/package.json /app/
+# Copy only necessary files (runtime image provides `node` user)
+COPY --from=builder --chown=node:node /app/apps/${APP_NAME}/dist/ /app/apps/${APP_NAME}/dist/
+COPY --from=builder --chown=node:node /app/libs/ts/db/ /app/libs/ts/db/
+COPY --from=builder --chown=node:node /app/libs/ts/emails/ /app/libs/ts/emails/
+COPY --from=builder --chown=node:node /app/node_modules/ /app/node_modules/
+COPY --from=builder --chown=node:node /app/package.json /app/
 
 ENV NODE_ENV=production
 
-# Switch to non-root user (nonroot is provided by DHI base images)
-USER nonroot
+# Switch to non-root user from the base runtime image
+USER node
 
 # Expose health server port
 EXPOSE 3000

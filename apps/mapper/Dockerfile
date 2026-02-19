@@ -58,7 +58,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     && cp /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
 # Stage 3: Runtime - minimal production image
-FROM dhi.io/debian-base:trixie AS runtime
+FROM debian:trixie-slim AS runtime
 ARG APP_NAME
 WORKDIR /app
 
@@ -67,13 +67,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates libssl3t64 libunwind8 libdw1t64 \
     && rm -rf /var/lib/apt/lists/*
 
-# Ensure nonroot user can access app files
-RUN chown -R nonroot:nonroot /app
+# Create non-root user with stable UID/GID
+RUN groupadd -g 10001 appgroup && \
+    useradd -u 10000 -g appgroup -s /bin/false appuser && \
+    chown -R appuser:appgroup /app
 
 # Copy binary from builder
-COPY --from=builder --chown=nonroot:nonroot /usr/local/bin/${APP_NAME} /usr/local/bin/${APP_NAME}
-COPY --from=builder --chown=nonroot:nonroot /app/apps/mapper/mapper.yaml /app/mapper.yaml
+COPY --from=builder --chown=appuser:appgroup /usr/local/bin/${APP_NAME} /usr/local/bin/${APP_NAME}
+COPY --from=builder --chown=appuser:appgroup /app/apps/mapper/mapper.yaml /app/mapper.yaml
 
-USER nonroot
+USER appuser:appgroup
 EXPOSE 3000
 CMD ["mapper"]
