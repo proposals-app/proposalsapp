@@ -10,7 +10,7 @@ use futures::stream::{self, StreamExt};
 use proposalsapp_db::models::discourse_post;
 use reqwest::Client;
 use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, QueryFilter,
+    ColumnTrait, Condition, EntityTrait, FromQueryResult, QueryFilter, QuerySelect,
     prelude::{Expr, Uuid},
 };
 use std::{
@@ -53,22 +53,30 @@ impl PostIndexer {
         topic_id: i32,
         priority: bool, // Use priority for API requests if needed (e.g., for recent topics)
     ) -> Result<()> {
+        #[derive(FromQueryResult)]
+        struct ExistingPostId {
+            external_id: i32,
+        }
+
         let start_time = Instant::now();
         info!("Starting post update for topic");
 
         // Fetch existing post IDs for this topic from the database for deletion check later.
         let existing_db_posts = discourse_post::Entity::find()
+            .select_only()
+            .column(discourse_post::Column::ExternalId)
             .filter(
                 Condition::all()
                     .add(discourse_post::Column::TopicId.eq(topic_id))
                     .add(discourse_post::Column::DaoDiscourseId.eq(dao_discourse_id)),
             )
+            .into_model::<ExistingPostId>()
             .all(db())
             .await
             .context("Failed to fetch existing posts from DB")?;
 
         let existing_db_post_ids: HashSet<i32> = existing_db_posts
-            .iter()
+            .into_iter()
             .map(|post| post.external_id)
             .collect();
         debug!(

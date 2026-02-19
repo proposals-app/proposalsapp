@@ -32,75 +32,105 @@ export async function getDelegatesWithMappings(daoSlug: string) {
     .selectAll()
     .execute();
 
-  const delegatesWithMappings = await Promise.all(
-    delegates.map(async (delegate) => {
-      const delegateToDiscourseUsers = await db
-        .selectFrom('delegateToDiscourseUser')
-        .innerJoin(
-          'discourseUser',
-          'discourseUser.id',
-          'delegateToDiscourseUser.discourseUserId'
-        )
-        .where('delegateToDiscourseUser.delegateId', '=', delegate.id)
-        .selectAll()
-        .execute();
+  if (delegates.length === 0) return [];
 
-      let discourseUsers: Selectable<DiscourseUser>[] = [];
+  const delegateIds = delegates.map((delegate) => delegate.id);
 
-      if (delegateToDiscourseUsers.length) {
-        discourseUsers = await db
+  const [delegateToDiscourseUsers, delegateToVoters] = await Promise.all([
+    db
+      .selectFrom('delegateToDiscourseUser')
+      .where('delegateId', 'in', delegateIds)
+      .select(['delegateId', 'discourseUserId', 'periodStart'])
+      .execute(),
+    db
+      .selectFrom('delegateToVoter')
+      .where('delegateId', 'in', delegateIds)
+      .select(['delegateId', 'voterId', 'periodStart'])
+      .execute(),
+  ]);
+
+  const discourseUserIds = [
+    ...new Set(
+      delegateToDiscourseUsers.map((mapping) => mapping.discourseUserId)
+    ),
+  ];
+  const voterIds = [
+    ...new Set(delegateToVoters.map((mapping) => mapping.voterId)),
+  ];
+
+  const [discourseUsers, voters] = await Promise.all([
+    discourseUserIds.length > 0
+      ? db
           .selectFrom('discourseUser')
-          .where(
-            'discourseUser.id',
-            'in',
-            delegateToDiscourseUsers.map((dd) => dd.discourseUserId)
-          )
+          .where('id', 'in', discourseUserIds)
           .selectAll()
-          .execute();
-      }
+          .execute()
+      : Promise.resolve([] as Selectable<DiscourseUser>[]),
+    voterIds.length > 0
+      ? db.selectFrom('voter').where('id', 'in', voterIds).selectAll().execute()
+      : Promise.resolve([] as Selectable<Voter>[]),
+  ]);
 
-      const delegateToVoters = await db
-        .selectFrom('delegateToVoter')
-        .innerJoin('voter', 'voter.id', 'delegateToVoter.voterId')
-        .where('delegateToVoter.delegateId', '=', delegate.id)
-        .selectAll()
-        .execute();
-
-      let voters: Selectable<Voter>[] = [];
-
-      if (delegateToVoters.length) {
-        voters = await db
-          .selectFrom('voter')
-          .where(
-            'voter.id',
-            'in',
-            delegateToVoters.map((dtv) => dtv.voterId)
-          )
-          .selectAll()
-          .execute();
-      }
-
-      let latestMappingTimestamp: Date | null = null;
-
-      if (delegateToDiscourseUsers.length > 0 || delegateToVoters.length > 0) {
-        const discourseUserTimestamps = delegateToDiscourseUsers.map(
-          (d) => d.periodStart
-        );
-        const voterTimestamps = delegateToVoters.map((v) => v.periodStart);
-        const allTimestamps = [...discourseUserTimestamps, ...voterTimestamps];
-        latestMappingTimestamp = new Date(
-          Math.max(...allTimestamps.map((date) => date.getTime()))
-        );
-      }
-
-      return {
-        delegate,
-        discourseUsers,
-        voters,
-        latestMappingTimestamp,
-      };
-    })
+  const discourseUserById = new Map(
+    discourseUsers.map((user) => [user.id, user])
   );
+  const voterById = new Map(voters.map((voter) => [voter.id, voter]));
+
+  const discourseMappingsByDelegate = new Map<
+    string,
+    Array<{ discourseUserId: string; periodStart: Date }>
+  >();
+  for (const mapping of delegateToDiscourseUsers) {
+    const rows = discourseMappingsByDelegate.get(mapping.delegateId) ?? [];
+    rows.push({
+      discourseUserId: mapping.discourseUserId,
+      periodStart: mapping.periodStart,
+    });
+    discourseMappingsByDelegate.set(mapping.delegateId, rows);
+  }
+
+  const voterMappingsByDelegate = new Map<
+    string,
+    Array<{ voterId: string; periodStart: Date }>
+  >();
+  for (const mapping of delegateToVoters) {
+    const rows = voterMappingsByDelegate.get(mapping.delegateId) ?? [];
+    rows.push({
+      voterId: mapping.voterId,
+      periodStart: mapping.periodStart,
+    });
+    voterMappingsByDelegate.set(mapping.delegateId, rows);
+  }
+
+  const delegatesWithMappings = delegates.map((delegate) => {
+    const discourseMappings =
+      discourseMappingsByDelegate.get(delegate.id) ?? [];
+    const voterMappings = voterMappingsByDelegate.get(delegate.id) ?? [];
+
+    const mappedDiscourseUsers = discourseMappings
+      .map((mapping) => discourseUserById.get(mapping.discourseUserId))
+      .filter((user): user is Selectable<DiscourseUser> => Boolean(user));
+
+    const mappedVoters = voterMappings
+      .map((mapping) => voterById.get(mapping.voterId))
+      .filter((voter): voter is Selectable<Voter> => Boolean(voter));
+
+    const timestamps = [
+      ...discourseMappings.map((mapping) => mapping.periodStart),
+      ...voterMappings.map((mapping) => mapping.periodStart),
+    ];
+    const latestMappingTimestamp =
+      timestamps.length > 0
+        ? new Date(Math.max(...timestamps.map((date) => date.getTime())))
+        : null;
+
+    return {
+      delegate,
+      discourseUsers: mappedDiscourseUsers,
+      voters: mappedVoters,
+      latestMappingTimestamp,
+    };
+  });
 
   delegatesWithMappings.sort((a, b) => {
     const hasMappingsA = a.discourseUsers.length > 0 || a.voters.length > 0;

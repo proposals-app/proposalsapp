@@ -32,6 +32,8 @@ pub async fn initialize_db() -> Result<()> {
         .acquire_timeout(Duration::from_secs(30))
         .idle_timeout(Duration::from_secs(5 * 60))
         .max_lifetime(Duration::from_secs(30 * 60))
+        .test_before_acquire(true)
+        .map_sqlx_postgres_opts(|opts| opts.statement_cache_capacity(200))
         .sqlx_logging(false);
 
     let db = sea_orm::Database::connect(opt)
@@ -444,52 +446,41 @@ pub async fn upsert_post_likes_batch(
         return Ok(());
     }
 
-    // 1. Find existing likes for this specific post and DAO instance
-    let existing_likes = discourse_post_like::Entity::find()
-        .filter(
-            Condition::all()
-                .add(discourse_post_like::Column::ExternalDiscoursePostId.eq(post_id))
-                .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id))
-                .add(discourse_post_like::Column::ExternalUserId.is_in(user_ids.clone())), // Filter by provided users
-        )
-        .all(db())
-        .await
-        .context("Failed to query existing post likes")?;
-
-    // 2. Create a set of user IDs that already have a like recorded
-    let existing_user_ids: std::collections::HashSet<i32> = existing_likes
+    let unique_user_ids: std::collections::HashSet<i32> = user_ids.into_iter().collect();
+    let new_likes_models: Vec<discourse_post_like::ActiveModel> = unique_user_ids
         .into_iter()
-        .map(|like| like.external_user_id)
-        .collect();
-
-    // 3. Determine which user IDs are new likes
-    let new_likes_models: Vec<discourse_post_like::ActiveModel> = user_ids
-        .into_iter()
-        .filter(|user_id| !existing_user_ids.contains(user_id)) // Filter out existing ones
         .map(|user_id| discourse_post_like::ActiveModel {
             id: NotSet, // Let DB generate UUID
             external_discourse_post_id: Set(post_id),
             external_user_id: Set(user_id),
-            created_at: Set(Utc::now().naive_utc()), // Set creation time
+            created_at: Set(Utc::now().naive_utc()),
             dao_discourse_id: Set(dao_discourse_id),
         })
         .collect();
 
-    // 4. Insert only the new likes
-    let new_likes_count = new_likes_models.len();
-    if new_likes_count > 0 {
+    let attempted_insert_count = new_likes_models.len();
+    if attempted_insert_count > 0 {
         discourse_post_like::Entity::insert_many(new_likes_models)
+            .on_conflict(
+                OnConflict::columns([
+                    discourse_post_like::Column::ExternalDiscoursePostId,
+                    discourse_post_like::Column::ExternalUserId,
+                    discourse_post_like::Column::DaoDiscourseId,
+                ])
+                .do_nothing()
+                .to_owned(),
+            )
             .exec(db())
             .await
             .with_context(|| {
                 format!(
-                    "Failed to batch insert {new_likes_count} new post likes for post {post_id}"
+                    "Failed to batch upsert {attempted_insert_count} post likes for post {post_id}"
                 )
             })?;
         info!(
             post_id,
-            new_likes_inserted = new_likes_count,
-            "Successfully batch inserted new post likes."
+            attempted_likes = attempted_insert_count,
+            "Successfully batch upserted post likes."
         );
     } else {
         debug!(post_id, "No new likes to insert for this batch.");

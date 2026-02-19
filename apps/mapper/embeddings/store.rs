@@ -67,16 +67,16 @@ impl EmbeddingStore {
         let now = Utc::now().naive_utc();
         let embedding_str = format_embedding(&input.embedding);
 
-        // Use ON CONFLICT to upsert
-        let sql = format!(
-            r#"
+        // Use ON CONFLICT to upsert.
+        // Keep SQL text stable so sqlx can reuse prepared statements.
+        let sql = r#"
             INSERT INTO public.embedding (
                 id, entity_type, entity_id, external_id, embedding,
                 content_hash, model_version, created_at, updated_at
             )
             VALUES (
-                gen_random_uuid(), $1, $2, $3, '{}'::vector,
-                $4, $5, $6, $6
+                gen_random_uuid(), $1, $2, $3, $4::vector,
+                $5, $6, $7, $7
             )
             ON CONFLICT (entity_type, entity_id)
             DO UPDATE SET
@@ -85,17 +85,16 @@ impl EmbeddingStore {
                 model_version = EXCLUDED.model_version,
                 updated_at = EXCLUDED.updated_at
             RETURNING id
-            "#,
-            embedding_str
-        );
+            "#;
 
         let stmt = Statement::from_sql_and_values(
             sea_orm::DatabaseBackend::Postgres,
-            &sql,
+            sql,
             vec![
                 input.entity_type.as_str().into(),
                 input.entity_id.into(),
                 input.external_id.into(),
+                embedding_str.into(),
                 input.content_hash.into(),
                 input.model_version.into(),
                 now.into(),
@@ -246,25 +245,23 @@ impl EmbeddingStore {
     ) -> Result<Vec<SimilarityMatch>> {
         let embedding_str = format_embedding(embedding);
 
-        let sql = format!(
-            r#"
+        let sql = r#"
             SELECT
                 entity_id,
                 external_id,
-                (1 - (embedding <=> '{}'::vector))::float4 as similarity
+                (1 - (embedding <=> $1::vector))::float4 as similarity
             FROM public.embedding
-            WHERE entity_type = $1
-              AND 1 - (embedding <=> '{}'::vector) > $2
-            ORDER BY embedding <=> '{}'::vector
-            LIMIT $3
-            "#,
-            embedding_str, embedding_str, embedding_str
-        );
+            WHERE entity_type = $2
+              AND 1 - (embedding <=> $1::vector) > $3
+            ORDER BY embedding <=> $1::vector
+            LIMIT $4
+            "#;
 
         let stmt = Statement::from_sql_and_values(
             sea_orm::DatabaseBackend::Postgres,
-            &sql,
+            sql,
             vec![
+                embedding_str.into(),
                 entity_type.as_str().into(),
                 threshold.into(),
                 (limit as i64).into(),
@@ -304,24 +301,23 @@ impl EmbeddingStore {
 
         let (sql, values): (String, Vec<sea_orm::Value>) = match entity_type {
             EntityType::Topic => (
-                format!(
-                    r#"
+                r#"
                     SELECT
                         e.entity_id,
                         e.external_id,
-                        (1 - (e.embedding <=> '{}'::vector))::float4 as similarity
+                        (1 - (e.embedding <=> $1::vector))::float4 as similarity
                     FROM public.embedding e
                     JOIN public.discourse_topic dt ON dt.id = e.entity_id
                     JOIN public.dao_discourse dd ON dd.id = dt.dao_discourse_id
-                    WHERE e.entity_type = $1
-                      AND dd.dao_id = $2
-                      AND 1 - (e.embedding <=> '{}'::vector) > $3
-                    ORDER BY e.embedding <=> '{}'::vector
-                    LIMIT $4
-                    "#,
-                    embedding_str, embedding_str, embedding_str
-                ),
+                    WHERE e.entity_type = $2
+                      AND dd.dao_id = $3
+                      AND 1 - (e.embedding <=> $1::vector) > $4
+                    ORDER BY e.embedding <=> $1::vector
+                    LIMIT $5
+                    "#
+                .to_string(),
                 vec![
+                    embedding_str.clone().into(),
                     entity_type.as_str().into(),
                     dao_id.into(),
                     threshold.into(),
@@ -329,23 +325,22 @@ impl EmbeddingStore {
                 ],
             ),
             EntityType::Proposal => (
-                format!(
-                    r#"
+                r#"
                     SELECT
                         e.entity_id,
                         e.external_id,
-                        (1 - (e.embedding <=> '{}'::vector))::float4 as similarity
+                        (1 - (e.embedding <=> $1::vector))::float4 as similarity
                     FROM public.embedding e
                     JOIN public.proposal p ON p.id = e.entity_id
-                    WHERE e.entity_type = $1
-                      AND p.dao_id = $2
-                      AND 1 - (e.embedding <=> '{}'::vector) > $3
-                    ORDER BY e.embedding <=> '{}'::vector
-                    LIMIT $4
-                    "#,
-                    embedding_str, embedding_str, embedding_str
-                ),
+                    WHERE e.entity_type = $2
+                      AND p.dao_id = $3
+                      AND 1 - (e.embedding <=> $1::vector) > $4
+                    ORDER BY e.embedding <=> $1::vector
+                    LIMIT $5
+                    "#
+                .to_string(),
                 vec![
+                    embedding_str.into(),
                     entity_type.as_str().into(),
                     dao_id.into(),
                     threshold.into(),

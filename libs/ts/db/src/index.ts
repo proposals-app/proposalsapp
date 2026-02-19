@@ -27,14 +27,34 @@ if (!isBuildPhase) {
 
 const { Pool } = pg;
 
+function parsePoolInteger(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 // Use dummy connection strings during build phase
 const DATABASE_URL =
   process.env.DATABASE_URL || 'postgresql://build:build@localhost:5432/build';
 
+const poolMin = parsePoolInteger(process.env.DB_POOL_MIN, 0);
+const poolMax = parsePoolInteger(process.env.DB_POOL_MAX, 10);
+const poolConnectTimeoutMs = parsePoolInteger(
+  process.env.DB_POOL_CONNECT_TIMEOUT_MS,
+  10_000
+);
+const poolIdleTimeoutMs = parsePoolInteger(
+  process.env.DB_POOL_IDLE_TIMEOUT_MS,
+  30_000
+);
+
 export const db_pool_public = new Pool({
   connectionString: DATABASE_URL,
-  min: 5,
-  max: 10,
+  min: Math.min(poolMin, poolMax),
+  max: poolMax,
+  connectionTimeoutMillis: poolConnectTimeoutMs,
+  idleTimeoutMillis: poolIdleTimeoutMs,
+  allowExitOnIdle: isBuildPhase || process.env.NODE_ENV === 'test',
 });
 
 // Extend DB type with materialized views
@@ -57,7 +77,10 @@ declare global {
   var dbInternal: Kysely<ExtendedDB> | undefined;
 }
 
-const dbInstance = global.dbInternal || createDbInstance();
+const dbInstance =
+  process.env.NODE_ENV === 'production'
+    ? createDbInstance()
+    : (global.dbInternal ??= createDbInstance());
 
 export const dbPool = db_pool_public;
 

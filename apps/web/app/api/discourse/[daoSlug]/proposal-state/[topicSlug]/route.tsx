@@ -3,8 +3,8 @@ import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import satori from 'satori';
 import type { NextRequest } from 'next/server';
 import { DiscourseResultCard } from './components/results/discourse-result-card';
-import { TimelineEventType, type ProposalGroupItem } from '@/lib/types';
-import { db } from '@proposalsapp/db';
+import { TimelineEventType } from '@/lib/types';
+import { db, sql } from '@proposalsapp/db';
 
 // Function to get group ID from topic slug
 async function getGroupIdFromTopicSlug(
@@ -41,33 +41,24 @@ async function getGroupIdFromTopicSlug(
 
   if (!discourseTopic) return null;
 
-  // Find the proposal group containing this topic
-  const proposalGroups = await db
-    .selectFrom('proposalGroup')
-    .where('daoId', '=', dao.id)
-    .select(['id', 'items'])
-    .execute();
+  const matchingGroup = await db
+    .selectFrom('proposalGroup as pg')
+    .where('pg.daoId', '=', dao.id)
+    .where(
+      sql<boolean>`
+      exists (
+        select 1
+        from jsonb_array_elements("pg"."items") as item
+        where item->>'type' = 'topic'
+          and item->>'externalId' = ${discourseTopic.externalId.toString()}
+          and item->>'daoDiscourseId' = ${discourseTopic.daoDiscourseId}
+      )
+    `
+    )
+    .select('pg.id')
+    .executeTakeFirst();
 
-  for (const group of proposalGroups) {
-    const items = group.items as ProposalGroupItem[];
-
-    // Check if this group contains the topic
-    const hasMatchingTopic = items.some((item) => {
-      if (item.type === 'topic') {
-        return (
-          item.externalId === discourseTopic.externalId.toString() &&
-          item.daoDiscourseId === discourseTopic.daoDiscourseId
-        );
-      }
-      return false;
-    });
-
-    if (hasMatchingTopic) {
-      return group.id;
-    }
-  }
-
-  return null;
+  return matchingGroup?.id ?? null;
 }
 
 // Cache fonts across requests

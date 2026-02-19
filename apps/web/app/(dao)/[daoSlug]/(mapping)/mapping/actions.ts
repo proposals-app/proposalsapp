@@ -122,56 +122,125 @@ export async function getGroupsData(daoSlug: string) {
     .orderBy('createdAt', 'desc')
     .execute();
 
-  const groupsWithItems = await Promise.all(
-    proposalGroups.map(async (group) => {
-      const items = group.items as StoredProposalGroupItem[];
-      const itemsWithIndexerName = await Promise.all(
-        items.map(async (item) => {
-          const normalized = normalizeGroupItem(item);
-          let indexerName = normalized.indexerName ?? 'unknown';
+  const normalizedGroups = proposalGroups.map((group) => ({
+    ...group,
+    items: (group.items as StoredProposalGroupItem[]).map((item) =>
+      normalizeGroupItem(item)
+    ),
+  }));
 
-          if (normalized.type === 'proposal') {
-            const proposal = await db
-              .selectFrom('proposal')
-              .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
-              .select('daoGovernor.name as governorName')
-              .where('proposal.externalId', '=', normalized.externalId)
-              .where('proposal.governorId', '=', normalized.governorId)
-              .executeTakeFirst();
-            indexerName = proposal?.governorName ?? indexerName;
-          } else {
-            const topic = await db
-              .selectFrom('discourseTopic')
-              .leftJoin(
-                'daoDiscourse',
-                'daoDiscourse.id',
-                'discourseTopic.daoDiscourseId'
-              )
-              .select('daoDiscourse.discourseBaseUrl')
-              .where(
-                'discourseTopic.externalId',
-                '=',
-                Number.parseInt(normalized.externalId, 10)
-              )
-              .where(
-                'discourseTopic.daoDiscourseId',
-                '=',
-                normalized.daoDiscourseId
-              )
-              .executeTakeFirst();
-            indexerName = topic?.discourseBaseUrl ?? indexerName;
-          }
+  const proposalKeys = new Map<
+    string,
+    { externalId: string; governorId: string }
+  >();
+  const topicKeys = new Map<
+    string,
+    { externalId: number; daoDiscourseId: string }
+  >();
 
-          return { ...normalized, indexerName };
-        })
+  for (const group of normalizedGroups) {
+    for (const item of group.items) {
+      if (item.type === 'proposal') {
+        const key = `${item.externalId}:${item.governorId}`;
+        if (!proposalKeys.has(key)) {
+          proposalKeys.set(key, {
+            externalId: item.externalId,
+            governorId: item.governorId,
+          });
+        }
+      } else {
+        const parsedExternalId = Number.parseInt(item.externalId, 10);
+        if (Number.isNaN(parsedExternalId)) continue;
+        const key = `${item.externalId}:${item.daoDiscourseId}`;
+        if (!topicKeys.has(key)) {
+          topicKeys.set(key, {
+            externalId: parsedExternalId,
+            daoDiscourseId: item.daoDiscourseId,
+          });
+        }
+      }
+    }
+  }
+
+  const proposalIndexerMap = new Map<string, string>();
+  if (proposalKeys.size > 0) {
+    const proposalLookups = [...proposalKeys.values()];
+    const proposals = await db
+      .selectFrom('proposal')
+      .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
+      .select([
+        'proposal.externalId',
+        'proposal.governorId',
+        'daoGovernor.name as governorName',
+      ])
+      .where((eb) =>
+        eb.or(
+          proposalLookups.map((item) =>
+            eb.and([
+              eb('proposal.externalId', '=', item.externalId),
+              eb('proposal.governorId', '=', item.governorId),
+            ])
+          )
+        )
+      )
+      .execute();
+
+    for (const proposal of proposals) {
+      proposalIndexerMap.set(
+        `${proposal.externalId}:${proposal.governorId}`,
+        proposal.governorName ?? 'unknown'
       );
+    }
+  }
 
-      return {
-        ...group,
-        items: itemsWithIndexerName,
-      };
-    })
-  );
+  const topicIndexerMap = new Map<string, string>();
+  if (topicKeys.size > 0) {
+    const topicLookups = [...topicKeys.values()];
+    const topics = await db
+      .selectFrom('discourseTopic')
+      .leftJoin(
+        'daoDiscourse',
+        'daoDiscourse.id',
+        'discourseTopic.daoDiscourseId'
+      )
+      .select([
+        'discourseTopic.externalId',
+        'discourseTopic.daoDiscourseId',
+        'daoDiscourse.discourseBaseUrl',
+      ])
+      .where((eb) =>
+        eb.or(
+          topicLookups.map((item) =>
+            eb.and([
+              eb('discourseTopic.externalId', '=', item.externalId),
+              eb('discourseTopic.daoDiscourseId', '=', item.daoDiscourseId),
+            ])
+          )
+        )
+      )
+      .execute();
+
+    for (const topic of topics) {
+      topicIndexerMap.set(
+        `${topic.externalId}:${topic.daoDiscourseId}`,
+        topic.discourseBaseUrl ?? 'unknown'
+      );
+    }
+  }
+
+  const groupsWithItems = normalizedGroups.map((group) => ({
+    ...group,
+    items: group.items.map((item) => {
+      const indexerName =
+        item.indexerName ??
+        (item.type === 'proposal'
+          ? proposalIndexerMap.get(`${item.externalId}:${item.governorId}`)
+          : topicIndexerMap.get(`${item.externalId}:${item.daoDiscourseId}`)) ??
+        'unknown';
+
+      return { ...item, indexerName };
+    }),
+  }));
 
   return { proposalGroups: groupsWithItems };
 }

@@ -12,8 +12,10 @@ use proposalsapp_db::models::{
 };
 use rindexer::provider::RindexerProvider;
 use sea_orm::{
-    ActiveValue::NotSet, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, DbBackend,
-    EntityTrait, QueryFilter, Set, Statement, prelude::Uuid,
+    ActiveValue::NotSet,
+    ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait,
+    QueryFilter, Set, Statement,
+    prelude::Uuid,
     sea_query::{Expr, OnConflict},
 };
 use std::{
@@ -57,6 +59,8 @@ pub async fn initialize_db() -> Result<()> {
         .acquire_timeout(Duration::from_secs(30))
         .idle_timeout(Duration::from_secs(5 * 60))
         .max_lifetime(Duration::from_secs(30 * 60))
+        .test_before_acquire(true)
+        .map_sqlx_postgres_opts(|opts| opts.statement_cache_capacity(200))
         .sqlx_logging(false);
 
     let db = sea_orm::Database::connect(opt)
@@ -470,9 +474,7 @@ pub async fn store_voting_powers(
                     voting_power_timeseries::Column::DaoId,
                     voting_power_timeseries::Column::Txid,
                 ])
-                .target_and_where(
-                    Expr::col(voting_power_timeseries::Column::Txid).is_not_null(),
-                )
+                .target_and_where(Expr::col(voting_power_timeseries::Column::Txid).is_not_null())
                 .update_columns([
                     voting_power_timeseries::Column::VotingPower,
                     voting_power_timeseries::Column::Timestamp,

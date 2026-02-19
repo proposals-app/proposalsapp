@@ -1,4 +1,4 @@
-import { db, ProposalState } from '@proposalsapp/db';
+import { db, ProposalState, sql } from '@proposalsapp/db';
 
 export async function getLandingPageStats() {
   // 'use cache';
@@ -8,28 +8,24 @@ export async function getLandingPageStats() {
   // cacheLife('minutes');
 
   try {
-    // Get count of active DAOs
-    const activeDaos = await db.selectFrom('dao').selectAll().execute();
-
-    const daoCount = activeDaos.length;
-
-    // Get count of active proposals (ongoing votes)
     const now = new Date();
-
-    // Count all active proposals (both onchain and snapshot)
-    // Active means: current time is between startAt and endAt, and state is ACTIVE
-    const activeProposals = await db
-      .selectFrom('proposal')
-      .where('proposal.endAt', '>', now)
-      .where('proposal.startAt', '<=', now)
-      .where('proposal.proposalState', '=', ProposalState.ACTIVE)
-      .execute();
-
-    const activeProposalsCount = activeProposals.length;
+    const [daoCountResult, activeProposalsResult] = await Promise.all([
+      db
+        .selectFrom('dao')
+        .select(sql<number>`count(*)::int`.as('count'))
+        .executeTakeFirst(),
+      db
+        .selectFrom('proposal')
+        .where('proposal.endAt', '>', now)
+        .where('proposal.startAt', '<=', now)
+        .where('proposal.proposalState', '=', ProposalState.ACTIVE)
+        .select(sql<number>`count(*)::int`.as('count'))
+        .executeTakeFirst(),
+    ]);
 
     return {
-      activeProposals: activeProposalsCount,
-      daosCount: daoCount,
+      activeProposals: activeProposalsResult?.count ?? 0,
+      daosCount: daoCountResult?.count ?? 0,
     };
   } catch (error) {
     console.error('Error fetching landing page stats:', error);

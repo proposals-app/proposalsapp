@@ -137,68 +137,72 @@ export async function getGroup(groupId: string) {
     const proposalItems = items.filter((item) => item.type === 'proposal');
     const topicItems = items.filter((item) => item.type === 'topic');
 
-    const proposals: SelectableProposalWithGovernor[] = [];
-    if (proposalItems.length > 0) {
-      for (const proposalItem of proposalItems) {
-        try {
-          const p = (await db
-            .selectFrom('proposal')
-            .innerJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
-            .select([
-              'proposal.id',
-              'proposal.externalId',
-              'proposal.name',
-              'proposal.body',
-              'proposal.url',
-              'proposal.discussionUrl',
-              'proposal.choices',
-              'proposal.quorum',
-              'proposal.proposalState',
-              'proposal.markedSpam',
-              'proposal.createdAt',
-              'proposal.startAt',
-              'proposal.endAt',
-              'proposal.blockCreatedAt',
-              'proposal.txid',
-              'proposal.metadata',
-              'proposal.daoId',
-              'proposal.author',
-              'proposal.governorId',
-              'proposal.blockStartAt',
-              'proposal.blockEndAt',
-              'daoGovernor.name as governorName', // Add governor name
-              'daoGovernor.type as governorType', // Add governor type
-            ])
-            .where('externalId', '=', proposalItem.externalId)
-            .where('governorId', '=', proposalItem.governorId)
-            .executeTakeFirst()) as SelectableProposalWithGovernor | null; // Cast to new type
+    const proposals = proposalItems.length
+      ? ((await db
+          .selectFrom('proposal')
+          .innerJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
+          .select([
+            'proposal.id',
+            'proposal.externalId',
+            'proposal.name',
+            'proposal.body',
+            'proposal.url',
+            'proposal.discussionUrl',
+            'proposal.choices',
+            'proposal.quorum',
+            'proposal.proposalState',
+            'proposal.markedSpam',
+            'proposal.createdAt',
+            'proposal.startAt',
+            'proposal.endAt',
+            'proposal.blockCreatedAt',
+            'proposal.txid',
+            'proposal.metadata',
+            'proposal.daoId',
+            'proposal.author',
+            'proposal.governorId',
+            'proposal.blockStartAt',
+            'proposal.blockEndAt',
+            'daoGovernor.name as governorName',
+            'daoGovernor.type as governorType',
+          ])
+          .where((eb) =>
+            eb.or(
+              proposalItems.map((item) =>
+                eb.and([
+                  eb('proposal.externalId', '=', item.externalId),
+                  eb('proposal.governorId', '=', item.governorId),
+                ])
+              )
+            )
+          )
+          .execute()) as SelectableProposalWithGovernor[])
+      : [];
 
-          if (!p) continue;
+    const topicFilters = topicItems
+      .map((item) => ({
+        externalId: Number.parseInt(item.externalId, 10),
+        daoDiscourseId: item.daoDiscourseId,
+      }))
+      .filter((item) => Number.isFinite(item.externalId));
 
-          proposals.push(p);
-        } catch (error) {
-          console.error('Error fetching:', proposalItem, error);
-        }
-      }
-    }
-
-    const topics: Selectable<DiscourseTopic>[] = [];
-    if (topicItems.length > 0) {
-      for (const topicItem of topicItems) {
-        try {
-          const t = await db
+    const topics =
+      topicFilters.length > 0
+        ? await db
             .selectFrom('discourseTopic')
-            .where('externalId', '=', parseInt(topicItem.externalId, 10))
-            .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
             .selectAll()
-            .executeTakeFirst();
-
-          if (t) topics.push(t);
-        } catch (error) {
-          console.error('Error fetching:', topicItem, error);
-        }
-      }
-    }
+            .where((eb) =>
+              eb.or(
+                topicFilters.map((item) =>
+                  eb.and([
+                    eb('externalId', '=', item.externalId),
+                    eb('daoDiscourseId', '=', item.daoDiscourseId),
+                  ])
+                )
+              )
+            )
+            .execute()
+        : [];
 
     return {
       dao,
@@ -258,23 +262,23 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
   const proposalItems = items.filter((item) => item.type === 'proposal');
   const topicItems = items.filter((item) => item.type === 'topic');
 
-  const proposals: Selectable<Proposal>[] = [];
-  if (proposalItems.length > 0) {
-    for (const proposalItem of proposalItems) {
-      try {
-        const p = await db
+  const proposals =
+    proposalItems.length > 0
+      ? await db
           .selectFrom('proposal')
           .selectAll()
-          .where('externalId', '=', proposalItem.externalId)
-          .where('governorId', '=', proposalItem.governorId)
-          .executeTakeFirst();
-
-        if (p) proposals.push(p);
-      } catch (error) {
-        console.error('Error fetching:', proposalItem, error);
-      }
-    }
-  }
+          .where((eb) =>
+            eb.or(
+              proposalItems.map((item) =>
+                eb.and([
+                  eb('externalId', '=', item.externalId),
+                  eb('governorId', '=', item.governorId),
+                ])
+              )
+            )
+          )
+          .execute()
+      : [];
 
   proposals.map((proposal) =>
     bodies.push({
@@ -287,53 +291,116 @@ export async function getBodyVersions(groupId: string, withContent: boolean) {
     })
   );
 
-  const discourseTopics: Selectable<DiscourseTopic>[] = [];
-  if (topicItems.length > 0) {
-    for (const topicItem of topicItems) {
-      try {
-        const t = await db
-          .selectFrom('discourseTopic')
-          .where('externalId', '=', parseInt(topicItem.externalId, 10))
-          .where('daoDiscourseId', '=', topicItem.daoDiscourseId)
-          .selectAll()
-          .executeTakeFirst();
+  const topicFilters = topicItems
+    .map((item) => ({
+      externalId: Number.parseInt(item.externalId, 10),
+      daoDiscourseId: item.daoDiscourseId,
+    }))
+    .filter((item) => Number.isFinite(item.externalId));
 
-        if (t) discourseTopics.push(t);
-      } catch (error) {
-        console.error('Error fetching:', topicItem, error);
-      }
-    }
+  const discourseTopics: Selectable<DiscourseTopic>[] =
+    topicFilters.length > 0
+      ? await db
+          .selectFrom('discourseTopic')
+          .selectAll()
+          .where((eb) =>
+            eb.or(
+              topicFilters.map((item) =>
+                eb.and([
+                  eb('externalId', '=', item.externalId),
+                  eb('daoDiscourseId', '=', item.daoDiscourseId),
+                ])
+              )
+            )
+          )
+          .execute()
+      : [];
+
+  const firstPosts =
+    discourseTopics.length > 0
+      ? await db
+          .selectFrom('discoursePost')
+          .selectAll()
+          .where('postNumber', '=', 1)
+          .where((eb) =>
+            eb.or(
+              discourseTopics.map((topic) =>
+                eb.and([
+                  eb('topicId', '=', topic.externalId),
+                  eb('daoDiscourseId', '=', topic.daoDiscourseId),
+                ])
+              )
+            )
+          )
+          .execute()
+      : [];
+
+  const firstPostByTopicKey = new Map(
+    firstPosts.map((post) => [`${post.topicId}:${post.daoDiscourseId}`, post])
+  );
+
+  const authorFilters = firstPosts.map((post) => ({
+    externalId: post.userId,
+    daoDiscourseId: post.daoDiscourseId,
+  }));
+
+  const discourseUsers =
+    authorFilters.length > 0
+      ? await db
+          .selectFrom('discourseUser')
+          .selectAll()
+          .where((eb) =>
+            eb.or(
+              authorFilters.map((author) =>
+                eb.and([
+                  eb('externalId', '=', author.externalId),
+                  eb('daoDiscourseId', '=', author.daoDiscourseId),
+                ])
+              )
+            )
+          )
+          .execute()
+      : [];
+
+  const authorByKey = new Map(
+    discourseUsers.map((user) => [
+      `${user.externalId}:${user.daoDiscourseId}`,
+      user,
+    ])
+  );
+
+  const firstPostIds = firstPosts.map((post) => post.id);
+  const firstPostRevisions =
+    firstPostIds.length > 0
+      ? await db
+          .selectFrom('discoursePostRevision')
+          .where('discoursePostId', 'in', firstPostIds)
+          .selectAll()
+          .execute()
+      : [];
+
+  const revisionsByPostId = new Map<string, typeof firstPostRevisions>();
+  for (const revision of firstPostRevisions) {
+    const existing = revisionsByPostId.get(revision.discoursePostId) ?? [];
+    existing.push(revision);
+    revisionsByPostId.set(revision.discoursePostId, existing);
   }
 
   for (const discourseTopic of discourseTopics) {
-    const discourseFirstPost = await db
-      .selectFrom('discoursePost')
-      .where('discoursePost.topicId', '=', discourseTopic.externalId)
-      .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
-      .where('discoursePost.postNumber', '=', 1)
-      .selectAll()
-      .executeTakeFirst();
+    const discourseFirstPost = firstPostByTopicKey.get(
+      `${discourseTopic.externalId}:${discourseTopic.daoDiscourseId}`
+    );
 
     if (!discourseFirstPost) return null;
 
-    const discourseFirstPostAuthor = await db
-      .selectFrom('discourseUser')
-      .where('discourseUser.externalId', '=', discourseFirstPost.userId)
-      .where('daoDiscourseId', '=', discourseTopic.daoDiscourseId)
-      .selectAll()
-      .executeTakeFirst();
+    const discourseFirstPostAuthor = authorByKey.get(
+      `${discourseFirstPost.userId}:${discourseTopic.daoDiscourseId}`
+    );
 
     if (!discourseFirstPostAuthor) return null;
 
-    const discourseFirstPostRevisions = await db
-      .selectFrom('discoursePostRevision')
-      .where(
-        'discoursePostRevision.discoursePostId',
-        '=',
-        discourseFirstPost.id
-      )
-      .selectAll()
-      .execute();
+    const discourseFirstPostRevisions =
+      revisionsByPostId.get(discourseFirstPost.id) ?? [];
 
     // If there are no revisions, use the post itself
     if (!discourseFirstPostRevisions.length)
@@ -1208,7 +1275,7 @@ export async function getFeed(
       events[0].type === TimelineEventType.VotesVolume)
   ) {
     const currentTimestamp = new Date();
-    let summaryContent = '';
+    let summaryContent: string;
     if (allPosts.length > 0 && allVotes.length > 0) {
       summaryContent = `${allPosts.length} comments and ${allVotes.length} votes`;
     } else if (allPosts.length > 0) {
