@@ -92,7 +92,12 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
 
                 // Reconcile vote counts for active proposals
                 if let Err(e) = reconcile_active_proposal_votes(&space, governor_id, dao_id).await {
-                    error!(space = %space, error = %e, "Failed to reconcile votes");
+                    error!(space = %space, error = %e, "Failed to reconcile active votes");
+                }
+
+                // Reconcile vote counts for recently ended proposals
+                if let Err(e) = reconcile_ended_proposal_votes(&space, governor_id, dao_id).await {
+                    error!(space = %space, error = %e, "Failed to reconcile ended votes");
                 }
             }
         }
@@ -526,6 +531,84 @@ async fn reconcile_active_proposal_votes(
                     space = %space,
                     proposal_id = %prop.external_id,
                     "Reconciliation complete"
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Reconcile vote counts for recently ended proposals.
+/// Catches missing votes that the cursor-based indexer may have skipped.
+/// Only checks proposals that ended within the last 7 days to bound the workload.
+#[instrument(name = "reconcile_ended_proposal_votes", skip_all, fields(space = space))]
+async fn reconcile_ended_proposal_votes(
+    space: &str,
+    governor_id: Uuid,
+    dao_id: Uuid,
+) -> Result<()> {
+    let db = DB.get().context("DB not initialized")?;
+
+    let seven_days_ago = (Utc::now() - Duration::days(7)).naive_utc();
+
+    // Find non-active proposals that ended within the last 7 days
+    let ended_proposals = proposal::Entity::find()
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(
+            proposal::Column::ProposalState
+                .is_not_in([ProposalState::Active, ProposalState::Pending]),
+        )
+        .filter(proposal::Column::EndAt.gt(seven_days_ago))
+        .all(db)
+        .await?;
+
+    for prop in ended_proposals {
+        // Get expected vote count from metadata
+        let expected_count = prop
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("snapshot_vote_count"))
+            .and_then(|v| v.as_u64());
+
+        let Some(expected_count) = expected_count else {
+            continue;
+        };
+
+        // Count actual votes in DB
+        let db_count = vote::Entity::find()
+            .filter(vote::Column::ProposalId.eq(prop.id))
+            .count(db)
+            .await?;
+
+        if db_count < expected_count {
+            warn!(
+                space = %space,
+                proposal_id = %prop.external_id,
+                expected = expected_count,
+                actual = db_count,
+                delta = expected_count - db_count,
+                "Ended proposal vote count mismatch detected, reconciling"
+            );
+
+            let api = SnapshotApi::new();
+            let votes = api.fetch_all_proposal_votes(&prop.external_id).await?;
+
+            let mut vote_models = Vec::new();
+            for vote in votes {
+                match vote.to_active_model(governor_id, dao_id) {
+                    Ok(Some(m)) => vote_models.push(m),
+                    Ok(None) => {}
+                    Err(e) => error!(error = %e, "Failed to convert reconciliation vote"),
+                }
+            }
+
+            if !vote_models.is_empty() {
+                store_votes(vote_models, governor_id).await?;
+                info!(
+                    space = %space,
+                    proposal_id = %prop.external_id,
+                    "Ended proposal reconciliation complete"
                 );
             }
         }
