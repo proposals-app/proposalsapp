@@ -23,11 +23,21 @@ COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
 COPY libs/ts/db/ ./libs/ts/db/
 COPY libs/ts/emails/ ./libs/ts/emails/
 
-# Type-check and compile TypeScript to JavaScript
-# Override noEmit to actually produce output files
-WORKDIR /app/apps/${APP_NAME}
-RUN pnpm exec tsc --noEmit false --outDir dist
-WORKDIR /app
+# Bundle with esbuild into a single file (resolves workspace TS imports)
+RUN npx esbuild apps/${APP_NAME}/src/index.ts \
+    --bundle \
+    --platform=node \
+    --target=node22 \
+    --format=esm \
+    --outfile=apps/${APP_NAME}/dist/index.mjs \
+    --external:dotenv \
+    --external:pg \
+    --external:pino \
+    --external:resend \
+    --external:node-cron \
+    --external:date-fns \
+    --external:@react-email/render \
+    --banner:js="import{createRequire}from'module';const require=createRequire(import.meta.url);"
 
 # Prune dev dependencies for smaller image
 RUN CI=true pnpm prune --prod
@@ -39,8 +49,6 @@ ARG APP_NAME
 
 # Copy only necessary files (runtime image provides `node` user)
 COPY --from=builder --chown=node:node /app/apps/${APP_NAME}/dist/ /app/apps/${APP_NAME}/dist/
-COPY --from=builder --chown=node:node /app/libs/ts/db/ /app/libs/ts/db/
-COPY --from=builder --chown=node:node /app/libs/ts/emails/ /app/libs/ts/emails/
 COPY --from=builder --chown=node:node /app/node_modules/ /app/node_modules/
 COPY --from=builder --chown=node:node /app/package.json /app/
 
@@ -52,5 +60,5 @@ USER node
 # Expose health server port
 EXPOSE 3000
 
-# Run compiled JavaScript directly with node (no shell required)
-CMD ["node", "apps/email-service/dist/index.js"]
+# Run bundled JavaScript directly with node
+CMD ["node", "apps/email-service/dist/index.mjs"]

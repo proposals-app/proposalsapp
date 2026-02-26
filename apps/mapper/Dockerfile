@@ -32,13 +32,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN cargo install cargo-chef@0.1.73 sccache --locked
 
 # Configure sccache and build environment
-ENV RUSTC_WRAPPER=/root/.cargo/bin/sccache \
+ENV RUSTC_WRAPPER=/usr/local/cargo/bin/sccache \
     SCCACHE_DIR=/sccache \
     CARGO_TARGET_DIR=/app/target \
     CARGO_NET_GIT_FETCH_WITH_CLI=true \
     CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse \
-    RUSTFLAGS="-C link-arg=-fuse-ld=lld" \
-    PATH="/root/.cargo/bin:${PATH}"
+    RUSTFLAGS="-C link-arg=-fuse-ld=lld"
 
 # Copy recipe and cook dependencies (cached layer)
 COPY --from=planner /app/recipe.json recipe.json

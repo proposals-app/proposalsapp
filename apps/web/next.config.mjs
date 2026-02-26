@@ -20,15 +20,7 @@ const _withSerwist = withSerwistInit({
 const nextConfig = {
   reactStrictMode: true,
   reactCompiler: true,
-  serverExternalPackages: [
-    'pino',
-    'pino-pretty',
-    'thread-stream',
-    'better-auth',
-    '@better-auth/core',
-    '@better-auth/telemetry',
-    'zod',
-  ],
+  serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
   turbopack: {
     rules: {
       '*.svg': {
