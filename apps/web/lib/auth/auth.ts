@@ -11,6 +11,7 @@ import {
 
 export const auth = betterAuth({
   appName: 'proposals.app',
+  baseURL: process.env.WEB_URL || 'https://proposals.app',
   database: dbPool,
   trustedOrigins: (() => {
     const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'proposals.app';

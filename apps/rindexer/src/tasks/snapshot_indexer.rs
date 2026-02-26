@@ -9,7 +9,8 @@ use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use sea_orm::{
-    ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder,
     prelude::{Expr, Uuid},
 };
 use std::time::Duration as StdDuration;
@@ -82,6 +83,11 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
                 // Index votes
                 if let Err(e) = index_votes(&space, governor_id, dao_id).await {
                     error!(space = %space, error = %e, "Failed to index votes");
+                }
+
+                // Update ended snapshot proposals that are still marked as ACTIVE
+                if let Err(e) = update_ended_snapshot_proposals(&space, governor_id, dao_id).await {
+                    error!(space = %space, error = %e, "Failed to update ended snapshot proposals");
                 }
 
                 // Reconcile vote counts for active proposals
@@ -373,6 +379,88 @@ async fn get_vote_cursor(space: &str) -> Result<i64> {
     let one_year_ago = (Utc::now() - Duration::days(10 * 365)).timestamp();
     debug!(space = %space, cursor = one_year_ago, "Using default vote cursor (1 year ago)");
     Ok(one_year_ago)
+}
+
+/// Update snapshot proposals that are still marked ACTIVE/PENDING in DB but whose end_at has passed.
+/// Fetches current state from Snapshot API and updates accordingly.
+/// If a proposal no longer exists on Snapshot, marks it as Defeated.
+#[instrument(name = "update_ended_snapshot_proposals", skip_all, fields(space = space))]
+async fn update_ended_snapshot_proposals(
+    space: &str,
+    governor_id: Uuid,
+    dao_id: Uuid,
+) -> Result<()> {
+    let db = DB.get().context("DB not initialized")?;
+    let now = Utc::now().naive_utc();
+
+    // Find proposals marked ACTIVE or PENDING whose voting period has ended
+    let stale_proposals = proposal::Entity::find()
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(
+            proposal::Column::ProposalState
+                .is_in([ProposalState::Active, ProposalState::Pending]),
+        )
+        .filter(proposal::Column::EndAt.lt(now))
+        .all(db)
+        .await?;
+
+    if stale_proposals.is_empty() {
+        return Ok(());
+    }
+
+    info!(
+        space = %space,
+        count = stale_proposals.len(),
+        "Found ended snapshot proposals still marked as active/pending"
+    );
+
+    let api = SnapshotApi::new();
+
+    for prop in stale_proposals {
+        match api.fetch_proposal_by_id(&prop.external_id).await {
+            Ok(Some(updated_proposal)) => {
+                // Proposal still exists on Snapshot — update with current state
+                if let Err(e) =
+                    store_snapshot_proposal(updated_proposal, governor_id, dao_id).await
+                {
+                    error!(
+                        proposal_id = %prop.external_id,
+                        error = %e,
+                        "Failed to update ended snapshot proposal"
+                    );
+                } else {
+                    info!(
+                        proposal_id = %prop.external_id,
+                        name = %prop.name,
+                        "Updated ended snapshot proposal state"
+                    );
+                }
+            }
+            Ok(None) => {
+                // Proposal no longer exists on Snapshot — mark as Defeated
+                warn!(
+                    proposal_id = %prop.external_id,
+                    name = %prop.name,
+                    "Proposal no longer exists on Snapshot, marking as Defeated"
+                );
+                let mut active_model: proposal::ActiveModel = prop.into();
+                active_model.proposal_state = Set(ProposalState::Defeated);
+                active_model.update(db).await?;
+            }
+            Err(e) => {
+                error!(
+                    proposal_id = %prop.external_id,
+                    error = %e,
+                    "Failed to fetch proposal from Snapshot API"
+                );
+            }
+        }
+
+        // Rate limit API calls
+        tokio::time::sleep(StdDuration::from_millis(500)).await;
+    }
+
+    Ok(())
 }
 
 /// Reconcile vote counts for active proposals by comparing DB counts with Snapshot API counts.

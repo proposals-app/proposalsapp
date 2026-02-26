@@ -40,6 +40,10 @@ export default tseslint.config(
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
       'react-hooks/purity': 'off',
+      // Keep legacy behavior: these new compiler-oriented rules are too noisy for current codebase.
+      'react-hooks/refs': 'off',
+      'react-hooks/static-components': 'off',
+      'react-hooks/set-state-in-effect': 'off',
     },
     settings: {
       react: {

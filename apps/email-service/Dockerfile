@@ -2,7 +2,7 @@
 ARG APP_NAME=email-service
 
 # Stage 1: Builder (use -dev variant for build tools)
-FROM dhi.io/node:22-debian13-dev AS builder
+FROM node:22-bookworm AS builder
 WORKDIR /app
 ARG APP_NAME
 
@@ -33,7 +33,7 @@ WORKDIR /app
 RUN CI=true pnpm prune --prod
 
 # Stage 2: Runtime (use minimal runtime image - no shell, no package manager)
-FROM dhi.io/node:22-debian13
+FROM node:22-bookworm-slim
 WORKDIR /app
 ARG APP_NAME
 

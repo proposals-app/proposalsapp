@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: Builder (use -dev variant for build tools)
-FROM dhi.io/node:22-debian13-dev AS builder
+FROM node:22-bookworm AS builder
 
 WORKDIR /app
 
@@ -33,7 +33,7 @@ RUN touch apps/web/.env \
   && CI=true pnpm prune --prod
 
 # Stage 2: Runtime (use minimal runtime image - no shell, no package manager)
-FROM dhi.io/node:22-debian13
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 

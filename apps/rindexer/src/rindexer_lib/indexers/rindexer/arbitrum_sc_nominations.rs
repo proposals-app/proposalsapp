@@ -5,11 +5,12 @@ use super::super::super::typings::rindexer::events::arbitrum_sc_nominations::{
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
-        db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, store_proposal},
+        db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_proposal},
     },
     rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations::arbitrum_sc_nominations_contract,
 };
 use alloy::{hex::ToHexExt, primitives::U256};
+use anyhow::{Context, Result};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState};
 use regex::Regex;
 use rindexer::{
@@ -18,12 +19,14 @@ use rindexer::{
     rindexer_error, rindexer_info,
 };
 use sea_orm::{
+    ActiveModelTrait,
     ActiveValue::{NotSet, Set},
+    ColumnTrait, EntityTrait, QueryFilter,
     prelude::Uuid,
 };
 use serde_json::json;
 use std::{path::PathBuf, sync::Arc};
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info, instrument, warn};
 
 fn get_governor_id() -> Option<Uuid> {
     DAO_SLUG_GOVERNOR_TYPE_ID_MAP
@@ -243,4 +246,96 @@ pub async fn arbitrum_sc_nominations_handlers(
     proposal_created_handler(manifest_path, registry).await;
     proposal_executed_handler(manifest_path, registry).await;
     info!("Arbitrum SC Nominations handlers registered.");
+}
+
+#[instrument(name = "arbitrum_sc_nominations_update_ended_proposals_state", skip_all)]
+pub async fn update_ended_proposals_state() -> Result<()> {
+    info!(
+        governor = "ARBITRUM_SC_NOMINATIONS",
+        "Running task to update ended proposal states"
+    );
+    let db = DB.get().context("DB not initialized")?;
+
+    let governor_id = get_governor_id().context("Failed to get governor ID")?;
+
+    // Find proposals marked ACTIVE or PENDING whose end_at has passed
+    let ended_proposals = proposal::Entity::find()
+        .filter(
+            proposal::Column::ProposalState
+                .is_in([ProposalState::Active, ProposalState::Pending]),
+        )
+        .filter(proposal::Column::EndAt.lt(chrono::Utc::now().naive_utc()))
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .all(db)
+        .await
+        .context("Failed to fetch ended proposals")?;
+
+    if ended_proposals.is_empty() {
+        info!(
+            governor = "ARBITRUM_SC_NOMINATIONS",
+            "No active/pending proposals have ended"
+        );
+        return Ok(());
+    }
+
+    info!(
+        governor = "ARBITRUM_SC_NOMINATIONS",
+        proposal_count = ended_proposals.len(),
+        "Processing ended proposals"
+    );
+
+    let contract = arbitrum_sc_nominations_contract("arbitrum").await;
+
+    for prop in ended_proposals {
+        let proposal_id_u256: U256 = match prop.external_id.parse() {
+            Ok(id) => id,
+            Err(e) => {
+                error!(
+                    proposal_id = %prop.external_id,
+                    error = %e,
+                    "Failed to parse proposal ID as U256"
+                );
+                continue;
+            }
+        };
+
+        let final_state = match contract.state(proposal_id_u256).call().await {
+            Ok(state_enum) => match state_enum {
+                0 => ProposalState::Pending,
+                1 => ProposalState::Active,
+                2 => ProposalState::Canceled,
+                3 => ProposalState::Defeated,
+                4 => ProposalState::Succeeded,
+                5 => ProposalState::Queued,
+                6 => ProposalState::Expired,
+                7 => ProposalState::Executed,
+                _ => ProposalState::Unknown,
+            },
+            Err(e) => {
+                warn!(
+                    proposal_id = %prop.external_id,
+                    error = %e,
+                    "Failed to fetch on-chain state, skipping"
+                );
+                continue;
+            }
+        };
+
+        let mut proposal_active_model: proposal::ActiveModel = prop.clone().into();
+        proposal_active_model.proposal_state = Set(final_state.clone());
+        proposal::Entity::update(proposal_active_model)
+            .exec(db)
+            .await
+            .context("Failed to update proposal state")?;
+
+        info!(
+            governor = "ARBITRUM_SC_NOMINATIONS",
+            proposal_id = %prop.external_id,
+            proposal_name = %prop.name,
+            final_state = ?final_state,
+            "SC Nominations proposal state updated"
+        );
+    }
+
+    Ok(())
 }

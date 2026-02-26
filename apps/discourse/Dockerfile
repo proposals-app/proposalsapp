@@ -4,7 +4,7 @@ ARG APP_NAME=discourse
 ARG RUST_VERSION=1.92
 
 # Stage 1: Planner - generates recipe.json for dependency caching
-FROM dhi.io/rust:${RUST_VERSION}-debian13-dev AS planner
+FROM rust:${RUST_VERSION}-bookworm AS planner
 ARG APP_NAME
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json --bin ${APP_NAME}
 
 # Stage 2: Builder - compiles dependencies and application
-FROM dhi.io/rust:${RUST_VERSION}-debian13-dev AS builder
+FROM rust:${RUST_VERSION}-bookworm AS builder
 ARG APP_NAME
 WORKDIR /app
 
