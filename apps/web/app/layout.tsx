@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '@/styles/globals.css';
 import { WebVitals } from './web-vitals';
@@ -8,7 +9,13 @@ import { firaMono, firaSans, firaSansCondensed } from '../lib/fonts';
 import { Toaster } from './components/ui/sonner';
 import { PostHogProvider } from './components/providers/posthog-provider';
 import { SafariViewportProvider } from './components/providers/safari-viewport-provider';
-import { headers } from 'next/headers';
+import { AppThemeProvider } from './components/providers/app-theme-provider';
+import {
+  DEFAULT_THEME_VARIANT,
+  getThemeColorEntries,
+  THEME_MODE_COOKIE,
+  THEME_SURFACE_COLORS,
+} from '@/lib/theme';
 
 export const metadata: Metadata = {
   // Use production base by default; Next can override per-request in advanced setups
@@ -25,8 +32,9 @@ export const metadata: Metadata = {
   },
   description:
     'The place where you can find all the info from your favorite DAOs.',
-  icons: ['favicon.ico'],
-  manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.ico',
+  },
   twitter: {
     card: 'summary_large_image',
     title: 'proposals.app',
@@ -41,88 +49,79 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: 'dark',
+  themeColor: getThemeColorEntries(DEFAULT_THEME_VARIANT),
   minimumScale: 1,
   initialScale: 1,
   width: 'device-width',
   viewportFit: 'cover',
 };
 
+const themeInitializerScript = `!function(){try{var c=${JSON.stringify(THEME_SURFACE_COLORS)};var r=document.documentElement;var h=window.location.hostname.toLowerCase();var p=window.location.pathname;var s=p.split('/')[1];var o=h.split('.')[0];var v=s==='arbitrum'||s==='uniswap'?s:o==='arbitrum'||o==='uniswap'?o:'default';var m=document.cookie.match(/(?:^|; )${THEME_MODE_COOKIE}=([^;]+)/);var d=m&&decodeURIComponent(m[1])==='light'?'light':'dark';var color=c[v][d];r.classList.toggle('dark',d==='dark');r.setAttribute('data-theme',v);r.style.backgroundColor=color;r.style.colorScheme=d;var meta=document.querySelector('meta[name="theme-color"][data-active-theme="true"]');if(!meta){meta=document.createElement('meta');meta.name='theme-color';meta.setAttribute('data-active-theme','true');document.head.appendChild(meta);}meta.content=color;}catch(e){}}();`;
+
 export default function Layout({ children }: { children: React.ReactNode }) {
-  // Theme is initialized via client-side script to avoid FOUC
-  // Server-side cookie reading removed - let the inline script handle it
   return (
     <html
       lang='en'
       suppressHydrationWarning
-      className={`${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable}`}
+      data-theme={DEFAULT_THEME_VARIANT}
+      className={`dark ${firaSans.variable} ${firaSansCondensed.variable} ${firaMono.variable}`}
     >
-      <head>
-        <link rel='icon' href='/favicon.ico' />
-        <link rel='manifest' href='/manifest.json' />
-        {/* Apply theme class ASAP to avoid FOUC before React hydration */}
-        <script
-          id='theme-initializer'
-          dangerouslySetInnerHTML={{
-            __html: `!function(){try{var m=document.cookie.match(/(?:^|; )theme-mode=([^;]+)/);var v=document.cookie.match(/(?:^|; )theme-variant=([^;]+)/);if(m){var mode=decodeURIComponent(m[1]);if(mode==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}if(v){document.documentElement.setAttribute('data-theme', decodeURIComponent(v[1]));}}catch(e){}}();`,
-          }}
-        />
-      </head>
       <body>
-        <SafariViewportProvider>
-          {/* Stream a lightweight shell immediately; hydrate providers inside Suspense */}
-          <Suspense
-            fallback={<ProvidersFallback>{children}</ProvidersFallback>}
-          >
-            <ProvidersWithRequest>{children}</ProvidersWithRequest>
+        <Script id='theme-initializer' strategy='beforeInteractive'>
+          {themeInitializerScript}
+        </Script>
+        <AppThemeProvider>
+          <Suspense fallback={null}>
+            <SafariViewportProvider />
           </Suspense>
-        </SafariViewportProvider>
+          <ProvidersTree>{children}</ProvidersTree>
+        </AppThemeProvider>
       </body>
     </html>
   );
 }
 
-async function ProvidersWithRequest({
+function ProvidersTree({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Read headers dynamically without blocking the outer shell
-  const headersList = await headers();
-  const cookie = headersList.get('cookie');
-
   return (
-    <PostHogProvider>
-      <Suspense>
+    <Suspense fallback={<AppShell>{children}</AppShell>}>
+      <PostHogProvider>
         <WebVitals />
-      </Suspense>
-      <Suspense>
         <NuqsAdapter>
-          <WalletProvider cookie={cookie}>
-            <main>{children}</main>
-            <Toaster />
-          </WalletProvider>
+          <Suspense
+            fallback={<WalletProviderFallback>{children}</WalletProviderFallback>}
+          >
+            <WalletProvider>
+              <main>{children}</main>
+              <Toaster />
+            </WalletProvider>
+          </Suspense>
         </NuqsAdapter>
-      </Suspense>
-    </PostHogProvider>
+      </PostHogProvider>
+    </Suspense>
   );
 }
 
-function ProvidersFallback({ children }: { children: React.ReactNode }) {
-  // Render the same structure without awaiting Request data
+function WalletProviderFallback({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <AppShell>{children}</AppShell>;
+}
+
+function AppShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <PostHogProvider>
-      <Suspense>
-        <WebVitals />
-      </Suspense>
-      <Suspense>
-        <NuqsAdapter>
-          <WalletProvider>
-            <main>{children}</main>
-            <Toaster />
-          </WalletProvider>
-        </NuqsAdapter>
-      </Suspense>
-    </PostHogProvider>
+    <>
+      <main>{children}</main>
+      <Toaster />
+    </>
   );
 }

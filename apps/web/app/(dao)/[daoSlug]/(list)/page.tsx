@@ -22,6 +22,7 @@ export default async function Page({
   const routeParams = await params;
 
   const daoSlug = resolvedSearchParams.daoSlug || routeParams.daoSlug;
+  const renderedAtMs = Date.now();
 
   // Validate daoSlug early to prevent rendering with invalid data
   if (!daoSlug || !/^[-a-z0-9]{2,64}$/i.test(daoSlug)) {
@@ -51,20 +52,44 @@ export default async function Page({
             </>
           }
         >
-          <GroupsHeader daoSlug={daoSlug} />
-          <GroupsContent daoSlug={daoSlug} />
+          <GroupsPageContent daoSlug={daoSlug} renderedAtMs={renderedAtMs} />
         </Suspense>
       </div>
     </div>
   );
 }
 
-// Separate component for header to enable streaming
-async function GroupsHeader({ daoSlug }: { daoSlug: string }) {
+async function GroupsPageContent({
+  daoSlug,
+  renderedAtMs,
+}: {
+  daoSlug: string;
+  renderedAtMs: number;
+}) {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
+  const groupsPromise = getGroups(daoSlug, userId);
 
-  const result = await getGroups(daoSlug, userId);
+  return (
+    <>
+      <GroupsHeader groupsPromise={groupsPromise} daoSlug={daoSlug} />
+      <GroupsContent
+        groupsPromise={groupsPromise}
+        renderedAtMs={renderedAtMs}
+        signedIn={Boolean(userId)}
+      />
+    </>
+  );
+}
+
+async function GroupsHeader({
+  daoSlug,
+  groupsPromise,
+}: {
+  daoSlug: string;
+  groupsPromise: ReturnType<typeof getGroups>;
+}) {
+  const result = await groupsPromise;
 
   if (!result) {
     return null;
@@ -84,13 +109,16 @@ async function GroupsHeader({ daoSlug }: { daoSlug: string }) {
   );
 }
 
-// Main content component that fetches all data in parallel
-async function GroupsContent({ daoSlug }: { daoSlug: string }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-
-  const result = await getGroups(daoSlug, userId);
-
+async function GroupsContent({
+  groupsPromise,
+  renderedAtMs,
+  signedIn,
+}: {
+  groupsPromise: ReturnType<typeof getGroups>;
+  renderedAtMs: number;
+  signedIn: boolean;
+}) {
+  const result = await groupsPromise;
   if (!result) {
     return null;
   }
@@ -117,7 +145,7 @@ async function GroupsContent({ daoSlug }: { daoSlug: string }) {
       authorAvatarUrl:
         group.originalAuthorPicture ||
         'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app',
-      latestActivityAt: new Date(group.newestActivityTimestamp),
+      latestActivityAtMs: group.newestActivityTimestamp,
       hasNewActivity: group.hasNewActivity,
       hasActiveProposal: group.hasActiveProposal,
       topicsCount: group.topicsCount,
@@ -132,7 +160,8 @@ async function GroupsContent({ daoSlug }: { daoSlug: string }) {
   return (
     <GroupList
       initialGroups={groupsWithInfo}
-      signedIn={userId ? true : false}
+      renderedAtMs={renderedAtMs}
+      signedIn={signedIn}
     />
   );
 }

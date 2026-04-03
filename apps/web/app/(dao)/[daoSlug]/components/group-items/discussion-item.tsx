@@ -11,7 +11,7 @@ interface DiscussionGroupItemProps {
     slug: string;
     authorName: string;
     authorAvatarUrl: string;
-    latestActivityAt: Date;
+    latestActivityAtMs: number;
     hasNewActivity: boolean;
     hasActiveProposal: boolean;
     topicsCount: number;
@@ -26,9 +26,13 @@ export function DiscussionGroupItem({
   group,
   currentTime,
 }: DiscussionGroupItemProps) {
-  const relativeTime = formatDistance(group.latestActivityAt, currentTime, {
-    addSuffix: true,
-  });
+  const relativeTime = formatDistance(
+    new Date(group.latestActivityAtMs),
+    currentTime,
+    {
+      addSuffix: true,
+    }
+  );
 
   return (
     <Link

@@ -1,6 +1,6 @@
 'use client';
 
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistance } from 'date-fns';
 import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
 import React, { useState } from 'react';
 import type { BodyVersionNoContentType } from '../../actions';
@@ -12,8 +12,10 @@ import {
 } from '@/app/components/ui/select';
 import ChevronDown from '@/public/assets/web/icons/chevron-down.svg';
 export function PostedRevisions({
+  renderedAtMs,
   versions,
 }: {
+  renderedAtMs: number;
   versions: BodyVersionNoContentType[];
 }) {
   const [selectedVersionIndex, setSelectedVersionIndex] = useState(
@@ -39,10 +41,15 @@ export function PostedRevisions({
   };
 
   const latestVersion = versions[selectedVersionIndex];
+  const renderedAt = new Date(renderedAtMs);
 
-  const relativeTime = formatDistanceToNow(new Date(latestVersion.createdAt), {
-    addSuffix: true,
-  });
+  const relativeTime = formatDistance(
+    new Date(latestVersion.createdAt),
+    renderedAt,
+    {
+      addSuffix: true,
+    }
+  );
 
   return (
     <div className='relative w-[180px] bg-white p-2 dark:bg-neutral-950'>

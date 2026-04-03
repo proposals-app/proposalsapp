@@ -1,22 +1,19 @@
-import { Suspense } from 'react';
+'use client';
+
 import { ActiveGroupItem } from './group-items/active-item';
 import { InactiveGroupItem } from './group-items/inactive-item';
 import { DiscussionGroupItem } from './group-items/discussion-item';
-import {
-  SkeletonActiveGroupItem,
-  SkeletonInactiveGroupItem,
-  SkeletonDiscussionGroupItem,
-} from '../../../components/ui/skeleton';
 import type { FeedData } from '../actions';
 
 interface GroupItemWrapperProps {
+  renderedAtMs: number;
   group: {
     id: string;
     name: string;
     slug: string;
     authorName: string;
     authorAvatarUrl: string;
-    latestActivityAt: Date;
+    latestActivityAtMs: number;
     hasNewActivity: boolean;
     hasActiveProposal: boolean;
     topicsCount: number;
@@ -27,34 +24,26 @@ interface GroupItemWrapperProps {
   };
 }
 
-// Get the appropriate skeleton component based on group type
-function getSkeletonForGroup(group: GroupItemWrapperProps['group']) {
-  if (group.hasActiveProposal) {
-    return <SkeletonActiveGroupItem />;
-  } else if (group.proposalsCount > 0) {
-    return <SkeletonInactiveGroupItem />;
-  } else {
-    return <SkeletonDiscussionGroupItem />;
-  }
-}
-
 // Wrapper component that handles rendering logic
-export function GroupItemWrapper({ group }: GroupItemWrapperProps) {
-  const currentTime = new Date();
+export function GroupItemWrapper({
+  group,
+  renderedAtMs,
+}: GroupItemWrapperProps) {
+  const currentTime = new Date(renderedAtMs);
 
-  return (
-    <Suspense fallback={getSkeletonForGroup(group)}>
-      {group.hasActiveProposal ? (
-        <ActiveGroupItem
-          group={group}
-          feedData={group.activeFeedData}
-          currentTime={currentTime}
-        />
-      ) : group.proposalsCount > 0 ? (
-        <InactiveGroupItem group={group} currentTime={currentTime} />
-      ) : (
-        <DiscussionGroupItem group={group} currentTime={currentTime} />
-      )}
-    </Suspense>
-  );
+  if (group.hasActiveProposal) {
+    return (
+      <ActiveGroupItem
+        group={group}
+        feedData={group.activeFeedData}
+        currentTime={currentTime}
+      />
+    );
+  }
+
+  if (group.proposalsCount > 0) {
+    return <InactiveGroupItem group={group} currentTime={currentTime} />;
+  }
+
+  return <DiscussionGroupItem group={group} currentTime={currentTime} />;
 }

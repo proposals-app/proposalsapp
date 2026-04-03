@@ -29,24 +29,21 @@ COPY libs/ts/visual-dom-diff/ libs/ts/visual-dom-diff/
 # Build the project (no secrets baked into image)
 # Ensure an empty .env exists to satisfy any optional checks
 RUN touch apps/web/.env \
-  && pnpm build-web \
-  && CI=true pnpm prune --prod
+  && pnpm build-web
 
 # Stage 2: Runtime (use minimal runtime image - no shell, no package manager)
 FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# Copy the built project and required files from the builder stage
-# Use the built-in node user in runtime images
-COPY --from=builder --chown=node:node /app/apps/web/ /app/apps/web/
-COPY --from=builder --chown=node:node /app/libs/ts/db/ /app/libs/ts/db/
-COPY --from=builder --chown=node:node /app/libs/ts/emails/ /app/libs/ts/emails/
-COPY --from=builder --chown=node:node /app/libs/ts/visual-dom-diff/ /app/libs/ts/visual-dom-diff/
-COPY --from=builder --chown=node:node /app/node_modules/ /app/node_modules/
-COPY --from=builder --chown=node:node /app/package.json /app/
+# Copy the standalone server output and required runtime assets
+COPY --from=builder --chown=node:node /app/apps/web/.next/standalone/ /app/
+COPY --from=builder --chown=node:node /app/apps/web/.next/static/ /app/apps/web/.next/static/
+COPY --from=builder --chown=node:node /app/apps/web/public/ /app/apps/web/public/
 
 ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
 # Set sharp path for Next.js image optimization
 ENV NEXT_SHARP_PATH=/app/node_modules/sharp
 
@@ -56,5 +53,5 @@ USER node
 # Expose Next.js default port
 EXPOSE 3000
 
-# Run Next.js CLI directly with node (no shell required)
-CMD ["node", "node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "apps/web"]
+# Run the generated standalone server directly
+CMD ["node", "apps/web/server.js"]

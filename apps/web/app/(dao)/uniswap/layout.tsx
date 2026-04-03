@@ -1,7 +1,8 @@
+import type { Viewport } from 'next';
 import { Suspense, type ReactNode } from 'react';
 import Banner from '@/app/components/consent/cookie-banner';
-import { ThemeProvider } from '@/app/components/providers/theme-provider';
 import { NavBar } from '../[daoSlug]/components/navigation/nav-bar';
+import { getThemeColorEntries } from '@/lib/theme';
 
 // Minimal skeleton for navbar while loading
 function NavBarSkeleton() {
@@ -27,24 +28,29 @@ function NavBarSkeleton() {
   );
 }
 
-export default async function UniswapLayout({
+export const viewport: Viewport = {
+  themeColor: getThemeColorEntries('uniswap'),
+};
+
+export default function UniswapLayout({
   children,
 }: {
   children: ReactNode;
 }) {
   return (
-    <ThemeProvider theme='uniswap'>
-      <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
-        <Suspense fallback={<NavBarSkeleton />}>
-          <NavBar daoSlug='uniswap' />
-        </Suspense>
-        <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>
-          {children}
-        </div>
-        <Suspense fallback={null}>
-          <Banner />
-        </Suspense>
+    <div
+      data-theme='uniswap'
+      className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'
+    >
+      <Suspense fallback={<NavBarSkeleton />}>
+        <NavBar daoSlug='uniswap' />
+      </Suspense>
+      <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>
+        {children}
       </div>
-    </ThemeProvider>
+      <Suspense fallback={null}>
+        <Banner />
+      </Suspense>
+    </div>
   );
 }

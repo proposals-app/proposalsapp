@@ -4,7 +4,6 @@ import Link from 'next/link';
 import List from '@/public/assets/web/icons/proposals.svg';
 import Delegate from '@/public/assets/web/icons/delegates.svg';
 import { Suspense } from 'react';
-import { cookies } from 'next/headers';
 
 // Skeleton for mode toggle button while loading
 function ModeToggleSkeleton() {
@@ -13,15 +12,10 @@ function ModeToggleSkeleton() {
   );
 }
 
-export async function NavBar({ daoSlug }: { daoSlug: string }) {
+export function NavBar({ daoSlug }: { daoSlug: string }) {
   const DAO_PICTURE_PATH = daoSlug
     ? `assets/project-logos/${daoSlug}`
     : '/assets/logo';
-
-  let theme: 'light' | 'dark' = 'dark';
-
-  const cookieStore = await cookies();
-  theme = (cookieStore.get('theme-mode')?.value as 'light' | 'dark') ?? 'dark';
 
   return (
     <div className='fill-neutral-800 dark:fill-neutral-200'>
@@ -73,7 +67,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
 
           <div className='flex h-10 items-center justify-center'>
             <Suspense fallback={<ModeToggleSkeleton />}>
-              <ModeToggle initialTheme={theme} />
+              <ModeToggle />
             </Suspense>
           </div>
         </div>
@@ -119,7 +113,7 @@ export async function NavBar({ daoSlug }: { daoSlug: string }) {
         </div>
         <div className='flex flex-col items-center gap-8'>
           <Suspense fallback={<ModeToggleSkeleton />}>
-            <ModeToggle initialTheme={theme} />
+            <ModeToggle />
           </Suspense>
 
           <Image

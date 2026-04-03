@@ -12,6 +12,7 @@ const meta: Meta<typeof GroupList> = {
     },
   },
   args: {
+    renderedAtMs: new Date('2025-06-13T19:47:50.627Z').getTime(),
     signedIn: false,
   },
   argTypes: {
@@ -34,7 +35,7 @@ const sampleGroups = [
     authorName: 'paulofonseca',
     authorAvatarUrl:
       'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/paulofonseca/96/13858_2.png',
-    latestActivityAt: new Date('2025-06-13T15:15:30.398Z'),
+    latestActivityAtMs: new Date('2025-06-13T15:15:30.398Z').getTime(),
     hasNewActivity: false,
     hasActiveProposal: true,
     topicsCount: 1,
@@ -54,7 +55,7 @@ const sampleGroups = [
     authorName: 'Entropy',
     authorAvatarUrl:
       'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/entropy/96/9769_2.png',
-    latestActivityAt: new Date('2025-06-13T12:30:15.123Z'),
+    latestActivityAtMs: new Date('2025-06-13T12:30:15.123Z').getTime(),
     hasNewActivity: true,
     hasActiveProposal: true,
     topicsCount: 1,
@@ -74,7 +75,7 @@ const sampleGroups = [
     authorName: 'BlockworksResearch',
     authorAvatarUrl:
       'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/blockworksresearch/96/8765_2.png',
-    latestActivityAt: new Date('2025-06-13T09:45:22.456Z'),
+    latestActivityAtMs: new Date('2025-06-13T09:45:22.456Z').getTime(),
     hasNewActivity: true,
     hasActiveProposal: true,
     topicsCount: 1,
@@ -95,7 +96,7 @@ const sampleGroups = [
     authorName: 'Arbitrum',
     authorAvatarUrl:
       'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/arbitrum/96/2693_2.png',
-    latestActivityAt: new Date('2025-06-11T20:25:17.370Z'),
+    latestActivityAtMs: new Date('2025-06-11T20:25:17.370Z').getTime(),
     hasNewActivity: false,
     hasActiveProposal: false,
     topicsCount: 1,
@@ -111,7 +112,7 @@ const sampleGroups = [
     authorName: 'GrantsCommittee',
     authorAvatarUrl:
       'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/grantscommittee/96/5432_2.png',
-    latestActivityAt: new Date('2025-06-10T14:20:45.789Z'),
+    latestActivityAtMs: new Date('2025-06-10T14:20:45.789Z').getTime(),
     hasNewActivity: false,
     hasActiveProposal: false,
     topicsCount: 1,
@@ -128,7 +129,7 @@ const sampleGroups = [
     authorName: 'CryptoNick',
     authorAvatarUrl:
       'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/cryptonick/96/1204_2.png',
-    latestActivityAt: new Date('2023-04-09T04:00:12.398Z'),
+    latestActivityAtMs: new Date('2023-04-09T04:00:12.398Z').getTime(),
     hasNewActivity: false,
     hasActiveProposal: false,
     topicsCount: 1,
@@ -144,7 +145,7 @@ const sampleGroups = [
     authorName: 'DAOStewards',
     authorAvatarUrl:
       'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/daostewards/96/3456_2.png',
-    latestActivityAt: new Date('2025-06-12T16:30:00.000Z'),
+    latestActivityAtMs: new Date('2025-06-12T16:30:00.000Z').getTime(),
     hasNewActivity: true,
     hasActiveProposal: false,
     topicsCount: 1,
@@ -160,7 +161,7 @@ const sampleGroups = [
     authorName: 'SecurityDAO',
     authorAvatarUrl:
       'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/securitydao/96/7890_2.png',
-    latestActivityAt: new Date('2025-06-09T11:15:30.456Z'),
+    latestActivityAtMs: new Date('2025-06-09T11:15:30.456Z').getTime(),
     hasNewActivity: false,
     hasActiveProposal: false,
     topicsCount: 1,

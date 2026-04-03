@@ -1,7 +1,7 @@
 'use client';
 
 import { formatNumberWithSuffix } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistance } from 'date-fns';
 import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -25,6 +25,7 @@ import {
 } from '@/app/components/ui/select';
 
 interface ResultsTableProps {
+  renderedAtMs: number;
   results: SuperJSONResult;
   votes: SuperJSONResult;
 }
@@ -54,9 +55,14 @@ const voteIncludesChoiceText = (
   return vote.choice.some((choice) => choice.text.includes(choiceText));
 };
 
-export function ResultsTable({ results, votes }: ResultsTableProps) {
+export function ResultsTable({
+  renderedAtMs,
+  results,
+  votes,
+}: ResultsTableProps) {
   const deserializedResults: ProcessedResults = superjson.deserialize(results);
   const deserializedVotes: VotesWithVoters = superjson.deserialize(votes);
+  const renderedAt = new Date(renderedAtMs);
 
   const [sortColumn, setSortColumn] = useState<'timestamp' | 'votingPower'>(
     'votingPower'
@@ -255,7 +261,9 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
               {/* Date (Right) */}
               <div className='text-right'>
                 <div className='font-bold'>
-                  {formatDistanceToNow(vote.createdAt!, { addSuffix: true })}
+                  {formatDistance(vote.createdAt!, renderedAt, {
+                    addSuffix: true,
+                  })}
                 </div>
               </div>
             </div>
@@ -322,7 +330,9 @@ export function ResultsTable({ results, votes }: ResultsTableProps) {
             {/* Column 4: Date */}
             <div className='col-span-1 px-2 text-right text-sm'>
               <div className='font-bold'>
-                {formatDistanceToNow(vote.createdAt!, { addSuffix: true })}
+                {formatDistance(vote.createdAt!, renderedAt, {
+                  addSuffix: true,
+                })}
               </div>
               <div className=''>
                 {' '}

@@ -178,36 +178,53 @@ const getTokenPrice = async () => {
 };
 
 export default async function Page() {
-  // Hardcode the daoSlug for Arbitrum
-  const daoSlug = 'arbitrum';
+  return (
+    <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
+      <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
+        <Suspense
+          fallback={
+            <>
+              <LoadingHeader />
+              <LoadingGroupList />
+            </>
+          }
+        >
+          <ArbitrumPageContent />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
 
-  // Get session at the page level to avoid dynamic context issues
+async function ArbitrumPageContent() {
+  const daoSlug = 'arbitrum';
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
+  const renderedAtMs = Date.now();
 
-  // Fetch groups data once at page level to avoid redundant fetches
   const result = await getGroups(daoSlug, userId);
-  if (!result) return null;
+  if (!result) {
+    return null;
+  }
 
   const { groups, daoId } = result;
 
   return (
-    <div className='flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900'>
-      <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        {/* Summary Header - loads financial data independently */}
-        <Suspense fallback={<LoadingHeader />}>
-          <ArbitrumSummaryContainer groups={groups} daoId={daoId} />
-        </Suspense>
+    <>
+      <Suspense fallback={<LoadingHeader />}>
+        <ArbitrumSummaryContainer groups={groups} daoId={daoId} />
+      </Suspense>
 
-        {/* Action Bar - uses pre-fetched groups data */}
-        <ActionBarContainer groups={groups} signedIn={!!userId} />
+      <ActionBarContainer groups={groups} signedIn={!!userId} />
 
-        {/* Groups List - loads with pre-fetched active feeds */}
-        <Suspense fallback={<LoadingGroupList />}>
-          <GroupsContainer groups={groups} signedIn={!!userId} />
-        </Suspense>
-      </div>
-    </div>
+      <Suspense fallback={<LoadingGroupList />}>
+        <GroupsContainer
+          groups={groups}
+          renderedAtMs={renderedAtMs}
+          signedIn={!!userId}
+        />
+      </Suspense>
+    </>
   );
 }
 
@@ -275,9 +292,11 @@ function ActionBarContainer({
 // Groups container with pre-fetched active feeds
 async function GroupsContainer({
   groups,
+  renderedAtMs,
   signedIn,
 }: {
   groups: Groups;
+  renderedAtMs: number;
   signedIn: boolean;
 }) {
   // Get IDs of groups with active proposals and fetch feeds in parallel
@@ -302,7 +321,7 @@ async function GroupsContainer({
       authorAvatarUrl:
         group.originalAuthorPicture ||
         'https://api.dicebear.com/9.x/pixel-art/png?seed=proposals.app',
-      latestActivityAt: new Date(group.newestActivityTimestamp),
+      latestActivityAtMs: group.newestActivityTimestamp,
       hasNewActivity: group.hasNewActivity,
       hasActiveProposal: group.hasActiveProposal,
       topicsCount: group.topicsCount,
@@ -314,5 +333,11 @@ async function GroupsContainer({
     };
   });
 
-  return <GroupList initialGroups={groupsWithInfo} signedIn={signedIn} />;
+  return (
+    <GroupList
+      initialGroups={groupsWithInfo}
+      renderedAtMs={renderedAtMs}
+      signedIn={signedIn}
+    />
+  );
 }

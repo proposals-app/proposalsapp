@@ -1,7 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { NavBar } from './components/navigation/nav-bar';
-import { ThemeProvider } from '@/app/components/providers/theme-provider';
 import Banner from '@/app/components/consent/cookie-banner';
+import { normalizeThemeVariant } from '@/lib/theme';
 
 // Minimal skeleton for navbar while loading
 function NavBarSkeleton() {
@@ -36,9 +36,7 @@ export default function DaoLayout({
 }) {
   // Avoid awaiting params at the top level so the shell can stream
   return (
-    <Suspense
-      fallback={<DaoLayoutFallback daoSlug=''>{children}</DaoLayoutFallback>}
-    >
+    <Suspense fallback={<DaoLayoutFallback>{children}</DaoLayoutFallback>}>
       <DaoLayoutContent params={params}>{children}</DaoLayoutContent>
     </Suspense>
   );
@@ -46,24 +44,18 @@ export default function DaoLayout({
 
 function DaoLayoutFallback({
   children,
-  daoSlug,
 }: {
   children: ReactNode;
-  daoSlug: string;
 }) {
   return (
-    <div className='dark' data-theme={daoSlug}>
-      <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
-        <Suspense fallback={<NavBarSkeleton />}>
-          <NavBar daoSlug={daoSlug} />
-        </Suspense>
-        <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>
-          {children}
-        </div>
-        <Suspense fallback={null}>
-          <Banner />
-        </Suspense>
-      </div>
+    <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
+      <Suspense fallback={<NavBarSkeleton />}>
+        <NavBar daoSlug='' />
+      </Suspense>
+      <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>{children}</div>
+      <Suspense fallback={null}>
+        <Banner />
+      </Suspense>
     </div>
   );
 }
@@ -77,18 +69,19 @@ async function DaoLayoutContent({
 }) {
   const { daoSlug } = await params;
   return (
-    <ThemeProvider theme={daoSlug}>
-      <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
-        <Suspense fallback={<NavBarSkeleton />}>
-          <NavBar daoSlug={daoSlug} />
-        </Suspense>
-        <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>
-          {children}
-        </div>
-        <Suspense fallback={null}>
-          <Banner />
-        </Suspense>
+    <div
+      data-theme={normalizeThemeVariant(daoSlug)}
+      className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'
+    >
+      <Suspense fallback={<NavBarSkeleton />}>
+        <NavBar daoSlug={daoSlug} />
+      </Suspense>
+      <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>
+        {children}
       </div>
-    </ThemeProvider>
+      <Suspense fallback={null}>
+        <Banner />
+      </Suspense>
+    </div>
   );
 }

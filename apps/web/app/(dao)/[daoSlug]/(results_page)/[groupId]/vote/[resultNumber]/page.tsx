@@ -50,6 +50,7 @@ export default async function Page({
   params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
 }) {
   const { groupId, resultNumber } = await params;
+  const renderedAtMs = Date.now();
   const group = await getGroup(groupId);
 
   // Validate group and proposal existence BEFORE Suspense boundaries
@@ -85,7 +86,10 @@ export default async function Page({
         <div className='h-full w-full pl-2 pr-2 sm:pl-0 sm:pr-4'>
           <div className='rounded-r-xs flex h-full min-h-[calc(100vh-114px)] w-full flex-col border border-neutral-800 bg-white p-6 dark:border-neutral-650 dark:bg-neutral-950'>
             <Suspense fallback={<ResultsLoading />}>
-              <ResultsContainer proposal={proposal} />
+              <ResultsContainer
+                proposal={proposal}
+                renderedAtMs={renderedAtMs}
+              />
             </Suspense>
           </div>
         </div>
@@ -126,10 +130,12 @@ async function TimelineContainer({
 // Separate component for results rendering with pre-validated proposal
 async function ResultsContainer({
   proposal,
+  renderedAtMs,
 }: {
   proposal: NonNullable<Awaited<ReturnType<typeof getGroup>>>['proposals'][0];
+  renderedAtMs: number;
 }) {
-  return <Results proposal={proposal} />;
+  return <Results proposal={proposal} renderedAtMs={renderedAtMs} />;
 }
 
 // Enhanced loading placeholder for header

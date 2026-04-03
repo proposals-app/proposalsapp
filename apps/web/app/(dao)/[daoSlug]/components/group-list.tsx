@@ -12,7 +12,7 @@ interface Group {
   slug: string;
   authorName: string;
   authorAvatarUrl: string;
-  latestActivityAt: Date;
+  latestActivityAtMs: number;
   hasNewActivity: boolean;
   hasActiveProposal: boolean;
   topicsCount: number;
@@ -24,15 +24,26 @@ interface Group {
 
 interface GroupListProps {
   initialGroups: Group[];
+  renderedAtMs: number;
   signedIn: boolean;
 }
 
-// Enhanced individual group item with error boundary and progressive loading
-function GroupItem({ group }: { group: Group }) {
-  return <GroupItemWrapper group={group} />;
+// Enhanced individual group item with stable relative-time rendering
+function GroupItem({
+  group,
+  renderedAtMs,
+}: {
+  group: Group;
+  renderedAtMs: number;
+}) {
+  return <GroupItemWrapper group={group} renderedAtMs={renderedAtMs} />;
 }
 
-export function GroupList({ initialGroups, signedIn }: GroupListProps) {
+export function GroupList({
+  initialGroups,
+  renderedAtMs,
+  signedIn,
+}: GroupListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'unread'>('all');
   const [isPending, startTransition] = useTransition();
@@ -59,7 +70,7 @@ export function GroupList({ initialGroups, signedIn }: GroupListProps) {
       if (a.hasActiveProposal && !b.hasActiveProposal) return -1;
       if (!a.hasActiveProposal && b.hasActiveProposal) return 1;
       // Then by activity
-      return b.latestActivityAt.getTime() - a.latestActivityAt.getTime();
+      return b.latestActivityAtMs - a.latestActivityAtMs;
     });
   }, [initialGroups]);
 
@@ -176,14 +187,14 @@ export function GroupList({ initialGroups, signedIn }: GroupListProps) {
 
           {priorityGroups.map((group) => (
             <div key={group.id}>
-              <GroupItem group={group} />
+              <GroupItem group={group} renderedAtMs={renderedAtMs} />
             </div>
           ))}
 
           {/* Then render regular groups with staggered loading */}
           {regularGroups.map((group) => (
             <div key={group.id}>
-              <GroupItem group={group} />
+              <GroupItem group={group} renderedAtMs={renderedAtMs} />
             </div>
           ))}
         </div>

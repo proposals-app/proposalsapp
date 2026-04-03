@@ -1,31 +1,40 @@
-export const updateManifest = async (isDark: boolean) => {
-  const neutral50 = '#fafafa';
-  const neutral950 = '#0a0a0a';
+import { WEB_MANIFEST_PATH } from '@/lib/pwa';
+import { getThemeColor, type ThemeMode, type ThemeVariant } from '@/lib/theme';
 
-  // Fetch the manifest file from the correct URL in production
-  const manifestUrl = '/manifest.json';
-  const response = await fetch(manifestUrl);
-  const manifest = await response.json();
+export const updateManifest = async (
+  variant: ThemeVariant,
+  mode: ThemeMode
+) => {
+  try {
+    const response = await fetch(WEB_MANIFEST_PATH, { cache: 'no-store' });
+    if (!response.ok) {
+      return;
+    }
 
-  const updatedManifest = {
-    ...manifest,
-    theme_color: isDark ? neutral950 : neutral50,
-    background_color: isDark ? neutral950 : neutral50,
-  };
+    const manifest = await response.json();
+    const themeColor = getThemeColor(variant, mode);
 
-  const manifestString = JSON.stringify(updatedManifest);
-  const blob = new Blob([manifestString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+    const updatedManifest = {
+      ...manifest,
+      theme_color: themeColor,
+      background_color: themeColor,
+    };
 
-  const linkElement = document.querySelector('link[rel="manifest"]');
-  if (linkElement) {
-    // Store the old URL to revoke it
+    const manifestString = JSON.stringify(updatedManifest);
+    const blob = new Blob([manifestString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const linkElement = document.querySelector('link[rel="manifest"]');
+    if (!linkElement) {
+      return;
+    }
+
     const oldUrl = linkElement.getAttribute('href');
-    // Set new URL
     linkElement.setAttribute('href', url);
-    // Revoke old URL if it was a blob
     if (oldUrl?.startsWith('blob:')) {
       URL.revokeObjectURL(oldUrl);
     }
+  } catch {
+    // A missing manifest should not break page hydration.
   }
 };

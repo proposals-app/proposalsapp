@@ -37,9 +37,14 @@
     },
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide",
+      "bufferutil",
+      "core-js",
+      "core-js-pure",
       "esbuild",
       "protobufjs",
       "sharp",
+      "unrs-resolver",
+      "utf-8-validate",
       "ws"
     ]
   }

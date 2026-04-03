@@ -1,4 +1,4 @@
-export default async function NotFound() {
+export default function NotFound() {
   return (
     <div className='flex min-h-screen w-full items-center justify-center bg-neutral-50 dark:bg-neutral-900'>
       <div className='text-center'>

@@ -10,12 +10,14 @@ export function BodyHeader({
   originalAuthorPicture,
   firstBodyVersionCreatedAt,
   bodyVersionsNoContent,
+  renderedAtMs,
 }: {
   groupName: string;
   originalAuthorName: string;
   originalAuthorPicture: string;
   firstBodyVersionCreatedAt: Date;
   bodyVersionsNoContent: BodyVersionNoContentType[];
+  renderedAtMs: number;
 }) {
   return (
     <div className='flex w-full flex-col gap-6'>
@@ -35,7 +37,10 @@ export function BodyHeader({
               <div className='flex gap-2'>
                 <InitiallyPosted createdAt={firstBodyVersionCreatedAt} />
 
-                <PostedRevisions versions={bodyVersionsNoContent} />
+                <PostedRevisions
+                  versions={bodyVersionsNoContent}
+                  renderedAtMs={renderedAtMs}
+                />
               </div>
             </div>
           </div>
@@ -50,7 +55,10 @@ export function BodyHeader({
           />
 
           <div className='flex-col'>
-            <PostedRevisions versions={bodyVersionsNoContent} />
+            <PostedRevisions
+              versions={bodyVersionsNoContent}
+              renderedAtMs={renderedAtMs}
+            />
           </div>
         </div>
 

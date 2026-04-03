@@ -4,8 +4,10 @@ import { useEffect } from 'react';
 
 export default function Error({
   error,
+  reset,
 }: {
   error: Error & { digest?: string };
+  reset: () => void;
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
@@ -30,6 +32,12 @@ export default function Error({
             'An unexpected error occurred. Please try again.'
           )}
         </p>
+        <button
+          onClick={reset}
+          className='rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-700 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-300'
+        >
+          Try again
+        </button>
       </div>
     </div>
   );

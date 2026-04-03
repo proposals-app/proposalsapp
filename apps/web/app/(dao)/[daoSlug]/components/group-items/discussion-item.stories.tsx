@@ -33,7 +33,7 @@ export const Default: Story = {
       authorName: 'CryptoNick',
       authorAvatarUrl:
         'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/cryptonick/96/1204_2.png',
-      latestActivityAt: new Date('2023-04-09T04:00:12.398Z'),
+      latestActivityAtMs: new Date('2023-04-09T04:00:12.398Z').getTime(),
       hasNewActivity: false,
       hasActiveProposal: false,
       topicsCount: 1,
@@ -60,7 +60,7 @@ export const RecentDiscussion: Story = {
     group: {
       ...Default.args!.group!,
       name: 'Active Community Discussion on Token Economics',
-      latestActivityAt: new Date('2025-06-13T18:45:00.000Z'),
+      latestActivityAtMs: new Date('2025-06-13T18:45:00.000Z').getTime(),
       hasNewActivity: true,
       postsCount: 34,
     },
@@ -159,7 +159,7 @@ export const OldDiscussion: Story = {
     group: {
       ...Default.args!.group!,
       name: 'Archived Discussion from Last Year',
-      latestActivityAt: new Date('2024-03-15T14:22:00.000Z'),
+      latestActivityAtMs: new Date('2024-03-15T14:22:00.000Z').getTime(),
       hasNewActivity: false,
       postsCount: 12,
     },

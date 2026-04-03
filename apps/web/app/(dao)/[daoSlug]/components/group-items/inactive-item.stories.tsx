@@ -33,7 +33,7 @@ export const Default: Story = {
       authorName: 'Arbitrum',
       authorAvatarUrl:
         'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/arbitrum/96/2693_2.png',
-      latestActivityAt: new Date('2025-06-11T20:25:17.370Z'),
+      latestActivityAtMs: new Date('2025-06-11T20:25:17.370Z').getTime(),
       hasNewActivity: false,
       hasActiveProposal: false,
       topicsCount: 1,
@@ -60,7 +60,7 @@ export const RecentActivity: Story = {
     group: {
       ...Default.args!.group!,
       name: 'Recent Treasury Management Discussion',
-      latestActivityAt: new Date('2025-06-13T18:30:00.000Z'),
+      latestActivityAtMs: new Date('2025-06-13T18:30:00.000Z').getTime(),
       hasNewActivity: true,
     },
   },
@@ -147,7 +147,7 @@ export const OldActivity: Story = {
     group: {
       ...Default.args!.group!,
       name: 'Old Archived Proposal',
-      latestActivityAt: new Date('2024-01-15T10:00:00.000Z'),
+      latestActivityAtMs: new Date('2024-01-15T10:00:00.000Z').getTime(),
       hasNewActivity: false,
     },
   },

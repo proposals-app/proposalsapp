@@ -108,12 +108,14 @@ export function ArbitrumSummaryHeader({
                 src={`/${DAO_PICTURE_PATH}.svg`}
                 alt='Arbitrum'
                 fill={true}
+                sizes='48px'
                 className='dark:hidden'
               />
               <Image
                 src={`/${DAO_PICTURE_PATH}_dark.svg`}
                 alt='Arbitrum'
                 fill={true}
+                sizes='48px'
                 className='hidden dark:block'
               />
             </div>
@@ -163,12 +165,14 @@ export function ArbitrumSummaryHeader({
                   src={`/${DAO_PICTURE_PATH}.svg`}
                   alt='Arbitrum'
                   fill={true}
+                  sizes='64px'
                   className='dark:hidden'
                 />
                 <Image
                   src={`/${DAO_PICTURE_PATH}_dark.svg`}
                   alt='Arbitrum'
                   fill={true}
+                  sizes='64px'
                   className='hidden dark:block'
                 />
               </div>

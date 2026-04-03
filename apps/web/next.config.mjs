@@ -1,4 +1,8 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import withSerwistInit from '@serwist/next';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Bundle analyzer is optional - only load when ANALYZE=true and package is available
 let withBundleAnalyzer = (config) => config;
@@ -14,10 +18,13 @@ if (process.env.ANALYZE === 'true') {
 const _withSerwist = withSerwistInit({
   swSrc: 'app/sw.ts',
   swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV !== 'production',
 });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   reactStrictMode: true,
   reactCompiler: true,
   serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],

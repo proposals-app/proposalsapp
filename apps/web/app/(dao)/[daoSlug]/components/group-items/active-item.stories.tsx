@@ -35,7 +35,7 @@ export const Default: Story = {
       authorName: 'paulofonseca',
       authorAvatarUrl:
         'https://yyz1.discourse-cdn.com/flex029/user_avatar/forum.arbitrum.foundation/paulofonseca/96/13858_2.png',
-      latestActivityAt: new Date('2025-06-13T15:15:30.398Z'),
+      latestActivityAtMs: new Date('2025-06-13T15:15:30.398Z').getTime(),
       hasNewActivity: false,
       hasActiveProposal: true,
       topicsCount: 1,

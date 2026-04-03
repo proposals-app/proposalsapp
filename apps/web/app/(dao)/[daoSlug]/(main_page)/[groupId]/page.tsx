@@ -75,6 +75,7 @@ async function GroupPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { daoSlug, groupId } = await params;
+  const renderedAtMs = Date.now();
 
   // Validate group exists - inside Suspense boundary
   const group = await getGroupCached(groupId);
@@ -103,7 +104,7 @@ async function GroupPage({
         </Suspense>
 
         <Suspense fallback={<BodyHeaderLoading />}>
-          <BodyHeaderSection groupId={groupId} />
+          <BodyHeaderSection groupId={groupId} renderedAtMs={renderedAtMs} />
         </Suspense>
 
         <Suspense fallback={<BodyLoading />} key={bodyKey}>
@@ -169,7 +170,13 @@ async function BodySection({
   );
 }
 
-async function BodyHeaderSection({ groupId }: { groupId: string }) {
+async function BodyHeaderSection({
+  groupId,
+  renderedAtMs,
+}: {
+  groupId: string;
+  renderedAtMs: number;
+}) {
   const [group, bodyVersions, bodyVersionsNoContent, authorInfo] =
     await Promise.all([
       getGroupCached(groupId),
@@ -202,6 +209,7 @@ async function BodyHeaderSection({ groupId }: { groupId: string }) {
         originalAuthorPicture={originalAuthorPicture}
         firstBodyVersionCreatedAt={firstBodyVersion.createdAt}
         bodyVersionsNoContent={bodyVersionsNoContent}
+        renderedAtMs={renderedAtMs}
       />
     </div>
   );

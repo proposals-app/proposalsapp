@@ -6,6 +6,9 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 const meta = {
   title: 'DAO/Proposal/Header',
   component: BodyHeader,
+  args: {
+    renderedAtMs: new Date('2025-06-13T19:47:50.627Z').getTime(),
+  },
   decorators: [
     (Story) => (
       <NuqsAdapter>

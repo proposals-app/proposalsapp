@@ -20,7 +20,7 @@ interface ActiveGroupItemProps {
     slug: string;
     authorName: string;
     authorAvatarUrl: string;
-    latestActivityAt: Date;
+    latestActivityAtMs: number;
     hasNewActivity: boolean;
     hasActiveProposal: boolean;
     topicsCount: number;
@@ -29,13 +29,13 @@ interface ActiveGroupItemProps {
     postsCount: number;
   };
   feedData: FeedData | null; // Pre-fetched feed data
-  currentTime?: Date;
+  currentTime: Date;
 }
 
 export function ActiveGroupItem({
   group,
   feedData,
-  currentTime = new Date(),
+  currentTime,
 }: ActiveGroupItemProps) {
   const result =
     feedData?.events && feedData.events.length > 0 ? feedData.events[0] : null;

@@ -30,9 +30,10 @@ import {
 
 interface ResultsProps {
   proposal: Selectable<Proposal>;
+  renderedAtMs: number;
 }
 
-export function Results({ proposal }: ResultsProps) {
+export function Results({ proposal, renderedAtMs }: ResultsProps) {
   // Kick off data fetches in parallel without awaiting here
   const votesPromise = getVotesWithVotersCached(proposal.id);
   const minimalVotesPromise = getVotesMinimalCached(proposal.id);
@@ -114,6 +115,7 @@ export function Results({ proposal }: ResultsProps) {
           {/* Full table needs full results + raw votes */}
           <Suspense fallback={<LoadingTable />}>
             <ResultsTableContainer
+              renderedAtMs={renderedAtMs}
               resultsPromise={fullResultsPromise}
               votesPromise={votesPromise}
             />
@@ -213,9 +215,11 @@ async function ResultsChartContainer({
 }
 
 async function ResultsTableContainer({
+  renderedAtMs,
   resultsPromise,
   votesPromise,
 }: {
+  renderedAtMs: number;
   resultsPromise: Promise<Awaited<ReturnType<typeof processResultsAction>>>;
   votesPromise: ReturnType<typeof getVotesWithVotersCached>;
 }) {
@@ -225,7 +229,13 @@ async function ResultsTableContainer({
   ]);
   const serializedResults = superjson.serialize(processedResults);
   const serializedVotes = superjson.serialize(votes);
-  return <ResultsTable results={serializedResults} votes={serializedVotes} />;
+  return (
+    <ResultsTable
+      renderedAtMs={renderedAtMs}
+      results={serializedResults}
+      votes={serializedVotes}
+    />
+  );
 }
 
 async function NonVotersTableLazy({ proposalId }: { proposalId: string }) {

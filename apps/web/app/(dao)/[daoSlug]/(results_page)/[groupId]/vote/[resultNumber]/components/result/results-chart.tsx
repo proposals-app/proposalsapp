@@ -8,6 +8,7 @@ import type { ProcessedResults } from '@/lib/results_processing';
 import superjson, { type SuperJSONResult } from 'superjson';
 import type { TooltipComponentFormatterCallbackParams } from 'echarts';
 import { SkeletonChart } from '@/app/components/ui/skeleton';
+import { useAppTheme } from '@/app/components/providers/app-theme-provider';
 
 interface ResultsChartProps {
   results: SuperJSONResult;
@@ -33,6 +34,7 @@ const roundToGoodValue = (value: number): number => {
 
 export function ResultsChart({ results }: ResultsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode, variant } = useAppTheme();
 
   // Memoize deserialized results to prevent unnecessary re-calculations if the SuperJSONResult object reference remains the same
   // Note: This might not be strictly necessary if the parent component ensures `results` prop stability,
@@ -46,23 +48,6 @@ export function ResultsChart({ results }: ResultsChartProps) {
     if (!chartRef.current) return;
     if (!deserializedResults.timeSeriesData) return;
 
-    // Function to get cookie value by name
-    const getCookie = (name: string): string | undefined => {
-      if (typeof document === 'undefined') return undefined; // Guard for SSR or environments without document
-      const cookies = document.cookie.split(';');
-      for (const cookie of cookies) {
-        const [cookieName, cookieValue] = cookie.trim().split('=');
-        if (cookieName === name) {
-          return cookieValue;
-        }
-      }
-      return undefined;
-    };
-
-    const themeModeCookie = getCookie('theme-mode');
-    const theme: 'dark' | 'light' =
-      themeModeCookie === 'light' ? 'light' : 'dark';
-
     // Helper function to get computed style - ensure documentElement exists
     const getStyle = (property: string): string => {
       if (typeof document === 'undefined' || !document.documentElement)
@@ -73,20 +58,20 @@ export function ResultsChart({ results }: ResultsChartProps) {
     };
 
     const themeColors = {
-      axisLabel: theme == 'dark' ? 'var(--neutral-300)' : 'var(--neutral-500)',
-      gridLine: theme == 'dark' ? 'var(--neutral-600)' : 'var(--neutral-300)',
-      axisLine: theme == 'dark' ? 'var(--neutral-600)' : 'var(--neutral-300)',
-      quorumLine: theme == 'dark' ? 'var(--neutral-50)' : 'var(--neutral-900)',
+      axisLabel: mode == 'dark' ? 'var(--neutral-300)' : 'var(--neutral-500)',
+      gridLine: mode == 'dark' ? 'var(--neutral-600)' : 'var(--neutral-300)',
+      axisLine: mode == 'dark' ? 'var(--neutral-600)' : 'var(--neutral-300)',
+      quorumLine: mode == 'dark' ? 'var(--neutral-50)' : 'var(--neutral-900)',
       quorumLabel: {
-        text: theme == 'dark' ? 'var(--neutral-800)' : 'var(--neutral-50)',
+        text: mode == 'dark' ? 'var(--neutral-800)' : 'var(--neutral-50)',
         background:
-          theme == 'dark' ? 'var(--neutral-200)' : 'var(--neutral-600)',
-        border: theme == 'dark' ? 'var(--neutral-50)' : 'var(--neutral-900)',
+          mode == 'dark' ? 'var(--neutral-200)' : 'var(--neutral-600)',
+        border: mode == 'dark' ? 'var(--neutral-50)' : 'var(--neutral-900)',
       },
       tooltip: {
-        background: theme == 'dark' ? '#27272A' : '#FFFFFF', // neutral-800 : white
-        border: theme == 'dark' ? '#3F3F46' : '#E4E4E7', // neutral-700 : neutral-200
-        text: theme == 'dark' ? '#F4F4F5' : '#27272A', // neutral-100 : neutral-800
+        background: mode == 'dark' ? '#27272A' : '#FFFFFF', // neutral-800 : white
+        border: mode == 'dark' ? '#3F3F46' : '#E4E4E7', // neutral-700 : neutral-200
+        text: mode == 'dark' ? '#F4F4F5' : '#27272A', // neutral-100 : neutral-800
       },
     };
 
@@ -316,7 +301,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
         lineStyle: {
           width: 2,
           color:
-            theme === 'dark'
+            mode === 'dark'
               ? getStyle('--neutral-400')
               : getStyle('--neutral-700'),
           type: 'dashed',
@@ -325,11 +310,11 @@ export function ResultsChart({ results }: ResultsChartProps) {
         emphasis: {
           itemStyle: {
             color:
-              theme === 'dark'
+              mode === 'dark'
                 ? getStyle('--neutral-400')
                 : getStyle('--neutral-700'),
             borderColor:
-              theme === 'dark'
+              mode === 'dark'
                 ? getStyle('--neutral-400')
                 : getStyle('--neutral-700'),
           },
@@ -559,7 +544,7 @@ export function ResultsChart({ results }: ResultsChartProps) {
     };
     // Ensure all dependencies derived from props or external state are included.
     // Basic types (string, number, boolean) usually don't need explicit listing if derived from listed objects/arrays.
-  }, [deserializedResults]);
+  }, [deserializedResults, mode, variant]);
 
   // Display start/end times below the chart
   const renderTime = (dateString: string | Date) => {
