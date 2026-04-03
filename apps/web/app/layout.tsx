@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import '@/styles/globals.css';
+import '@/app/bones/registry';
 import { WebVitals } from './web-vitals';
 import { Suspense } from 'react';
 import WalletProvider from './components/providers/wallet-provider';

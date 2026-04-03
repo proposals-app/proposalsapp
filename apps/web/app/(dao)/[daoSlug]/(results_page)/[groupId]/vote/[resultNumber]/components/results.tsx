@@ -12,7 +12,6 @@ import {
   LoadingList,
   ResultsList,
   ResultsListBars,
-  ResultsListBarsSkeleton,
 } from './result/results-list';
 import { LoadingTable, ResultsTable } from './result/results-table';
 import { processResultsAction } from '@/lib/results_processing';
@@ -26,6 +25,7 @@ import {
 import {
   SkeletonResultsTitle,
   SkeletonResults,
+  SkeletonResultsListBars,
 } from '@/app/components/ui/skeleton';
 
 interface ResultsProps {
@@ -93,7 +93,7 @@ export function Results({ proposal }: ResultsProps) {
         </div>
         {/* Mobile bars skeleton to prevent layout shift */}
         <div className='flex justify-center sm:hidden'>
-          <Suspense fallback={<ResultsListBarsSkeleton />}>
+          <Suspense fallback={<SkeletonResultsListBars />}>
             <ResultsListBarsContainer
               enrichedResultsPromise={enrichedResultsPromise}
               onChainPromise={onChainPromise}
@@ -129,7 +129,7 @@ export function Results({ proposal }: ResultsProps) {
             onChainPromise={onChainPromise}
           />
         </Suspense>
-        <Suspense fallback={<ResultsListBarsSkeleton />}>
+        <Suspense fallback={<SkeletonResultsListBars />}>
           <ResultsListBarsContainer
             enrichedResultsPromise={enrichedResultsPromise}
             onChainPromise={onChainPromise}

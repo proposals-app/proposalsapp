@@ -4,7 +4,7 @@ import type { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-voter';
 import type { ProposalMetadata } from '@/lib/types';
 
-export async function AggregateVoteItem({
+export function AggregateVoteItem({
   item,
   group,
 }: {

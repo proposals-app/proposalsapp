@@ -3,7 +3,7 @@ import { getDao } from '../actions';
 import { DelegateRow } from './components/edit-delegate-row';
 import { Suspense } from 'react';
 import { Button, MappingTable, PageHeader } from '../components/ui';
-import { Spinner } from '@/app/components/ui/spinner';
+import { SkeletonDelegatesPage } from '@/app/components/ui/skeleton';
 
 async function DelegatesPage({
   params,
@@ -85,22 +85,13 @@ async function DelegatesContainer({ daoSlug }: { daoSlug: string }) {
   );
 }
 
-// Loading component for the entire page
-function PageSpinner() {
-  return (
-    <div className='container mx-auto flex min-h-[50vh] items-center justify-center p-6'>
-      <Spinner size='lg' />
-    </div>
-  );
-}
-
 export default async function Page({
   params,
 }: {
   params: Promise<{ daoSlug: string }>;
 }) {
   return (
-    <Suspense fallback={<PageSpinner />}>
+    <Suspense fallback={<SkeletonDelegatesPage />}>
       <DelegatesPage params={params} />
     </Suspense>
   );

@@ -22,7 +22,7 @@ const getChoiceText = (vote: ProcessedVote, isWeighted = false): string => {
   }
 };
 
-export async function VoteItem({
+export function VoteItem({
   item,
   voteWithVoter,
   group,

@@ -1,0 +1,142 @@
+{
+  "breakpoints": {
+    "375": {
+      "name": "posted-revisions",
+      "viewportWidth": 659,
+      "width": 659,
+      "height": 48,
+      "bones": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 27.3141,
+          "h": 48,
+          "r": 8,
+          "c": true
+        },
+        {
+          "x": 1.214,
+          "y": 8,
+          "w": 24.8862,
+          "h": 32,
+          "r": 2
+        }
+      ]
+    },
+    "475": {
+      "name": "posted-revisions",
+      "viewportWidth": 659,
+      "width": 659,
+      "height": 48,
+      "bones": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 27.3141,
+          "h": 48,
+          "r": 8,
+          "c": true
+        },
+        {
+          "x": 1.214,
+          "y": 8,
+          "w": 24.8862,
+          "h": 32,
+          "r": 2
+        }
+      ]
+    },
+    "768": {
+      "name": "posted-revisions",
+      "viewportWidth": 1074,
+      "width": 1074,
+      "height": 48,
+      "bones": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 16.7527,
+          "h": 48,
+          "r": 8,
+          "c": true
+        },
+        {
+          "x": 0.7446,
+          "y": 8,
+          "w": 15.2636,
+          "h": 32,
+          "r": 2
+        }
+      ]
+    },
+    "1024": {
+      "name": "posted-revisions",
+      "viewportWidth": 430,
+      "width": 430,
+      "height": 48,
+      "bones": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 41.8605,
+          "h": 48,
+          "r": 8,
+          "c": true
+        },
+        {
+          "x": 1.8605,
+          "y": 8,
+          "w": 38.1395,
+          "h": 32,
+          "r": 2
+        }
+      ]
+    },
+    "1280": {
+      "name": "posted-revisions",
+      "viewportWidth": 558,
+      "width": 558,
+      "height": 48,
+      "bones": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 32.2581,
+          "h": 48,
+          "r": 8,
+          "c": true
+        },
+        {
+          "x": 1.4337,
+          "y": 8,
+          "w": 29.3907,
+          "h": 32,
+          "r": 2
+        }
+      ]
+    },
+    "1536": {
+      "name": "posted-revisions",
+      "viewportWidth": 574,
+      "width": 574,
+      "height": 48,
+      "bones": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 31.3589,
+          "h": 48,
+          "r": 8,
+          "c": true
+        },
+        {
+          "x": 1.3937,
+          "y": 8,
+          "w": 28.5714,
+          "h": 32,
+          "r": 2
+        }
+      ]
+    }
+  }
+}

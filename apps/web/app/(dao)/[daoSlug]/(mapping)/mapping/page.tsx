@@ -15,7 +15,7 @@ import {
   MappingTableRow,
   PageHeader,
 } from './components/ui';
-import { Spinner } from '@/app/components/ui/spinner';
+import { SkeletonMappingPage } from '@/app/components/ui/skeleton';
 
 async function MappingPage({
   params,
@@ -146,22 +146,13 @@ async function GroupManagementContainer({ daoSlug }: { daoSlug: string }) {
   );
 }
 
-// Loading component for the entire page
-function PageSpinner() {
-  return (
-    <div className='container mx-auto flex min-h-[50vh] items-center justify-center p-6'>
-      <Spinner size='lg' />
-    </div>
-  );
-}
-
 export default async function Page({
   params,
 }: {
   params: Promise<{ daoSlug: string }>;
 }) {
   return (
-    <Suspense fallback={<PageSpinner />}>
+    <Suspense fallback={<SkeletonMappingPage />}>
       <MappingPage params={params} />
     </Suspense>
   );

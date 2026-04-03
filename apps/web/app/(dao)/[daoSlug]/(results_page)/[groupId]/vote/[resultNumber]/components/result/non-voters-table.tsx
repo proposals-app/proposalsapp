@@ -11,10 +11,14 @@ import { SkeletonNonVotersTable } from '@/app/components/ui/skeleton';
 
 interface NonVotersTableProps {
   nonVoters: NonVotersData;
+  defaultExpanded?: boolean;
 }
 
-export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function NonVotersTable({
+  nonVoters,
+  defaultExpanded = false,
+}: NonVotersTableProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   if (nonVoters.nonVoters.length === 0) return null;

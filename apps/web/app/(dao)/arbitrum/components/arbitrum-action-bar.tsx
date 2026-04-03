@@ -14,7 +14,7 @@ export function ArbitrumActionBar({
   const showMarkAllAsRead = signedIn && hasNewActivity;
 
   return (
-    <div className='mb-6 flex min-h-[2.25rem] flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
+    <div className='mb-6 flex min-h-[2.25rem] w-full flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
       <h2 className='text-xl font-semibold text-neutral-700 dark:text-neutral-300'>
         All Proposal Groups
       </h2>

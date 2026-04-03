@@ -8,11 +8,7 @@ import {
 } from '@/app/(dao)/[daoSlug]/(main_page)/[groupId]/actions';
 import { Header } from '@/app/(dao)/[daoSlug]/components/header/header';
 import { Suspense } from 'react';
-import {
-  SkeletonAvatar,
-  SkeletonText,
-  SkeletonButton,
-} from '../../../../../../components/ui/skeleton';
+import { SkeletonResultsHeader } from '../../../../../../components/ui/skeleton';
 
 type Props = {
   params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
@@ -67,7 +63,7 @@ export default async function Page({
   return (
     <div className='flex min-h-screen w-full flex-row'>
       {/* Header loads independently */}
-      <Suspense fallback={<LoadingHeaderPlaceholder />}>
+      <Suspense fallback={<SkeletonResultsHeader />}>
         <HeaderContainer groupId={groupId} />
       </Suspense>
 
@@ -130,28 +126,4 @@ async function ResultsContainer({
   proposal: NonNullable<Awaited<ReturnType<typeof getGroup>>>['proposals'][0];
 }) {
   return <Results proposal={proposal} />;
-}
-
-// Enhanced loading placeholder for header
-function LoadingHeaderPlaceholder() {
-  return (
-    <div
-      className={`fixed left-0 right-0 top-0 z-50 flex h-20 items-center border-b border-neutral-350 bg-neutral-50 px-2 transition-transform duration-300 dark:border-neutral-650 dark:bg-neutral-900 sm:ml-20 sm:px-6`}
-    >
-      {/* Enhanced Back Button Placeholder */}
-      <div className='flex items-center gap-2 rounded-full px-3 py-2'>
-        <SkeletonButton size='sm' width='1.5rem' height='1.5rem' />
-        <span className='hidden text-sm font-medium sm:block'>Back</span>
-      </div>
-
-      <div className={'flex items-center gap-2 pl-2 sm:pl-4'}>
-        {/* Enhanced Avatar Placeholder */}
-        <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300'>
-          <SkeletonAvatar size='sm' />
-        </div>
-        {/* Enhanced Group Name Placeholder */}
-        <SkeletonText width='8rem' size='md' />
-      </div>
-    </div>
-  );
 }
