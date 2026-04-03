@@ -1,5 +1,9 @@
-import { SkeletonMappingPage } from '@/app/components/ui/skeleton';
+import { Spinner } from '@/app/components/ui/spinner';
 
 export default function Loading() {
-  return <SkeletonMappingPage />;
+  return (
+    <div className='container mx-auto flex min-h-[50vh] items-center justify-center p-6'>
+      <Spinner size='lg' />
+    </div>
+  );
 }

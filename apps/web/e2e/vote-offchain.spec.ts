@@ -164,16 +164,15 @@ async function createSnapshotProposal(
   choices: string[],
   testLogPrefix: string = ''
 ): Promise<{ id: string; signerAddress: string; wallet: ethers.Wallet }> {
-  const provider = new ethers.JsonRpcProvider(RPC_URL);
-  const wallet = ethers.Wallet.fromPhrase(seedPhrase!).connect(
-    provider
-  ) as unknown as ethers.Wallet;
+  const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+  const wallet = ethers.Wallet.fromMnemonic(seedPhrase!).connect(provider);
   const signerAddress = await wallet.getAddress();
   const currentBlock = await provider.getBlockNumber();
-  const network = await provider.getNetwork();
 
   console.log(`${testLogPrefix} Using signer address: ${signerAddress}`);
-  console.log(`${testLogPrefix} Using network: ${network.name}`);
+  console.log(
+    `${testLogPrefix} Using network: ${await provider.getNetwork().then((n) => n.name)}`
+  );
   console.log(`${testLogPrefix} Latest block number: ${currentBlock}`);
 
   const client = new snapshot.Client712(HUB_URL);
@@ -186,7 +185,7 @@ async function createSnapshotProposal(
 
   try {
     console.log(`${testLogPrefix} Creating proposal: "${proposalTitle}"...`);
-    proposalReceipt = (await client.proposal(wallet as any, signerAddress, {
+    proposalReceipt = (await client.proposal(wallet, signerAddress, {
       space: SPACE_ID,
       type: voteType,
       title: proposalTitle,

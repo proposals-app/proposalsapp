@@ -438,3 +438,44 @@ export function ResultsListBars({
     </div>
   );
 }
+
+// Skeleton to occupy exact space of bars to avoid CLS - matches real components exactly
+export function ResultsListBarsSkeleton() {
+  return (
+    <div className='mt-4 flex min-h-[112px] w-72 flex-col gap-2 text-neutral-700 dark:text-neutral-200 sm:ml-6'>
+      {/* Majority support row - matches MajoritySupportCheckmark */}
+      <div className='flex w-full items-center gap-1 text-sm font-semibold'>
+        {/* Icon skeleton - SVG is 24x24 but rendered at different size via CSS */}
+        <div className='skeleton-blueprint skeleton-text h-6 w-6' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-32' />
+      </div>
+      {/* Quorum bar - matches QuorumBar */}
+      <div>
+        <div className='relative h-4 w-full'>
+          <div className='absolute inset-0 flex overflow-hidden border border-neutral-300 dark:border-neutral-700'>
+            <div className='skeleton-blueprint skeleton-text h-full w-1/3' />
+          </div>
+        </div>
+        {/* Quorum Text */}
+        <div className='mt-2 flex items-center gap-1 text-sm'>
+          {/* Icon - same size as check/cross icons */}
+          <div className='skeleton-blueprint skeleton-text h-6 w-6' />
+          <span className='skeleton-blueprint skeleton-text h-4 w-16 font-semibold' />
+          <span className='skeleton-blueprint skeleton-text h-4 w-6' />
+          <span className='skeleton-blueprint skeleton-text h-4 w-12' />
+          <span className='skeleton-blueprint skeleton-text h-4 w-12' />
+        </div>
+      </div>
+      {/* Participation bar - matches ParticipationPercentage */}
+      <div>
+        <div className='relative h-2 w-full overflow-hidden border border-neutral-300 dark:border-neutral-700'>
+          <div className='skeleton-blueprint skeleton-text absolute left-0 top-0 h-full w-1/2' />
+        </div>
+        <div className='mt-2 text-xs'>
+          <span className='skeleton-blueprint skeleton-text inline-block h-3 w-12 font-semibold' />
+          <span className='skeleton-blueprint skeleton-text ml-1 inline-block h-3 w-40' />
+        </div>
+      </div>
+    </div>
+  );
+}

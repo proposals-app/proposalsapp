@@ -5,8 +5,9 @@ import { Suspense } from 'react';
 import { auth } from '@/lib/auth/auth';
 import { headers } from 'next/headers';
 import {
+  SkeletonText,
+  SkeletonButton,
   LoadingGroupList,
-  HeaderSkeleton,
 } from '@/app/components/ui/skeleton';
 
 export default async function Page({
@@ -133,5 +134,15 @@ async function GroupsContent({ daoSlug }: { daoSlug: string }) {
       initialGroups={groupsWithInfo}
       signedIn={userId ? true : false}
     />
+  );
+}
+
+// Enhanced header skeleton for loading state
+function HeaderSkeleton() {
+  return (
+    <div className='flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
+      <SkeletonText width='12rem' size='lg' />
+      <SkeletonButton size='md' />
+    </div>
   );
 }
