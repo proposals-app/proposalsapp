@@ -553,6 +553,7 @@ fn test_upsert_revision_and_likes() -> Result<()> {
 
         upsert_post_likes_batch(post.id, vec![101, 202], context.dao_discourse_id).await?;
         upsert_post_likes_batch(post.id, vec![202, 303], context.dao_discourse_id).await?;
+        upsert_post_likes_batch(post.id, vec![101, 202, 303], context.dao_discourse_id).await?;
         let like_count = get_post_like_count(post.id, context.dao_discourse_id).await?;
 
         assert_eq!(like_count, 3);

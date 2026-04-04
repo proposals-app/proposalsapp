@@ -10,7 +10,7 @@ use proposalsapp_db::models::{
 };
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait,
-    QueryFilter, Set, prelude::Uuid, sea_query::OnConflict,
+    QueryFilter, Set, TryInsertResult, prelude::Uuid, sea_query::OnConflict,
 };
 use std::time::Duration;
 use tracing::{debug, info, instrument};
@@ -460,7 +460,7 @@ pub async fn upsert_post_likes_batch(
 
     let attempted_insert_count = new_likes_models.len();
     if attempted_insert_count > 0 {
-        discourse_post_like::Entity::insert_many(new_likes_models)
+        match discourse_post_like::Entity::insert_many(new_likes_models)
             .on_conflict(
                 OnConflict::columns([
                     discourse_post_like::Column::ExternalDiscoursePostId,
@@ -470,18 +470,33 @@ pub async fn upsert_post_likes_batch(
                 .do_nothing()
                 .to_owned(),
             )
-            .exec(db())
+            .do_nothing()
+            .exec_without_returning(db())
             .await
             .with_context(|| {
                 format!(
                     "Failed to batch upsert {attempted_insert_count} post likes for post {post_id}"
                 )
-            })?;
-        info!(
-            post_id,
-            attempted_likes = attempted_insert_count,
-            "Successfully batch upserted post likes."
-        );
+            })? {
+            TryInsertResult::Inserted(rows_affected) => {
+                info!(
+                    post_id,
+                    attempted_likes = attempted_insert_count,
+                    inserted_likes = rows_affected,
+                    "Successfully batch upserted post likes."
+                );
+            }
+            TryInsertResult::Conflicted => {
+                debug!(
+                    post_id,
+                    attempted_likes = attempted_insert_count,
+                    "All post likes already existed; skipping duplicate batch."
+                );
+            }
+            TryInsertResult::Empty => {
+                debug!(post_id, "No new likes to insert for this batch.");
+            }
+        }
     } else {
         debug!(post_id, "No new likes to insert for this batch.");
     }
