@@ -41,7 +41,7 @@ export async function recordProposalDecision(
   }
 
   await sql`
-    INSERT INTO public.proposal_mapping_decision (
+    INSERT INTO public.mapping_proposal_decision (
       dao_id,
       proposal_id,
       target_group_id,
@@ -75,7 +75,7 @@ export async function recordDelegateDecision(
   }
 
   await sql`
-    INSERT INTO public.delegate_mapping_decision (
+    INSERT INTO public.mapping_delegate_decision (
       dao_id,
       delegate_id,
       mapping_type,
