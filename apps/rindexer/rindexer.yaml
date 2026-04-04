@@ -1,6 +1,9 @@
 name: rindexer
 project_type: rust
 
+global:
+  health_port: 3000
+
 storage:
   postgres:
     enabled: true
@@ -33,6 +36,7 @@ contracts:
     include_events:
       - DelegateVotesChanged
       - DelegateChanged
+    reorg_safe_distance: true
     index_event_in_order:
       - DelegateVotesChanged
       - DelegateChanged
@@ -48,6 +52,7 @@ contracts:
       - VoteCast
       - ProposalExtended
       - ProposalExecuted
+    reorg_safe_distance: true
     index_event_in_order:
       - ProposalCreated
       - VoteCast
@@ -77,6 +82,7 @@ contracts:
       - VoteCast
       - ProposalExtended
       - ProposalExecuted
+    reorg_safe_distance: true
     index_event_in_order:
       - ProposalCreated
       - VoteCast
@@ -104,6 +110,7 @@ contracts:
     include_events:
       - ProposalCreated
       - ProposalExecuted
+    reorg_safe_distance: true
     index_event_in_order:
       - ProposalCreated
       - ProposalExecuted
@@ -123,6 +130,7 @@ contracts:
     include_events:
       - DelegateVotesChanged
       - DelegateChanged
+    reorg_safe_distance: true
     index_event_in_order:
       - DelegateVotesChanged
       - DelegateChanged
@@ -137,6 +145,7 @@ contracts:
       - ProposalCreated
       - VoteCast
       - ProposalExecuted
+    reorg_safe_distance: true
     index_event_in_order:
       - ProposalCreated
       - VoteCast

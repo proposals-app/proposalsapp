@@ -1,6 +1,5 @@
 use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
 use anyhow::{Context, Result};
-use axum::Router;
 use dotenv::dotenv;
 use extensions::db_extension::initialize_db;
 use reqwest::Client;
@@ -87,16 +86,6 @@ async fn main() -> Result<()> {
         }
     });
 
-    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    let health_server_handle = tokio::spawn(async move {
-        info!(address = %addr, "Starting health check server");
-        if let Err(e) = axum::serve(listener, app).await {
-            error!(error = %e, "Health check server error");
-        }
-    });
-
     // Start rindexer in a separate task
     info!("Starting rindexer");
     let rindexer_handle = tokio::spawn(async move {
@@ -116,6 +105,8 @@ async fn main() -> Result<()> {
                 enabled: false,
                 override_port: None,
             },
+            cron_scheduler_handle: None,
+            watch: false,
         };
 
         if let Err(e) = start_rindexer(indexer_settings).await {
@@ -127,9 +118,6 @@ async fn main() -> Result<()> {
 
     // Wait for any task to complete or for shutdown signal
     tokio::select! {
-        result = health_server_handle => {
-            error!("Health server task completed unexpectedly: {:?}", result);
-        }
         result = uptime_handle => {
             error!("Uptime task completed unexpectedly: {:?}", result);
         }
