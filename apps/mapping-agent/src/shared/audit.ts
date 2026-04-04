@@ -1,13 +1,14 @@
 import { db, sql } from '@proposalsapp/db';
 import { isDryRunEnabled } from './dry-run';
 
+export type MappingDecisionStatus = 'accepted' | 'declined' | 'rejected';
+
 export interface ProposalDecisionAuditInput {
   daoId: string;
   proposalId: string;
   targetGroupId?: string | null;
   decisionSource: 'deterministic' | 'agent';
-  accepted: boolean;
-  declined: boolean;
+  status: MappingDecisionStatus;
   confidence?: number | null;
   reason: string;
   evidenceIds?: string[];
@@ -21,8 +22,7 @@ export interface DelegateDecisionAuditInput {
   targetDiscourseUserId?: string | null;
   targetVoterId?: string | null;
   decisionSource: 'deterministic' | 'agent';
-  accepted: boolean;
-  declined: boolean;
+  status: MappingDecisionStatus;
   confidence?: number | null;
   reason: string;
   evidenceIds?: string[];
@@ -46,8 +46,7 @@ export async function recordProposalDecision(
       proposal_id,
       target_group_id,
       decision_source,
-      accepted,
-      declined,
+      status,
       confidence,
       reason,
       evidence_ids,
@@ -57,8 +56,7 @@ export async function recordProposalDecision(
       ${input.proposalId},
       ${input.targetGroupId ?? null},
       ${input.decisionSource},
-      ${input.accepted},
-      ${input.declined},
+      ${input.status},
       ${input.confidence ?? null},
       ${input.reason},
       ${jsonb(input.evidenceIds ?? [])},
@@ -82,8 +80,7 @@ export async function recordDelegateDecision(
       target_discourse_user_id,
       target_voter_id,
       decision_source,
-      accepted,
-      declined,
+      status,
       confidence,
       reason,
       evidence_ids,
@@ -95,8 +92,7 @@ export async function recordDelegateDecision(
       ${input.targetDiscourseUserId ?? null},
       ${input.targetVoterId ?? null},
       ${input.decisionSource},
-      ${input.accepted},
-      ${input.declined},
+      ${input.status},
       ${input.confidence ?? null},
       ${input.reason},
       ${jsonb(input.evidenceIds ?? [])},

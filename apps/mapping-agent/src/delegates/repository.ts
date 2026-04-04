@@ -58,6 +58,32 @@ export interface DelegateSeedResult {
 }
 
 const ACTIVE_MAPPING_PERIOD_END = new Date('2100-01-01T00:00:00.000Z');
+const TERMINAL_DELEGATE_CASE_STATUS = 'no_match';
+
+interface DelegateCaseStateRow {
+  delegateId: string;
+  missingSide: DelegateCase['missingSide'];
+}
+
+export function getDelegateCaseStateKey(input: {
+  delegateId: string;
+  missingSide: DelegateCase['missingSide'];
+}): string {
+  return `${input.delegateId}:${input.missingSide}`;
+}
+
+export function filterRetryableDelegateCases(
+  cases: DelegateCase[],
+  terminalStates: DelegateCaseStateRow[]
+): DelegateCase[] {
+  const terminalCaseKeys = new Set(
+    terminalStates.map((state) => getDelegateCaseStateKey(state))
+  );
+
+  return cases.filter(
+    (currentCase) => !terminalCaseKeys.has(getDelegateCaseStateKey(currentCase))
+  );
+}
 
 function mapDiscourseUserRecord(
   daoId: string,
@@ -337,6 +363,67 @@ async function loadDelegateWorkerContextByDaoId(
   return loadDelegateWorkerContext(dao.slug, allowedCategoryIds);
 }
 
+async function loadTerminalDelegateCaseStates(
+  daoId: string,
+  delegateIds: string[]
+): Promise<DelegateCaseStateRow[]> {
+  if (delegateIds.length === 0) {
+    return [];
+  }
+
+  const result = await sql<DelegateCaseStateRow>`
+    SELECT
+      delegate_id AS "delegateId",
+      missing_side AS "missingSide"
+    FROM public.mapping_delegate_case_state
+    WHERE dao_id = ${daoId}
+      AND delegate_id IN (${sql.join(delegateIds)})
+      AND status = ${TERMINAL_DELEGATE_CASE_STATUS}
+  `.execute(db);
+
+  return result.rows;
+}
+
+async function upsertDelegateNoMatchState(input: {
+  daoId: string;
+  delegateId: string;
+  missingSide: DelegateCase['missingSide'];
+  decisionSource: 'deterministic' | 'agent';
+  reason: string;
+  evidenceIds: string[];
+}): Promise<void> {
+  if (isDryRunEnabled()) {
+    return;
+  }
+
+  await sql`
+    INSERT INTO public.mapping_delegate_case_state (
+      dao_id,
+      delegate_id,
+      missing_side,
+      status,
+      decision_source,
+      reason,
+      evidence_ids
+    ) VALUES (
+      ${input.daoId},
+      ${input.delegateId},
+      ${input.missingSide},
+      ${TERMINAL_DELEGATE_CASE_STATUS},
+      ${input.decisionSource},
+      ${input.reason},
+      CAST(${JSON.stringify(input.evidenceIds)} AS jsonb)
+    )
+    ON CONFLICT (dao_id, delegate_id, missing_side)
+    DO UPDATE SET
+      status = EXCLUDED.status,
+      decision_source = EXCLUDED.decision_source,
+      reason = EXCLUDED.reason,
+      evidence_ids = EXCLUDED.evidence_ids,
+      updated_at = NOW()
+  `.execute(db);
+}
+
 function getActiveClaimedTargetIds(
   delegates: DelegateRecord[],
   currentDelegateId: string
@@ -523,8 +610,7 @@ async function createDelegateForDiscourseSeed(input: {
       mappingType: 'delegate_to_discourse_user',
       targetDiscourseUserId: input.discourseUserId,
       decisionSource: 'deterministic',
-      accepted: true,
-      declined: false,
+      status: 'accepted',
       confidence: 1,
       reason: input.reason,
       evidenceIds: input.evidenceIds,
@@ -541,8 +627,7 @@ async function createDelegateForDiscourseSeed(input: {
         mappingType: 'delegate_to_discourse_user',
         targetDiscourseUserId: input.discourseUserId,
         decisionSource: 'deterministic',
-        accepted: false,
-        declined: true,
+        status: 'rejected',
         confidence: 1,
         reason: `${input.reason}. Skipped because the discourse user is already claimed.`,
         evidenceIds: input.evidenceIds,
@@ -600,8 +685,7 @@ async function applyDiscourseSeedCandidate(input: {
       delegateId: input.candidate.ambiguousHistoricalDelegateIds[0]!,
       mappingType: 'delegate_to_discourse_user',
       decisionSource: 'deterministic',
-      accepted: false,
-      declined: true,
+      status: 'declined',
       confidence: 1,
       reason: `${reasonBase}. Skipped because multiple historical delegates exist for this discourse user.`,
       evidenceIds,
@@ -694,9 +778,16 @@ export async function runDeterministicDelegateMappings(input: {
     activeContext.delegates,
     ''
   );
+  const terminalStates = await loadTerminalDelegateCaseStates(
+    context.dao.id,
+    activeContext.delegates.map((delegate) => delegate.id)
+  );
   const unresolvedCases: DelegateCase[] = [];
 
-  for (const currentCase of buildDelegateCases(activeContext.delegates)) {
+  for (const currentCase of filterRetryableDelegateCases(
+    buildDelegateCases(activeContext.delegates),
+    terminalStates
+  )) {
     if (currentCase.missingSide === 'voter') {
       const sourceUser = activeContext.discourseUsers.find(
         (user) => user.id === currentCase.sourceDiscourseUserId
@@ -1084,8 +1175,7 @@ export async function proposeDelegateMapping(input: {
       delegateId: input.delegateId,
       mappingType: input.mappingType,
       decisionSource: input.decisionSource,
-      accepted: false,
-      declined: false,
+      status: 'rejected',
       confidence: input.confidence,
       reason: `Rejected delegate mapping below threshold ${input.threshold}. ${input.reason}`,
       evidenceIds: input.evidenceIds,
@@ -1210,8 +1300,7 @@ export async function proposeDelegateMapping(input: {
         mappingType: input.mappingType,
         targetDiscourseUserId: target.id,
         decisionSource: input.decisionSource,
-        accepted: false,
-        declined: false,
+        status: 'rejected',
         confidence: input.confidence,
         reason: `Rejected delegate mapping: delegate already has an active discourse user mapping. ${input.reason}`,
         evidenceIds: input.evidenceIds,
@@ -1226,8 +1315,7 @@ export async function proposeDelegateMapping(input: {
         mappingType: input.mappingType,
         targetDiscourseUserId: target.id,
         decisionSource: input.decisionSource,
-        accepted: false,
-        declined: false,
+        status: 'rejected',
         confidence: input.confidence,
         reason: `Rejected delegate mapping: discourse user is already claimed by another delegate. ${input.reason}`,
         evidenceIds: input.evidenceIds,
@@ -1241,8 +1329,7 @@ export async function proposeDelegateMapping(input: {
       mappingType: input.mappingType,
       targetDiscourseUserId: target.id,
       decisionSource: input.decisionSource,
-      accepted: true,
-      declined: false,
+      status: 'accepted',
       confidence: input.confidence,
       reason: input.reason,
       evidenceIds: input.evidenceIds,
@@ -1378,8 +1465,7 @@ export async function proposeDelegateMapping(input: {
       mappingType: input.mappingType,
       targetVoterId: target.id,
       decisionSource: input.decisionSource,
-      accepted: false,
-      declined: false,
+      status: 'rejected',
       confidence: input.confidence,
       reason: `Rejected delegate mapping: delegate already has an active voter mapping. ${input.reason}`,
       evidenceIds: input.evidenceIds,
@@ -1394,8 +1480,7 @@ export async function proposeDelegateMapping(input: {
       mappingType: input.mappingType,
       targetVoterId: target.id,
       decisionSource: input.decisionSource,
-      accepted: false,
-      declined: false,
+      status: 'rejected',
       confidence: input.confidence,
       reason: `Rejected delegate mapping: voter is already claimed by another delegate. ${input.reason}`,
       evidenceIds: input.evidenceIds,
@@ -1409,8 +1494,7 @@ export async function proposeDelegateMapping(input: {
     mappingType: input.mappingType,
     targetVoterId: target.id,
     decisionSource: input.decisionSource,
-    accepted: true,
-    declined: false,
+    status: 'accepted',
     confidence: input.confidence,
     reason: input.reason,
     evidenceIds: input.evidenceIds,
@@ -1444,9 +1528,19 @@ export async function declineDelegateMapping(input: {
         ? 'delegate_to_voter'
         : 'delegate_to_discourse_user',
     decisionSource: input.decisionSource,
-    accepted: false,
-    declined: true,
+    status: 'declined',
     reason: input.reason,
     evidenceIds: input.evidenceIds ?? [],
   });
+
+  if (delegateCase) {
+    await upsertDelegateNoMatchState({
+      daoId: input.daoId,
+      delegateId: input.delegateId,
+      missingSide: delegateCase.missingSide,
+      decisionSource: input.decisionSource,
+      reason: input.reason,
+      evidenceIds: input.evidenceIds ?? [],
+    });
+  }
 }

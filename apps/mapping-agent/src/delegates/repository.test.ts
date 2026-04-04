@@ -19,3 +19,40 @@ describe('buildRelevantVoterLookupSql', () => {
     expect(sql).toContain('ON relevant_addresses.address = v.address');
   });
 });
+
+describe('filterRetryableDelegateCases', () => {
+  it('skips delegate cases that were previously marked as terminal no-match', async () => {
+    process.env.DATABASE_URL ??=
+      'postgresql://build:build@localhost:5432/build';
+    const { filterRetryableDelegateCases } = await import('./repository');
+
+    const filteredCases = filterRetryableDelegateCases(
+      [
+        {
+          delegateId: 'delegate-voter',
+          missingSide: 'voter',
+          sourceDiscourseUserId: 'discourse-1',
+        },
+        {
+          delegateId: 'delegate-discourse',
+          missingSide: 'discourse_user',
+          sourceVoterId: 'voter-1',
+        },
+      ],
+      [
+        {
+          delegateId: 'delegate-voter',
+          missingSide: 'voter',
+        },
+      ]
+    );
+
+    expect(filteredCases).toEqual([
+      {
+        delegateId: 'delegate-discourse',
+        missingSide: 'discourse_user',
+        sourceVoterId: 'voter-1',
+      },
+    ]);
+  });
+});
