@@ -26,6 +26,7 @@ export default tseslint.config(
       ...reactHooksPlugin.configs.recommended.rules,
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs['core-web-vitals'].rules,
+      'react/display-name': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'react/no-unescaped-entities': 'off',
@@ -47,7 +48,7 @@ export default tseslint.config(
     },
     settings: {
       react: {
-        version: 'detect',
+        version: '19.2',
       },
     },
   },

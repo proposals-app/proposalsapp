@@ -11,7 +11,6 @@ pub static CONFIG: OnceCell<MapperConfig> = OnceCell::new();
 pub struct MapperConfig {
     pub grouping: GroupingConfig,
     pub karma: KarmaConfig,
-    pub semantic: SemanticConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -47,12 +46,6 @@ impl Default for KarmaConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
-#[serde(default)]
-pub struct SemanticConfig {
-    pub similarity_threshold: Option<f32>,
-}
-
 pub fn load() -> Result<()> {
     let config = load_config();
     CONFIG
@@ -86,7 +79,6 @@ fn load_config() -> MapperConfig {
     info!(
         dao_filters = config.grouping.dao_discourse_category_filters.len(),
         karma_mappings = config.karma.dao_slug_to_karma_name.len(),
-        semantic_threshold = config.semantic.similarity_threshold,
         "Mapper config loaded"
     );
 
@@ -117,20 +109,6 @@ fn apply_env_overrides(config: &mut MapperConfig) {
                 warn!(
                     error = %err,
                     "Failed to parse MAPPER_KARMA_DAO_MAP override"
-                );
-            }
-        }
-    }
-
-    if let Ok(value) = env::var("SEMANTIC_SIMILARITY_THRESHOLD") {
-        match value.parse::<f32>() {
-            Ok(threshold) => {
-                config.semantic.similarity_threshold = Some(threshold);
-            }
-            Err(err) => {
-                warn!(
-                    error = %err,
-                    "Failed to parse SEMANTIC_SIMILARITY_THRESHOLD override"
                 );
             }
         }

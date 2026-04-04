@@ -11,12 +11,8 @@ use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod config;
-#[cfg(feature = "llm-grouping")]
-mod embeddings;
 mod grouper;
 mod karma;
-#[cfg(feature = "llm-grouping")]
-mod semantic_grouper;
 
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
 
@@ -136,38 +132,6 @@ async fn main() -> Result<()> {
             match crate::grouper::run_grouper_task().await {
                 Ok(results) => {
                     info!("URL-based grouper completed successfully");
-
-                    #[cfg(feature = "llm-grouping")]
-                    {
-                        let db = crate::DB.get().expect("Database not initialized");
-                        let semantic = semantic_grouper::SemanticGrouper::new(db.clone());
-
-                        for (dao_id, result) in results.results {
-                            info!(dao_id = %dao_id, "Running semantic grouping");
-                            match semantic
-                                .run_semantic_grouping(dao_id, result.url_matched_proposal_ids)
-                                .await
-                            {
-                                Ok(applied) => {
-                                    info!(
-                                        dao_id = %dao_id,
-                                        semantic_matches_applied = applied,
-                                        "Semantic grouping completed"
-                                    );
-                                }
-                                Err(e) => {
-                                    error!(
-                                        dao_id = %dao_id,
-                                        error = %e,
-                                        error_chain = ?e,
-                                        "Semantic grouping failed"
-                                    );
-                                }
-                            }
-                        }
-                    }
-
-                    #[cfg(not(feature = "llm-grouping"))]
                     let _ = results;
 
                     info!("Grouper task completed successfully");

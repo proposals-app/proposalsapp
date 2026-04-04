@@ -70,12 +70,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <Script id='theme-initializer' strategy='beforeInteractive'>
           {themeInitializerScript}
         </Script>
-        <AppThemeProvider>
-          <Suspense fallback={null}>
-            <SafariViewportProvider />
-          </Suspense>
-          <ProvidersTree>{children}</ProvidersTree>
-        </AppThemeProvider>
+        <NuqsAdapter>
+          <AppThemeProvider>
+            <Suspense fallback={null}>
+              <SafariViewportProvider />
+            </Suspense>
+            <ProvidersTree>{children}</ProvidersTree>
+          </AppThemeProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );
@@ -86,18 +88,14 @@ function ProvidersTree({ children }: { children: React.ReactNode }) {
     <Suspense fallback={<AppShell>{children}</AppShell>}>
       <PostHogProvider>
         <WebVitals />
-        <NuqsAdapter>
-          <Suspense
-            fallback={
-              <WalletProviderFallback>{children}</WalletProviderFallback>
-            }
-          >
-            <WalletProvider>
-              <main>{children}</main>
-              <Toaster />
-            </WalletProvider>
-          </Suspense>
-        </NuqsAdapter>
+        <Suspense
+          fallback={<WalletProviderFallback>{children}</WalletProviderFallback>}
+        >
+          <WalletProvider>
+            <main>{children}</main>
+            <Toaster />
+          </WalletProvider>
+        </Suspense>
       </PostHogProvider>
     </Suspense>
   );

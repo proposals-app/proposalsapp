@@ -45,7 +45,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,id=cargo-target-mapper,target=/app/target,sharing=locked \
     --mount=type=cache,target=/sccache,sharing=locked \
-    cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME} --features llm-grouping
+    cargo chef cook --release --recipe-path recipe.json --bin ${APP_NAME}
 
 # Copy source and build application
 COPY . .
@@ -53,7 +53,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,id=cargo-target-mapper,target=/app/target,sharing=locked \
     --mount=type=cache,target=/sccache,sharing=locked \
-    cargo build --release --bin ${APP_NAME} --features llm-grouping \
+    cargo build --release --bin ${APP_NAME} \
     && cp /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
 # Stage 3: Runtime - minimal production image

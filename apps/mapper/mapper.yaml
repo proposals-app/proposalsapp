@@ -12,5 +12,3 @@ grouping:
 karma:
   dao_slug_to_karma_name:
     arbitrum: arbitrum
-semantic:
-  similarity_threshold: 0.75

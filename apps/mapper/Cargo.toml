@@ -7,10 +7,6 @@ edition = "2024"
 name = "mapper"
 path = "main.rs"
 
-[features]
-default = []
-llm-grouping = ["ollama-rs", "sha2"]
-
 [dependencies]
 alloy = { workspace = true }
 anyhow = { workspace = true, features = ["backtrace"] }
@@ -19,14 +15,10 @@ chrono = { workspace = true }
 dotenv = { workspace = true }
 futures = { workspace = true }
 lazy_static = { workspace = true }
-
-# Optional dependencies for LLM-based grouping
-ollama-rs = { workspace = true, optional = true }
 once_cell = { workspace = true }
 proposalsapp-db = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls"] }
-scraper = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
@@ -39,7 +31,6 @@ sea-orm = { workspace = true, features = [
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
-sha2 = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = [
