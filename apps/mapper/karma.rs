@@ -28,7 +28,15 @@ pub async fn run_karma_task() -> Result<()> {
             continue;
         };
 
-        let mut delegates = api::fetch_delegates(&client, &dao.slug, karma_dao_name).await?;
+        let Some(mut delegates) = api::fetch_delegates(&client, &dao.slug, karma_dao_name).await?
+        else {
+            info!(
+                slug = %dao.slug,
+                karma_dao_name,
+                "Skipping DAO unsupported by Karma delegate API"
+            );
+            continue;
+        };
 
         for delegate in &mut delegates {
             let address: Address = delegate.public_address.parse()?;

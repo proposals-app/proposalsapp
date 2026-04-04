@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use chrono::Duration;
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use tokio::{
     sync::Mutex,
@@ -57,7 +57,7 @@ pub async fn fetch_delegates(
     client: &Client,
     dao_slug: &str,
     karma_dao_name: &str,
-) -> Result<Vec<KarmaDelegate>> {
+) -> Result<Option<Vec<KarmaDelegate>>> {
     let mut offset = 0;
     let page_size = 10;
     let mut all_delegates = Vec::new();
@@ -69,7 +69,17 @@ pub async fn fetch_delegates(
 
         info!("Fetching karma data for dao: {} url: {}", dao_slug, url);
 
-        let body = fetch_json_data(client, &url, dao_slug).await?;
+        let body = match fetch_json_data(client, &url, dao_slug).await {
+            Ok(body) => body,
+            Err(FetchJsonError::UnsupportedDao) => {
+                info!(
+                    dao_slug,
+                    karma_dao_name, "Karma delegate API does not support this DAO, skipping"
+                );
+                return Ok(None);
+            }
+            Err(FetchJsonError::Other(err)) => return Err(err),
+        };
         let delegates = parse_json_data(&body, dao_slug)?;
 
         if delegates.is_empty() {
@@ -80,7 +90,7 @@ pub async fn fetch_delegates(
         offset += 1;
     }
 
-    Ok(all_delegates)
+    Ok(Some(all_delegates))
 }
 
 fn parse_json_data(body: &str, dao_slug: &str) -> Result<Vec<KarmaDelegate>> {
@@ -217,7 +227,22 @@ async fn handle_rate_limit_exceeded(
     std::time::Duration::from_secs(retry_after)
 }
 
-async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<String> {
+#[derive(Debug)]
+enum FetchJsonError {
+    UnsupportedDao,
+    Other(anyhow::Error),
+}
+
+fn is_unsupported_dao_response(status: StatusCode, body: &str) -> bool {
+    status == StatusCode::NOT_FOUND
+        && (body.contains("Dao not found") || body.contains("Any Dao was found with these names"))
+}
+
+async fn fetch_json_data(
+    client: &Client,
+    url: &str,
+    dao_slug: &str,
+) -> std::result::Result<String, FetchJsonError> {
     let mut retry_count = 0;
     let mut retry_delay = INITIAL_RETRY_DELAY;
 
@@ -243,16 +268,18 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
                     retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
                     continue;
                 } else {
-                    return Err(anyhow::anyhow!(
+                    return Err(FetchJsonError::Other(anyhow::anyhow!(
                         "Failed to fetch JSON data for DAO: {} due to network error: {}",
                         dao_slug,
                         e
-                    ));
+                    )));
                 }
             }
             Err(e) => {
-                return Err(e)
-                    .with_context(|| format!("Failed to fetch JSON data for DAO: {dao_slug}"));
+                return Err(FetchJsonError::Other(
+                    anyhow::Error::new(e)
+                        .context(format!("Failed to fetch JSON data for DAO: {dao_slug}")),
+                ));
             }
         };
 
@@ -262,10 +289,10 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
         update_rate_limit_state(&headers, dao_slug).await;
 
         if status.is_success() {
-            return response.text().await.with_context(|| {
-                format!(
+            return response.text().await.map_err(|err| {
+                FetchJsonError::Other(anyhow::Error::new(err).context(format!(
                     "Failed to read JSON response body for DAO: {dao_slug}. Status: {status}, URL: {url}"
-                )
+                )))
             });
         } else if status == reqwest::StatusCode::TOO_MANY_REQUESTS && retry_count < MAX_RETRIES {
             let delay =
@@ -288,14 +315,45 @@ async fn fetch_json_data(client: &Client, url: &str, dao_slug: &str) -> Result<S
             retry_count += 1;
             retry_delay = std::cmp::min(retry_delay * 2, MAX_RETRY_DELAY);
         } else {
+            let body = response.text().await.unwrap_or_default();
+
+            if is_unsupported_dao_response(status, &body) {
+                return Err(FetchJsonError::UnsupportedDao);
+            }
+
             let headers_str = format!("{headers:?}");
-            return Err(anyhow::anyhow!(
-                "Failed to fetch JSON data for DAO: {}. Status: {}, URL: {}, Headers: {}",
+            return Err(FetchJsonError::Other(anyhow::anyhow!(
+                "Failed to fetch JSON data for DAO: {}. Status: {}, URL: {}, Headers: {}, Body: {}",
                 dao_slug,
                 status,
                 url,
-                headers_str
-            ));
+                headers_str,
+                body
+            )));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_unsupported_dao_response;
+    use reqwest::StatusCode;
+
+    #[test]
+    fn detects_dao_not_found_delegate_responses() {
+        let body = r#"{"statusCode":404,"error":{"message":"Dao not found: ","error":"arbitrum"}}"#;
+        assert!(is_unsupported_dao_response(StatusCode::NOT_FOUND, body));
+    }
+
+    #[test]
+    fn detects_bulk_not_found_responses() {
+        let body = r#"{"statusCode":404,"error":"Any Dao was found with these names."}"#;
+        assert!(is_unsupported_dao_response(StatusCode::NOT_FOUND, body));
+    }
+
+    #[test]
+    fn ignores_other_404_bodies() {
+        let body = r#"{"statusCode":404,"error":"Not Found"}"#;
+        assert!(!is_unsupported_dao_response(StatusCode::NOT_FOUND, body));
     }
 }
