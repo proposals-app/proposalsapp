@@ -3,7 +3,7 @@
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
 import { useCallback, useEffect, useRef } from 'react';
-import { ViewEnum, feedFilters, fromFilters } from './menu-bar';
+import { ViewEnum, feedFilters, getFromFilters } from './menu-bar';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import {
   Select,
@@ -14,16 +14,19 @@ import {
 } from '@/app/components/ui/select';
 
 interface FullViewBarProps {
+  daoSlug: string;
   view: ViewEnum;
   setView: (view: ViewEnum) => void;
   includesProposals: boolean;
 }
 
 export const FullViewBar = ({
+  daoSlug,
   view: _view,
   setView,
   includesProposals,
 }: FullViewBarProps) => {
+  const fromFilters = getFromFilters(daoSlug);
   const [feedFilter, setFeedFilter] = useQueryState(
     'feed',
     parseAsStringEnum<FeedFilterEnum>(Object.values(FeedFilterEnum))

@@ -33,16 +33,16 @@ export const THEME_BRAND_ACCENTS: Record<ThemeVariant, string> = {
   uniswap: '#ff0522',
 };
 
-export function isThemeMode(value: string | null | undefined): value is ThemeMode {
+export function isThemeMode(
+  value: string | null | undefined
+): value is ThemeMode {
   return value === 'light' || value === 'dark';
 }
 
 export function isThemeVariant(
   value: string | null | undefined
 ): value is ThemeVariant {
-  return (
-    value === 'default' || value === 'arbitrum' || value === 'uniswap'
-  );
+  return value === 'default' || value === 'arbitrum' || value === 'uniswap';
 }
 
 export function normalizeThemeMode(

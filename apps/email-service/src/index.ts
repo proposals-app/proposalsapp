@@ -48,12 +48,12 @@ const ENDING_PROPOSAL_MINUTES = 60;
 const NEW_DISCUSSION_MINUTES = 5;
 const COOLDOWN_HOURS = 24;
 
-const ENABLED_DAOS = ['arbitrum'];
+const ENABLED_DAOS = ['arbitrum', 'uniswap'];
 
 // DAO-specific Discourse category filters
 const DAO_DISCOURSE_CATEGORIES: Record<string, number[]> = {
-  arbitrum: [7, 8],
-  // Add more DAOs and their allowed categories here as needed
+  arbitrum: [7, 8, 9],
+  uniswap: [5, 8, 9, 10],
 };
 
 // Initialize Resend

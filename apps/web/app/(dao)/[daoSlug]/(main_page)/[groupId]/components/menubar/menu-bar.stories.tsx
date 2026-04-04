@@ -28,6 +28,7 @@ const meta: Meta<typeof MenuBar> = {
     },
   },
   args: {
+    daoSlug: 'arbitrum',
     currentVersion: 1,
     diff: false,
   },
@@ -153,7 +154,12 @@ export const FullView = {
     const [view, setView] = useState(ViewEnum.FULL);
     return (
       <NuqsAdapter>
-        <FullViewBar view={view} setView={setView} includesProposals={true} />
+        <FullViewBar
+          daoSlug='arbitrum'
+          view={view}
+          setView={setView}
+          includesProposals={true}
+        />
       </NuqsAdapter>
     );
   },
@@ -171,7 +177,12 @@ export const FullViewDiscussionOnly = {
     const [view, setView] = useState(ViewEnum.FULL);
     return (
       <NuqsAdapter>
-        <FullViewBar view={view} setView={setView} includesProposals={false} />
+        <FullViewBar
+          daoSlug='arbitrum'
+          view={view}
+          setView={setView}
+          includesProposals={false}
+        />
       </NuqsAdapter>
     );
   },
@@ -283,6 +294,7 @@ export const CommentsView = {
     return (
       <NuqsAdapter>
         <CommentsViewBar
+          daoSlug='arbitrum'
           view={view}
           setView={setView}
           includesProposals={true}
@@ -305,6 +317,7 @@ export const CommentsViewDiscussionOnly = {
     return (
       <NuqsAdapter>
         <CommentsViewBar
+          daoSlug='arbitrum'
           view={view}
           setView={setView}
           includesProposals={false}

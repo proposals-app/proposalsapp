@@ -6,29 +6,34 @@ import { CommentsViewBar } from './comments-view-bar';
 import { FullViewBar } from './full-view-bar';
 import React, { useState } from 'react';
 import type { BodyVersionType } from '../../actions';
+import { getDaoTokenSymbol } from '@/lib/dao-config';
 
-export const fromFilters = [
-  {
-    value: FromFilterEnum.ALL,
-    label: 'from everyone',
-  },
-  {
-    value: FromFilterEnum.FIFTY_THOUSAND,
-    label: 'above 50k ARB',
-  },
-  {
-    value: FromFilterEnum.FIVE_HUNDRED_THOUSAND,
-    label: 'above 500k ARB',
-  },
-  {
-    value: FromFilterEnum.FIVE_MILLION,
-    label: 'above 5m ARB',
-  },
-  {
-    value: FromFilterEnum.AUTHOR,
-    label: 'from the author',
-  },
-];
+export function getFromFilters(daoSlug: string) {
+  const tokenSymbol = getDaoTokenSymbol(daoSlug);
+
+  return [
+    {
+      value: FromFilterEnum.ALL,
+      label: 'from everyone',
+    },
+    {
+      value: FromFilterEnum.FIFTY_THOUSAND,
+      label: `above 50k ${tokenSymbol}`,
+    },
+    {
+      value: FromFilterEnum.FIVE_HUNDRED_THOUSAND,
+      label: `above 500k ${tokenSymbol}`,
+    },
+    {
+      value: FromFilterEnum.FIVE_MILLION,
+      label: `above 5m ${tokenSymbol}`,
+    },
+    {
+      value: FromFilterEnum.AUTHOR,
+      label: 'from the author',
+    },
+  ];
+}
 
 export const feedFilters = [
   {
@@ -52,12 +57,14 @@ export enum ViewEnum {
 }
 
 interface MenuBarProps {
+  daoSlug: string;
   bodyVersions: BodyVersionType[];
   currentVersion: number;
   diff: boolean;
 }
 
 export const MenuBar = ({
+  daoSlug,
   bodyVersions,
   currentVersion,
   diff,
@@ -71,6 +78,7 @@ export const MenuBar = ({
   return (
     <div className='z-40 flex w-full justify-center font-condensed'>
       <FullViewBar
+        daoSlug={daoSlug}
         view={view}
         setView={setView}
         includesProposals={includesProposals}
@@ -88,6 +96,7 @@ export const MenuBar = ({
       )}
       {view == ViewEnum.COMMENTS && (
         <CommentsViewBar
+          daoSlug={daoSlug}
           view={view}
           setView={setView}
           includesProposals={includesProposals}

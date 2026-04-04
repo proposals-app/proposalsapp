@@ -10,11 +10,7 @@ import { auth } from '@/lib/auth/auth';
 import { headers } from 'next/headers';
 import { UniswapSummaryHeader } from './components/uniswap-summary-header';
 import { LoadingGroupList, LoadingHeader } from '@/app/components/ui/skeleton';
-
-const TREASURY_ADDRESSES = [
-  { address: '0x1a9C8182C09F50C8318d769245beA52c32BE35BC', chainId: 1 },
-  { address: '0x4B4e140D1f131fdaD6fb59C13AF796fD194e4135', chainId: 1 },
-];
+import { UNISWAP_TREASURY_ADDRESSES } from '@/lib/uniswap-treasury';
 
 async function fetchBalanceForAddress(
   accountAddress: string,
@@ -101,7 +97,7 @@ async function fetchBalanceForAddress(
 const getTreasuryBalance = async () => {
   try {
     const results = await Promise.allSettled(
-      TREASURY_ADDRESSES.map(({ address, chainId }) =>
+      UNISWAP_TREASURY_ADDRESSES.map(({ address, chainId }) =>
         fetchBalanceForAddress(address, chainId)
       )
     );

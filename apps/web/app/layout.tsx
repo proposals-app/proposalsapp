@@ -81,18 +81,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProvidersTree({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function ProvidersTree({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<AppShell>{children}</AppShell>}>
       <PostHogProvider>
         <WebVitals />
         <NuqsAdapter>
           <Suspense
-            fallback={<WalletProviderFallback>{children}</WalletProviderFallback>}
+            fallback={
+              <WalletProviderFallback>{children}</WalletProviderFallback>
+            }
           >
             <WalletProvider>
               <main>{children}</main>
@@ -105,19 +103,11 @@ function ProvidersTree({
   );
 }
 
-function WalletProviderFallback({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function WalletProviderFallback({ children }: { children: React.ReactNode }) {
   return <AppShell>{children}</AppShell>;
 }
 
-function AppShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <main>{children}</main>

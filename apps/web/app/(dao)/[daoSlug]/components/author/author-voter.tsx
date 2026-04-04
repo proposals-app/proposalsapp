@@ -1,6 +1,8 @@
 import { AuthorCard } from './author-card';
+import { getDaoDelegateProfileUrl, getDaoTokenSymbol } from '@/lib/dao-config';
 
 export const VoterAuthor = ({
+  daoSlug,
   voterAddress,
   ens,
   discourseUsername,
@@ -8,6 +10,7 @@ export const VoterAuthor = ({
   currentVotingPower,
   eventVotingPower,
 }: {
+  daoSlug: string;
   voterAddress: string;
   ens: string | null;
   discourseUsername: string | null;
@@ -19,16 +22,18 @@ export const VoterAuthor = ({
     ens ||
     discourseUsername ||
     `${voterAddress.slice(0, 6)}...${voterAddress.slice(-4)}`;
+  const href = getDaoDelegateProfileUrl(daoSlug, voterAddress);
 
   return (
     <AuthorCard
-      href={`https://dune.com/entropy_advisors/arbitrum-dao-delegates?Delegate_t7d9d1=${voterAddress}#5-deep-dive-on-delegates`}
+      href={href}
       avatar={avatar}
       altText={voterAddress}
       primaryName={displayName}
       nameDisplayType='voter'
       currentVotingPower={currentVotingPower}
       eventVotingPower={eventVotingPower}
+      tokenSymbol={getDaoTokenSymbol(daoSlug)}
     />
   );
 };

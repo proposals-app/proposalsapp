@@ -2,7 +2,7 @@
 
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
 import { parseAsBoolean, parseAsStringEnum, useQueryState } from 'nuqs';
-import { ViewEnum, feedFilters, fromFilters } from './menu-bar';
+import { ViewEnum, feedFilters, getFromFilters } from './menu-bar';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import React from 'react';
 import {
@@ -14,16 +14,19 @@ import {
 } from '@/app/components/ui/select';
 
 interface CommentsViewBarProps {
+  daoSlug: string;
   view: ViewEnum;
   setView: (view: ViewEnum) => void;
   includesProposals: boolean;
 }
 
 export const CommentsViewBar = ({
+  daoSlug,
   view: _view,
   setView,
   includesProposals,
 }: CommentsViewBarProps) => {
+  const fromFilters = getFromFilters(daoSlug);
   const [feedFilter, setFeedFilter] = useQueryState(
     'feed',
     parseAsStringEnum<FeedFilterEnum>(Object.values(FeedFilterEnum))

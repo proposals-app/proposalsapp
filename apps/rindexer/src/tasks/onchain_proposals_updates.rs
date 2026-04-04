@@ -13,6 +13,10 @@ pub async fn run_periodic_proposal_state_update() -> Result<()> {
     loop {
         interval.tick().await;
 
+        uni_governor::backfill_missing_proposals_and_votes()
+            .await
+            .context("Failed to backfill missing proposals for uni_governor")?;
+
         arbitrum_core_governor::update_active_proposals_end_time()
             .await
             .context("Failed to update active proposals end time for arbitrum_core_governor")?;

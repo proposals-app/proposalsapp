@@ -32,6 +32,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { requireAuth } from '@/lib/server-actions-utils';
 import { revalidateTag, cacheLife, cacheTag } from 'next/cache';
 import { groupIdSchema } from '@/lib/validations';
+import type { SupportedGovernorType } from '@/lib/governance-config';
 
 export async function updateLastReadAt(groupId: string, daoSlug: string) {
   try {
@@ -68,7 +69,7 @@ export async function updateLastReadAt(groupId: string, daoSlug: string) {
 
 export type SelectableProposalWithGovernor = Selectable<Proposal> & {
   governorName: Selectable<DaoGovernor>['name'];
-  governorType: 'ARBITRUM_SNAPSHOT' | 'ARBITRUM_CORE' | 'ARBITRUM_TREASURY';
+  governorType: SupportedGovernorType;
 };
 
 export async function getGroup(groupId: string) {

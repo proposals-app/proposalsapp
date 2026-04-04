@@ -562,7 +562,8 @@ async function verifyVoteOnchain(
           );
           // If both fail, throw the original error
           throw new Error(
-            'Failed to decode VoteCast or VoteCastWithParams event log.'
+            'Failed to decode VoteCast or VoteCastWithParams event log.',
+            { cause: e }
           );
         }
       } else {

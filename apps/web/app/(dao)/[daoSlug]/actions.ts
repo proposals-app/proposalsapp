@@ -7,6 +7,7 @@ import { requireAuthAndDao } from '@/lib/server-actions-utils';
 import { revalidateTag, cacheTag, cacheLife } from 'next/cache';
 import { getFeed } from './(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
+import { getDaoExcludedVoterAddress } from '@/lib/dao-config';
 
 export async function markAllAsRead(daoSlug: string) {
   try {
@@ -373,16 +374,23 @@ async function getTotalVotingPowerCached(daoId: string): Promise<number> {
   }
 
   try {
-    const result = await db
-      .selectFrom('votingPowerLatest')
-      .where('daoId', '=', daoId)
-      .where(
-        'voter',
-        '!=',
-        '0x00000000000000000000000000000000000A4B86' // Filter out Arbitrum Exclusion address
-      )
+    const dao = await db
+      .selectFrom('dao')
+      .where('id', '=', daoId)
+      .select(['slug'])
+      .executeTakeFirst();
+    const exclusionAddress = dao
+      ? getDaoExcludedVoterAddress(dao.slug)
+      : undefined;
+
+    let query = db.selectFrom('votingPowerLatest').where('daoId', '=', daoId);
+
+    if (exclusionAddress) {
+      query = query.where('voter', '!=', exclusionAddress);
+    }
+
+    const result = await query
       .select(
-        // Ensure the sum returns a number, defaulting to 0
         sql<number>`COALESCE(SUM(voting_power), 0)`.as('totalVotingPower')
       )
       .executeTakeFirst();

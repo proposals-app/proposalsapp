@@ -20,9 +20,9 @@ export default function WalletProvider({
   const { mode, variant } = useAppTheme();
   const [mounted, setMounted] = useState(false);
   const [queryClient] = useState(() => new QueryClient());
-  const [config, setConfig] = useState<ReturnType<typeof getWagmiConfig> | null>(
-    null
-  );
+  const [config, setConfig] = useState<ReturnType<
+    typeof getWagmiConfig
+  > | null>(null);
 
   useEffect(() => {
     setMounted(true);

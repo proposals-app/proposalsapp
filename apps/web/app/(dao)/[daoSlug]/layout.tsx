@@ -42,11 +42,7 @@ export default function DaoLayout({
   );
 }
 
-function DaoLayoutFallback({
-  children,
-}: {
-  children: ReactNode;
-}) {
+function DaoLayoutFallback({ children }: { children: ReactNode }) {
   return (
     <div className='flex min-h-screen w-full flex-row bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'>
       <Suspense fallback={<NavBarSkeleton />}>
@@ -76,9 +72,7 @@ async function DaoLayoutContent({
       <Suspense fallback={<NavBarSkeleton />}>
         <NavBar daoSlug={daoSlug} />
       </Suspense>
-      <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>
-        {children}
-      </div>
+      <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>{children}</div>
       <Suspense fallback={null}>
         <Banner />
       </Suspense>

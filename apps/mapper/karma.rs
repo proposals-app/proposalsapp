@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use proposalsapp_db::models::{dao, dao_discourse};
 use reqwest::Client;
 use sea_orm::EntityTrait;
-use tracing::{info, warn};
+use tracing::info;
 
 mod api;
 mod sync;
@@ -24,7 +24,7 @@ pub async fn run_karma_task() -> Result<()> {
         };
 
         let Some(karma_dao_name) = config.karma.dao_slug_to_karma_name.get(&dao.slug) else {
-            warn!(slug = %dao.slug, "No karma mapping configured for DAO");
+            info!(slug = %dao.slug, "Skipping DAO without Karma integration");
             continue;
         };
 

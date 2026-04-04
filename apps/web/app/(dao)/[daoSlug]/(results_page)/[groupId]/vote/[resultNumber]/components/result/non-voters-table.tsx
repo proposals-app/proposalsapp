@@ -8,14 +8,17 @@ import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-vote
 import { AutoSizer, List, WindowScroller } from 'react-virtualized';
 import type { NonVotersData } from '../actions';
 import { SkeletonNonVotersTable } from '@/app/components/ui/skeleton';
+import { getDaoTokenSymbol } from '@/lib/dao-config';
 
 interface NonVotersTableProps {
+  daoSlug: string;
   nonVoters: NonVotersData;
 }
 
-export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
+export function NonVotersTable({ daoSlug, nonVoters }: NonVotersTableProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const tokenSymbol = getDaoTokenSymbol(daoSlug);
 
   if (nonVoters.nonVoters.length === 0) return null;
 
@@ -43,6 +46,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
       >
         <div className='col-span-8'>
           <VoterAuthor
+            daoSlug={daoSlug}
             voterAddress={voter.voterAddress}
             ens={voter.ens}
             avatar={voter.avatar}
@@ -53,7 +57,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
         </div>
         <div className='col-span-4 flex flex-col items-end font-mono'>
           <div className='font-bold'>
-            {formatNumberWithSuffix(voter.votingPowerAtStart)} ARB
+            {formatNumberWithSuffix(voter.votingPowerAtStart)} {tokenSymbol}
           </div>
         </div>
       </div>
@@ -91,7 +95,7 @@ export function NonVotersTable({ nonVoters }: NonVotersTableProps) {
           <div className='flex items-center gap-2'>
             <span className='text-sm font-bold'>
               {nonVoters.totalNumberOfNonVoters} Non-Voters -{' '}
-              {formatNumberWithSuffix(nonVoters.totalVotingPower)} ARB
+              {formatNumberWithSuffix(nonVoters.totalVotingPower)} {tokenSymbol}
             </span>
           </div>
           <ChevronDownSvg

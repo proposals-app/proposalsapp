@@ -29,11 +29,12 @@ import {
 } from '@/app/components/ui/skeleton';
 
 interface ResultsProps {
+  daoSlug: string;
   proposal: Selectable<Proposal>;
   renderedAtMs: number;
 }
 
-export function Results({ proposal, renderedAtMs }: ResultsProps) {
+export function Results({ daoSlug, proposal, renderedAtMs }: ResultsProps) {
   // Kick off data fetches in parallel without awaiting here
   const votesPromise = getVotesWithVotersCached(proposal.id);
   const minimalVotesPromise = getVotesMinimalCached(proposal.id);
@@ -96,6 +97,7 @@ export function Results({ proposal, renderedAtMs }: ResultsProps) {
         <div className='flex justify-center sm:hidden'>
           <Suspense fallback={<ResultsListBarsSkeleton />}>
             <ResultsListBarsContainer
+              daoSlug={daoSlug}
               enrichedResultsPromise={enrichedResultsPromise}
               onChainPromise={onChainPromise}
             />
@@ -109,12 +111,13 @@ export function Results({ proposal, renderedAtMs }: ResultsProps) {
 
         <div className='flex flex-col'>
           <Suspense fallback={<LoadingNonVotersTable />}>
-            <NonVotersTableLazy proposalId={proposal.id} />
+            <NonVotersTableLazy daoSlug={daoSlug} proposalId={proposal.id} />
           </Suspense>
 
           {/* Full table needs full results + raw votes */}
           <Suspense fallback={<LoadingTable />}>
             <ResultsTableContainer
+              daoSlug={daoSlug}
               renderedAtMs={renderedAtMs}
               resultsPromise={fullResultsPromise}
               votesPromise={votesPromise}
@@ -133,6 +136,7 @@ export function Results({ proposal, renderedAtMs }: ResultsProps) {
         </Suspense>
         <Suspense fallback={<ResultsListBarsSkeleton />}>
           <ResultsListBarsContainer
+            daoSlug={daoSlug}
             enrichedResultsPromise={enrichedResultsPromise}
             onChainPromise={onChainPromise}
           />
@@ -188,9 +192,11 @@ async function ResultsListContainer({
 }
 
 async function ResultsListBarsContainer({
+  daoSlug,
   enrichedResultsPromise,
   onChainPromise,
 }: {
+  daoSlug: string;
   enrichedResultsPromise: Promise<
     Awaited<ReturnType<typeof processResultsAction>>
   >;
@@ -201,7 +207,13 @@ async function ResultsListBarsContainer({
     onChainPromise,
   ]);
   const serializedResults = superjson.serialize(processedResults);
-  return <ResultsListBars results={serializedResults} onchain={onChain} />;
+  return (
+    <ResultsListBars
+      daoSlug={daoSlug}
+      results={serializedResults}
+      onchain={onChain}
+    />
+  );
 }
 
 async function ResultsChartContainer({
@@ -215,10 +227,12 @@ async function ResultsChartContainer({
 }
 
 async function ResultsTableContainer({
+  daoSlug,
   renderedAtMs,
   resultsPromise,
   votesPromise,
 }: {
+  daoSlug: string;
   renderedAtMs: number;
   resultsPromise: Promise<Awaited<ReturnType<typeof processResultsAction>>>;
   votesPromise: ReturnType<typeof getVotesWithVotersCached>;
@@ -231,6 +245,7 @@ async function ResultsTableContainer({
   const serializedVotes = superjson.serialize(votes);
   return (
     <ResultsTable
+      daoSlug={daoSlug}
       renderedAtMs={renderedAtMs}
       results={serializedResults}
       votes={serializedVotes}
@@ -238,7 +253,13 @@ async function ResultsTableContainer({
   );
 }
 
-async function NonVotersTableLazy({ proposalId }: { proposalId: string }) {
+async function NonVotersTableLazy({
+  daoSlug,
+  proposalId,
+}: {
+  daoSlug: string;
+  proposalId: string;
+}) {
   // const nonVoters = await getNonVoters(proposalId);
 
   const nonVoters = {
@@ -248,7 +269,7 @@ async function NonVotersTableLazy({ proposalId }: { proposalId: string }) {
     pid: proposalId,
   };
 
-  return <NonVotersTable nonVoters={nonVoters} />;
+  return <NonVotersTable daoSlug={daoSlug} nonVoters={nonVoters} />;
 }
 
 function TitleLoading() {

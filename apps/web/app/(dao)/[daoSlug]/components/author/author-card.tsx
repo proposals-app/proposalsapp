@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { VotingPowerTag } from './voting-power-tag';
 
 export interface AuthorCardProps {
-  href: string;
+  href?: string;
   avatar: string;
   altText: string;
   primaryName: string;
@@ -11,6 +11,7 @@ export interface AuthorCardProps {
   nameDisplayType?: 'discourse' | 'voter';
   currentVotingPower?: number | null;
   eventVotingPower?: number | null;
+  tokenSymbol?: string;
 }
 
 export function AuthorCard({
@@ -22,9 +23,10 @@ export function AuthorCard({
   nameDisplayType = 'discourse',
   currentVotingPower,
   eventVotingPower,
+  tokenSymbol,
 }: AuthorCardProps) {
-  return (
-    <Link href={href} target='_blank' className='flex items-center gap-2'>
+  const content = (
+    <>
       <div className='flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 dark:border-neutral-300'>
         <Image
           src={avatar}
@@ -56,9 +58,20 @@ export function AuthorCard({
           <VotingPowerTag
             currentVotingPower={currentVotingPower}
             eventVotingPower={eventVotingPower}
+            tokenSymbol={tokenSymbol}
           />
         ) : null}
       </div>
+    </>
+  );
+
+  if (!href) {
+    return <div className='flex items-center gap-2'>{content}</div>;
+  }
+
+  return (
+    <Link href={href} target='_blank' className='flex items-center gap-2'>
+      {content}
     </Link>
   );
 }

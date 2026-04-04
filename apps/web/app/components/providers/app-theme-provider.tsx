@@ -87,8 +87,10 @@ function persistThemeMode(mode: ThemeMode) {
   }
 
   const hostname = window.location.hostname.toLowerCase();
-  const configuredRootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN
-    ?.replace(/^(https?:\/\/)?/, '')
+  const configuredRootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.replace(
+    /^(https?:\/\/)?/,
+    ''
+  )
     .replace(/\/$/, '')
     .toLowerCase();
   const domainParts = hostname.split('.');

@@ -53,6 +53,13 @@ const emptyResponse = NextResponse.json(
   { headers: { 'Content-Type': 'application/json' } }
 );
 
+function buildEmptyResponse(request: NextRequest) {
+  return new NextResponse(emptyResponse.body, {
+    status: 200,
+    headers: buildCorsHeaders(request),
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ daoSlug: string; username: string }> }
@@ -104,10 +111,7 @@ export async function GET(
       .executeTakeFirst();
 
     if (!dao) {
-      return new NextResponse(emptyResponse.body, {
-        status: 200,
-        headers: buildCorsHeaders(request),
-      });
+      return buildEmptyResponse(request);
     }
 
     const daoDiscourse = await db
@@ -117,10 +121,7 @@ export async function GET(
       .executeTakeFirst();
 
     if (!daoDiscourse) {
-      return new NextResponse(emptyResponse.body, {
-        status: 200,
-        headers: buildCorsHeaders(request),
-      });
+      return buildEmptyResponse(request);
     }
 
     const discourseUser = await db
@@ -131,10 +132,7 @@ export async function GET(
       .executeTakeFirst();
 
     if (!discourseUser) {
-      return new NextResponse(emptyResponse.body, {
-        status: 200,
-        headers: buildCorsHeaders(request),
-      });
+      return buildEmptyResponse(request);
     }
 
     const dtdu = await db
@@ -144,10 +142,7 @@ export async function GET(
       .executeTakeFirst();
 
     if (!dtdu) {
-      return new NextResponse(emptyResponse.body, {
-        status: 200,
-        headers: buildCorsHeaders(request),
-      });
+      return buildEmptyResponse(request);
     }
 
     const dtvRecords = await db
@@ -157,7 +152,7 @@ export async function GET(
       .execute();
 
     if (dtvRecords.length === 0) {
-      return emptyResponse;
+      return buildEmptyResponse(request);
     }
 
     const voterIds = dtvRecords.map((record) => record.voterId);
@@ -171,7 +166,7 @@ export async function GET(
     const voterAddresses = voters.map((v) => v.address);
 
     if (voterAddresses.length === 0) {
-      return emptyResponse;
+      return buildEmptyResponse(request);
     }
 
     // Batch fetch current voting power
@@ -239,10 +234,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error fetching voting power:', error);
-    return new NextResponse(emptyResponse.body, {
-      status: 200,
-      headers: buildCorsHeaders(request),
-    });
+    return buildEmptyResponse(request);
   }
 }
 

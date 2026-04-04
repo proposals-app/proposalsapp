@@ -3,6 +3,7 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import type { FeedReturnType, GroupReturnType } from '../../../../actions';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-voter';
 import type { ProposalMetadata } from '@/lib/types';
+import { getDaoTokenSymbol } from '@/lib/dao-config';
 
 export async function AggregateVoteItem({
   item,
@@ -23,6 +24,7 @@ export async function AggregateVoteItem({
   const formattedVotingPower = item.votingPower
     ? formatNumberWithSuffix(item.votingPower)
     : '0';
+  const tokenSymbol = getDaoTokenSymbol(group.daoSlug);
 
   // Get choice text from the vote
   const getAggregatedChoiceDisplay = () => {
@@ -51,6 +53,7 @@ export async function AggregateVoteItem({
     <div className='flex w-full flex-col gap-2 py-4 opacity-50'>
       <div className='flex cursor-default select-none flex-row justify-between'>
         <VoterAuthor
+          daoSlug={group.daoSlug}
           voterAddress={'Multiple voters'}
           ens={'Multiple voters'}
           discourseUsername={'Multiple voters'}
@@ -67,7 +70,9 @@ export async function AggregateVoteItem({
       </div>
 
       <div className='cursor-default select-none text-neutral-700 dark:text-neutral-200'>
-        <span className=''>{formattedVotingPower} ARB </span>
+        <span className=''>
+          {formattedVotingPower} {tokenSymbol}{' '}
+        </span>
         <span className='font-bold'>{choiceDisplay}</span>
       </div>
     </div>

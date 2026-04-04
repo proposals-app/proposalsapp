@@ -43,9 +43,16 @@ export function ResultEventMobile(props: ResultEventProps) {
     : props.result.voteType
       ? VoteComponents[props.result.voteType]
       : null;
-  const voteComponent = Component ? (
-    <Component result={props.result} expanded={props.expanded} />
-  ) : null;
+  const voteComponent =
+    Component === BasicVote ? (
+      <BasicVote
+        daoSlug={props.daoSlug}
+        result={props.result}
+        expanded={props.expanded}
+      />
+    ) : Component ? (
+      <Component result={props.result} expanded={props.expanded} />
+    ) : null;
 
   return (
     <SharedResult

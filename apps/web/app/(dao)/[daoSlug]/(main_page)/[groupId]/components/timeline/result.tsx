@@ -41,7 +41,12 @@ export function Result(props: ResultProps) {
     : props.result.voteType
       ? VoteComponents[props.result.voteType]
       : null;
-  const voteComponent = Component ? <Component result={props.result} /> : null;
+  const voteComponent =
+    Component === BasicVote ? (
+      <BasicVote daoSlug={props.daoSlug} result={props.result} />
+    ) : Component ? (
+      <Component result={props.result} />
+    ) : null;
 
   return (
     <SharedResult

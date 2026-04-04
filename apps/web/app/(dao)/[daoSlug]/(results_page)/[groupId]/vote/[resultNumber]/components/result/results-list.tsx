@@ -6,6 +6,7 @@ import PassedIcon from '@/public/assets/web/icons/check.svg';
 import FailedIcon from '@/public/assets/web/icons/cross.svg';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { SkeletonResultsList } from '@/app/components/ui/skeleton';
+import { getDaoTokenSymbol } from '@/lib/dao-config';
 
 interface ResultsListProps {
   results: SuperJSONResult;
@@ -328,14 +329,18 @@ export function QuorumBar({
 }
 
 interface ParticipationPercentageProps {
+  daoSlug: string;
   percentage: number;
   actualVotesCast: number;
 }
 
 export function ParticipationPercentage({
+  daoSlug,
   percentage,
   actualVotesCast,
 }: ParticipationPercentageProps) {
+  const tokenSymbol = getDaoTokenSymbol(daoSlug);
+
   return (
     <div>
       <div className='relative h-2 w-full overflow-hidden border border-neutral-800 dark:border-neutral-200'>
@@ -351,7 +356,7 @@ export function ParticipationPercentage({
         <span className='font-semibold'>
           {formatNumberWithSuffix(actualVotesCast)}
         </span>{' '}
-        ARB have voted ({percentage.toFixed(0)}% participation)
+        {tokenSymbol} have voted ({percentage.toFixed(0)}% participation)
       </div>
     </div>
   );
@@ -363,9 +368,11 @@ export function LoadingList() {
 
 // Stream-only bars component that can be rendered after the list
 export function ResultsListBars({
+  daoSlug,
   results,
   onchain,
 }: {
+  daoSlug: string;
   results: SuperJSONResult;
   onchain: boolean;
 }) {
@@ -427,6 +434,7 @@ export function ResultsListBars({
       )}
       {showParticipationBar && (
         <ParticipationPercentage
+          daoSlug={daoSlug}
           percentage={
             totalDelegatedVp
               ? Math.min(100, (totalVotesCast / totalDelegatedVp) * 100)

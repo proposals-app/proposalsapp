@@ -181,7 +181,6 @@ async function createSnapshotProposal(
 
   const proposalTitle = `${titlePrefix} - ${new Date().toISOString()}`;
   let proposalReceipt: ProposalReceipt;
-  let proposalId = '';
 
   try {
     console.log(`${testLogPrefix} Creating proposal: "${proposalTitle}"...`);
@@ -199,7 +198,7 @@ async function createSnapshotProposal(
       discussion: '',
     })) as ProposalReceipt;
 
-    proposalId = proposalReceipt.id;
+    const proposalId = proposalReceipt.id;
     console.log(
       `${testLogPrefix} Proposal created successfully:`,
       proposalReceipt
@@ -209,11 +208,12 @@ async function createSnapshotProposal(
   } catch (error: any) {
     console.error(`${testLogPrefix} Error creating proposal:`, error);
     throw new Error(
-      `[${voteType}] Failed to create proposal: ${error.message || error}`
+      `[${voteType}] Failed to create proposal: ${error.message || error}`,
+      { cause: error }
     );
   }
 
-  return { id: proposalId, signerAddress, wallet };
+  return { id: proposalReceipt.id, signerAddress, wallet };
 }
 
 async function fetchLatestActiveProposalId(
@@ -346,9 +346,9 @@ async function getOrCreateActiveProposal(
       `${testLogPrefix} Failed to create proposal after not finding an active one.`,
       error
     );
-    throw new Error(
-      `[${testLogPrefix}] Failed to get or create proposal: ${error}`
-    );
+    throw new Error(`[${testLogPrefix}] Failed to get or create proposal`, {
+      cause: error,
+    });
   }
 }
 
@@ -1044,8 +1044,6 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       toIndex: number;
       item: string;
     }> = [];
-    let expectedFinalOrder: number[] = [];
-
     for (let targetPos = 0; targetPos < numChoices; targetPos++) {
       const targetValue = targetOrder[targetPos];
       const currentPos = currentOrder.indexOf(targetValue);

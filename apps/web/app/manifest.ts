@@ -14,7 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'proposals.app',
     short_name: 'proposals.app',
-    description: 'The place where you can find all the info from your favorite DAOs.',
+    description:
+      'The place where you can find all the info from your favorite DAOs.',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',

@@ -33,7 +33,8 @@ export default async function Page({
             Invalid DAO
           </h1>
           <p className='mt-2 text-neutral-500 dark:text-neutral-400'>
-            Please use a valid subdomain (e.g., arbitrum.localhost:3000)
+            Please use a valid subdomain (e.g., arbitrum.localhost:3000 or
+            uniswap.localhost:3000)
           </p>
         </div>
       </div>

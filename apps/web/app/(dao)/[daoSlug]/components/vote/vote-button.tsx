@@ -20,18 +20,19 @@ import { OffchainQuadraticVoteModalContent } from './vote-types-modals/offchain/
 import { OffchainRankedChoiceVoteModalContent } from './vote-types-modals/offchain/ranked-choice-vote';
 import { OffchainSingleChoiceVoteModalContent } from './vote-types-modals/offchain/single-choice-vote';
 import { OffchainWeightedVoteModalContent } from './vote-types-modals/offchain/weighted-vote';
-import { OnchainArbitrumCoreBasicVoteModalContent } from './vote-types-modals/onchain/arbitrum-core-basic-vote';
-import { OnchainArbitrumTreasuryBasicVoteModalContent } from './vote-types-modals/onchain/arbitrum-treasury-basic-vote';
+import { OnchainBasicVoteModalContent } from './vote-types-modals/onchain/basic-vote';
+import {
+  GOVERNOR_CONFIG,
+  GOVERNOR_VOTE_ABI,
+  type SupportedGovernorType,
+} from '@/lib/governance-config';
 
 export const SNAPSHOT_APP_NAME = 'proposalsapp';
 export const ATTRIBUTION_TEXT = 'voted via proposals.app';
 
-const SNAPSHOT_SPACE_ARB_FOUNDATION = 'arbitrumfoundation.eth';
-const SNAPSHOT_HUB_URL = 'https://hub.snapshot.org';
-
 interface VoteButtonProps {
   proposal: Selectable<Proposal>;
-  governor: 'ARBITRUM_SNAPSHOT' | 'ARBITRUM_CORE' | 'ARBITRUM_TREASURY';
+  governor: SupportedGovernorType;
   overwriteSnapshotSpace?: string;
   overwriteSnapshotHub?: string;
 }
@@ -135,32 +136,21 @@ export function VoteButton({
 
   let snapshotSpace: string | undefined;
   let snapshotHubUrl: string | undefined;
+  const governorConfig = GOVERNOR_CONFIG[governor];
 
-  // Use a less strict type for assignment flexibility, rely on runtime props
-  let ModalContentComponent: React.ComponentType<VoteModalContentProps>;
+  if (!governorConfig) {
+    console.error(`VoteButton: Unknown governor type: ${governor}`);
+    return (
+      <Button disabled variant='outline' className='w-min'>
+        <Vote className='mr-2 h-4 w-4' />
+        Unknown Governor
+      </Button>
+    );
+  }
 
-  switch (governor) {
-    case 'ARBITRUM_SNAPSHOT':
-      snapshotSpace = overwriteSnapshotSpace || SNAPSHOT_SPACE_ARB_FOUNDATION;
-      snapshotHubUrl = overwriteSnapshotHub || SNAPSHOT_HUB_URL;
-      ModalContentComponent =
-        snapshotVoteModalComponents[voteType] || OffchainBasicVoteModalContent;
-      break;
-    case 'ARBITRUM_CORE':
-      ModalContentComponent = OnchainArbitrumCoreBasicVoteModalContent;
-      break;
-    case 'ARBITRUM_TREASURY':
-      ModalContentComponent = OnchainArbitrumTreasuryBasicVoteModalContent;
-      break;
-    default:
-      // Optional: Handle unexpected governor type if necessary
-      console.error(`VoteButton: Unknown governor type: ${governor}`);
-      return (
-        <Button disabled variant='outline' className='w-min'>
-          <Vote className='mr-2 h-4 w-4' />
-          Unknown Governor
-        </Button>
-      );
+  if (governorConfig.kind === 'snapshot') {
+    snapshotSpace = overwriteSnapshotSpace || governorConfig.space;
+    snapshotHubUrl = overwriteSnapshotHub || governorConfig.hubUrl;
   }
 
   const handleSuccessfulVote = async () => {
@@ -183,14 +173,30 @@ export function VoteButton({
           <DialogTitle>{proposal.name}</DialogTitle>
         </DialogHeader>
 
-        <ModalContentComponent
-          proposal={proposal}
-          snapshotSpace={snapshotSpace}
-          snapshotHubUrl={snapshotHubUrl}
-          choices={choices}
-          onVoteSubmit={handleSuccessfulVote}
-          onClose={() => setIsOpen(false)}
-        />
+        {governorConfig.kind === 'snapshot' ? (
+          React.createElement(
+            snapshotVoteModalComponents[voteType] ||
+              OffchainBasicVoteModalContent,
+            {
+              proposal,
+              snapshotSpace,
+              snapshotHubUrl,
+              choices,
+              onVoteSubmit: handleSuccessfulVote,
+              onClose: () => setIsOpen(false),
+            } satisfies VoteModalContentProps
+          )
+        ) : (
+          <OnchainBasicVoteModalContent
+            proposal={proposal}
+            choices={choices}
+            governorAddress={governorConfig.address}
+            governorAbi={GOVERNOR_VOTE_ABI}
+            chainId={governorConfig.chainId}
+            onVoteSubmit={handleSuccessfulVote}
+            onClose={() => setIsOpen(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -6,6 +6,7 @@ import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-vote
 import type { VotesWithVoters } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/actions';
 import type { ProposalMetadata } from '@/lib/types';
 import { SkeletonVoteItemFeed } from '@/app/components/ui/skeleton';
+import { getDaoForumBaseUrl, getDaoTokenSymbol } from '@/lib/dao-config';
 
 // Helper to format choice text, similar to the one in ResultsTable
 const getChoiceText = (vote: ProcessedVote, isWeighted = false): string => {
@@ -52,7 +53,8 @@ export async function VoteItem({
 
   const barWidth = `${(item.relativeVotingPower || 0) * 100}%`;
 
-  const baseUrl = daoBaseUrlMap[group.daoSlug] || '';
+  const baseUrl = getDaoForumBaseUrl(group.daoSlug) || '';
+  const tokenSymbol = getDaoTokenSymbol(group.daoSlug);
   const urlPattern = new RegExp(`${baseUrl}/t/[^/]+/(\\d+)/(\\d+)(?:\\?.*)?`);
   let match = item.reason?.match(urlPattern);
 
@@ -115,6 +117,7 @@ export async function VoteItem({
 
       <div className='flex cursor-default select-none flex-row justify-between'>
         <VoterAuthor
+          daoSlug={group.daoSlug}
           voterAddress={voteWithVoter.voterAddress}
           ens={voteWithVoter.ens}
           avatar={voteWithVoter.avatar}
@@ -130,7 +133,9 @@ export async function VoteItem({
       </div>
 
       <div className='cursor-default select-none text-neutral-700 dark:text-neutral-200'>
-        <span className=''>{formattedVotingPower} ARB </span>
+        <span className=''>
+          {formattedVotingPower} {tokenSymbol}{' '}
+        </span>
         <span className='font-bold'>{choiceText}</span>
       </div>
 
@@ -154,10 +159,6 @@ export async function VoteItem({
 export function VoteItemLoading() {
   return <SkeletonVoteItemFeed />;
 }
-
-const daoBaseUrlMap: { [key: string]: string } = {
-  arbitrum: 'https://forum.arbitrum.foundation',
-};
 
 export function formatNameOrAddress(address: string): string {
   const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;

@@ -116,7 +116,12 @@ async function GroupPage({
           fallback={<DynamicLoadingMenuBar expanded={expanded} />}
           key={menuBarKey}
         >
-          <MenuBarSection groupId={groupId} version={version} diff={diff} />
+          <MenuBarSection
+            daoSlug={daoSlug}
+            groupId={groupId}
+            version={version}
+            diff={diff}
+          />
         </Suspense>
 
         <Suspense fallback={<FeedLoading />} key={feedKey}>
@@ -216,10 +221,12 @@ async function BodyHeaderSection({
 }
 
 async function MenuBarSection({
+  daoSlug,
   groupId,
   version,
   diff,
 }: {
+  daoSlug: string;
   groupId: string;
   version: number | null;
   diff: boolean;
@@ -235,6 +242,7 @@ async function MenuBarSection({
 
   return (
     <MenuBar
+      daoSlug={daoSlug}
       bodyVersions={bodyVersions}
       currentVersion={currentVersion}
       diff={diff}

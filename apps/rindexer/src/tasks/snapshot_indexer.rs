@@ -9,8 +9,9 @@ use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vote};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder,
+    ActiveModelTrait,
+    ActiveValue::Set,
+    ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     prelude::{Expr, Uuid},
 };
 use std::time::Duration as StdDuration;
@@ -402,8 +403,7 @@ async fn update_ended_snapshot_proposals(
     let stale_proposals = proposal::Entity::find()
         .filter(proposal::Column::GovernorId.eq(governor_id))
         .filter(
-            proposal::Column::ProposalState
-                .is_in([ProposalState::Active, ProposalState::Pending]),
+            proposal::Column::ProposalState.is_in([ProposalState::Active, ProposalState::Pending]),
         )
         .filter(proposal::Column::EndAt.lt(now))
         .all(db)
@@ -425,8 +425,7 @@ async fn update_ended_snapshot_proposals(
         match api.fetch_proposal_by_id(&prop.external_id).await {
             Ok(Some(updated_proposal)) => {
                 // Proposal still exists on Snapshot — update with current state
-                if let Err(e) =
-                    store_snapshot_proposal(updated_proposal, governor_id, dao_id).await
+                if let Err(e) = store_snapshot_proposal(updated_proposal, governor_id, dao_id).await
                 {
                     error!(
                         proposal_id = %prop.external_id,

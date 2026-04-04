@@ -4,11 +4,13 @@ import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
 export interface VotingPowerTagProps {
   currentVotingPower: number | null;
   eventVotingPower?: number | null;
+  tokenSymbol?: string;
 }
 
 export function VotingPowerTag({
   currentVotingPower,
   eventVotingPower,
+  tokenSymbol = 'TOKEN',
 }: VotingPowerTagProps) {
   if (!currentVotingPower) return null;
 
@@ -27,7 +29,7 @@ export function VotingPowerTag({
     <div className='flex gap-1'>
       <div className='rounded-xs flex w-fit cursor-default gap-4 border border-neutral-350 bg-neutral-100 p-0.5 px-2 text-xs font-normal text-neutral-650 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-350'>
         <div className='flex gap-2'>
-          {formatNumberWithSuffix(currentVotingPower)} ARB
+          {formatNumberWithSuffix(currentVotingPower)} {tokenSymbol}
         </div>
       </div>
       {shouldShowChange ? (

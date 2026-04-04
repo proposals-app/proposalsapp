@@ -832,7 +832,6 @@ async function processRankedChoiceVotes(
     const timeSeriesMap = new Map<string, TimeSeriesPoint>();
     const runningVotes: ProcessedVote[] = [];
     let accumulatedVotingPower = 0; // Track total VP added since last point
-    let lastProcessedTimestamp: number | null = null;
 
     // Sort votes chronologically
     const sortedVotes = [...processedVotes].sort(
@@ -843,7 +842,7 @@ async function processRankedChoiceVotes(
       runningVotes.push(vote);
       // Accumulate total VP, not just the individual vote's VP, to decide when to compute point
       accumulatedVotingPower += vote.votingPower;
-      lastProcessedTimestamp = vote.createdAt.getTime();
+      const lastProcessedTimestamp = vote.createdAt.getTime();
 
       // Compute a timeseries point if threshold reached OR it's the very last vote
       if (

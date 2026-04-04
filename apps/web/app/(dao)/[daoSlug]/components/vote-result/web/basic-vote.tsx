@@ -9,15 +9,21 @@ import {
   SegmentedQuorumBar,
   VoteSegment,
 } from '@/app/(dao)/[daoSlug]/components/vote-result/shared';
+import { getDaoTokenSymbol } from '@/lib/dao-config';
 
 interface BasicVoteProps {
+  daoSlug?: string;
   result: Omit<ProcessedResults, 'votes' | 'timeSeriesData'> & {
     voteSegments: { [key: string]: VoteSegmentData[] };
   };
   expanded?: boolean; // For responsive mobile behavior
 }
 
-export const BasicVote = ({ result, expanded = true }: BasicVoteProps) => {
+export const BasicVote = ({
+  daoSlug,
+  result,
+  expanded = true,
+}: BasicVoteProps) => {
   const {
     finalResults,
     totalVotingPower,
@@ -77,6 +83,7 @@ export const BasicVote = ({ result, expanded = true }: BasicVoteProps) => {
   }, [finalResults, quorumChoices]);
 
   const hasQuorum = quorumVotingPower > quorum;
+  const tokenSymbol = getDaoTokenSymbol(daoSlug ?? '');
 
   // Prepare data for the segmented quorum bar
   const quorumContributingChoices = useMemo(() => {
@@ -215,7 +222,7 @@ export const BasicVote = ({ result, expanded = true }: BasicVoteProps) => {
               <span className='font-semibold'>
                 {formatNumberWithSuffix(totalVotingPower)}
               </span>{' '}
-              ARB voted
+              {tokenSymbol} voted
             </div>
           </div>
         </div>

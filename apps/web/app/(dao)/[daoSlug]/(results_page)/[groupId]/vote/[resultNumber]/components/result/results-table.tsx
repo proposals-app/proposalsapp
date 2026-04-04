@@ -23,8 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/app/components/ui/select';
+import { getDaoTokenSymbol } from '@/lib/dao-config';
 
 interface ResultsTableProps {
+  daoSlug: string;
   renderedAtMs: number;
   results: SuperJSONResult;
   votes: SuperJSONResult;
@@ -56,6 +58,7 @@ const voteIncludesChoiceText = (
 };
 
 export function ResultsTable({
+  daoSlug,
   renderedAtMs,
   results,
   votes,
@@ -63,6 +66,7 @@ export function ResultsTable({
   const deserializedResults: ProcessedResults = superjson.deserialize(results);
   const deserializedVotes: VotesWithVoters = superjson.deserialize(votes);
   const renderedAt = new Date(renderedAtMs);
+  const tokenSymbol = getDaoTokenSymbol(daoSlug);
 
   const [sortColumn, setSortColumn] = useState<'timestamp' | 'votingPower'>(
     'votingPower'
@@ -200,6 +204,7 @@ export function ResultsTable({
             <div>
               {voteWithVoter ? (
                 <VoterAuthor
+                  daoSlug={daoSlug}
                   voterAddress={voteWithVoter.voterAddress}
                   ens={voteWithVoter.ens}
                   avatar={voteWithVoter.avatar}
@@ -250,7 +255,7 @@ export function ResultsTable({
               {/* Voting Power (Left) */}
               <div className=''>
                 <div className='font-mono font-bold'>
-                  {formatNumberWithSuffix(vote.votingPower)} ARB
+                  {formatNumberWithSuffix(vote.votingPower)} {tokenSymbol}
                 </div>
                 <div className='font-mono text-xs'>
                   {' '}
@@ -275,6 +280,7 @@ export function ResultsTable({
             <div className='col-span-2'>
               {voteWithVoter ? (
                 <VoterAuthor
+                  daoSlug={daoSlug}
                   voterAddress={voteWithVoter.voterAddress}
                   ens={voteWithVoter.ens}
                   discourseUsername={voteWithVoter.discourseUsername}
@@ -292,7 +298,7 @@ export function ResultsTable({
             {/* Column 2: Voting Power */}
             <div className='col-span-1 px-2 text-right'>
               <div className='font-mono font-bold'>
-                {formatNumberWithSuffix(vote.votingPower)} ARB
+                {formatNumberWithSuffix(vote.votingPower)} {tokenSymbol}
               </div>
               <div className='font-mono text-sm'>
                 {votingPowerPercentage.toFixed(1)}%

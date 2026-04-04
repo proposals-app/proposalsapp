@@ -11,8 +11,7 @@ import {
   type Selectable,
   type Vote,
 } from '@proposalsapp/db';
-
-export const EXCLUSION_ADDRESS = '0x00000000000000000000000000000000000A4B86';
+import { getDaoExcludedVoterAddress } from '@/lib/dao-config';
 
 export async function getProposalGovernor(proposalId: string) {
   proposalIdSchema.parse(proposalId);
@@ -47,30 +46,42 @@ export async function getTotalDelegatedVpAtStart(
 
   const proposal = await db
     .selectFrom('proposal')
-    .where('id', '=', proposalId)
-    .select(['daoId', 'startAt'])
+    .innerJoin('dao', 'dao.id', 'proposal.daoId')
+    .where('proposal.id', '=', proposalId)
+    .select([
+      'proposal.daoId as daoId',
+      'proposal.startAt as startAt',
+      'dao.slug as daoSlug',
+    ])
     .executeTakeFirst();
 
   if (!proposal) return 0;
+  const excludedVoterAddress = getDaoExcludedVoterAddress(proposal.daoSlug);
 
   // Join historical voting power with current voters to only count tokens still available for voting
-  const historicalPowers = await db
+  const historicalPowersQuery = db
     .selectFrom('votingPowerTimeseries as vp')
-    .innerJoin('votingPowerLatest as latest', (join) =>
-      join
+    .innerJoin('votingPowerLatest as latest', (join) => {
+      let latestJoin = join
         .onRef('latest.voter', '=', 'vp.voter')
         .on('latest.daoId', '=', proposal.daoId)
-        .on('latest.votingPower', '>', 0)
-        .on('latest.voter', '!=', EXCLUSION_ADDRESS)
-    )
+        .on('latest.votingPower', '>', 0);
+
+      if (excludedVoterAddress) {
+        latestJoin = latestJoin.on('latest.voter', '!=', excludedVoterAddress);
+      }
+
+      return latestJoin;
+    })
     .where('vp.daoId', '=', proposal.daoId)
     .where('vp.votingPower', '>', 0)
     .where('vp.timestamp', '<=', proposal.startAt)
     .orderBy('vp.voter', 'asc')
     .orderBy('vp.timestamp', 'desc')
     .distinctOn(['vp.voter'])
-    .select(['vp.votingPower'])
-    .execute();
+    .select(['vp.votingPower']);
+
+  const historicalPowers = await historicalPowersQuery.execute();
 
   if (historicalPowers.length === 0) return 0;
 
@@ -185,8 +196,6 @@ export async function getNonVoters(proposalId: string) {
   let delegateIdByVoterId = new Map<string, string>();
   let discourseUserIdByDelegateId = new Map<string, string>();
   let discourseUserMap = new Map<string, Selectable<DiscourseUser>>();
-  let allDelegateIds: string[] = [];
-  let allDiscourseUserIds: string[] = [];
   if (daoDiscourse && eligibleVoterIds.length > 0) {
     const daoDiscourseId = daoDiscourse.id;
 
@@ -212,7 +221,7 @@ export async function getNonVoters(proposalId: string) {
     delegateIdByVoterId = new Map(
       allDelegateToVoterLinks.map((link) => [link.voterId, link.delegateId])
     );
-    allDelegateIds = [
+    const allDelegateIds = [
       ...new Set(allDelegateToVoterLinks.map((link) => link.delegateId)),
     ];
 
@@ -239,7 +248,7 @@ export async function getNonVoters(proposalId: string) {
           link.discourseUserId,
         ])
       );
-      allDiscourseUserIds = [
+      const allDiscourseUserIds = [
         ...new Set(
           allDelegateToDiscourseLinks.map((link) => link.discourseUserId)
         ),

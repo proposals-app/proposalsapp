@@ -248,7 +248,10 @@ pub async fn arbitrum_sc_nominations_handlers(
     info!("Arbitrum SC Nominations handlers registered.");
 }
 
-#[instrument(name = "arbitrum_sc_nominations_update_ended_proposals_state", skip_all)]
+#[instrument(
+    name = "arbitrum_sc_nominations_update_ended_proposals_state",
+    skip_all
+)]
 pub async fn update_ended_proposals_state() -> Result<()> {
     info!(
         governor = "ARBITRUM_SC_NOMINATIONS",
@@ -261,8 +264,7 @@ pub async fn update_ended_proposals_state() -> Result<()> {
     // Find proposals marked ACTIVE or PENDING whose end_at has passed
     let ended_proposals = proposal::Entity::find()
         .filter(
-            proposal::Column::ProposalState
-                .is_in([ProposalState::Active, ProposalState::Pending]),
+            proposal::Column::ProposalState.is_in([ProposalState::Active, ProposalState::Pending]),
         )
         .filter(proposal::Column::EndAt.lt(chrono::Utc::now().naive_utc()))
         .filter(proposal::Column::GovernorId.eq(governor_id))

@@ -32,11 +32,7 @@ export const viewport: Viewport = {
   themeColor: getThemeColorEntries('uniswap'),
 };
 
-export default function UniswapLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function UniswapLayout({ children }: { children: ReactNode }) {
   return (
     <div
       data-theme='uniswap'
@@ -45,9 +41,7 @@ export default function UniswapLayout({
       <Suspense fallback={<NavBarSkeleton />}>
         <NavBar daoSlug='uniswap' />
       </Suspense>
-      <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>
-        {children}
-      </div>
+      <div className='flex w-full pl-0 pt-20 md:pl-20 md:pt-0'>{children}</div>
       <Suspense fallback={null}>
         <Banner />
       </Suspense>

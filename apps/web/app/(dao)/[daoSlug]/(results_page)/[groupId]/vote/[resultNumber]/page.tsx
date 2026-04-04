@@ -49,7 +49,7 @@ export default async function Page({
 }: {
   params: Promise<{ daoSlug: string; groupId: string; resultNumber: string }>;
 }) {
-  const { groupId, resultNumber } = await params;
+  const { daoSlug, groupId, resultNumber } = await params;
   const renderedAtMs = Date.now();
   const group = await getGroup(groupId);
 
@@ -87,6 +87,7 @@ export default async function Page({
           <div className='rounded-r-xs flex h-full min-h-[calc(100vh-114px)] w-full flex-col border border-neutral-800 bg-white p-6 dark:border-neutral-650 dark:bg-neutral-950'>
             <Suspense fallback={<ResultsLoading />}>
               <ResultsContainer
+                daoSlug={daoSlug}
                 proposal={proposal}
                 renderedAtMs={renderedAtMs}
               />
@@ -129,13 +130,21 @@ async function TimelineContainer({
 
 // Separate component for results rendering with pre-validated proposal
 async function ResultsContainer({
+  daoSlug,
   proposal,
   renderedAtMs,
 }: {
+  daoSlug: string;
   proposal: NonNullable<Awaited<ReturnType<typeof getGroup>>>['proposals'][0];
   renderedAtMs: number;
 }) {
-  return <Results proposal={proposal} renderedAtMs={renderedAtMs} />;
+  return (
+    <Results
+      daoSlug={daoSlug}
+      proposal={proposal}
+      renderedAtMs={renderedAtMs}
+    />
+  );
 }
 
 // Enhanced loading placeholder for header
