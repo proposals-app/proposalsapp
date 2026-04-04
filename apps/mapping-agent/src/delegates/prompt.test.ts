@@ -42,4 +42,28 @@ describe('buildDelegateSystemPrompt', () => {
       'that is evidence about the referenced person being discussed, not proof that the voter is that person'
     );
   });
+
+  it('teaches the agent to use delegate communication threads and rejects substring ENS jumps', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'The query tool can also read the backing public tables shown in the schema export'
+    );
+    expect(prompt).toContain(
+      'a self-authored delegate communication thread, delegate statement, or voting-rationale thread that explicitly lists a wallet address, ENS, forum username, or social handle is strong direct proof'
+    );
+    expect(prompt).toContain(
+      'do not accept a candidate just because the delegate handle appears as a substring inside a longer ENS, address label, or display name'
+    );
+    expect(prompt).toContain(
+      'query raw discourse_topic and discourse_post directly to inspect thread titles and cooked post content for self-identification evidence'
+    );
+  });
 });
