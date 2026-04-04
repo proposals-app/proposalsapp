@@ -30,7 +30,7 @@ async function HeaderContainer({ daoSlug }: { daoSlug: string }) {
       description={`Manage delegate mappings for Discourse users and Voters in ${dao?.name || 'the DAO'}.`}
       actionLinks={[
         {
-          href: `/${daoSlug}/mapping`,
+          href: `/mapping`,
           label: 'Proposal Mapping',
         },
       ]}
