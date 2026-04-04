@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildDiscourseSeedCandidates,
   buildDelegateCases,
+  prioritizeDelegateCases,
   rankDiscourseUserCandidates,
   rankVoterCandidates,
   type DelegateCase,
@@ -118,6 +119,40 @@ describe('buildDiscourseSeedCandidates', () => {
     ]);
   });
 
+  it('orders eligible users by proposal-category post count descending', () => {
+    const candidates = buildDiscourseSeedCandidates({
+      discourseUsers: [
+        makeDiscourseUser({
+          id: 'discourse-1',
+          username: 'charlie',
+          name: 'Charlie',
+        }),
+        makeDiscourseUser({
+          id: 'discourse-2',
+          username: 'alice',
+          name: 'Alice',
+        }),
+        makeDiscourseUser({
+          id: 'discourse-3',
+          username: 'bob',
+          name: 'Bob',
+        }),
+      ],
+      proposalCategoryPostCounts: new Map([
+        ['discourse-1', 11],
+        ['discourse-2', 30],
+        ['discourse-3', 30],
+      ]),
+      delegates: [],
+    });
+
+    expect(candidates.map((candidate) => candidate.discourseUserId)).toEqual([
+      'discourse-2',
+      'discourse-3',
+      'discourse-1',
+    ]);
+  });
+
   it('marks one historical delegate as repairable and multiple historical delegates as ambiguous', () => {
     const candidates = buildDiscourseSeedCandidates({
       discourseUsers: [
@@ -143,14 +178,68 @@ describe('buildDiscourseSeedCandidates', () => {
       ]),
     });
 
-    expect(candidates[0]).toMatchObject({
+    expect(
+      candidates.find(
+        (candidate) => candidate.discourseUserId === 'discourse-1'
+      )
+    ).toMatchObject({
       discourseUserId: 'discourse-1',
       repairDelegateId: 'delegate-1',
     });
-    expect(candidates[1]).toMatchObject({
+    expect(
+      candidates.find(
+        (candidate) => candidate.discourseUserId === 'discourse-2'
+      )
+    ).toMatchObject({
       discourseUserId: 'discourse-2',
       ambiguousHistoricalDelegateIds: ['delegate-2', 'delegate-3'],
     });
+  });
+});
+
+describe('prioritizeDelegateCases', () => {
+  it('prioritizes voter-missing discourse-linked cases by post count descending', () => {
+    const prioritized = prioritizeDelegateCases({
+      cases: [
+        {
+          delegateId: 'delegate-1',
+          missingSide: 'voter',
+          sourceDiscourseUserId: 'discourse-1',
+        },
+        {
+          delegateId: 'delegate-2',
+          missingSide: 'discourse_user',
+          sourceVoterId: 'voter-1',
+        },
+        {
+          delegateId: 'delegate-3',
+          missingSide: 'voter',
+          sourceDiscourseUserId: 'discourse-2',
+        },
+      ],
+      proposalCategoryPostCounts: new Map([
+        ['discourse-1', 11],
+        ['discourse-2', 30],
+      ]),
+    });
+
+    expect(prioritized).toEqual([
+      {
+        delegateId: 'delegate-3',
+        missingSide: 'voter',
+        sourceDiscourseUserId: 'discourse-2',
+      },
+      {
+        delegateId: 'delegate-1',
+        missingSide: 'voter',
+        sourceDiscourseUserId: 'discourse-1',
+      },
+      {
+        delegateId: 'delegate-2',
+        missingSide: 'discourse_user',
+        sourceVoterId: 'voter-1',
+      },
+    ]);
   });
 });
 

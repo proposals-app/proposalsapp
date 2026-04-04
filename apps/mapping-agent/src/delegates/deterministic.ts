@@ -122,7 +122,39 @@ export function buildDiscourseSeedCandidates(input: {
     })
     .filter(
       (candidate): candidate is DiscourseSeedCandidate => candidate !== null
-    );
+    )
+    .sort((left, right) => {
+      if (right.proposalCategoryPostCount !== left.proposalCategoryPostCount) {
+        return right.proposalCategoryPostCount - left.proposalCategoryPostCount;
+      }
+
+      const usernameComparison = left.username.localeCompare(right.username);
+      if (usernameComparison !== 0) {
+        return usernameComparison;
+      }
+
+      return left.discourseUserId.localeCompare(right.discourseUserId);
+    });
+}
+
+export function prioritizeDelegateCases(input: {
+  cases: DelegateCase[];
+  proposalCategoryPostCounts: Map<string, number>;
+}): DelegateCase[] {
+  return [...input.cases].sort((left, right) => {
+    const leftPriority =
+      left.missingSide === 'voter'
+        ? (input.proposalCategoryPostCounts.get(left.sourceDiscourseUserId) ??
+          0)
+        : -1;
+    const rightPriority =
+      right.missingSide === 'voter'
+        ? (input.proposalCategoryPostCounts.get(right.sourceDiscourseUserId) ??
+          0)
+        : -1;
+
+    return rightPriority - leftPriority;
+  });
 }
 
 function buildSourceTokensFromDiscourseUser(

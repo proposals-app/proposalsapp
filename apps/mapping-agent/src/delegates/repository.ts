@@ -16,6 +16,7 @@ import { resolveDelegateMappingWriteAction } from './write-guards';
 import {
   buildDiscourseSeedCandidates,
   buildDelegateCases,
+  prioritizeDelegateCases,
   type DelegateCase,
   type DelegateRecord,
   type DiscourseSeedCandidate,
@@ -784,10 +785,13 @@ export async function runDeterministicDelegateMappings(input: {
   );
   const unresolvedCases: DelegateCase[] = [];
 
-  for (const currentCase of filterRetryableDelegateCases(
-    buildDelegateCases(activeContext.delegates),
-    terminalStates
-  )) {
+  for (const currentCase of prioritizeDelegateCases({
+    cases: filterRetryableDelegateCases(
+      buildDelegateCases(activeContext.delegates),
+      terminalStates
+    ),
+    proposalCategoryPostCounts: activeContext.proposalCategoryPostCounts,
+  })) {
     if (currentCase.missingSide === 'voter') {
       const sourceUser = activeContext.discourseUsers.find(
         (user) => user.id === currentCase.sourceDiscourseUserId
