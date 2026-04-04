@@ -1,0 +1,25 @@
+{
+  "name": "@proposalsapp/mapping-agent",
+  "version": "1.0.0",
+  "dependencies": {
+    "@mariozechner/pi-coding-agent": "^0.65.0",
+    "@proposalsapp/db": "workspace:*",
+    "@sinclair/typebox": "^0.34.49",
+    "dotenv": "^17.3.1",
+    "pino": "^10.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "esbuild": "^0.27.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.2"
+  },
+  "main": "./src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "type": "module"
+}

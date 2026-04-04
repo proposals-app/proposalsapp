@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "apps/discourse",
-    "apps/mapper",
     "apps/rindexer",
     "libs/rust/db",
     "libs/rust/utils",

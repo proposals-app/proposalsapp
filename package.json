@@ -13,9 +13,11 @@
   "private": true,
   "scripts": {
     "build-email-service": "pnpm --filter @proposalsapp/email-service run build",
+    "build-mapping-agent": "pnpm --filter @proposalsapp/mapping-agent run build",
     "build-emails": "pnpm --filter @proposalsapp/emails run build",
     "build-web": "pnpm --filter @proposalsapp/web run build",
     "start-email-service": "pnpm --filter @proposalsapp/email-service run start",
+    "start-mapping-agent": "pnpm --filter @proposalsapp/mapping-agent run start",
     "start-web": "pnpm --filter @proposalsapp/web run start",
     "update-deps": "./update-deps.sh",
     "lint": "npx eslint . --config eslint.config.mjs --cache --cache-location .eslintcache",

@@ -1,4 +1,9 @@
-#![allow(dead_code, unused)]
+#![allow(
+    dead_code,
+    unused,
+    clippy::too_many_arguments,
+    clippy::unnecessary_map_or
+)]
 
 pub mod arb_token;
 /// THIS IS A GENERATED FILE. DO NOT MODIFY MANUALLY.

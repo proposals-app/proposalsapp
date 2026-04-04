@@ -265,7 +265,7 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
         let inserted_proposal = proposal::Entity::insert(proposal.clone()).exec(db).await?;
         info!(proposal_id = %inserted_proposal.last_insert_id, external_id = %external_id, "Proposal inserted successfully");
 
-        // No longer creating jobs for new proposals - the mapper handles all grouping now
+        // No longer creating jobs for new proposals - mapping-agent handles grouping.
     }
 
     Ok(())
