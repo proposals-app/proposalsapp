@@ -24,6 +24,12 @@ mod tasks;
 async fn main() -> Result<()> {
     dotenv().ok();
 
+    // rindexer pulls both `ring` and `aws-lc-rs` through transitive deps, so rustls
+    // cannot auto-select a provider on startup.
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     // Initialize JSON logging for stdout
     let env_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info"))

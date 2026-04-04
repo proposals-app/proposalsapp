@@ -20,6 +20,7 @@ proposalsapp-db = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls"] }
 rindexer = { workspace = true }
+rustls = { workspace = true }
 sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
