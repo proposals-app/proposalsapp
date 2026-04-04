@@ -1,5 +1,5 @@
-const DEFAULT_HURRY_REMAINING_MS = 60_000;
-const DEFAULT_HURRY_QUERY_WINDOW = 5;
+const DEFAULT_SOFT_TIME_BUDGET_MS = 300_000;
+const DEFAULT_HURRY_QUERY_THRESHOLD = 20;
 
 export interface QueryBudgetConfig {
   startedAtMs: number;
@@ -8,8 +8,8 @@ export interface QueryBudgetConfig {
   minQueryCallsBeforeDecision: number;
   queryToolName: string;
   decisionToolNames: string[];
-  hurryRemainingMs?: number;
-  hurryQueryWindow?: number;
+  hurryAfterQueryCalls?: number;
+  softTimeBudgetMs?: number;
 }
 
 export interface QueryBudgetSnapshot {
@@ -27,16 +27,16 @@ export function getQueryBudgetSnapshot(
   queryCount: number
 ): QueryBudgetSnapshot {
   const elapsedMs = Math.max(0, Date.now() - config.startedAtMs);
-  const remainingMs = Math.max(0, config.timeoutMs - elapsedMs);
+  const softTimeBudgetMs =
+    config.softTimeBudgetMs ?? config.timeoutMs ?? DEFAULT_SOFT_TIME_BUDGET_MS;
+  const remainingMs = Math.max(0, softTimeBudgetMs - elapsedMs);
   const queryCallsRemaining = Math.max(0, config.maxQueryCalls - queryCount);
   const minQueriesRemaining = Math.max(
     0,
     config.minQueryCallsBeforeDecision - queryCount
   );
-  const hurryRemainingMs =
-    config.hurryRemainingMs ?? DEFAULT_HURRY_REMAINING_MS;
-  const hurryQueryWindow =
-    config.hurryQueryWindow ?? DEFAULT_HURRY_QUERY_WINDOW;
+  const hurryAfterQueryCalls =
+    config.hurryAfterQueryCalls ?? DEFAULT_HURRY_QUERY_THRESHOLD;
 
   return {
     queryCount,
@@ -45,10 +45,8 @@ export function getQueryBudgetSnapshot(
     elapsedMs,
     remainingMs,
     isHurryPhase:
-      queryCallsRemaining <= hurryQueryWindow ||
-      remainingMs <= hurryRemainingMs,
-    isDecisionOnly:
-      queryCount >= config.maxQueryCalls || elapsedMs >= config.timeoutMs,
+      queryCount >= hurryAfterQueryCalls || elapsedMs >= softTimeBudgetMs,
+    isDecisionOnly: queryCount >= config.maxQueryCalls,
   };
 }
 
@@ -67,6 +65,7 @@ export function serializeQueryBudget(
 }
 
 export function buildHurryMessage(
+  config: QueryBudgetConfig,
   snapshot: QueryBudgetSnapshot
 ): string | null {
   if (!snapshot.isHurryPhase && !snapshot.isDecisionOnly) {
@@ -74,34 +73,36 @@ export function buildHurryMessage(
   }
 
   const parts: string[] = [];
+  const hurryAfterQueryCalls =
+    config.hurryAfterQueryCalls ?? DEFAULT_HURRY_QUERY_THRESHOLD;
+  const softTimeBudgetMs =
+    config.softTimeBudgetMs ?? config.timeoutMs ?? DEFAULT_SOFT_TIME_BUDGET_MS;
 
   if (snapshot.isDecisionOnly) {
     parts.push(
-      'You have already passed the target search budget. Prefer making a decision now. Only make another read if it is absolutely necessary and tightly scoped.'
+      `You have reached the maximum read budget of ${config.maxQueryCalls} queries. Further read queries will not be accepted. Make a decision now instead of continuing to search.`
     );
   }
 
-  if (snapshot.queryCallsRemaining <= DEFAULT_HURRY_QUERY_WINDOW) {
-    if (snapshot.queryCallsRemaining > 0) {
-      parts.push(
-        `Only ${snapshot.queryCallsRemaining} read queries remain before you are beyond the target query budget.`
-      );
-    } else {
-      parts.push('You are already beyond the target query budget.');
-    }
+  if (snapshot.queryCount >= hurryAfterQueryCalls) {
+    parts.push(
+      `You have already used ${snapshot.queryCount} read queries and are past the target search budget of ${hurryAfterQueryCalls} reads.`
+    );
   }
 
-  if (snapshot.remainingMs <= DEFAULT_HURRY_REMAINING_MS) {
-    if (snapshot.remainingMs > 0) {
-      parts.push(
-        `Only about ${Math.ceil(snapshot.remainingMs / 1000)} seconds remain before you are beyond the target time budget.`
-      );
-    } else {
-      parts.push('You are already beyond the target time budget.');
-    }
+  if (snapshot.elapsedMs >= softTimeBudgetMs) {
+    parts.push(
+      `You have already spent about ${Math.ceil(
+        snapshot.elapsedMs / 1000
+      )} seconds on this case and are past the target time budget of ${Math.ceil(
+        softTimeBudgetMs / 1000
+      )} seconds.`
+    );
   }
 
-  parts.push('Hurry up and finish the case.');
+  parts.push(
+    'Prefer making a decision now unless one more tightly scoped read is genuinely necessary.'
+  );
   return parts.join(' ');
 }
 

@@ -54,6 +54,17 @@ export function createDelegateExtension(
         sql: Type.String(),
       }),
       async execute(_toolCallId, input) {
+        const preQueryBudget = getQueryBudgetSnapshot(budgetConfig, queryCount);
+        if (preQueryBudget.isDecisionOnly) {
+          return textResponse({
+            ok: false,
+            error:
+              'The read-query budget is exhausted for this case. query_delegate_mapping_data will no longer be accepted; use a decision tool instead.',
+            budget: serializeQueryBudget(preQueryBudget),
+            warning: buildHurryMessage(budgetConfig, preQueryBudget),
+          });
+        }
+
         queryCount += 1;
 
         try {
@@ -67,7 +78,7 @@ export function createDelegateExtension(
             budgetConfig,
             queryCount
           );
-          const hurryMessage = buildHurryMessage(postQueryBudget);
+          const hurryMessage = buildHurryMessage(budgetConfig, postQueryBudget);
 
           return textResponse({
             ok: true,
@@ -77,7 +88,7 @@ export function createDelegateExtension(
           });
         } catch (error) {
           const budget = getQueryBudgetSnapshot(budgetConfig, queryCount);
-          const hurryMessage = buildHurryMessage(budget);
+          const hurryMessage = buildHurryMessage(budgetConfig, budget);
 
           return textResponse({
             ok: false,

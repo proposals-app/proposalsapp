@@ -54,6 +54,17 @@ export function createProposalExtension(
         sql: Type.String(),
       }),
       async execute(_toolCallId, input) {
+        const preQueryBudget = getQueryBudgetSnapshot(budgetConfig, queryCount);
+        if (preQueryBudget.isDecisionOnly) {
+          return textResponse({
+            ok: false,
+            error:
+              'The read-query budget is exhausted for this case. query_proposal_mapping_data will no longer be accepted; use a decision tool instead.',
+            budget: serializeQueryBudget(preQueryBudget),
+            warning: buildHurryMessage(budgetConfig, preQueryBudget),
+          });
+        }
+
         queryCount += 1;
 
         try {
@@ -67,7 +78,7 @@ export function createProposalExtension(
             budgetConfig,
             queryCount
           );
-          const hurryMessage = buildHurryMessage(postQueryBudget);
+          const hurryMessage = buildHurryMessage(budgetConfig, postQueryBudget);
 
           return textResponse({
             ok: true,
@@ -77,7 +88,7 @@ export function createProposalExtension(
           });
         } catch (error) {
           const budget = getQueryBudgetSnapshot(budgetConfig, queryCount);
-          const hurryMessage = buildHurryMessage(budget);
+          const hurryMessage = buildHurryMessage(budgetConfig, budget);
           const errorMessage =
             error instanceof Error ? error.message : String(error);
 

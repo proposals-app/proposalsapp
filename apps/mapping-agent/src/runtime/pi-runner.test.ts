@@ -423,7 +423,9 @@ describe('runPiAgent', () => {
     );
     expect(session.prompt).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('You are in the hurry phase')
+      expect.stringContaining(
+        'Prefer making about 9 more focused query_proposal_mapping_data call(s) before deciding'
+      )
     );
     expect(result.decisionToolCallCount).toBe(1);
     expect(session.dispose).toHaveBeenCalled();
@@ -890,7 +892,7 @@ describe('runPiAgent', () => {
     ]);
     expect(session.prompt).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('You have passed the target search budget')
+      expect.stringContaining('You have reached the maximum read budget')
     );
     expect(result.decisionToolCallCount).toBe(1);
   });

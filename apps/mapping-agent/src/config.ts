@@ -161,7 +161,7 @@ export function loadConfig(): MappingAgentConfig {
       ),
       maxQueryCalls: parseInteger(
         process.env.MAPPING_AGENT_PI_MAX_QUERY_CALLS,
-        20
+        30
       ),
     },
   };

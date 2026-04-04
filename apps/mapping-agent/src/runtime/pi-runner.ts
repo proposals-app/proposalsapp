@@ -19,9 +19,8 @@ import {
 
 const DEFAULT_MAX_TOKENS = 4_096;
 const DEFAULT_API_KEY = 'lmstudio';
-const DEFAULT_DECISION_GRACE_MS = 60_000;
-const DEFAULT_HURRY_QUERY_WINDOW = 5;
-const DEFAULT_HURRY_REMAINING_MS = 60_000;
+const DEFAULT_SOFT_DECISION_QUERY_TARGET = 10;
+const DEFAULT_HURRY_QUERY_THRESHOLD = 20;
 
 export interface RunPiAgentInput {
   extensionFactory: ExtensionFactory;
@@ -368,13 +367,9 @@ export async function runPiAgent(
   const requireResolvedDecision = input.requireResolvedDecision ?? false;
   const startedAtMs = Date.now();
   let currentAssistantText = '';
-  let abortReason: 'timeout' | 'resolved' | null = null;
+  let abortReason: 'resolved' | null = null;
   let abortPromise: Promise<void> | null = null;
   let decisionResolved = false;
-  const hardTimeoutMs = Math.max(
-    input.timeoutMs * 3,
-    input.timeoutMs + (input.decisionGraceMs ?? DEFAULT_DECISION_GRACE_MS)
-  );
   if (!useLmStudioTextActions) {
     const baseOnPayload = session.agent.onPayload;
     session.agent.onPayload = async (payload, currentModel) => {
@@ -400,7 +395,7 @@ export async function runPiAgent(
       };
     };
   }
-  const abortSession = (reason: 'timeout' | 'resolved') => {
+  const abortSession = (reason: 'resolved') => {
     if (abortReason) {
       return;
     }
@@ -493,10 +488,6 @@ export async function runPiAgent(
       });
     }
   });
-  const timeout = setTimeout(() => {
-    abortSession('timeout');
-  }, hardTimeoutMs);
-
   try {
     const prompts = [input.prompt];
     while (!abortReason) {
@@ -515,14 +506,13 @@ export async function runPiAgent(
       const madeToolCallThisTurn =
         result.toolCalls.length > toolCallCountBeforeTurn;
       const elapsedMs = Date.now() - startedAtMs;
-      const remainingMs = Math.max(0, input.timeoutMs - elapsedMs);
-      const isPastSoftBudget =
-        result.queryCallCount >= input.maxQueryCalls ||
-        elapsedMs >= input.timeoutMs;
+      const isPastReadBudget = result.queryCallCount >= input.maxQueryCalls;
       const isHurryPhase =
         result.queryCallCount >=
-          Math.max(0, input.maxQueryCalls - DEFAULT_HURRY_QUERY_WINDOW) ||
-        remainingMs <= DEFAULT_HURRY_REMAINING_MS;
+          Math.min(DEFAULT_HURRY_QUERY_THRESHOLD, input.maxQueryCalls) ||
+        elapsedMs >= input.timeoutMs;
+      const isBeforeSoftDecisionTarget =
+        result.queryCallCount < DEFAULT_SOFT_DECISION_QUERY_TARGET;
 
       if (!madeToolCallThisTurn) {
         prompts.push(
@@ -558,17 +548,31 @@ export async function runPiAgent(
           continue;
         }
 
-        if (isPastSoftBudget) {
+        if (isPastReadBudget) {
           prompts.push(
             [
               'Continue this same mapping case.',
-              `You have passed the target search budget with ${result.queryCallCount} query call(s) over about ${Math.ceil(
-                elapsedMs / 1000
-              )} seconds.`,
-              `Prefer making a decision with ${input.decisionToolNames.join(
+              `You have reached the maximum read budget with ${result.queryCallCount} query call(s).`,
+              `The read tool will no longer be accepted. End the next turn with ${input.decisionToolNames.join(
                 ' or '
-              )} now.`,
-              `Only make another ${input.queryToolName} call if it is absolutely necessary and tightly scoped.`,
+              )}.`,
+              'Do not call the read tool again.',
+              'End the next turn with exactly one tool call.',
+            ].join(' ')
+          );
+          continue;
+        }
+
+        if (isBeforeSoftDecisionTarget) {
+          const remainingSoftQueries = Math.max(
+            0,
+            DEFAULT_SOFT_DECISION_QUERY_TARGET - result.queryCallCount
+          );
+          prompts.push(
+            [
+              'Continue this same mapping case.',
+              `You have made ${result.queryCallCount} ${input.queryToolName} call(s), which is enough to decide if the evidence is already decisive.`,
+              `Prefer making about ${remainingSoftQueries} more focused ${input.queryToolName} call(s) before deciding unless the evidence is already strong enough.`,
               'End the next turn with exactly one tool call.',
             ].join(' ')
           );
@@ -579,9 +583,9 @@ export async function runPiAgent(
           prompts.push(
             [
               'Continue this same mapping case.',
-              `You are in the hurry phase with ${result.queryCallCount} query call(s) and about ${Math.ceil(
-                remainingMs / 1000
-              )} seconds left before the soft time target.`,
+              `You are past the hurry threshold with ${result.queryCallCount} query call(s) and about ${Math.ceil(
+                elapsedMs / 1000
+              )} seconds elapsed.`,
               `Prefer a decision via ${input.decisionToolNames.join(
                 ' or '
               )}, unless one more focused ${input.queryToolName} call is truly necessary.`,
@@ -608,13 +612,6 @@ export async function runPiAgent(
       await abortPromise;
     }
 
-    if (abortReason === 'timeout') {
-      throw new PiAgentSessionAbortedError(
-        `pi agent session timed out after ${hardTimeoutMs}ms`,
-        result
-      );
-    }
-
     return result;
   } catch (error) {
     if (abortPromise) {
@@ -625,16 +622,8 @@ export async function runPiAgent(
       return result;
     }
 
-    if (abortReason === 'timeout') {
-      throw new PiAgentSessionAbortedError(
-        `pi agent session timed out after ${hardTimeoutMs}ms`,
-        result
-      );
-    }
-
     throw error;
   } finally {
-    clearTimeout(timeout);
     unsubscribe();
     session.dispose();
   }
