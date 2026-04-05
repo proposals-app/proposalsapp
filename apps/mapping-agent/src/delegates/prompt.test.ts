@@ -342,4 +342,28 @@ describe('buildDelegateSystemPrompt', () => {
       'when you only need to verify whether an exact wallet exists, prefer selecting id, address, ens rather than every column'
     );
   });
+
+  it('teaches the exact manual text-action wrapper the harness expects', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'because this LM Studio path uses manual text-action parsing, every assistant turn that uses a tool must use the exact wrapper format the harness expects'
+    );
+    expect(prompt).toContain(
+      '[TOOL_REQUEST]{"name":"query_delegate_mapping_data","arguments":{"sql":"select * from current_case"}}[END_TOOL_REQUEST]'
+    );
+    expect(prompt).toContain(
+      '[TOOL_REQUEST]{"name":"propose_delegate_mapping","arguments":'
+    );
+    expect(prompt).toContain(
+      'do not invent alternate wrappers such as [PROPOSE_DELEGATE_MAPPING], [DECLINE_DELEGATE_MAPPING], or [QUERY_DELEGATE_MAPPING_DATA]'
+    );
+  });
 });

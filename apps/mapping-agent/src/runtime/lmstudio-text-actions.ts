@@ -331,23 +331,74 @@ function extractCandidatePayloads(value: string): string[] {
   return [trimmed];
 }
 
+function normalizeBracketedToolName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function extractBracketedToolAction(
+  value: string,
+  toolNames: Set<string>
+): TextToolAction | null {
+  const matches = [
+    ...value.matchAll(/\[([A-Z][A-Z0-9_]*)\]\s*([\s\S]*?)\s*\[END_\1\]/g),
+  ].reverse();
+
+  for (const match of matches) {
+    const bracketedName = match[1]?.trim();
+    const rawArguments = match[2]?.trim();
+    if (!bracketedName || !rawArguments) {
+      continue;
+    }
+
+    const toolName = normalizeBracketedToolName(bracketedName);
+    if (!toolNames.has(toolName)) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(rawArguments) as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        continue;
+      }
+
+      return {
+        tool: toolName,
+        arguments: parsed as Record<string, unknown>,
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 function extractActionFromAssistantMessage(
   message: AssistantMessage,
   tools: Tool[]
 ): TextToolAction | null {
   const toolNames = new Set(tools.map((tool) => tool.name));
-  const candidates = message.content
-    .flatMap((block) => {
-      if (block.type === 'text') {
-        return extractCandidatePayloads(block.text);
-      }
+  const visibleBlocks = message.content.flatMap((block) => {
+    if (block.type === 'text') {
+      return [block.text];
+    }
 
-      if (block.type === 'thinking') {
-        return extractCandidatePayloads(block.thinking);
-      }
+    if (block.type === 'thinking') {
+      return [block.thinking];
+    }
 
-      return [];
-    })
+    return [];
+  });
+
+  for (const blockText of [...visibleBlocks].reverse()) {
+    const bracketedAction = extractBracketedToolAction(blockText, toolNames);
+    if (bracketedAction) {
+      return bracketedAction;
+    }
+  }
+
+  const candidates = visibleBlocks
+    .flatMap((blockText) => extractCandidatePayloads(blockText))
     .reverse();
 
   for (const candidate of candidates) {
@@ -624,6 +675,14 @@ function needsRepairForInvalidToolResponse(params: {
     return true;
   }
 
+  if (
+    /\[(?:[A-Z][A-Z0-9_]*)\][\s\S]*?(?:\[END_[A-Z][A-Z0-9_]*\])?/g.test(
+      visibleText
+    )
+  ) {
+    return true;
+  }
+
   return params.message.stopReason === 'length';
 }
 
@@ -644,6 +703,15 @@ function buildRepairPrompt(message: AssistantMessage): string {
       'Your previous response contained an incomplete tool request.',
       'Repeat the entire tool request from scratch.',
       'Respond with exactly one complete tool request and no extra text.',
+      'Use this exact format:',
+      '[TOOL_REQUEST]{"name":"tool_name","arguments":{}}[END_TOOL_REQUEST]',
+    ].join(' ');
+  }
+
+  if (/\[(?:[A-Z][A-Z0-9_]*)\]/g.test(visibleText)) {
+    return [
+      'Your previous response used an alternate bracketed tool wrapper.',
+      'Repeat the same intended tool call using the exact harness format and no extra text.',
       'Use this exact format:',
       '[TOOL_REQUEST]{"name":"tool_name","arguments":{}}[END_TOOL_REQUEST]',
     ].join(' ');
