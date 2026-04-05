@@ -47,6 +47,15 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       'treat generic references like "worked with", "service provider", "coordinating", "proposal by", or "thanks to" as non-identity evidence'
     );
+    expect(prompt).toContain(
+      'if a self-authored post tells readers to delegate to another person, another ENS, another address, or another @username, that is evidence about the referenced target, not proof that the current author owns that wallet'
+    );
+    expect(prompt).toContain(
+      'recommendation language such as "delegate to", "delegate our votes to", "I delegated to", "support", or "follow" is not wallet-ownership proof unless the same post clearly identifies the address or ENS as the author own delegate or wallet identity'
+    );
+    expect(prompt).toContain(
+      'shared biography, profession, geography, ideology, humor, or writing style between a discourse post and a vote reason is only weak supporting context'
+    );
   });
 
   it('teaches the agent to inspect self-started communication threads before fuzzy matching', () => {
@@ -95,6 +104,15 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       'if the discourse user has both a delegate-specific identity thread and generic project or grant threads, read the delegate-specific identity thread first'
     );
+    expect(prompt).toContain(
+      'low-signal titles like how to, help, FAQ, guide, proposal, RFC, discussion, update, results, or generic governance commentary are not identity threads by default'
+    );
+    expect(prompt).toContain(
+      'a project, grant, product, educational, or service-provider thread can mention many external addresses, delegates, and collaborators; do not treat those external addresses as the author wallet unless the text clearly marks one as the author own delegate or wallet identity'
+    );
+    expect(prompt).toContain(
+      'do not assume discourse_users.topic_count or discourse_users.post_count tells you whether the user really has forum activity; those counters can be stale'
+    );
   });
 
   it('treats exact vote-reason forum links as primary identity breadcrumbs', () => {
@@ -134,6 +152,12 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'when the same voter_address is linked to multiple discourse usernames, only accept it for the current delegate if you also have exact address or ENS proof from the current delegate own identity thread'
+    );
+    expect(prompt).toContain(
+      'if the linked raw discourse_post author is a different discourse user than the current case, that mismatch is disqualifying for this line of proof unless you can show an explicit alias or rename connection to the same external_id'
+    );
+    expect(prompt).toContain(
+      'if a vote reason includes ?u=<username> but that username is not the current discourse username, do not treat the URL parameter alone as proof'
     );
   });
 
@@ -333,6 +357,9 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       'if a self-authored identity thread lists multiple wallet addresses or profiles, use any explicit cues like primary, delegate address, alternate, previous, or historical to decide which one to test first'
     );
+    expect(prompt).toContain(
+      'if an identity thread says the address, ENS, or delegate target will be posted later, inspect later self-authored posts in that same thread before declining'
+    );
   });
 
   it('tells the agent to correct raw forum schema mistakes instead of bailing into a decline', () => {
@@ -398,6 +425,21 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'when you only need to verify whether an exact wallet exists, prefer selecting id, address, ens rather than every column'
+    );
+  });
+
+  it('tells the agent not to browse top voters while direct discourse breadcrumbs remain', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'do not search top voters or recent voters for name similarity while any direct discourse-side breadcrumb remains unchecked'
     );
   });
 

@@ -65,8 +65,6 @@ export function createDelegateExtension(
           });
         }
 
-        queryCount += 1;
-
         try {
           const result = await queryDelegateMappingData({
             daoId: currentCase.daoId,
@@ -74,6 +72,7 @@ export function createDelegateExtension(
             allowedCategoryIds: currentCase.allowedCategoryIds,
             input: input as { sql: string },
           });
+          queryCount += 1;
           const postQueryBudget = getQueryBudgetSnapshot(
             budgetConfig,
             queryCount
@@ -87,14 +86,13 @@ export function createDelegateExtension(
             ...(hurryMessage ? { warning: hurryMessage } : {}),
           });
         } catch (error) {
-          const budget = getQueryBudgetSnapshot(budgetConfig, queryCount);
-          const hurryMessage = buildHurryMessage(budgetConfig, budget);
+          const hurryMessage = buildHurryMessage(budgetConfig, preQueryBudget);
 
           return textResponse({
             ok: false,
             error: error instanceof Error ? error.message : String(error),
             attemptedSql: (input as { sql: string }).sql,
-            budget: serializeQueryBudget(budget),
+            budget: serializeQueryBudget(preQueryBudget),
             ...(hurryMessage ? { warning: hurryMessage } : {}),
           });
         }

@@ -65,8 +65,6 @@ export function createProposalExtension(
           });
         }
 
-        queryCount += 1;
-
         try {
           const result = await queryProposalMappingData({
             daoId: currentCase.daoId,
@@ -74,6 +72,7 @@ export function createProposalExtension(
             allowedCategoryIds: currentCase.allowedCategoryIds,
             input: input as { sql: string },
           });
+          queryCount += 1;
           const postQueryBudget = getQueryBudgetSnapshot(
             budgetConfig,
             queryCount
@@ -87,8 +86,7 @@ export function createProposalExtension(
             ...(hurryMessage ? { warning: hurryMessage } : {}),
           });
         } catch (error) {
-          const budget = getQueryBudgetSnapshot(budgetConfig, queryCount);
-          const hurryMessage = buildHurryMessage(budgetConfig, budget);
+          const hurryMessage = buildHurryMessage(budgetConfig, preQueryBudget);
           const errorMessage =
             error instanceof Error ? error.message : String(error);
 
@@ -96,7 +94,7 @@ export function createProposalExtension(
             ok: false,
             error: errorMessage,
             attemptedSql: (input as { sql: string }).sql,
-            budget: serializeQueryBudget(budget),
+            budget: serializeQueryBudget(preQueryBudget),
             ...(hurryMessage ? { warning: hurryMessage } : {}),
           });
         }
