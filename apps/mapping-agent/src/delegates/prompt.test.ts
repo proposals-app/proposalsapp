@@ -66,4 +66,25 @@ describe('buildDelegateSystemPrompt', () => {
       'query raw discourse_topic and discourse_post directly to inspect thread titles and cooked post content for self-identification evidence'
     );
   });
+
+  it('treats retirement as status context rather than a reason to decline a proven identity', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'identity mapping is about whether the discourse-side person and the voter-side person are the same actor'
+    );
+    expect(prompt).toContain(
+      'do not decline just because the person later retired, stopped voting, asked for undelegation, or said they are no longer an active delegate'
+    );
+    expect(prompt).toContain(
+      'if those statements help prove the same identity, use them as corroborating evidence and still map the identity when the wallet link is strong enough'
+    );
+  });
 });
