@@ -211,7 +211,7 @@ describe('buildDelegateSystemPrompt', () => {
     );
   });
 
-  it('requires at least ten reads before deciding and hurries after twenty', () => {
+  it('requires at least five reads before deciding and hurries after twenty', () => {
     const prompt = buildDelegateSystemPrompt({
       confidenceThreshold: 0.85,
       maxQueryCalls: 30,
@@ -222,16 +222,58 @@ describe('buildDelegateSystemPrompt', () => {
     });
 
     expect(prompt).toContain(
-      'if you try to decide before 10 reads, the decision tool will tell you to gather more evidence first'
+      'if you try to decide before 5 reads, the decision tool will tell you to gather more evidence first'
     );
     expect(prompt).toContain(
-      'you must complete at least 10 query_delegate_mapping_data calls before either proposing or declining'
+      'you must complete at least 5 query_delegate_mapping_data calls before either proposing or declining'
     );
     expect(prompt).toContain(
-      '10 queries is a hard minimum before any decision tool is allowed'
+      '5 queries is a hard minimum before any decision tool is allowed'
     );
     expect(prompt).toContain(
       'around 20 reads or 5 minutes, the harness will strongly nudge you to decide'
+    );
+  });
+
+  it('tells the agent to use known identity patterns first, then broaden only if they fail', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'use a two-phase search strategy: exhaust the known high-signal identity patterns first, and only then broaden into exploratory work'
+    );
+    expect(prompt).toContain(
+      'known high-signal patterns include: self-started communication or statement threads, exact thread-derived addresses or ENS names, exact ?u=<username> vote-reason links, exact links to the discourse user own posts, and exact organization-brand breadcrumbs'
+    );
+    expect(prompt).toContain(
+      'only if those focused checks fail should you broaden into exploratory work such as wider post inspection, broader vote-reason searches, or carefully targeted voter discovery'
+    );
+  });
+
+  it('tells the agent to spend any remaining minimum-budget reads on lightweight confirmation queries', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'if you reach a confident mapping before the 5-read minimum, spend the remaining required reads on lightweight confirmation queries rather than opening heavy exploratory reads'
+    );
+    expect(prompt).toContain(
+      'good lightweight confirmation queries include exact voter lookups, exact vote-address checks, exact ens checks, exact current_delegate_voters checks, or exact active_delegate_to_voters conflict checks'
+    );
+    expect(prompt).toContain(
+      'do not respond to an early-conclusive case by opening broad raw-post dumps or generic exploratory scans just to consume the remaining minimum-read budget'
     );
   });
 
