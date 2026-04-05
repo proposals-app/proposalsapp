@@ -66,6 +66,12 @@ describe('buildDelegateSystemPrompt', () => {
       'review the titles of those self-started topics first; if a title looks relevant, such as a delegate communication thread, presentation thread, introduction, statement, rationale thread, or equivalent self-authored identity topic, then read that thread before relying on looser evidence'
     );
     expect(prompt).toContain(
+      'if a self-authored thread explicitly lists an address or ENS, immediately query voters for that exact address or ENS and then query votes for that exact voter_address; do this before any generic voter discovery'
+    );
+    expect(prompt).toContain(
+      'when current_case gives source_discourse_user_id, query that exact discourse_users row early so you have the canonical username, name, dao_discourse_id, and external_id before touching raw forum tables'
+    );
+    expect(prompt).toContain(
       'do not jump to a fuzzy ENS or handle match until you have checked the discourse user own-topic titles for direct self-identification evidence'
     );
     expect(prompt).toContain(
@@ -88,6 +94,9 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'do not decline just because the person later retired, stopped voting, asked for undelegation, or said they are no longer an active delegate'
+    );
+    expect(prompt).toContain(
+      'a communication thread remains a high-priority identity source even if the title or body says the delegate later retired, stepped down, or is no longer active'
     );
     expect(prompt).toContain(
       'if those statements help prove the same identity, use them as corroborating evidence and still map the identity when the wallet link is strong enough'
@@ -136,6 +145,48 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'around 20 reads or 5 minutes, the harness will strongly nudge you to decide'
+    );
+  });
+
+  it('treats thread-derived Tally and address breadcrumbs as exact leads and not optional context', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'fields like Delegate Address, Delegate ENS Address, Wallet Address or ENS, Tally Profile, Snapshot Profile, Forum Username, Telegram Username, or Twitter Profile are concrete identity breadcrumbs'
+    );
+    expect(prompt).toContain(
+      'if a self-authored thread links to a Tally or Snapshot profile whose URL contains an address or ENS, treat that extracted address or ENS as a concrete identity breadcrumb'
+    );
+    expect(prompt).toContain(
+      'if a self-authored thread gives an exact address or ENS and that exact address or ENS resolves to a voter row, that is usually enough direct identity proof to propose unless contradictory evidence appears'
+    );
+  });
+
+  it('tells the agent to correct raw forum schema mistakes instead of bailing into a decline', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'on raw forum tables, use the exact raw names and columns: discourse_post is singular, discourse_topic is singular, and discourse_post.user_id stores the discourse user external_id, not the discourse_users.id UUID'
+    );
+    expect(prompt).toContain(
+      'if your first attempt to inspect raw forum tables fails because of a wrong table or column name, correct the SQL using the exact names above and continue; do not treat a schema mistake as substantive evidence and do not move to decline because of it'
+    );
+    expect(prompt).toContain(
+      'do not use unrelated schema-probing reads like select * from discourse_post limit 1 or select * from daos limit 1 when the current_case and discourse user rows already tell you what to inspect next'
     );
   });
 });
