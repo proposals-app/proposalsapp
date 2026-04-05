@@ -90,6 +90,15 @@ describe('buildDelegateSystemPrompt', () => {
       'if a self-authored thread explicitly lists an address or ENS, immediately query voters for that exact address or ENS and then query votes for that exact voter_address; do this before any generic voter discovery'
     );
     expect(prompt).toContain(
+      'in Arbitrum, RAD and DIP application threads are often high-signal identity sources because applicant self-posts frequently include a Tally Profile field whose URL path contains the exact delegate wallet address or ENS'
+    );
+    expect(prompt).toContain(
+      'if the current discourse user has a self-authored post in an Arbitrum RAD, DIP, delegate-incentive, or application thread and that post includes a Tally Profile link, treat the Tally link as a primary exact lead rather than optional supporting context'
+    );
+    expect(prompt).toContain(
+      'Tally URL patterns like /gov/arbitrum/delegate/<address-or-ens> and /profile/<address-or-ens> often expose the exact wallet or ENS directly in the path'
+    );
+    expect(prompt).toContain(
       'when current_case gives source_discourse_user_id, query that exact discourse_users row early so you have the canonical username, name, dao_discourse_id, and external_id before touching raw forum tables'
     );
     expect(prompt).toContain(
@@ -352,6 +361,9 @@ describe('buildDelegateSystemPrompt', () => {
       'if a self-authored thread links to a Tally or Snapshot profile whose URL contains an address or ENS, treat that extracted address or ENS as a concrete identity breadcrumb'
     );
     expect(prompt).toContain(
+      'a self-authored application post whose Tally URL resolves to the same exact voters row is usually enough direct identity proof to propose unless contradictory evidence appears'
+    );
+    expect(prompt).toContain(
       'if a self-authored thread gives an exact address or ENS and that exact address or ENS resolves to a voter row, that is usually enough direct identity proof to propose unless contradictory evidence appears'
     );
     expect(prompt).toContain(
@@ -359,6 +371,12 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'if an identity thread says the address, ENS, or delegate target will be posted later, inspect later self-authored posts in that same thread before declining'
+    );
+    expect(prompt).toContain(
+      'when the topic title looks like RAD, DIP, delegate incentive, rewarding active delegates, or application thread, check whether the current discourse user authored a later application post in that topic'
+    );
+    expect(prompt).toContain(
+      'useful application-thread query pattern for this path: select self-authored posts from discourse_post joined to discourse_topic where the topic title looks like RAD, DIP, delegate incentive, rewarding active delegates, or application thread and the self-authored post contains a Tally URL'
     );
   });
 
