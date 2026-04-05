@@ -41,6 +41,12 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       'that is evidence about the referenced person being discussed, not proof that the voter is that person'
     );
+    expect(prompt).toContain(
+      'if a vote reason merely mentions an organization, service provider, project team, or proposal author, that is topic context, not proof that the voter is that organization or person'
+    );
+    expect(prompt).toContain(
+      'treat generic references like "worked with", "service provider", "coordinating", "proposal by", or "thanks to" as non-identity evidence'
+    );
   });
 
   it('teaches the agent to inspect self-started communication threads before fuzzy matching', () => {
@@ -60,10 +66,16 @@ describe('buildDelegateSystemPrompt', () => {
       'a self-authored delegate communication thread, delegate statement, or voting-rationale thread that explicitly lists a wallet address, ENS, forum username, or social handle is strong direct proof'
     );
     expect(prompt).toContain(
+      'titles like "<name> Delegate Communication Thread", "<org> Delegate Communication Thread", "<name> Delegate Platform", "<org> Delegate Platform", delegate statement, delegate application, or similar should be treated as high-priority identity sources'
+    );
+    expect(prompt).toContain(
       'discourse_topic does not encode the topic author directly; to find topics started by the discourse user, inspect raw discourse_post rows where post_number = 1 and user_id matches the discourse user external_id'
     );
     expect(prompt).toContain(
-      'review the titles of those self-started topics first; if a title looks relevant, such as a delegate communication thread, presentation thread, introduction, statement, rationale thread, or equivalent self-authored identity topic, then read that thread before relying on looser evidence'
+      'review the titles of those self-started topics first; if a title looks relevant, such as a delegate communication thread, delegate platform, presentation thread, introduction, statement, rationale thread, or equivalent self-authored identity topic, then read that thread before relying on looser evidence'
+    );
+    expect(prompt).toContain(
+      'if one self-started topic title explicitly looks like a delegate communication thread, delegate platform, or delegate statement, prioritize it over generic project, grant, research, or update threads'
     );
     expect(prompt).toContain(
       'if a self-authored thread explicitly lists an address or ENS, immediately query voters for that exact address or ENS and then query votes for that exact voter_address; do this before any generic voter discovery'
@@ -79,6 +91,9 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'prefer identity-establishing self-started topics over the newest topics; sort by identity signal, not recency'
+    );
+    expect(prompt).toContain(
+      'if the discourse user has both a delegate-specific identity thread and generic project or grant threads, read the delegate-specific identity thread first'
     );
   });
 
@@ -99,7 +114,26 @@ describe('buildDelegateSystemPrompt', () => {
       'if many exact ?u=<forum username> vote reasons all point to the same voter_address, that repeated 1:1 pattern is usually enough direct identity proof'
     );
     expect(prompt).toContain(
-      'when a vote reason links to a forum post without ?u=, query the linked raw discourse_post and verify whether its topic_id and author match the same discourse user before treating the voter_address as proof'
+      'repeated vote reasons that link to later posts inside the same self-authored delegate platform, delegate communication thread, or delegate statement thread are strong direct proof'
+    );
+    expect(prompt).toContain(
+      'when a vote reason links to a forum post without ?u=, extract the exact topic_id and post_number from the URL, query that raw discourse_post, and verify whether its author and topic match the same discourse user own thread before treating the voter_address as proof'
+    );
+    expect(prompt).toContain(
+      "an efficient deterministic forum-link query pattern is: parse topic_id with split_part(split_part(reason, '/t/', 2), '/', 2)::bigint"
+    );
+    expect(prompt).toContain(
+      'explicit current-case query template for this pattern: with case_ctx as'
+    );
+    expect(prompt).toContain("where v.reason like '%/t/%/%/%'");
+    expect(prompt).toContain(
+      'when source_discourse_user_id is known, you can use that deterministic forum-link query pattern to scan all vote reasons in the current DAO and ask whether any linked forum posts resolve back to posts authored by this exact discourse user'
+    );
+    expect(prompt).toContain(
+      'if an exact voter_address repeatedly links to posts by multiple different discourse usernames, treat that address as potentially shared, organizational, or ambiguous; do not map it to the current delegate based only on generic proposal-thread links'
+    );
+    expect(prompt).toContain(
+      'when the same voter_address is linked to multiple discourse usernames, only accept it for the current delegate if you also have exact address or ENS proof from the current delegate own identity thread'
     );
   });
 
@@ -249,7 +283,7 @@ describe('buildDelegateSystemPrompt', () => {
       'use a two-phase search strategy: exhaust the known high-signal identity patterns first, and only then broaden into exploratory work'
     );
     expect(prompt).toContain(
-      'known high-signal patterns include: self-started communication or statement threads, exact thread-derived addresses or ENS names, exact ?u=<username> vote-reason links, exact links to the discourse user own posts, and exact organization-brand breadcrumbs'
+      'known high-signal patterns include: self-started communication, delegate platform, or statement threads, exact thread-derived addresses or ENS names, exact ?u=<username> vote-reason links, exact links to the discourse user own posts, and exact organization-brand breadcrumbs'
     );
     expect(prompt).toContain(
       'only if those focused checks fail should you broaden into exploratory work such as wider post inspection, broader vote-reason searches, or carefully targeted voter discovery'
@@ -296,6 +330,9 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       'if a self-authored thread gives an exact address or ENS and that exact address or ENS resolves to a voter row, that is usually enough direct identity proof to propose unless contradictory evidence appears'
     );
+    expect(prompt).toContain(
+      'if a self-authored identity thread lists multiple wallet addresses or profiles, use any explicit cues like primary, delegate address, alternate, previous, or historical to decide which one to test first'
+    );
   });
 
   it('tells the agent to correct raw forum schema mistakes instead of bailing into a decline', () => {
@@ -315,7 +352,28 @@ describe('buildDelegateSystemPrompt', () => {
       'if your first attempt to inspect raw forum tables fails because of a wrong table or column name, correct the SQL using the exact names above and continue; do not treat a schema mistake as substantive evidence and do not move to decline because of it'
     );
     expect(prompt).toContain(
+      'discourse_post.cooked is the content column for raw forum post text; do not query nonexistent aliases like body or raw_post'
+    );
+    expect(prompt).toContain(
+      'do not query information_schema to rediscover discourse_post or discourse_topic columns; use the known schema in this prompt and correct the query directly'
+    );
+    expect(prompt).toContain(
       'do not use unrelated schema-probing reads like select * from discourse_post limit 1 or select * from daos limit 1 when the current_case and discourse user rows already tell you what to inspect next'
+    );
+  });
+
+  it('tells the agent to copy UUIDs verbatim from current_case and tool output', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'when a UUID already appears in current_case or a tool result, copy it verbatim; never shorten it, prefix-match it, or reconstruct it from memory'
     );
   });
 
@@ -340,6 +398,24 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'when you only need to verify whether an exact wallet exists, prefer selecting id, address, ens rather than every column'
+    );
+  });
+
+  it('treats claimed-voter rejections as disqualifying for that exact target', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'if propose_delegate_mapping returns that a voter is already claimed by another delegate, treat that exact voter target as disqualified for this case; do not propose the same voter again'
+    );
+    expect(prompt).toContain(
+      'after an already-claimed rejection, either find a different exact voter candidate with stronger identity proof or decline because the remaining evidence is contradictory or insufficient'
     );
   });
 

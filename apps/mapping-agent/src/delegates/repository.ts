@@ -1553,7 +1553,11 @@ export async function proposeDelegateMapping(input: {
       reason: `Rejected delegate mapping: delegate already has an active voter mapping. ${input.reason}`,
       evidenceIds: input.evidenceIds,
     });
-    return { accepted: false, message: 'Delegate already mapped elsewhere' };
+    return {
+      accepted: false,
+      message:
+        'Delegate already has an active voter mapping. Do not propose another voter for this delegate; inspect the existing mapping or decline if the case is stale.',
+    };
   }
 
   if (decision.kind === 'reject_target_claimed') {
@@ -1568,7 +1572,11 @@ export async function proposeDelegateMapping(input: {
       reason: `Rejected delegate mapping: voter is already claimed by another delegate. ${input.reason}`,
       evidenceIds: input.evidenceIds,
     });
-    return { accepted: false, message: 'Voter already claimed' };
+    return {
+      accepted: false,
+      message:
+        'Voter already claimed by another delegate in this DAO. This exact voter is disqualified for the current case; do not propose it again. Find a different exact voter or decline if no other strong candidate remains.',
+    };
   }
 
   await recordDelegateDecision({
