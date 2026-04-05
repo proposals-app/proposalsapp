@@ -536,26 +536,56 @@ export function resolveDelegateVoterTarget(input: {
   }
 
   if (isUuidLike(rawTargetId)) {
-    throw new Error(
-      `${contractMessage} No same-DAO voter matched UUID ${rawTargetId}.`
-    );
+    throw new Error(`${contractMessage} No voter matched UUID ${rawTargetId}.`);
   }
 
   if (normalizedTargetId.startsWith('0x')) {
     throw new Error(
-      `${contractMessage} No same-DAO voter matched address ${rawTargetId}.`
+      `${contractMessage} No voter matched address ${rawTargetId}.`
     );
   }
 
   if (rawTargetId.includes('.')) {
-    throw new Error(
-      `${contractMessage} No same-DAO voter matched ENS ${rawTargetId}.`
-    );
+    throw new Error(`${contractMessage} No voter matched ENS ${rawTargetId}.`);
   }
 
   throw new Error(
     `${contractMessage} ${rawTargetId} is not a recognized exact voter identifier.`
   );
+}
+
+async function loadExactGlobalVoterCandidates(
+  targetId: string
+): Promise<VoterRecord[]> {
+  const rawTargetId = targetId.trim();
+  const normalizedTargetId = rawTargetId.toLowerCase();
+  let rows: Selectable<Voter>[] = [];
+
+  if (isUuidLike(rawTargetId)) {
+    rows = await db
+      .selectFrom('voter')
+      .selectAll()
+      .where('id', '=', rawTargetId)
+      .execute();
+  } else if (normalizedTargetId.startsWith('0x')) {
+    rows = await sql<Selectable<Voter>>`
+      SELECT id, address, ens, updated_at
+      FROM voter
+      WHERE lower(address) = ${normalizedTargetId}
+    `
+      .execute(db)
+      .then((result) => result.rows);
+  } else if (rawTargetId.includes('.')) {
+    rows = await sql<Selectable<Voter>>`
+      SELECT id, address, ens, updated_at
+      FROM voter
+      WHERE lower(ens) = ${normalizedTargetId}
+    `
+      .execute(db)
+      .then((result) => result.rows);
+  }
+
+  return rows.map((row) => mapVoterRecord('', row));
 }
 
 async function createDelegateForDiscourseSeed(input: {
@@ -1418,7 +1448,7 @@ export async function proposeDelegateMapping(input: {
 
   const target = resolveDelegateVoterTarget({
     targetId: input.targetId,
-    voters: context.voters,
+    voters: await loadExactGlobalVoterCandidates(input.targetId),
   });
 
   const decision = isDryRunEnabled()
@@ -1452,26 +1482,6 @@ export async function proposeDelegateMapping(input: {
           .selectFrom('voter')
           .select(['id'])
           .where('id', '=', target.id)
-          .where((eb) =>
-            eb.or([
-              eb(
-                'address',
-                'in',
-                db
-                  .selectFrom('votingPowerTimeseries as votingPowerTimeseries')
-                  .select('votingPowerTimeseries.voter')
-                  .where('votingPowerTimeseries.daoId', '=', input.daoId)
-              ),
-              eb(
-                'address',
-                'in',
-                db
-                  .selectFrom('vote as vote')
-                  .select('vote.voterAddress')
-                  .where('vote.daoId', '=', input.daoId)
-              ),
-            ])
-          )
           .forUpdate()
           .executeTakeFirst();
 

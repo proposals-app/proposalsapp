@@ -77,6 +77,51 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       'do not accept a candidate just because the delegate handle appears as a substring inside a longer ENS, address label, or display name'
     );
+    expect(prompt).toContain(
+      'prefer identity-establishing self-started topics over the newest topics; sort by identity signal, not recency'
+    );
+  });
+
+  it('treats exact vote-reason forum links as primary identity breadcrumbs', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'an exact vote reason link that includes ?u=<forum username> for the same discourse username is strong direct proof'
+    );
+    expect(prompt).toContain(
+      'if many exact ?u=<forum username> vote reasons all point to the same voter_address, that repeated 1:1 pattern is usually enough direct identity proof'
+    );
+    expect(prompt).toContain(
+      'when a vote reason links to a forum post without ?u=, query the linked raw discourse_post and verify whether its topic_id and author match the same discourse user before treating the voter_address as proof'
+    );
+  });
+
+  it('teaches the agent to use organization brands alongside personal usernames', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'when the discourse identity mixes a personal handle and an organization or delegate brand, treat both strings as exact identity leads'
+    );
+    expect(prompt).toContain(
+      'an organization-branded communication thread or self-authored profile thread that lists an exact address, ENS, Tally profile, or Snapshot profile is strong direct proof'
+    );
+    expect(prompt).toContain(
+      'if the discourse row exposes both a personal username and an organization or delegate brand in the name/title, run targeted exact searches for both on the voter side, in vote reasons, and in self-authored topic titles before giving up'
+    );
   });
 
   it('treats retirement as status context rather than a reason to decline a proven identity', () => {
@@ -101,6 +146,9 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       'if those statements help prove the same identity, use them as corroborating evidence and still map the identity when the wallet link is strong enough'
     );
+    expect(prompt).toContain(
+      'technical constraints, min-query rejections, target-format errors, target-not-found errors, empty helper relations, or one failed raw read are not substantive evidence and must never be the reason for a decline'
+    );
   });
 
   it('documents the exact propose_delegate_mapping target contract', () => {
@@ -121,6 +169,45 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'if propose_delegate_mapping rejects a target format or says the target was not found, that is a tool-contract problem, not evidence that the identity is wrong'
+    );
+  });
+
+  it('tells the agent that exact wallet proof can still be mapped without dao activity rows', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'the global voters relation is the canonical exact wallet-identity registry for propose_delegate_mapping'
+    );
+    expect(prompt).toContain(
+      'a lack of current vote rows or voting power rows in the DAO does not by itself invalidate an otherwise well-proven wallet identity'
+    );
+    expect(prompt).toContain(
+      'voters has no dao_id, so never filter voters by dao_id'
+    );
+  });
+
+  it('tells the agent to treat org or tally profile slugs as leads until it reaches an exact voter identifier', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'if a Tally, Snapshot, forum, or organization profile slug is not itself an exact voters.ens, treat it as a lead rather than a final target'
+    );
+    expect(prompt).toContain(
+      'do not propose an organization, profile, or brand alias unless that exact string appears in a queried voters row'
     );
   });
 

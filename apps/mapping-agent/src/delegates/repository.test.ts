@@ -106,4 +106,24 @@ describe('resolveDelegateVoterTarget', () => {
       'For mappingType=delegate_to_voter, targetId must be the exact voters.id UUID, voters.address, or voters.ens copied verbatim from a queried row in this case.'
     );
   });
+
+  it('does not describe missing voter identifiers as a same-dao failure', async () => {
+    process.env.DATABASE_URL ??=
+      'postgresql://build:build@localhost:5432/build';
+    const { resolveDelegateVoterTarget } = await import('./repository');
+
+    expect(() =>
+      resolveDelegateVoterTarget({
+        targetId: 'rndao.eth',
+        voters: [],
+      })
+    ).toThrow('No voter matched ENS rndao.eth.');
+
+    expect(() =>
+      resolveDelegateVoterTarget({
+        targetId: '7cf42c2e-adf2-44e7-b0a3-82ac83107fc1',
+        voters: [],
+      })
+    ).toThrow('No voter matched UUID 7cf42c2e-adf2-44e7-b0a3-82ac83107fc1.');
+  });
 });

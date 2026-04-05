@@ -49,7 +49,7 @@ export function createDelegateExtension(
       name: 'query_delegate_mapping_data',
       label: 'Query Delegate Mapping Data',
       description:
-        'Run a single read-only SQL SELECT/CTE statement against the global delegate mapping relations current_case, daos, dao_discourses, delegates, discourse_users, voters, delegate_to_discourse_users, delegate_to_voters, active_delegate_to_discourse_users, active_delegate_to_voters, current_delegate_discourse_users, current_delegate_voters, votes, and voting_power_timeseries. Reads may span any DAO. Only the propose callback validates same-DAO writes and claim conflicts.',
+        'Run a single read-only SQL SELECT/CTE statement against the delegate-mapping helper relations and the raw public tables exposed in the schema export. In addition to current_case, discourse_users, voters, delegate_to_discourse_users, delegate_to_voters, current_delegate_discourse_users, current_delegate_voters, votes, and voting_power_timeseries, you may inspect raw public discourse_topic, discourse_post, dao_discourse, vote, and voter rows when you need first-post, communication-thread, or vote-reason evidence. Reads may span any DAO. For delegate_to_voter writes, the propose callback resolves exact targets against the global voters table, then validates claim conflicts within the current DAO.',
       parameters: Type.Object({
         sql: Type.String(),
       }),
@@ -105,7 +105,7 @@ export function createDelegateExtension(
       name: 'propose_delegate_mapping',
       label: 'Propose Delegate Mapping',
       description:
-        'Suggest a delegate mapping. For delegate_to_discourse_user, targetId must be the exact discourse_users.id UUID. For delegate_to_voter, targetId may be the exact voters.id UUID, exact voters.address, or exact voters.ens copied verbatim from a queried row. The harness resolves voter address/ENS to the canonical same-DAO voter row, then validates same-DAO ownership, claim conflicts, and confidence before any write is accepted.',
+        'Suggest a delegate mapping. For delegate_to_discourse_user, targetId must be the exact discourse_users.id UUID. For delegate_to_voter, targetId may be the exact voters.id UUID, exact voters.address, or exact voters.ens copied verbatim from a queried row. The harness resolves voter address/ENS to the canonical global voter row, then validates within-DAO claim conflicts and confidence before any write is accepted. Empty DAO helper relations, low current activity, or a retired delegate status do not invalidate an otherwise well-proven exact wallet identity.',
       parameters: Type.Object({
         mappingType: Type.Union([
           Type.Literal('delegate_to_discourse_user'),
@@ -160,7 +160,7 @@ export function createDelegateExtension(
       name: 'decline_delegate_mapping',
       label: 'Decline Delegate Mapping',
       description:
-        'Decline the current delegate mapping case when no same-DAO identity target is confidently correct.',
+        'Decline the current delegate mapping case only when identity remains genuinely ambiguous after checking direct breadcrumbs such as self-authored threads, exact vote-reason links, exact addresses, and exact ENS leads. Do not use this tool to explain technical constraints, target-format issues, sparse helper relations, or missing current DAO activity.',
       parameters: Type.Object({
         reason: Type.String(),
         evidenceIds: Type.Optional(Type.Array(Type.String())),
