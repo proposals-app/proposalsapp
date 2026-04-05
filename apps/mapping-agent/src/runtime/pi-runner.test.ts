@@ -1006,6 +1006,94 @@ describe('runPiAgent', () => {
     );
   });
 
+  it('aborts instead of re-prompting when the model returns an error turn', async () => {
+    const listeners: Array<(event: unknown) => void> = [];
+    let promptCallCount = 0;
+    const session = {
+      agent: {},
+      subscribe: vi.fn((listener) => {
+        listeners.push(listener);
+        return vi.fn();
+      }),
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => undefined),
+      prompt: vi.fn(async () => {
+        promptCallCount += 1;
+
+        if (promptCallCount > 1) {
+          throw new Error('unexpected reprompt after model error');
+        }
+
+        for (const listener of listeners) {
+          listener({
+            type: 'message_end',
+            message: {
+              role: 'assistant',
+              stopReason: 'error',
+              errorMessage:
+                'The model has crashed without additional information. (Exit code: null)',
+              content: [
+                {
+                  type: 'text',
+                  text: '400 "The model has crashed without additional information. (Exit code: null)"',
+                },
+              ],
+            },
+          });
+        }
+      }),
+      dispose: vi.fn(),
+    };
+
+    modelRegistry.find.mockReturnValue({
+      provider: 'lmstudio',
+      id: 'google/gemma-4-31b',
+    });
+    createAgentSession.mockResolvedValue({
+      session,
+      extensionsResult: {
+        extensions: [],
+        errors: [],
+        runtime: {},
+      },
+    });
+
+    await expect(
+      runPiAgent({
+        extensionFactory: vi.fn(),
+        activeToolNames: [
+          'query_delegate_mapping_data',
+          'propose_delegate_mapping',
+          'decline_delegate_mapping',
+        ],
+        queryToolName: 'query_delegate_mapping_data',
+        decisionToolNames: [
+          'propose_delegate_mapping',
+          'decline_delegate_mapping',
+        ],
+        systemPrompt: 'system prompt',
+        prompt: 'resolve the mapping case',
+        provider: 'lmstudio',
+        model: 'google/gemma-4-31b',
+        thinking: 'off',
+        baseUrl: 'http://ai-box:1234/v1',
+        timeoutMs: 300_000,
+        contextWindow: 131_072,
+        maxQueryCalls: 20,
+        minQueryCallsBeforeDecision: 0,
+        requireResolvedDecision: true,
+      })
+    ).rejects.toMatchObject({
+      name: 'PiAgentSessionAbortedError',
+      message: expect.stringContaining(
+        'The model has crashed without additional information'
+      ),
+    });
+
+    expect(session.prompt).toHaveBeenCalledTimes(1);
+    expect(session.dispose).toHaveBeenCalled();
+  });
+
   it('uses the LM Studio text-action transport when talking to an lmstudio base URL', async () => {
     const listeners: Array<(event: unknown) => void> = [];
     const session = {

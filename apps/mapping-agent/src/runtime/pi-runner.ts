@@ -304,6 +304,39 @@ function isDecisionResolvedPayload(value: unknown): boolean {
   return parsed.accepted === true || parsed.declined === true;
 }
 
+function extractAssistantFailureMessage(message: {
+  stopReason?: unknown;
+  errorMessage?: unknown;
+  content?: unknown;
+}): string | null {
+  const stopReason =
+    typeof message.stopReason === 'string' ? message.stopReason : null;
+  const errorMessage =
+    typeof message.errorMessage === 'string' && message.errorMessage.trim()
+      ? message.errorMessage.trim()
+      : null;
+
+  if (stopReason === 'error' || stopReason === 'aborted' || errorMessage) {
+    return (
+      errorMessage ?? extractAssistantText(message) ?? 'Assistant turn failed'
+    );
+  }
+
+  const assistantText = extractAssistantText(message);
+  if (
+    assistantText.includes(
+      'The model has crashed without additional information'
+    ) ||
+    assistantText.includes('Connection error.') ||
+    assistantText.includes('Request timed out.') ||
+    assistantText.includes('Operation canceled.')
+  ) {
+    return assistantText;
+  }
+
+  return null;
+}
+
 export async function runPiAgent(
   input: RunPiAgentInput
 ): Promise<PiAgentRunResult> {
@@ -370,6 +403,7 @@ export async function runPiAgent(
   let abortReason: 'resolved' | null = null;
   let abortPromise: Promise<void> | null = null;
   let decisionResolved = false;
+  let assistantTurnFailure: PiAgentSessionAbortedError | null;
   if (!useLmStudioTextActions) {
     const baseOnPayload = session.agent.onPayload;
     session.agent.onPayload = async (payload, currentModel) => {
@@ -438,6 +472,16 @@ export async function runPiAgent(
         return;
       }
 
+      const assistantFailureMessage = extractAssistantFailureMessage(
+        event.message
+      );
+      if (assistantFailureMessage) {
+        assistantTurnFailure = new PiAgentSessionAbortedError(
+          `Pi agent assistant session failed: ${assistantFailureMessage}`,
+          result
+        );
+      }
+
       input.onEvent?.({
         type: 'assistant_message_end',
         text: extractAssistantText(event.message),
@@ -497,7 +541,12 @@ export async function runPiAgent(
       }
 
       const toolCallCountBeforeTurn = result.toolCalls.length;
+      assistantTurnFailure = null;
       await session.prompt(nextPrompt);
+
+      if (assistantTurnFailure) {
+        throw assistantTurnFailure;
+      }
 
       if (abortReason === 'resolved') {
         break;
