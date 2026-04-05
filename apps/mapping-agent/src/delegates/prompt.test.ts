@@ -43,7 +43,7 @@ describe('buildDelegateSystemPrompt', () => {
     );
   });
 
-  it('teaches the agent to use delegate communication threads and rejects substring ENS jumps', () => {
+  it('teaches the agent to inspect self-started communication threads before fuzzy matching', () => {
     const prompt = buildDelegateSystemPrompt({
       confidenceThreshold: 0.85,
       maxQueryCalls: 30,
@@ -60,10 +60,16 @@ describe('buildDelegateSystemPrompt', () => {
       'a self-authored delegate communication thread, delegate statement, or voting-rationale thread that explicitly lists a wallet address, ENS, forum username, or social handle is strong direct proof'
     );
     expect(prompt).toContain(
-      'do not accept a candidate just because the delegate handle appears as a substring inside a longer ENS, address label, or display name'
+      'discourse_topic does not encode the topic author directly; to find topics started by the discourse user, inspect raw discourse_post rows where post_number = 1 and user_id matches the discourse user external_id'
     );
     expect(prompt).toContain(
-      'query raw discourse_topic and discourse_post directly to inspect thread titles and cooked post content for self-identification evidence'
+      'review the titles of those self-started topics first; if a title looks relevant, such as a delegate communication thread, presentation thread, introduction, statement, rationale thread, or equivalent self-authored identity topic, then read that thread before relying on looser evidence'
+    );
+    expect(prompt).toContain(
+      'do not jump to a fuzzy ENS or handle match until you have checked the discourse user own-topic titles for direct self-identification evidence'
+    );
+    expect(prompt).toContain(
+      'do not accept a candidate just because the delegate handle appears as a substring inside a longer ENS, address label, or display name'
     );
   });
 
@@ -106,6 +112,30 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'if propose_delegate_mapping rejects a target format or says the target was not found, that is a tool-contract problem, not evidence that the identity is wrong'
+    );
+  });
+
+  it('requires at least ten reads before deciding and hurries after twenty', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'if you try to decide before 10 reads, the decision tool will tell you to gather more evidence first'
+    );
+    expect(prompt).toContain(
+      'you must complete at least 10 query_delegate_mapping_data calls before either proposing or declining'
+    );
+    expect(prompt).toContain(
+      '10 queries is a hard minimum before any decision tool is allowed'
+    );
+    expect(prompt).toContain(
+      'around 20 reads or 5 minutes, the harness will strongly nudge you to decide'
     );
   });
 });

@@ -28,7 +28,7 @@ export interface DelegateMappingCase {
   >;
 }
 
-const MIN_QUERY_CALLS_BEFORE_DECISION = 5;
+const MIN_QUERY_CALLS_BEFORE_DECISION = 10;
 
 export function createDelegateExtension(
   currentCase: DelegateMappingCase

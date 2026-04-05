@@ -113,7 +113,7 @@ export async function runDelegateMappingWorker(
           timeoutMs: config.pi.sessionTimeoutMs,
           decisionGraceMs: 60_000,
           maxQueryCalls: config.pi.maxQueryCalls,
-          minQueryCallsBeforeDecision: 5,
+          minQueryCallsBeforeDecision: 10,
           requireResolvedDecision: true,
           onEvent: sessionLogger.onEvent,
         });
