@@ -3,7 +3,7 @@ export function textToolResponse(value: unknown) {
     content: [
       {
         type: 'text' as const,
-        text: JSON.stringify(value, null, 2),
+        text: JSON.stringify(value),
       },
     ],
     details: {},

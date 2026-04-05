@@ -276,4 +276,28 @@ describe('buildDelegateSystemPrompt', () => {
       'do not use unrelated schema-probing reads like select * from discourse_post limit 1 or select * from daos limit 1 when the current_case and discourse user rows already tell you what to inspect next'
     );
   });
+
+  it('pushes the agent toward narrow exact-column reads and case-insensitive wallet lookups', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'on large raw tables like discourse_post, vote, and voter, prefer narrow exact-column reads over select *'
+    );
+    expect(prompt).toContain(
+      'once you have an exact wallet address, query voter with a case-insensitive exact match such as lower(address) = lower('
+    );
+    expect(prompt).toContain(
+      'when you already know the exact address or ENS from a communication thread, do not fall back to broad voter discovery first'
+    );
+    expect(prompt).toContain(
+      'when you only need to verify whether an exact wallet exists, prefer selecting id, address, ens rather than every column'
+    );
+  });
 });
