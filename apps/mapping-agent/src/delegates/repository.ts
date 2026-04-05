@@ -491,6 +491,73 @@ function exactDiscourseUserMatch(
   return matches.length === 1 ? matches[0]! : null;
 }
 
+function isUuidLike(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
+export function resolveDelegateVoterTarget(input: {
+  targetId: string;
+  voters: VoterRecord[];
+}): VoterRecord {
+  const rawTargetId = input.targetId.trim();
+  const normalizedTargetId = rawTargetId.toLowerCase();
+  const contractMessage =
+    'For mappingType=delegate_to_voter, targetId must be the exact voters.id UUID, voters.address, or voters.ens copied verbatim from a queried row in this case.';
+
+  const exactIdMatch = input.voters.find((voter) => voter.id === rawTargetId);
+  if (exactIdMatch) {
+    return exactIdMatch;
+  }
+
+  const exactAddressMatches = input.voters.filter(
+    (voter) => voter.address.toLowerCase() === normalizedTargetId
+  );
+  if (exactAddressMatches.length === 1) {
+    return exactAddressMatches[0]!;
+  }
+  if (exactAddressMatches.length > 1) {
+    throw new Error(
+      `${contractMessage} Multiple same-DAO voters matched address ${rawTargetId}; query the exact voter row and use voters.id.`
+    );
+  }
+
+  const exactEnsMatches = input.voters.filter(
+    (voter) => voter.ens?.trim().toLowerCase() === normalizedTargetId
+  );
+  if (exactEnsMatches.length === 1) {
+    return exactEnsMatches[0]!;
+  }
+  if (exactEnsMatches.length > 1) {
+    throw new Error(
+      `${contractMessage} Multiple same-DAO voters matched ENS ${rawTargetId}; query the exact voter row and use voters.id.`
+    );
+  }
+
+  if (isUuidLike(rawTargetId)) {
+    throw new Error(
+      `${contractMessage} No same-DAO voter matched UUID ${rawTargetId}.`
+    );
+  }
+
+  if (normalizedTargetId.startsWith('0x')) {
+    throw new Error(
+      `${contractMessage} No same-DAO voter matched address ${rawTargetId}.`
+    );
+  }
+
+  if (rawTargetId.includes('.')) {
+    throw new Error(
+      `${contractMessage} No same-DAO voter matched ENS ${rawTargetId}.`
+    );
+  }
+
+  throw new Error(
+    `${contractMessage} ${rawTargetId} is not a recognized exact voter identifier.`
+  );
+}
+
 async function createDelegateForDiscourseSeed(input: {
   daoId: string;
   discourseUserId: string;
@@ -1204,7 +1271,9 @@ export async function proposeDelegateMapping(input: {
       (user) => user.id === input.targetId
     );
     if (!target) {
-      throw new Error(`Discourse user ${input.targetId} not found`);
+      throw new Error(
+        `For mappingType=delegate_to_discourse_user, targetId must be the exact discourse_users.id UUID copied verbatim from a queried row. Discourse user ${input.targetId} not found.`
+      );
     }
 
     const decision = isDryRunEnabled()
@@ -1347,10 +1416,10 @@ export async function proposeDelegateMapping(input: {
     };
   }
 
-  const target = context.voters.find((voter) => voter.id === input.targetId);
-  if (!target) {
-    throw new Error(`Voter ${input.targetId} not found`);
-  }
+  const target = resolveDelegateVoterTarget({
+    targetId: input.targetId,
+    voters: context.voters,
+  });
 
   const decision = isDryRunEnabled()
     ? resolveDelegateMappingWriteAction({

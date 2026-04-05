@@ -105,13 +105,16 @@ export function createDelegateExtension(
       name: 'propose_delegate_mapping',
       label: 'Propose Delegate Mapping',
       description:
-        'Suggest a delegate mapping. The harness validates same-DAO ownership, claim conflicts, and confidence before any write is accepted.',
+        'Suggest a delegate mapping. For delegate_to_discourse_user, targetId must be the exact discourse_users.id UUID. For delegate_to_voter, targetId may be the exact voters.id UUID, exact voters.address, or exact voters.ens copied verbatim from a queried row. The harness resolves voter address/ENS to the canonical same-DAO voter row, then validates same-DAO ownership, claim conflicts, and confidence before any write is accepted.',
       parameters: Type.Object({
         mappingType: Type.Union([
           Type.Literal('delegate_to_discourse_user'),
           Type.Literal('delegate_to_voter'),
         ]),
-        targetId: Type.String(),
+        targetId: Type.String({
+          description:
+            'If mappingType=delegate_to_discourse_user, use the exact discourse_users.id UUID. If mappingType=delegate_to_voter, use the exact voters.id UUID, voters.address, or voters.ens copied verbatim from a queried row.',
+        }),
         confidence: Type.Number(),
         reason: Type.String(),
         evidenceIds: Type.Optional(Type.Array(Type.String())),

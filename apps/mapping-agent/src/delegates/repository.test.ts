@@ -56,3 +56,54 @@ describe('filterRetryableDelegateCases', () => {
     ]);
   });
 });
+
+describe('resolveDelegateVoterTarget', () => {
+  it('resolves voter targets by exact UUID, address, or ENS', async () => {
+    process.env.DATABASE_URL ??=
+      'postgresql://build:build@localhost:5432/build';
+    const { resolveDelegateVoterTarget } = await import('./repository');
+
+    const voters = [
+      {
+        id: 'aacc028a-01c4-4bb7-9145-ce43ce6ec740',
+        daoId: 'dao-1',
+        address: '0xa6e8772af29b29B9202a073f8E36f447689BEef6',
+        ens: 'gfxlabs.eth',
+      },
+    ];
+
+    expect(
+      resolveDelegateVoterTarget({
+        targetId: 'aacc028a-01c4-4bb7-9145-ce43ce6ec740',
+        voters,
+      })
+    ).toEqual(voters[0]);
+    expect(
+      resolveDelegateVoterTarget({
+        targetId: '0xa6e8772af29b29b9202a073f8e36f447689beef6',
+        voters,
+      })
+    ).toEqual(voters[0]);
+    expect(
+      resolveDelegateVoterTarget({
+        targetId: 'gfxlabs.eth',
+        voters,
+      })
+    ).toEqual(voters[0]);
+  });
+
+  it('returns a contract error for unknown voter target identifiers', async () => {
+    process.env.DATABASE_URL ??=
+      'postgresql://build:build@localhost:5432/build';
+    const { resolveDelegateVoterTarget } = await import('./repository');
+
+    expect(() =>
+      resolveDelegateVoterTarget({
+        targetId: 'not-a-real-target',
+        voters: [],
+      })
+    ).toThrow(
+      'For mappingType=delegate_to_voter, targetId must be the exact voters.id UUID, voters.address, or voters.ens copied verbatim from a queried row in this case.'
+    );
+  });
+});

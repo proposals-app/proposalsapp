@@ -87,4 +87,25 @@ describe('buildDelegateSystemPrompt', () => {
       'if those statements help prove the same identity, use them as corroborating evidence and still map the identity when the wallet link is strong enough'
     );
   });
+
+  it('documents the exact propose_delegate_mapping target contract', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'for mappingType=delegate_to_discourse_user, targetId must be the exact discourse_users.id UUID from a queried row'
+    );
+    expect(prompt).toContain(
+      'for mappingType=delegate_to_voter, targetId may be the exact voters.id UUID, exact voters.address, or exact voters.ens from a queried row'
+    );
+    expect(prompt).toContain(
+      'if propose_delegate_mapping rejects a target format or says the target was not found, that is a tool-contract problem, not evidence that the identity is wrong'
+    );
+  });
 });
