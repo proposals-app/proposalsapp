@@ -127,3 +127,37 @@ describe('resolveDelegateVoterTarget', () => {
     ).toThrow('No voter matched UUID 7cf42c2e-adf2-44e7-b0a3-82ac83107fc1.');
   });
 });
+
+describe('isSystemMetaDiscourseIdentity', () => {
+  it('recognizes platform system accounts', async () => {
+    process.env.DATABASE_URL ??=
+      'postgresql://build:build@localhost:5432/build';
+    const { isSystemMetaDiscourseIdentity } = await import('./repository');
+
+    expect(
+      isSystemMetaDiscourseIdentity({
+        username: 'Arbitrum',
+        name: 'System',
+      })
+    ).toBe(true);
+    expect(
+      isSystemMetaDiscourseIdentity({
+        username: 'Uniswap',
+        name: 'System',
+      })
+    ).toBe(true);
+  });
+
+  it('does not treat ordinary delegates as system identities', async () => {
+    process.env.DATABASE_URL ??=
+      'postgresql://build:build@localhost:5432/build';
+    const { isSystemMetaDiscourseIdentity } = await import('./repository');
+
+    expect(
+      isSystemMetaDiscourseIdentity({
+        username: 'krst',
+        name: "Krzysztof 'krst' Urbański L2BEAT",
+      })
+    ).toBe(false);
+  });
+});

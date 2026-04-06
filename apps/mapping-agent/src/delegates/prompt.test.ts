@@ -559,6 +559,9 @@ describe('buildDelegateSystemPrompt', () => {
       'system, admin, moderation, announcements, foundation, or meta forum accounts are not normal delegate identity targets unless the case already includes explicit delegate-wallet evidence'
     );
     expect(prompt).toContain(
+      'if the discourse user row itself looks like a platform identity such as username Arbitrum or Uniswap with name System, do not treat deterministic vote-link matches as delegate identity proof'
+    );
+    expect(prompt).toContain(
       'before loading a long discourse_post.cooked body, first try narrow confirmation reads that only check whether the post contains an address, ENS, Tally URL, Snapshot URL, or exact self-identification breadcrumb'
     );
   });

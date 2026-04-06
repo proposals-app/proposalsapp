@@ -190,6 +190,7 @@ export function buildDelegateSystemPrompt(params: {
     '- if the evidence does not clearly support a shared wallet, treat that exact voter target as disqualified and continue searching for a different exact target',
     '- if the evidence clearly supports a shared org/team wallet, retry the same exact target once with confirm=true and explain the shared-wallet evidence explicitly in the reason',
     '- system, admin, moderation, announcements, foundation, or meta forum accounts are not normal delegate identity targets unless the case already includes explicit delegate-wallet evidence',
+    '- if the discourse user row itself looks like a platform identity such as username Arbitrum or Uniswap with name System, do not treat deterministic vote-link matches as delegate identity proof',
     '- do not use unrelated schema-probing reads like select * from discourse_post limit 1 or select * from daos limit 1 when the current_case and discourse user rows already tell you what to inspect next',
     '- do not sample arbitrary voter addresses from votes without a precise lead; broad distinct-voter scans are low-value and often misleading compared with exact ?u=<username>, exact topic-link, exact address, or exact ENS searches',
     '- do not search top voters or recent voters for name similarity while any direct discourse-side breadcrumb remains unchecked; top-voter browsing is a last-resort supporting step, not a primary identity search strategy',

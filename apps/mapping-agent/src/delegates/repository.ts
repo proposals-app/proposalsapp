@@ -98,6 +98,33 @@ function mapDiscourseUserRecord(
   };
 }
 
+export function isSystemMetaDiscourseIdentity(
+  user: Pick<DiscourseUserRecord, 'username' | 'name'>
+): boolean {
+  const username = user.username.trim().toLowerCase();
+  const name = (user.name ?? '').trim().toLowerCase();
+
+  if (username === 'system' || name === 'system') {
+    return true;
+  }
+
+  if (
+    (username === 'arbitrum' || username === 'uniswap') &&
+    (name === '' || name === 'system')
+  ) {
+    return true;
+  }
+
+  return (
+    username === 'admin' ||
+    username === 'moderator' ||
+    username === 'announcements' ||
+    name === 'admin' ||
+    name === 'moderator' ||
+    name === 'announcements'
+  );
+}
+
 function mapVoterRecord(daoId: string, voter: Selectable<Voter>): VoterRecord {
   return {
     id: voter.id,
@@ -896,6 +923,17 @@ export async function runDeterministicDelegateMappings(input: {
 
       if (!sourceUser) {
         unresolvedCases.push(currentCase);
+        continue;
+      }
+
+      if (isSystemMetaDiscourseIdentity(sourceUser)) {
+        await declineDelegateMapping({
+          daoId: context.dao.id,
+          delegateId: currentCase.delegateId,
+          reason: `Skipped system/meta discourse identity ${sourceUser.username}${sourceUser.name ? ` (${sourceUser.name})` : ''}. This forum account is not a normal delegate-wallet target without explicit wallet proof.`,
+          evidenceIds: [sourceUser.id],
+          decisionSource: 'deterministic',
+        });
         continue;
       }
 
