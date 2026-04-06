@@ -23,6 +23,38 @@ describe('loadConfig', () => {
     expect(loadConfig().pi.baseUrl).toBeNull();
   });
 
+  it('defaults the OpenRouter base URL and key fallback', async () => {
+    vi.stubEnv('MAPPING_AGENT_PI_PROVIDER', 'openrouter');
+    vi.stubEnv('OPENROUTER_API_KEY', 'or-key');
+
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig().pi).toEqual(
+      expect.objectContaining({
+        provider: 'openrouter',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        apiKey: 'or-key',
+      })
+    );
+  });
+
+  it('prefers explicit pi OpenAI-compatible overrides over OpenRouter defaults', async () => {
+    vi.stubEnv('MAPPING_AGENT_PI_PROVIDER', 'openrouter');
+    vi.stubEnv('OPENROUTER_API_KEY', 'or-key');
+    vi.stubEnv('MAPPING_AGENT_PI_BASE_URL', 'https://example.com/v1');
+    vi.stubEnv('MAPPING_AGENT_PI_API_KEY', 'explicit-key');
+
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig().pi).toEqual(
+      expect.objectContaining({
+        provider: 'openrouter',
+        baseUrl: 'https://example.com/v1',
+        apiKey: 'explicit-key',
+      })
+    );
+  });
+
   it('loads pi session guardrail settings', async () => {
     vi.stubEnv('MAPPING_AGENT_PI_CONTEXT_WINDOW', '131072');
     vi.stubEnv('MAPPING_AGENT_PI_SESSION_TIMEOUT_MS', '30000');

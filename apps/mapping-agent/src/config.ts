@@ -4,6 +4,7 @@ const DEFAULT_DAO_CATEGORY_FILTERS: Record<string, number[]> = {
   arbitrum: [7, 8, 9],
   uniswap: [5, 8, 9, 10],
 };
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 export interface PiAgentSettings {
   provider: string | null;
@@ -118,6 +119,14 @@ export function loadConfig(): MappingAgentConfig {
     process.env.MAPPING_AGENT_DAO_SLUGS,
     daoCategoryFilters
   );
+  const piProvider = process.env.MAPPING_AGENT_PI_PROVIDER || null;
+  const piBaseUrl =
+    process.env.MAPPING_AGENT_PI_BASE_URL ||
+    (piProvider === 'openrouter' ? OPENROUTER_BASE_URL : null);
+  const piApiKey =
+    process.env.MAPPING_AGENT_PI_API_KEY ||
+    (piProvider === 'openrouter' ? process.env.OPENROUTER_API_KEY : null) ||
+    null;
 
   return {
     port: parseInteger(process.env.PORT, 3000),
@@ -142,12 +151,12 @@ export function loadConfig(): MappingAgentConfig {
       0.9
     ),
     pi: {
-      provider: process.env.MAPPING_AGENT_PI_PROVIDER || null,
+      provider: piProvider,
       model: process.env.MAPPING_AGENT_PI_MODEL || null,
       thinking: process.env.MAPPING_AGENT_PI_THINKING || 'medium',
       configDir: process.env.MAPPING_AGENT_PI_DIR || null,
-      baseUrl: process.env.MAPPING_AGENT_PI_BASE_URL || null,
-      apiKey: process.env.MAPPING_AGENT_PI_API_KEY || null,
+      baseUrl: piBaseUrl,
+      apiKey: piApiKey,
       toolTransport: parseToolTransportMode(
         process.env.MAPPING_AGENT_PI_LMSTUDIO_TOOL_TRANSPORT
       ),

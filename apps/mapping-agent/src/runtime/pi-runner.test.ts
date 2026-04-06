@@ -311,6 +311,99 @@ describe('runPiAgent', () => {
     );
   });
 
+  it('registers non-lmstudio OpenAI-compatible providers without lmstudio compat flags', async () => {
+    const listeners: Array<(event: unknown) => void> = [];
+    const session = {
+      agent: {},
+      subscribe: vi.fn((listener) => {
+        listeners.push(listener);
+        return vi.fn();
+      }),
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => undefined),
+      prompt: vi.fn(async () => {
+        for (const listener of listeners) {
+          listener({
+            type: 'tool_execution_start',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            args: { reason: 'done' },
+          });
+          listener({
+            type: 'tool_execution_end',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            isError: false,
+            result: {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({ declined: true }),
+                },
+              ],
+            },
+          });
+        }
+      }),
+      dispose: vi.fn(),
+    };
+    const model = {
+      provider: 'openrouter',
+      id: 'openai/gpt-5.4-nano',
+    };
+
+    modelRegistry.find.mockReturnValue(model);
+    createAgentSession.mockResolvedValue({
+      session,
+      extensionsResult: {
+        extensions: [],
+        errors: [],
+        runtime: {},
+      },
+    });
+
+    await runPiAgent({
+      extensionFactory: vi.fn(),
+      activeToolNames: ['query_delegate_mapping_data'],
+      queryToolName: 'query_delegate_mapping_data',
+      decisionToolNames: [
+        'propose_delegate_mapping',
+        'decline_delegate_mapping',
+      ],
+      systemPrompt: 'system prompt',
+      prompt: 'resolve the mapping case',
+      provider: 'openrouter',
+      model: 'openai/gpt-5.4-nano',
+      thinking: 'off',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      apiKey: 'or-key',
+      contextWindow: 400_000,
+      timeoutMs: 30_000,
+      maxQueryCalls: 30,
+    });
+
+    expect(modelRegistry.registerProvider).toHaveBeenCalledWith(
+      'openrouter',
+      expect.objectContaining({
+        api: 'openai-completions',
+        apiKey: 'or-key',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        models: [
+          expect.objectContaining({
+            id: 'openai/gpt-5.4-nano',
+            contextWindow: 400_000,
+            compat: expect.not.objectContaining({
+              maxTokensField: 'max_tokens',
+              supportsStore: false,
+              supportsStrictMode: false,
+              supportsUsageInStreaming: false,
+            }),
+          }),
+        ],
+      })
+    );
+  });
+
   it('continues prompting until a decision tool resolves the case', async () => {
     const listeners: Array<(event: unknown) => void> = [];
     let promptCallCount = 0;

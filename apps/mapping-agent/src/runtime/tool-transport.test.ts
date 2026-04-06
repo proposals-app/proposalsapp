@@ -43,4 +43,15 @@ describe('resolvePiToolTransport', () => {
       })
     ).toBe('native');
   });
+
+  it('keeps non-lmstudio OpenAI-compatible providers on native tools', () => {
+    expect(
+      resolvePiToolTransport({
+        provider: 'openrouter',
+        model: 'openai/gpt-5.4-nano',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        configuredMode: 'auto',
+      })
+    ).toBe('native');
+  });
 });

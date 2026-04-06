@@ -135,12 +135,115 @@ function textFromUserMessage(message: UserMessage): string {
     .trim();
 }
 
-function textFromToolResult(message: ToolResultMessage): string {
+function rawTextFromToolResult(message: ToolResultMessage): string {
   return message.content
     .filter((block): block is TextContent => block.type === 'text')
     .map((block) => block.text)
     .join('\n')
     .trim();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseToolResultRecord(value: string): Record<string, unknown> | null {
+  if (!value.trim()) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatJsonValue(value: unknown): string {
+  return JSON.stringify(value);
+}
+
+function omitKeys(
+  record: Record<string, unknown>,
+  keys: string[]
+): Record<string, unknown> {
+  const next = { ...record };
+  for (const key of keys) {
+    delete next[key];
+  }
+  return next;
+}
+
+export function formatStructuredToolResult(message: ToolResultMessage): string {
+  const rawText = rawTextFromToolResult(message);
+  if (!rawText) {
+    return '(empty tool result)';
+  }
+
+  const parsed = parseToolResultRecord(rawText);
+  if (!parsed) {
+    return rawText;
+  }
+
+  const isQueryTool = message.toolName.startsWith('query_');
+  const lines: string[] = [];
+
+  if (typeof parsed.ok === 'boolean') {
+    lines.push(
+      parsed.ok
+        ? isQueryTool
+          ? 'STATUS: query succeeded'
+          : 'STATUS: tool succeeded'
+        : isQueryTool
+          ? 'STATUS: query failed'
+          : 'STATUS: tool failed'
+    );
+
+    if (parsed.ok) {
+      if (typeof parsed.rowCount === 'number') {
+        lines.push(`ROW_COUNT: ${parsed.rowCount}`);
+      }
+      if ('rows' in parsed) {
+        lines.push(`ROWS_JSON: ${formatJsonValue(parsed.rows)}`);
+      }
+    } else {
+      if (typeof parsed.error === 'string') {
+        lines.push(`ERROR: ${parsed.error}`);
+      }
+      if (typeof parsed.attemptedSql === 'string') {
+        lines.push(`ATTEMPTED_SQL: ${parsed.attemptedSql}`);
+      }
+      if (isQueryTool) {
+        lines.push('NOTE: failed read queries do not advance the read budget.');
+      }
+    }
+
+    if ('budget' in parsed) {
+      lines.push(`BUDGET_JSON: ${formatJsonValue(parsed.budget)}`);
+    }
+    if (typeof parsed.warning === 'string' && parsed.warning.trim()) {
+      lines.push(`WARNING: ${parsed.warning}`);
+    }
+
+    const extras = omitKeys(parsed, [
+      'ok',
+      'rows',
+      'rowCount',
+      'error',
+      'attemptedSql',
+      'budget',
+      'warning',
+    ]);
+    if (Object.keys(extras).length > 0) {
+      lines.push(`EXTRA_JSON: ${formatJsonValue(extras)}`);
+    }
+
+    lines.push(`RAW_JSON: ${rawText}`);
+    return lines.join('\n');
+  }
+
+  return rawText;
 }
 
 function textFromAssistantMessage(message: AssistantMessage): string {
@@ -201,12 +304,11 @@ function toPlainTextMessages(messages: Message[]): Message[] {
       continue;
     }
 
-    const toolText = textFromToolResult(message);
     plainMessages.push({
       role: 'user',
       content: [
         `Tool result for ${message.toolName} (${message.toolCallId}).`,
-        toolText || '(empty tool result)',
+        formatStructuredToolResult(message),
         'Decide on the next single tool request or final answer.',
       ].join('\n\n'),
       timestamp: message.timestamp,
@@ -291,12 +393,11 @@ function toOpenAIMessages(context: Context): OpenAIMessageParam[] {
       continue;
     }
 
-    const toolText = textFromToolResult(message);
     messages.push({
       role: 'user',
       content: [
         `Tool result for ${message.toolName} (${message.toolCallId}).`,
-        toolText || '(empty tool result)',
+        formatStructuredToolResult(message),
         'Decide on the next single tool request or final answer.',
       ].join('\n\n'),
     });

@@ -17,7 +17,10 @@ vi.mock('openai', () => {
   };
 });
 
-import { createLmStudioTextActionStreamFn } from './lmstudio-text-actions';
+import {
+  createLmStudioTextActionStreamFn,
+  formatStructuredToolResult,
+} from './lmstudio-text-actions';
 
 describe('createLmStudioTextActionStreamFn', () => {
   beforeEach(() => {
@@ -101,5 +104,43 @@ describe('createLmStudioTextActionStreamFn', () => {
         },
       }),
     ]);
+  });
+
+  it('forwards structured query errors back into the model context clearly', async () => {
+    const forwarded = formatStructuredToolResult({
+      role: 'tool',
+      toolName: 'query_delegate_mapping_data',
+      toolCallId: 'tool_1',
+      timestamp: Date.now(),
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            ok: false,
+            error: 'column x does not exist',
+            attemptedSql: 'select x from y',
+            budget: {
+              queryCount: 4,
+              minQueriesRemaining: 1,
+            },
+            warning: 'Wrap up soon.',
+          }),
+        },
+      ],
+    } as never);
+
+    expect(forwarded).toContain('STATUS: query failed');
+    expect(forwarded).toContain('ERROR: column x does not exist');
+    expect(forwarded).toContain('ATTEMPTED_SQL: select x from y');
+    expect(forwarded).toContain(
+      'NOTE: failed read queries do not advance the read budget.'
+    );
+    expect(forwarded).toContain(
+      'BUDGET_JSON: {"queryCount":4,"minQueriesRemaining":1}'
+    );
+    expect(forwarded).toContain('WARNING: Wrap up soon.');
+    expect(forwarded).toContain(
+      'RAW_JSON: {"ok":false,"error":"column x does not exist","attemptedSql":"select x from y","budget":{"queryCount":4,"minQueriesRemaining":1},"warning":"Wrap up soon."}'
+    );
   });
 });
