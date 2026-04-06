@@ -78,6 +78,21 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       "Later self-authored posts can mention many third-party addresses. Prefer the candidate that recurs across the author's own identity, application, delegate-statement, or wallet-link posts"
     );
+    expect(prompt).toContain(
+      'Use three search modes and stay in the highest-signal one you can: direct-proof mode, sparse-user fallback mode, and org/shared-wallet mode.'
+    );
+    expect(prompt).toContain(
+      'Direct-proof mode: if you find a self-authored exact wallet, exact ENS, or exact Tally/Snapshot breadcrumb that resolves to a canonical voter row, stay on that path and finish the case instead of exploring broader alternatives.'
+    );
+    expect(prompt).toContain(
+      'Sparse-user fallback mode: if discourse_users.topic_count or post_count is zero, stale, or obviously incomplete, check raw discourse_post for that exact external_id early.'
+    );
+    expect(prompt).toContain(
+      'Org/shared-wallet mode: if the discourse name, self-authored thread titles, or self-authored posts clearly indicate an organization, check for exact org wallet breadcrumbs, org ENS, or repeated vote-link evidence for that org wallet.'
+    );
+    expect(prompt).toContain(
+      'Once you have direct authored proof plus an exact voter row and same-DAO vote activity, propose immediately.'
+    );
   });
 
   it('keeps the strongest literal SQL templates explicit', () => {
@@ -127,6 +142,9 @@ describe('buildDelegateSystemPrompt', () => {
       'Repeated exact vote-reason links from one voter_address to posts authored by the current discourse user are among the strongest signals in the data.'
     );
     expect(prompt).toContain(
+      'Direct authored proof plus an exact voter row plus same-DAO vote activity is sufficient to propose immediately unless you have concrete contrary evidence.'
+    );
+    expect(prompt).toContain(
       'A ?u=<forum username> vote-reason link is strong when it also resolves to a post authored by the current discourse user.'
     );
     expect(prompt).toContain(
@@ -149,6 +167,9 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'If the strongest link is only a common name or a generic handle, decline.'
+    );
+    expect(prompt).toContain(
+      'discourse_users.topic_count = 0 or post_count = 0 is not substantive evidence. Those counters can be stale; inspect raw discourse_post before using missing activity as part of a decline.'
     );
   });
 
@@ -190,6 +211,9 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain(
       'If you need cooked text, fetch it only for one exact post, one exact topic first post, or a very small LIMIT after a metadata or breadcrumb scan has already narrowed the target.'
     );
+    expect(prompt).toContain(
+      'If a query times out, retry the same intent with fewer columns, tighter predicates, a smaller LIMIT, or an exact address/ENS filter. Do not respond to a timeout by switching to a broader exploratory search.'
+    );
   });
 
   it('preserves the exact target contract and exact-address guidance', () => {
@@ -214,6 +238,9 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'If you reach a confident mapping before the 5-read minimum, spend the remaining required reads on lightweight confirmation queries rather than heavy exploratory reads.'
+    );
+    expect(prompt).toContain(
+      'Do not inspect how unrelated delegates are mapped, sample random voters, or browse historical mapping rows unless you are validating one specific candidate or a shared-wallet conflict returned by propose_delegate_mapping.'
     );
     expect(prompt).toContain(
       'Around 20 reads or 5 minutes, wrap up. After 30 read calls, the read tool will stop accepting more reads and you must decide.'
