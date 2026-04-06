@@ -103,7 +103,7 @@ export function createDelegateExtension(
       name: 'propose_delegate_mapping',
       label: 'Propose Delegate Mapping',
       description:
-        'Suggest a delegate mapping. For delegate_to_discourse_user, targetId must be the exact discourse_users.id UUID. For delegate_to_voter, targetId may be the exact voters.id UUID, exact voters.address, or exact voters.ens copied verbatim from a queried row. The harness resolves voter address/ENS to the canonical global voter row, then validates within-DAO claim conflicts and confidence before any write is accepted. Empty DAO helper relations, low current activity, or a retired delegate status do not invalidate an otherwise well-proven exact wallet identity.',
+        'Suggest a delegate mapping. For delegate_to_discourse_user, targetId must be the exact discourse_users.id UUID. For delegate_to_voter, targetId may be the exact voters.id UUID, exact voters.address, or exact voters.ens copied verbatim from a queried row. Call delegate_to_voter proposals with confirm=false first. If the exact voter is already linked to another delegate, the tool will return requiresConfirmation=true plus the conflicting delegate labels instead of writing. Retry with confirm=true only when you have strong shared-org or shared-team wallet proof. The harness resolves voter address/ENS to the canonical global voter row, then validates within-DAO claim conflicts and confidence before any write is accepted. Empty DAO helper relations, low current activity, or a retired delegate status do not invalidate an otherwise well-proven exact wallet identity.',
       parameters: Type.Object({
         mappingType: Type.Union([
           Type.Literal('delegate_to_discourse_user'),
@@ -116,6 +116,12 @@ export function createDelegateExtension(
         confidence: Type.Number(),
         reason: Type.String(),
         evidenceIds: Type.Optional(Type.Array(Type.String())),
+        confirm: Type.Optional(
+          Type.Boolean({
+            description:
+              'Only relevant for mappingType=delegate_to_voter. Use false first. Set true only after the tool says requiresConfirmation=true and you have strong evidence that multiple discourse users intentionally share the same org/team wallet.',
+          })
+        ),
       }),
       async execute(_toolCallId, input) {
         const mappingInput = input as unknown as {
@@ -124,6 +130,7 @@ export function createDelegateExtension(
           confidence: number;
           reason: string;
           evidenceIds?: string[];
+          confirm?: boolean;
         };
 
         try {
@@ -142,6 +149,7 @@ export function createDelegateExtension(
             reason: mappingInput.reason,
             evidenceIds: mappingInput.evidenceIds ?? [],
             decisionSource: 'agent',
+            confirm: mappingInput.confirm,
           });
 
           return textResponse({

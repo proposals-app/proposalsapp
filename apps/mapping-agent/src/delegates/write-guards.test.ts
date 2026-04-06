@@ -43,6 +43,36 @@ describe('resolveDelegateMappingWriteAction', () => {
     });
   });
 
+  it('requires confirmation before sharing a claimed target', () => {
+    expect(
+      resolveDelegateMappingWriteAction({
+        delegateId: 'delegate-1',
+        targetId: 'target-1',
+        activeTargetIdsForDelegate: [],
+        activeDelegateIdsForTarget: ['delegate-2', 'delegate-3'],
+        allowSharedTarget: true,
+      })
+    ).toEqual({
+      conflictingIds: ['delegate-2', 'delegate-3'],
+      kind: 'confirm_target_claimed',
+    });
+  });
+
+  it('allows a confirmed shared target insert', () => {
+    expect(
+      resolveDelegateMappingWriteAction({
+        delegateId: 'delegate-1',
+        targetId: 'target-1',
+        activeTargetIdsForDelegate: [],
+        activeDelegateIdsForTarget: ['delegate-2'],
+        allowSharedTarget: true,
+        confirmTargetClaimed: true,
+      })
+    ).toEqual({
+      kind: 'insert',
+    });
+  });
+
   it('allows an insert when neither side is actively claimed', () => {
     expect(
       resolveDelegateMappingWriteAction({

@@ -111,4 +111,42 @@ describe('createDelegateExtension', () => {
       },
     });
   });
+
+  it('forwards confirm to proposeDelegateMapping', async () => {
+    queryDelegateMappingData.mockResolvedValue({ rows: [] });
+    proposeDelegateMapping.mockResolvedValue({
+      accepted: true,
+      message: 'ok',
+    });
+
+    const tools = registerTools();
+    const queryTool = tools.get('query_delegate_mapping_data');
+    const proposeTool = tools.get('propose_delegate_mapping');
+
+    expect(queryTool).toBeDefined();
+    expect(proposeTool).toBeDefined();
+
+    for (let index = 0; index < 5; index += 1) {
+      await queryTool!.execute('tool-call-id', {
+        sql: `select ${index} as n`,
+      });
+    }
+
+    await proposeTool!.execute('tool-call-id', {
+      mappingType: 'delegate_to_voter',
+      targetId: 'target-id',
+      confidence: 1,
+      reason: 'reason',
+      evidenceIds: [],
+      confirm: false,
+    });
+
+    expect(proposeDelegateMapping).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mappingType: 'delegate_to_voter',
+        targetId: 'target-id',
+        confirm: false,
+      })
+    );
+  });
 });

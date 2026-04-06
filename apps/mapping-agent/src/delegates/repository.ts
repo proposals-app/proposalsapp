@@ -1257,7 +1257,15 @@ export async function proposeDelegateMapping(input: {
   reason: string;
   evidenceIds: string[];
   decisionSource: 'deterministic' | 'agent';
-}): Promise<{ accepted: boolean; message: string }> {
+  confirm?: boolean;
+}): Promise<{
+  accepted: boolean;
+  message: string;
+  requiresConfirmation?: boolean;
+  canonicalTargetId?: string;
+  conflictingDelegateIds?: string[];
+  conflictingDelegateLabels?: string[];
+}> {
   const context = await loadDelegateWorkerContextByDaoId(input.daoId);
   if (!context) {
     throw new Error(`DAO ${input.daoId} not found`);
@@ -1450,20 +1458,22 @@ export async function proposeDelegateMapping(input: {
     targetId: input.targetId,
     voters: await loadExactGlobalVoterCandidates(input.targetId),
   });
+  const claimedDelegateIds = context.delegates
+    .filter(
+      (candidate) =>
+        candidate.id !== input.delegateId &&
+        candidate.voterIds.includes(target.id)
+    )
+    .map((candidate) => candidate.id);
 
   const decision = isDryRunEnabled()
     ? resolveDelegateMappingWriteAction({
         delegateId: input.delegateId,
         targetId: target.id,
         activeTargetIdsForDelegate: delegate.voterIds,
-        activeDelegateIdsForTarget: Array.from(
-          getActiveClaimedTargetIds(
-            context.delegates,
-            input.delegateId
-          ).voterIds.has(target.id)
-            ? ['claimed-by-other-delegate']
-            : []
-        ),
+        activeDelegateIdsForTarget: claimedDelegateIds,
+        allowSharedTarget: true,
+        confirmTargetClaimed: input.confirm === true,
       })
     : await db.transaction().execute(async (trx) => {
         const lockedDelegate = await trx
@@ -1521,6 +1531,8 @@ export async function proposeDelegateMapping(input: {
           activeDelegateIdsForTarget: targetMappings.map(
             (mapping) => mapping.delegateId
           ),
+          allowSharedTarget: true,
+          confirmTargetClaimed: input.confirm === true,
         });
 
         if (nextDecision.kind === 'insert') {
@@ -1557,6 +1569,23 @@ export async function proposeDelegateMapping(input: {
       accepted: false,
       message:
         'Delegate already has an active voter mapping. Do not propose another voter for this delegate; inspect the existing mapping or decline if the case is stale.',
+    };
+  }
+
+  if (decision.kind === 'confirm_target_claimed') {
+    const conflictingDelegateLabels = decision.conflictingIds.map(
+      (delegateId) => describeDelegateIdentity(context, delegateId)
+    );
+
+    return {
+      accepted: false,
+      requiresConfirmation: true,
+      canonicalTargetId: target.id,
+      conflictingDelegateIds: decision.conflictingIds,
+      conflictingDelegateLabels,
+      message: `Voter already linked to other delegate identities in this DAO: ${conflictingDelegateLabels.join(
+        ', '
+      )}. Call propose_delegate_mapping again with the same exact target and confirm=true only if you have strong evidence that this is an intentionally shared org/team wallet.`,
     };
   }
 
@@ -1597,6 +1626,36 @@ export async function proposeDelegateMapping(input: {
       ? 'Dry run: delegate would be mapped to voter'
       : 'Delegate mapped to voter',
   };
+}
+
+function describeDelegateIdentity(
+  context: DelegateWorkerContext,
+  delegateId: string
+): string {
+  const delegate = context.delegates.find(
+    (candidate) => candidate.id === delegateId
+  );
+  if (!delegate) {
+    return delegateId;
+  }
+
+  const labels = delegate.discourseUserIds
+    .map((discourseUserId) =>
+      context.discourseUsers.find((user) => user.id === discourseUserId)
+    )
+    .filter(Boolean)
+    .flatMap((user) => {
+      const result: string[] = [];
+      if (user?.username) {
+        result.push(user.username);
+      }
+      if (user?.name && user.name !== user.username) {
+        result.push(user.name);
+      }
+      return result;
+    });
+
+  return labels.length > 0 ? [...new Set(labels)].join(' / ') : delegateId;
 }
 
 export async function declineDelegateMapping(input: {

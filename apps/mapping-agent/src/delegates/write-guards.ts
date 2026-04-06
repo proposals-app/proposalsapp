@@ -12,6 +12,10 @@ export type DelegateMappingWriteAction =
   | {
       kind: 'reject_target_claimed';
       conflictingId: string;
+    }
+  | {
+      kind: 'confirm_target_claimed';
+      conflictingIds: string[];
     };
 
 export function resolveDelegateMappingWriteAction(input: {
@@ -19,6 +23,8 @@ export function resolveDelegateMappingWriteAction(input: {
   targetId: string;
   activeTargetIdsForDelegate: string[];
   activeDelegateIdsForTarget: string[];
+  allowSharedTarget?: boolean;
+  confirmTargetClaimed?: boolean;
 }): DelegateMappingWriteAction {
   if (input.activeTargetIdsForDelegate.includes(input.targetId)) {
     return {
@@ -36,13 +42,26 @@ export function resolveDelegateMappingWriteAction(input: {
     };
   }
 
-  const conflictingTargetDelegateId = input.activeDelegateIdsForTarget.find(
+  const conflictingTargetDelegateIds = input.activeDelegateIdsForTarget.filter(
     (delegateId) => delegateId !== input.delegateId
   );
-  if (conflictingTargetDelegateId) {
+  if (conflictingTargetDelegateIds.length > 0) {
+    if (input.allowSharedTarget) {
+      if (input.confirmTargetClaimed) {
+        return {
+          kind: 'insert',
+        };
+      }
+
+      return {
+        kind: 'confirm_target_claimed',
+        conflictingIds: conflictingTargetDelegateIds,
+      };
+    }
+
     return {
       kind: 'reject_target_claimed',
-      conflictingId: conflictingTargetDelegateId,
+      conflictingId: conflictingTargetDelegateIds[0]!,
     };
   }
 

@@ -319,6 +319,9 @@ describe('buildDelegateSystemPrompt', () => {
       'known high-signal patterns include: self-started communication, delegate platform, or statement threads, exact thread-derived addresses or ENS names, exact ?u=<username> vote-reason links, exact links to the discourse user own posts, and exact organization-brand breadcrumbs'
     );
     expect(prompt).toContain(
+      'follow this evidence ladder in order unless one step is unavailable: exact discourse user row -> self-started identity-thread titles -> first post of the best identity thread -> deterministic vote-reason link-to-post-author query -> exact voter address or ENS resolution -> only then broader exploration'
+    );
+    expect(prompt).toContain(
       'only if those focused checks fail should you broaden into exploratory work such as wider post inspection, broader vote-reason searches, or carefully targeted voter discovery'
     );
   });
@@ -380,6 +383,24 @@ describe('buildDelegateSystemPrompt', () => {
     );
   });
 
+  it('adds the Uniswap-specific identity-thread caution', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'in Uniswap, titles like Delegate Platform, Delegate Communication Thread, and delegate your UNI votes are often identity-thread variants'
+    );
+    expect(prompt).toContain(
+      'you must still distinguish "this is my delegate profile" from "please delegate to this other wallet"'
+    );
+  });
+
   it('tells the agent to correct raw forum schema mistakes instead of bailing into a decline', () => {
     const prompt = buildDelegateSystemPrompt({
       confidenceThreshold: 0.85,
@@ -401,6 +422,9 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'do not query information_schema to rediscover discourse_post or discourse_topic columns; use the known schema in this prompt and correct the query directly'
+    );
+    expect(prompt).toContain(
+      'prefer the exact deterministic query templates in this prompt over improvised schema guesses when you are resolving vote-reason forum links or self-started identity threads'
     );
     expect(prompt).toContain(
       'do not use unrelated schema-probing reads like select * from discourse_post limit 1 or select * from daos limit 1 when the current_case and discourse user rows already tell you what to inspect next'
@@ -472,10 +496,70 @@ describe('buildDelegateSystemPrompt', () => {
     });
 
     expect(prompt).toContain(
-      'if propose_delegate_mapping returns that a voter is already claimed by another delegate, treat that exact voter target as disqualified for this case; do not propose the same voter again'
+      'for delegate_to_voter proposals, call propose_delegate_mapping with confirm=false first'
     );
     expect(prompt).toContain(
-      'after an already-claimed rejection, either find a different exact voter candidate with stronger identity proof or decline because the remaining evidence is contradictory or insufficient'
+      'if propose_delegate_mapping returns requiresConfirmation=true, that means the exact voter is already linked to one or more other delegates in this DAO'
+    );
+    expect(prompt).toContain(
+      'only retry the same exact voter with confirm=true if you have strong shared-wallet proof'
+    );
+    expect(prompt).toContain(
+      'do not use confirm=true for weak evidence such as support language, follow language, same company, same thread participation, same ecosystem, generic name similarity, or brand adjacency alone'
+    );
+  });
+
+  it('forbids numeric coincidences and other weak pattern jumps', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'do not treat matching numbers, external_id fragments, post ids, or repeated numeric tokens inside a vote reason as identity proof'
+    );
+    expect(prompt).toContain(
+      'numeric coincidence is not a valid substitute for an exact wallet, ENS, forum-link, or self-identification breadcrumb'
+    );
+  });
+
+  it('treats other-author links and team affiliation as contrary or weak evidence', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'if a linked vote-reason post resolves to a different discourse author, treat that as contrary evidence for the current user rather than supporting evidence'
+    );
+    expect(prompt).toContain(
+      'being a team member, colleague, contributor, or employee of an organization is not enough to claim the organization wallet unless the current user explicitly ties themselves to that exact wallet or profile'
+    );
+  });
+
+  it('guards against system accounts and heavy raw-post reads', () => {
+    const prompt = buildDelegateSystemPrompt({
+      confidenceThreshold: 0.85,
+      maxQueryCalls: 30,
+      timeoutMs: 300_000,
+      daoId: 'dao-id',
+      delegateId: 'delegate-id',
+      schemaExport: 'schema',
+    });
+
+    expect(prompt).toContain(
+      'system, admin, moderation, announcements, foundation, or meta forum accounts are not normal delegate identity targets unless the case already includes explicit delegate-wallet evidence'
+    );
+    expect(prompt).toContain(
+      'before loading a long discourse_post.cooked body, first try narrow confirmation reads that only check whether the post contains an address, ENS, Tally URL, Snapshot URL, or exact self-identification breadcrumb'
     );
   });
 
