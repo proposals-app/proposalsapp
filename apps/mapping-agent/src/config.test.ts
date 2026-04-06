@@ -70,12 +70,4 @@ describe('loadConfig', () => {
       })
     );
   });
-
-  it('loads the LM Studio transport override', async () => {
-    vi.stubEnv('MAPPING_AGENT_PI_LMSTUDIO_TOOL_TRANSPORT', 'text-actions');
-
-    const { loadConfig } = await import('./config');
-
-    expect(loadConfig().pi.toolTransport).toBe('text-actions');
-  });
 });

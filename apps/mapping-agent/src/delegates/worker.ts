@@ -108,7 +108,6 @@ export async function runDelegateMappingWorker(
           configDir: config.pi.configDir,
           baseUrl: config.pi.baseUrl,
           apiKey: config.pi.apiKey,
-          toolTransportMode: config.pi.toolTransport,
           contextWindow: config.pi.contextWindow,
           timeoutMs: config.pi.sessionTimeoutMs,
           decisionGraceMs: 60_000,

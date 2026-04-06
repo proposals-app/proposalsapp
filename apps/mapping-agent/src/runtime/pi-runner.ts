@@ -11,11 +11,6 @@ import {
   type AgentSessionEvent,
   type ExtensionFactory,
 } from '@mariozechner/pi-coding-agent';
-import { createLmStudioTextActionStreamFn } from './lmstudio-text-actions';
-import {
-  resolvePiToolTransport,
-  type PiToolTransportMode,
-} from './tool-transport';
 
 const DEFAULT_MAX_TOKENS = 4_096;
 const DEFAULT_API_KEY = 'lmstudio';
@@ -35,7 +30,6 @@ export interface RunPiAgentInput {
   configDir?: string | null;
   baseUrl?: string | null;
   apiKey?: string | null;
-  toolTransportMode?: PiToolTransportMode;
   contextWindow: number;
   timeoutMs: number;
   decisionGraceMs?: number;
@@ -340,13 +334,6 @@ function extractAssistantFailureMessage(message: {
 export async function runPiAgent(
   input: RunPiAgentInput
 ): Promise<PiAgentRunResult> {
-  const toolTransport = resolvePiToolTransport({
-    provider: input.provider,
-    model: input.model,
-    baseUrl: input.baseUrl,
-    configuredMode: input.toolTransportMode,
-  });
-  const useLmStudioTextActions = toolTransport === 'text-actions';
   const thinkingLevel = normalizeThinkingLevel(input.thinking);
   const resourceLoader = new DefaultResourceLoader({
     cwd: process.cwd(),
@@ -384,9 +371,6 @@ export async function runPiAgent(
     tools: [],
   });
   session.agent.toolExecution = 'sequential';
-  if (useLmStudioTextActions) {
-    session.agent.streamFn = createLmStudioTextActionStreamFn();
-  }
   session.setActiveToolsByName(input.activeToolNames);
 
   const result: PiAgentRunResult = {
@@ -404,31 +388,29 @@ export async function runPiAgent(
   let abortPromise: Promise<void> | null = null;
   let decisionResolved = false;
   let assistantTurnFailure: PiAgentSessionAbortedError | null;
-  if (!useLmStudioTextActions) {
-    const baseOnPayload = session.agent.onPayload;
-    session.agent.onPayload = async (payload, currentModel) => {
-      const nextPayload =
-        (await baseOnPayload?.(payload, currentModel)) ?? payload;
+  const baseOnPayload = session.agent.onPayload;
+  session.agent.onPayload = async (payload, currentModel) => {
+    const nextPayload =
+      (await baseOnPayload?.(payload, currentModel)) ?? payload;
 
-      if (decisionResolved) {
-        return nextPayload;
-      }
+    if (decisionResolved) {
+      return nextPayload;
+    }
 
-      if (
-        !nextPayload ||
-        typeof nextPayload !== 'object' ||
-        Array.isArray(nextPayload)
-      ) {
-        return nextPayload;
-      }
+    if (
+      !nextPayload ||
+      typeof nextPayload !== 'object' ||
+      Array.isArray(nextPayload)
+    ) {
+      return nextPayload;
+    }
 
-      return {
-        ...(nextPayload as Record<string, unknown>),
-        tool_choice: 'required',
-        ...(input.baseUrl ? { parallel_tool_calls: false } : {}),
-      };
+    return {
+      ...(nextPayload as Record<string, unknown>),
+      tool_choice: 'required',
+      ...(input.baseUrl ? { parallel_tool_calls: false } : {}),
     };
-  }
+  };
   const abortSession = (reason: 'resolved') => {
     if (abortReason) {
       return;

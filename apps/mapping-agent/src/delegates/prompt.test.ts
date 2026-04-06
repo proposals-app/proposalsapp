@@ -29,18 +29,20 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt.split('\n').length).toBeLessThan(260);
   });
 
-  it('teaches the exact manual tool wrapper format', () => {
+  it('uses native tool-calling guidance instead of manual wrappers', () => {
     const prompt = makePrompt();
 
     expect(prompt).toContain(
-      'exact manual tool wrapper: [TOOL_REQUEST]{"name":"tool_name","arguments":{}}[END_TOOL_REQUEST]'
+      'Use the provided native tools. Make one tool call per assistant turn.'
     );
     expect(prompt).toContain(
-      'If you need a tool, the entire assistant message must be exactly one [TOOL_REQUEST]... [END_TOOL_REQUEST] block and nothing else.'
+      'Do not print fake tool syntax, bracketed wrappers, or JSON blobs that imitate tool calls.'
     );
     expect(prompt).toContain(
-      'do not invent alternate wrappers such as [PROPOSE_DELEGATE_MAPPING], [DECLINE_DELEGATE_MAPPING], or [QUERY_DELEGATE_MAPPING_DATA].'
+      'If you need a tool, call the tool directly through the native tool interface.'
     );
+    expect(prompt).not.toContain('[TOOL_REQUEST]');
+    expect(prompt).not.toContain('[PROPOSE_DELEGATE_MAPPING]');
   });
 
   it('defines a concise evidence ladder with the strongest known identity paths', () => {
@@ -171,13 +173,19 @@ describe('buildDelegateSystemPrompt', () => {
     const prompt = makePrompt();
 
     expect(prompt).toContain(
-      'Query results include structured feedback. Read rowCount, rows, budget, warning, and raw JSON carefully before deciding what to do next.'
+      'Tool results are structured JSON. Read ok, rowCount, rows, budget, warning, error, and attemptedSql carefully before deciding what to do next.'
     );
     expect(prompt).toContain(
       'When a query result has ok=false, treat it as SQL or tool-contract feedback. Repair the SQL and continue.'
     );
     expect(prompt).toContain(
       'Failed read queries do not advance the read budget.'
+    );
+    expect(prompt).toContain(
+      'Never request discourse_post.cooked across all posts by a user or topic.'
+    );
+    expect(prompt).toContain(
+      'If you need cooked text, fetch it only for one exact post, one exact topic first post, or a very small LIMIT after a metadata or breadcrumb scan has already narrowed the target.'
     );
   });
 

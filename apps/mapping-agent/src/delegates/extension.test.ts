@@ -62,6 +62,61 @@ describe('createDelegateExtension', () => {
     vi.clearAllMocks();
   });
 
+  it('does not consume query budget when a successful read result is too large to forward', async () => {
+    queryDelegateMappingData.mockResolvedValueOnce({
+      rows: Array.from({ length: 61 }, (_, index) => ({ id: index + 1 })),
+      rowCount: 61,
+    });
+
+    const tools = registerTools();
+    const queryTool = tools.get('query_delegate_mapping_data');
+    const proposeTool = tools.get('propose_delegate_mapping');
+
+    expect(queryTool).toBeDefined();
+    expect(proposeTool).toBeDefined();
+
+    const queryResult = parseTextResponse(
+      await queryTool!.execute('tool-call-id', {
+        sql: 'select id from discourse_post order by created_at desc',
+      })
+    );
+
+    expect(queryResult).toMatchObject({
+      ok: false,
+      rowCount: 61,
+      attemptedSql: 'select id from discourse_post order by created_at desc',
+      budget: {
+        queryCount: 0,
+        minQueriesRemaining: 5,
+        queryCallsRemaining: 30,
+      },
+    });
+    expect(queryResult.error).toContain('too large to forward safely');
+    expect(queryResult.guidance).toContain('Use LIMIT');
+
+    const proposeResult = parseTextResponse(
+      await proposeTool!.execute('tool-call-id', {
+        mappingType: 'delegate_to_voter',
+        targetId: 'target-id',
+        confidence: 1,
+        reason: 'reason',
+        evidenceIds: [],
+      })
+    );
+
+    expect(proposeDelegateMapping).not.toHaveBeenCalled();
+    expect(proposeResult).toMatchObject({
+      ok: false,
+      error:
+        'You must make at least 5 query_delegate_mapping_data calls before a decision tool is allowed.',
+      budget: {
+        queryCount: 0,
+        minQueriesRemaining: 5,
+        queryCallsRemaining: 30,
+      },
+    });
+  });
+
   it('does not consume query budget when a read query fails', async () => {
     queryDelegateMappingData.mockRejectedValueOnce(new Error('syntax error'));
 

@@ -1187,7 +1187,7 @@ describe('runPiAgent', () => {
     expect(session.dispose).toHaveBeenCalled();
   });
 
-  it('uses the LM Studio text-action transport when talking to an lmstudio base URL', async () => {
+  it('keeps LM Studio runs on the native tool path', async () => {
     const listeners: Array<(event: unknown) => void> = [];
     const session = {
       agent: {},
@@ -1256,11 +1256,9 @@ describe('runPiAgent', () => {
       maxQueryCalls: 4,
     });
 
-    expect(typeof (session.agent as { streamFn?: unknown }).streamFn).toBe(
+    expect((session.agent as { streamFn?: unknown }).streamFn).toBeUndefined();
+    expect(typeof (session.agent as { onPayload?: unknown }).onPayload).toBe(
       'function'
     );
-    expect(
-      (session.agent as { onPayload?: unknown }).onPayload
-    ).toBeUndefined();
   });
 });

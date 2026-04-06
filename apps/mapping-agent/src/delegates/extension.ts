@@ -16,6 +16,7 @@ import {
   serializeQueryBudget,
   type QueryBudgetConfig,
 } from '../shared/query-budget';
+import { buildOversizedQueryResultFeedback } from '../shared/query-result-guard';
 
 export interface DelegateMappingCase {
   daoId: string;
@@ -72,6 +73,25 @@ export function createDelegateExtension(
             allowedCategoryIds: currentCase.allowedCategoryIds,
             input: input as { sql: string },
           });
+          const unchangedBudget = getQueryBudgetSnapshot(
+            budgetConfig,
+            queryCount
+          );
+          const unchangedHurryMessage = buildHurryMessage(
+            budgetConfig,
+            unchangedBudget
+          );
+          const oversizedResultFeedback = buildOversizedQueryResultFeedback({
+            sql: (input as { sql: string }).sql,
+            result,
+            budget: serializeQueryBudget(unchangedBudget),
+            warning: unchangedHurryMessage,
+          });
+
+          if (oversizedResultFeedback) {
+            return textResponse(oversizedResultFeedback);
+          }
+
           queryCount += 1;
           const postQueryBudget = getQueryBudgetSnapshot(
             budgetConfig,

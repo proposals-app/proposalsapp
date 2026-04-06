@@ -1,5 +1,3 @@
-import type { PiToolTransportMode } from './runtime/tool-transport';
-
 const DEFAULT_DAO_CATEGORY_FILTERS: Record<string, number[]> = {
   arbitrum: [7, 8, 9],
   uniswap: [5, 8, 9, 10],
@@ -13,7 +11,6 @@ export interface PiAgentSettings {
   configDir: string | null;
   baseUrl: string | null;
   apiKey: string | null;
-  toolTransport: PiToolTransportMode;
   contextWindow: number;
   sessionTimeoutMs: number;
   maxQueryCalls: number;
@@ -59,22 +56,6 @@ function parseBoolean(value: string | undefined, fallback = false): boolean {
 
   const normalized = value.trim().toLowerCase();
   return normalized === '1' || normalized === 'true' || normalized === 'yes';
-}
-
-function parseToolTransportMode(
-  value: string | undefined
-): PiToolTransportMode {
-  switch (value?.trim().toLowerCase()) {
-    case 'native':
-      return 'native';
-    case 'text-actions':
-      return 'text-actions';
-    case 'auto':
-    case undefined:
-      return 'auto';
-    default:
-      return 'auto';
-  }
 }
 
 function parseDaoCategoryFilters(
@@ -157,9 +138,6 @@ export function loadConfig(): MappingAgentConfig {
       configDir: process.env.MAPPING_AGENT_PI_DIR || null,
       baseUrl: piBaseUrl,
       apiKey: piApiKey,
-      toolTransport: parseToolTransportMode(
-        process.env.MAPPING_AGENT_PI_LMSTUDIO_TOOL_TRANSPORT
-      ),
       contextWindow: parseInteger(
         process.env.MAPPING_AGENT_PI_CONTEXT_WINDOW,
         131_072
