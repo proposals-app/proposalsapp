@@ -70,4 +70,10 @@ describe('loadConfig', () => {
       })
     );
   });
+
+  it('defaults pi thinking to low', async () => {
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig().pi.thinking).toBe('low');
+  });
 });

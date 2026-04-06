@@ -134,7 +134,7 @@ export function loadConfig(): MappingAgentConfig {
     pi: {
       provider: piProvider,
       model: process.env.MAPPING_AGENT_PI_MODEL || null,
-      thinking: process.env.MAPPING_AGENT_PI_THINKING || 'medium',
+      thinking: process.env.MAPPING_AGENT_PI_THINKING || 'low',
       configDir: process.env.MAPPING_AGENT_PI_DIR || null,
       baseUrl: piBaseUrl,
       apiKey: piApiKey,

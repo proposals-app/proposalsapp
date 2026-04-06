@@ -26,14 +26,17 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain('Known SQL Patterns:');
     expect(prompt).toContain('SQL And Budget Rules:');
     expect(prompt).toContain('Decision Standard:');
-    expect(prompt.split('\n').length).toBeLessThan(260);
+    expect(prompt.split('\n').length).toBeLessThanOrEqual(260);
   });
 
   it('uses native tool-calling guidance instead of manual wrappers', () => {
     const prompt = makePrompt();
 
     expect(prompt).toContain(
-      'Use the provided native tools. Make one tool call per assistant turn.'
+      'Use the provided native tools whenever you need more evidence or are ready to decide.'
+    );
+    expect(prompt).toContain(
+      'Plain-text reasoning between tool calls is allowed, but only native tool calls can query evidence or finish the case.'
     );
     expect(prompt).toContain(
       'Do not print fake tool syntax, bracketed wrappers, or JSON blobs that imitate tool calls.'

@@ -142,6 +142,15 @@ function extractAssistantText(message: { content?: unknown }): string {
     .trim();
 }
 
+function isLmStudioQwenModel(
+  input: Pick<RunPiAgentInput, 'provider' | 'model'>
+) {
+  return (
+    input.provider === 'lmstudio' &&
+    input.model.toLowerCase().startsWith('qwen/')
+  );
+}
+
 function createModelRegistryForRun(input: RunPiAgentInput): {
   model: Model<Api>;
   modelRegistry: ModelRegistry;
@@ -153,6 +162,7 @@ function createModelRegistryForRun(input: RunPiAgentInput): {
     : ModelRegistry.inMemory(authStorage);
 
   if (input.baseUrl) {
+    const isLmStudioQwen = isLmStudioQwenModel(input);
     modelRegistry.registerProvider(input.provider, {
       api: 'openai-completions',
       apiKey: input.apiKey ?? DEFAULT_API_KEY,
@@ -161,7 +171,7 @@ function createModelRegistryForRun(input: RunPiAgentInput): {
         {
           id: input.model,
           name: input.model,
-          reasoning: false,
+          reasoning: isLmStudioQwen,
           input: ['text'],
           contextWindow: input.contextWindow,
           maxTokens: DEFAULT_MAX_TOKENS,
@@ -179,6 +189,11 @@ function createModelRegistryForRun(input: RunPiAgentInput): {
                   supportsReasoningEffort: false,
                   supportsUsageInStreaming: false,
                   supportsStrictMode: false,
+                  ...(isLmStudioQwen
+                    ? {
+                        thinkingFormat: 'qwen' as const,
+                      }
+                    : {}),
                   maxTokensField: 'max_tokens' as const,
                 }
               : {
@@ -388,6 +403,7 @@ export async function runPiAgent(
   let abortPromise: Promise<void> | null = null;
   let decisionResolved = false;
   let assistantTurnFailure: PiAgentSessionAbortedError | null;
+  let lastAssistantTurnText = '';
   const baseOnPayload = session.agent.onPayload;
   session.agent.onPayload = async (payload, currentModel) => {
     const nextPayload =
@@ -407,8 +423,8 @@ export async function runPiAgent(
 
     return {
       ...(nextPayload as Record<string, unknown>),
-      tool_choice: 'required',
       ...(input.baseUrl ? { parallel_tool_calls: false } : {}),
+      ...(input.baseUrl ? { tool_choice: 'auto' } : {}),
     };
   };
   const abortSession = (reason: 'resolved') => {
@@ -430,6 +446,7 @@ export async function runPiAgent(
       }
 
       currentAssistantText = '';
+      lastAssistantTurnText = '';
     }
 
     if (
@@ -464,9 +481,10 @@ export async function runPiAgent(
         );
       }
 
+      lastAssistantTurnText = extractAssistantText(event.message);
       input.onEvent?.({
         type: 'assistant_message_end',
-        text: extractAssistantText(event.message),
+        text: lastAssistantTurnText,
       });
     }
 
@@ -546,14 +564,22 @@ export async function runPiAgent(
         result.queryCallCount < DEFAULT_SOFT_DECISION_QUERY_TARGET;
 
       if (!madeToolCallThisTurn) {
-        prompts.push(
-          [
-            'Continue this same mapping case.',
-            'You ended the last turn without a tool call.',
-            `End the next turn with exactly one tool call: ${input.queryToolName}, ${input.decisionToolNames.join(', ')}.`,
-            'Do not stop with plain text.',
-          ].join(' ')
-        );
+        const noToolFollowup = lastAssistantTurnText
+          ? [
+              'Continue this same mapping case.',
+              'Your last turn added reasoning in plain text but did not take a concrete action.',
+              `Use that reasoning to take the next step with the native tools: either make one focused ${input.queryToolName} call or, if the evidence is already sufficient, call ${input.decisionToolNames.join(
+                ' or '
+              )}.`,
+            ].join(' ')
+          : [
+              'Continue this same mapping case.',
+              'Your last turn ended without a tool call or a usable final answer.',
+              `Take the next concrete step with the native tools: either make one focused ${input.queryToolName} call or, if the evidence is already sufficient, call ${input.decisionToolNames.join(
+                ' or '
+              )}.`,
+            ].join(' ');
+        prompts.push(noToolFollowup);
         continue;
       }
 
@@ -573,7 +599,7 @@ export async function runPiAgent(
               `It is still too early to decide. Make at least ${remainingQueries} more focused ${input.queryToolName} call(s) before using ${input.decisionToolNames.join(
                 ' or '
               )}.`,
-              'Make one query tool call in the next turn.',
+              'Take the next concrete step with the native tools.',
             ].join(' ')
           );
           continue;
@@ -588,7 +614,7 @@ export async function runPiAgent(
                 ' or '
               )}.`,
               'Do not call the read tool again.',
-              'End the next turn with exactly one tool call.',
+              'Use the native decision tools to finish the case.',
             ].join(' ')
           );
           continue;
@@ -604,7 +630,7 @@ export async function runPiAgent(
               'Continue this same mapping case.',
               `You have made ${result.queryCallCount} ${input.queryToolName} call(s), which is enough to decide if the evidence is already decisive.`,
               `Prefer making about ${remainingSoftQueries} more focused ${input.queryToolName} call(s) before deciding unless the evidence is already strong enough.`,
-              'End the next turn with exactly one tool call.',
+              'Take the next concrete step with the native tools.',
             ].join(' ')
           );
           continue;
@@ -620,7 +646,7 @@ export async function runPiAgent(
               `Prefer a decision via ${input.decisionToolNames.join(
                 ' or '
               )}, unless one more focused ${input.queryToolName} call is truly necessary.`,
-              'End the next turn with exactly one tool call.',
+              'Use the native tools to wrap up the case.',
             ].join(' ')
           );
           continue;
@@ -633,7 +659,7 @@ export async function runPiAgent(
             `Use the latest evidence to either make one more focused ${input.queryToolName} call or call ${input.decisionToolNames.join(
               ' or '
             )}.`,
-            'End the next turn with exactly one tool call.',
+            'Use the native tools to take the next concrete step.',
           ].join(' ')
         );
       }

@@ -297,6 +297,7 @@ describe('runPiAgent', () => {
         models: [
           expect.objectContaining({
             id: 'google/gemma-4-31b',
+            reasoning: false,
             compat: expect.objectContaining({
               maxTokensField: 'max_tokens',
               supportsDeveloperRole: false,
@@ -304,6 +305,94 @@ describe('runPiAgent', () => {
               supportsStore: false,
               supportsStrictMode: false,
               supportsUsageInStreaming: false,
+            }),
+          }),
+        ],
+      })
+    );
+  });
+
+  it('registers LM Studio qwen models with native thinking support', async () => {
+    const listeners: Array<(event: unknown) => void> = [];
+    const session = {
+      agent: {},
+      subscribe: vi.fn((listener) => {
+        listeners.push(listener);
+        return vi.fn();
+      }),
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => undefined),
+      prompt: vi.fn(async () => {
+        for (const listener of listeners) {
+          listener({
+            type: 'tool_execution_start',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            args: { reason: 'done' },
+          });
+          listener({
+            type: 'tool_execution_end',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            isError: false,
+            result: {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({ declined: true }),
+                },
+              ],
+            },
+          });
+        }
+      }),
+      dispose: vi.fn(),
+    };
+    const model = {
+      provider: 'lmstudio',
+      id: 'qwen/qwen3.5-27b',
+    };
+
+    modelRegistry.find.mockReturnValue(model);
+    createAgentSession.mockResolvedValue({
+      session,
+      extensionsResult: {
+        extensions: [],
+        errors: [],
+        runtime: {},
+      },
+    });
+
+    await runPiAgent({
+      extensionFactory: vi.fn(),
+      activeToolNames: ['query_delegate_mapping_data'],
+      queryToolName: 'query_delegate_mapping_data',
+      decisionToolNames: [
+        'propose_delegate_mapping',
+        'decline_delegate_mapping',
+      ],
+      systemPrompt: 'system prompt',
+      prompt: 'resolve the mapping case',
+      provider: 'lmstudio',
+      model: 'qwen/qwen3.5-27b',
+      thinking: 'low',
+      baseUrl: 'http://ai-box:2234/v1',
+      apiKey: 'lmstudio',
+      contextWindow: 131_072,
+      timeoutMs: 30_000,
+      maxQueryCalls: 4,
+    });
+
+    expect(modelRegistry.registerProvider).toHaveBeenCalledWith(
+      'lmstudio',
+      expect.objectContaining({
+        models: [
+          expect.objectContaining({
+            id: 'qwen/qwen3.5-27b',
+            reasoning: true,
+            compat: expect.objectContaining({
+              thinkingFormat: 'qwen',
+              supportsReasoningEffort: false,
             }),
           }),
         ],
@@ -634,7 +723,7 @@ describe('runPiAgent', () => {
     expect(result.decisionToolCallCount).toBe(1);
   });
 
-  it('forces tool_choice required until a decision tool has been called', async () => {
+  it('keeps runtime-provider tool payloads on native auto tool choice', async () => {
     const listeners: Array<(event: unknown) => void> = [];
     let promptCallCount = 0;
     let resolvePrompt: (() => void) | undefined;
@@ -736,7 +825,7 @@ describe('runPiAgent', () => {
       fromBaseHook: true,
       model: 'google/gemma-4-31b',
       parallel_tool_calls: false,
-      tool_choice: 'required',
+      tool_choice: 'auto',
     });
 
     resolvePrompt?.();
@@ -990,7 +1079,7 @@ describe('runPiAgent', () => {
     expect(result.decisionToolCallCount).toBe(1);
   });
 
-  it('nudges the model when a turn ends without any tool call', async () => {
+  it('softly nudges the model when a turn ends without any tool call', async () => {
     const listeners: Array<(event: unknown) => void> = [];
     let promptCallCount = 0;
     const session = {
@@ -1095,7 +1184,9 @@ describe('runPiAgent', () => {
 
     expect(session.prompt).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('You ended the last turn without a tool call.')
+      expect.stringContaining(
+        'Your last turn added reasoning in plain text but did not take a concrete action.'
+      )
     );
   });
 
