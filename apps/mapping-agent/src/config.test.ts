@@ -71,9 +71,18 @@ describe('loadConfig', () => {
     );
   });
 
-  it('defaults pi thinking to low', async () => {
+  it('defaults pi thinking to low for non-qwen providers', async () => {
     const { loadConfig } = await import('./config');
 
     expect(loadConfig().pi.thinking).toBe('low');
+  });
+
+  it('defaults lmstudio qwen thinking to xhigh', async () => {
+    vi.stubEnv('MAPPING_AGENT_PI_PROVIDER', 'lmstudio');
+    vi.stubEnv('MAPPING_AGENT_PI_MODEL', 'qwen/qwen3.5-27b');
+
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig().pi.thinking).toBe('xhigh');
   });
 });

@@ -2,10 +2,12 @@ import type { Logger } from 'pino';
 import type { MappingAgentConfig } from '../config';
 import { PiAgentSessionAbortedError, runPiAgent } from '../runtime/pi-runner';
 import { createAgentSessionLogger } from '../shared/agent-observability';
+import { createSessionAuditRecorder } from '../shared/session-audit';
 import { loadEnabledDaos } from '../shared/dao';
 import { getPublicSchemaExport } from '../shared/schema-export';
 import { createDelegateExtension } from './extension';
 import { buildDelegatePrompt, buildDelegateSystemPrompt } from './prompt';
+import { attachLatestDelegateDecisionSession } from '../shared/audit';
 import { runDeterministicDelegateMappings } from './repository';
 
 export async function runDelegateMappingWorker(
@@ -69,6 +71,16 @@ export async function runDelegateMappingWorker(
         entityName: 'delegate',
         entityId: currentCase.delegateId,
       });
+      const sessionAudit = createSessionAuditRecorder({
+        provider: config.pi.provider,
+        model: config.pi.model,
+        thinking: config.pi.thinking,
+        startedAtMs: sessionLogger.startedAtMs,
+      });
+      const onEvent = (event: Parameters<typeof sessionLogger.onEvent>[0]) => {
+        sessionLogger.onEvent(event);
+        sessionAudit.onEvent(event);
+      };
 
       try {
         const output = await runPiAgent({
@@ -114,8 +126,20 @@ export async function runDelegateMappingWorker(
           maxQueryCalls: config.pi.maxQueryCalls,
           minQueryCallsBeforeDecision: 5,
           requireResolvedDecision: true,
-          onEvent: sessionLogger.onEvent,
+          onEvent,
         });
+
+        if (output.decisionToolCallCount > 0) {
+          const snapshot = sessionAudit.snapshot(output);
+          await attachLatestDelegateDecisionSession({
+            daoId: context.dao.id,
+            delegateId: currentCase.delegateId,
+            decisionSource: 'agent',
+            startedAt: new Date(sessionLogger.startedAtMs).toISOString(),
+            sessionTrace: snapshot.sessionTrace,
+            sessionStats: snapshot.sessionStats,
+          });
+        }
 
         logger.info(
           {

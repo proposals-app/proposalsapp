@@ -108,6 +108,11 @@ export function loadConfig(): MappingAgentConfig {
     process.env.MAPPING_AGENT_PI_API_KEY ||
     (piProvider === 'openrouter' ? process.env.OPENROUTER_API_KEY : null) ||
     null;
+  const piModel = process.env.MAPPING_AGENT_PI_MODEL || null;
+  const defaultThinking =
+    piProvider === 'lmstudio' && piModel?.toLowerCase().startsWith('qwen/')
+      ? 'xhigh'
+      : 'low';
 
   return {
     port: parseInteger(process.env.PORT, 3000),
@@ -133,8 +138,8 @@ export function loadConfig(): MappingAgentConfig {
     ),
     pi: {
       provider: piProvider,
-      model: process.env.MAPPING_AGENT_PI_MODEL || null,
-      thinking: process.env.MAPPING_AGENT_PI_THINKING || 'low',
+      model: piModel,
+      thinking: process.env.MAPPING_AGENT_PI_THINKING || defaultThinking,
       configDir: process.env.MAPPING_AGENT_PI_DIR || null,
       baseUrl: piBaseUrl,
       apiKey: piApiKey,

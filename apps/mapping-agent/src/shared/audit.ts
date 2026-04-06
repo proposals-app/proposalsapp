@@ -13,6 +13,8 @@ export interface ProposalDecisionAuditInput {
   reason: string;
   evidenceIds?: string[];
   metadata?: Record<string, unknown>;
+  sessionTrace?: unknown[];
+  sessionStats?: unknown;
 }
 
 export interface DelegateDecisionAuditInput {
@@ -27,6 +29,8 @@ export interface DelegateDecisionAuditInput {
   reason: string;
   evidenceIds?: string[];
   metadata?: Record<string, unknown>;
+  sessionTrace?: unknown[];
+  sessionStats?: unknown;
 }
 
 function jsonb(value: unknown) {
@@ -50,7 +54,9 @@ export async function recordProposalDecision(
       confidence,
       reason,
       evidence_ids,
-      metadata
+      metadata,
+      session_trace,
+      session_stats
     ) VALUES (
       ${input.daoId},
       ${input.proposalId},
@@ -60,7 +66,9 @@ export async function recordProposalDecision(
       ${input.confidence ?? null},
       ${input.reason},
       ${jsonb(input.evidenceIds ?? [])},
-      ${jsonb(input.metadata ?? {})}
+      ${jsonb(input.metadata ?? {})},
+      ${jsonb(input.sessionTrace ?? [])},
+      ${jsonb(input.sessionStats ?? {})}
     )
   `.execute(db);
 }
@@ -84,7 +92,9 @@ export async function recordDelegateDecision(
       confidence,
       reason,
       evidence_ids,
-      metadata
+      metadata,
+      session_trace,
+      session_stats
     ) VALUES (
       ${input.daoId},
       ${input.delegateId},
@@ -96,7 +106,57 @@ export async function recordDelegateDecision(
       ${input.confidence ?? null},
       ${input.reason},
       ${jsonb(input.evidenceIds ?? [])},
-      ${jsonb(input.metadata ?? {})}
+      ${jsonb(input.metadata ?? {})},
+      ${jsonb(input.sessionTrace ?? [])},
+      ${jsonb(input.sessionStats ?? {})}
     )
+  `.execute(db);
+}
+
+export async function attachLatestProposalDecisionSession(input: {
+  daoId: string;
+  proposalId: string;
+  decisionSource: 'deterministic' | 'agent';
+  startedAt: string;
+  sessionTrace: unknown[];
+  sessionStats: unknown;
+}): Promise<void> {
+  if (isDryRunEnabled()) {
+    return;
+  }
+
+  await sql`
+    UPDATE public.mapping_proposal_decision
+    SET
+      session_trace = ${jsonb(input.sessionTrace)},
+      session_stats = ${jsonb(input.sessionStats)}
+    WHERE dao_id = ${input.daoId}
+      AND proposal_id = ${input.proposalId}
+      AND decision_source = ${input.decisionSource}
+      AND created_at >= ${input.startedAt}::timestamptz
+  `.execute(db);
+}
+
+export async function attachLatestDelegateDecisionSession(input: {
+  daoId: string;
+  delegateId: string;
+  decisionSource: 'deterministic' | 'agent';
+  startedAt: string;
+  sessionTrace: unknown[];
+  sessionStats: unknown;
+}): Promise<void> {
+  if (isDryRunEnabled()) {
+    return;
+  }
+
+  await sql`
+    UPDATE public.mapping_delegate_decision
+    SET
+      session_trace = ${jsonb(input.sessionTrace)},
+      session_stats = ${jsonb(input.sessionStats)}
+    WHERE dao_id = ${input.daoId}
+      AND delegate_id = ${input.delegateId}
+      AND decision_source = ${input.decisionSource}
+      AND created_at >= ${input.startedAt}::timestamptz
   `.execute(db);
 }
