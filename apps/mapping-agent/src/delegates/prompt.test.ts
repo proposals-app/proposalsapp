@@ -26,7 +26,7 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain('Known SQL Patterns:');
     expect(prompt).toContain('SQL And Budget Rules:');
     expect(prompt).toContain('Decision Standard:');
-    expect(prompt.split('\n').length).toBeLessThan(220);
+    expect(prompt.split('\n').length).toBeLessThan(260);
   });
 
   it('teaches the exact manual tool wrapper format', () => {
@@ -47,7 +47,7 @@ describe('buildDelegateSystemPrompt', () => {
     const prompt = makePrompt();
 
     expect(prompt).toContain(
-      'Follow this evidence ladder unless a step is unavailable: exact discourse row -> self-started identity-thread titles -> post #1 of the best identity thread -> exact address or ENS breadcrumbs -> deterministic vote-reason link-to-post-author query -> exact voter resolution -> only then targeted exploratory work.'
+      'Follow this evidence ladder unless a step is unavailable: exact discourse row -> self-started identity-thread titles -> post #1 of the best identity thread -> authored exact breadcrumb resolution across self-authored posts -> deterministic vote-reason link-to-post-author query -> only then targeted exploratory work.'
     );
     expect(prompt).toContain(
       'If the discourse username itself is a full ENS such as ostanescu.eth, check exact voter ENS equality early.'
@@ -56,10 +56,22 @@ describe('buildDelegateSystemPrompt', () => {
       "Self-introduction posts and self-authored application/signup posts are high-signal when they explicitly state the author's own wallet, ENS, Tally profile, or Snapshot profile."
     );
     expect(prompt).toContain(
-      'In Arbitrum, self-authored RAD, DIP, delegate-incentive, and application-thread posts are high-signal when they include a Tally URL whose path exposes the exact wallet or ENS.'
+      'In Arbitrum, self-authored Delegate Statement Template, Incentive Program Delegate Application, What is (Re)delegation Week, RAD, DIP, and Karma wallet-link posts are high-signal when they include an exact wallet, ENS, or Tally/Snapshot breadcrumb.'
     );
     expect(prompt).toContain(
-      'In Uniswap, self-authored titles like Delegate Platform, Delegate Communication Thread, and Delegate your UNI Votes to... are high-signal identity sources.'
+      'In Uniswap, self-authored titles like Delegate Platform, Delegate Communication Thread, Delegate your UNI Votes to..., and delegate reward/application threads are high-signal identity sources.'
+    );
+    expect(prompt).toContain(
+      'If exact ENS equality fails, that does not mean the case is close to decline.'
+    );
+    expect(prompt).toContain(
+      'When the discourse name carries an organization brand but the username does not match the wallet ENS'
+    );
+    expect(prompt).toContain(
+      'Before declining, run an authored exact breadcrumb resolution query across the current user’s own posts.'
+    );
+    expect(prompt).toContain(
+      "Later self-authored posts can mention many third-party addresses. Prefer the candidate that recurs across the author's own identity, application, delegate-statement, or wallet-link posts"
     );
   });
 
@@ -70,6 +82,9 @@ describe('buildDelegateSystemPrompt', () => {
     expect(prompt).toContain('join discourse_topic t');
     expect(prompt).toContain('authored exact-breadcrumb scan:');
     expect(prompt).toContain("where lower(p.cooked) ~ '0x[a-f0-9]{40}'");
+    expect(prompt).toContain('authored exact-breadcrumb resolution query:');
+    expect(prompt).toContain('extracted_address');
+    expect(prompt).toContain('same_dao_vote_count');
     expect(prompt).toContain('Arbitrum application-thread scan:');
     expect(prompt).toContain(
       "where lower(t.title) ~ '(rad|dip|delegate incentive|rewarding active delegates|application thread)'"
@@ -92,6 +107,18 @@ describe('buildDelegateSystemPrompt', () => {
     const prompt = makePrompt();
 
     expect(prompt).toContain(
+      "A self-authored identity thread that explicitly lists the author's own wallet address, ENS, Tally profile, Snapshot profile, or equivalent exact breadcrumb."
+    );
+    expect(prompt).toContain(
+      'An exact wallet or ENS extracted from the current user’s own posts that resolves to a canonical voter row with same-DAO vote activity.'
+    );
+    expect(prompt).toContain(
+      'The same exact wallet or ENS recurring across multiple self-authored identity, application, delegate-statement, or wallet-link posts.'
+    );
+    expect(prompt).toContain(
+      'Exact self-authored wallet or ENS breadcrumbs remain strong proof even if a vote-reason link search later fails or finds no results.'
+    );
+    expect(prompt).toContain(
       'Repeated exact vote-reason links from one voter_address to posts authored by the current discourse user are among the strongest signals in the data.'
     );
     expect(prompt).toContain(
@@ -108,6 +135,9 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'Same employer, same ecosystem, same organization, same grant application, or same team page is not wallet proof.'
+    );
+    expect(prompt).toContain(
+      'Addresses or ENS names that appear only inside later proposal updates, quoted material, or lists of other delegates are not proof that the current author owns them'
     );
     expect(prompt).toContain(
       'If a linked forum post is authored by a different discourse user than the current case, that is contrary evidence for this line of proof unless you can show an explicit alias or rename connection.'
