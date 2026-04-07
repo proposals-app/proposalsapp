@@ -52,6 +52,9 @@ describe('buildDelegateSystemPrompt', () => {
     const prompt = makePrompt();
 
     expect(prompt).toContain(
+      'Keep DAO and forum scope strict. Use forum evidence only from the current dao_discourse_id, and treat same-DAO vote activity in the current dao_id as the primary voter validation for this case.'
+    );
+    expect(prompt).toContain(
       'Follow this evidence ladder unless a step is unavailable: exact discourse row -> self-started identity-thread titles -> post #1 of the best identity thread -> authored exact breadcrumb resolution across self-authored posts -> deterministic vote-reason link-to-post-author query -> only then targeted exploratory work.'
     );
     expect(prompt).toContain(
@@ -89,6 +92,12 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'Org/shared-wallet mode: if the discourse name, self-authored thread titles, or self-authored posts clearly indicate an organization, check for exact org wallet breadcrumbs, org ENS, or repeated vote-link evidence for that org wallet.'
+    );
+    expect(prompt).toContain(
+      'Read whether the user is speaking as an individual or on behalf of a delegation/team/org.'
+    );
+    expect(prompt).toContain(
+      'When using vote-reason links, treat them as a distribution problem inside the current DAO/forum: check whether the candidate wallet links mostly to the current user, to a tight same-org cluster, or mostly to someone else.'
     );
     expect(prompt).toContain(
       'Once you have direct authored proof plus an exact voter row and same-DAO vote activity, propose immediately.'
@@ -142,6 +151,12 @@ describe('buildDelegateSystemPrompt', () => {
       'Repeated exact vote-reason links from one voter_address to posts authored by the current discourse user are among the strongest signals in the data.'
     );
     expect(prompt).toContain(
+      'A candidate wallet whose vote-reason links overwhelmingly resolve to the current discourse user in this same DAO/forum is strong corroboration'
+    );
+    expect(prompt).toContain(
+      'For shared-org cases, a candidate wallet whose vote-reason links resolve to a tight same-org cluster in this same DAO/forum can support confirm=true when combined with exact org-level evidence.'
+    );
+    expect(prompt).toContain(
       'Direct authored proof plus an exact voter row plus same-DAO vote activity is sufficient to propose immediately unless you have concrete contrary evidence.'
     );
     expect(prompt).toContain(
@@ -152,6 +167,15 @@ describe('buildDelegateSystemPrompt', () => {
     );
     expect(prompt).toContain(
       'Treat ?u=<current username> as strong only when it lines up with the current user and the linked post/thread authorship also checks out'
+    );
+    expect(prompt).toContain(
+      'Do not mix DAOs or forums. A delegate on one DAO forum must map to a wallet evidenced in that same forum and validated against votes in that same DAO; activity in another DAO or another forum is only supporting context and is never enough to accept.'
+    );
+    expect(prompt).toContain(
+      'If a candidate wallet has zero vote-reason links to the current discourse user in the current DAO/forum, do not accept it on vote-link logic alone.'
+    );
+    expect(prompt).toContain(
+      'If a candidate wallet links mostly to other users and only incidentally to the current discourse user, treat that as contrary evidence rather than support.'
     );
     expect(prompt).toContain(
       'Recommendation language such as "delegate to", "delegate our votes to", "I delegated to", "support", or "follow" is evidence about the referenced target, not proof that the current author owns that wallet.'
