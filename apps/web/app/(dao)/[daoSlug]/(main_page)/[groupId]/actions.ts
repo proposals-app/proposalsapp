@@ -833,7 +833,6 @@ export async function getFeed(
   let processedVotes: ProcessedVote[] = [];
 
   const allVotes: Selectable<Vote>[] = [];
-  const filteredProcessedVotes: ProcessedVote[] = [];
 
   let events: FeedEvent[] = [];
 
@@ -871,7 +870,7 @@ export async function getFeed(
   if (proposals.length > 0) {
     const proposalIds = proposals.map((p) => p.id);
 
-    let votesQuery = db
+    let latestVotesQuery = db
       .selectFrom('vote')
       .distinctOn(['voterAddress', 'proposalId'])
       .selectAll()
@@ -880,40 +879,84 @@ export async function getFeed(
       .orderBy('proposalId', 'asc')
       .orderBy('createdAt', 'desc');
 
+    let historicalVotesQuery = db
+      .selectFrom('vote')
+      .selectAll()
+      .where('proposalId', 'in', proposalIds)
+      .orderBy('proposalId', 'asc')
+      .orderBy('createdAt', 'desc');
+
     // Apply filtering at database level
     if (fromFilter === FromFilterEnum.FIFTY_THOUSAND) {
-      votesQuery = votesQuery.where('votingPower', '>', 50000);
+      latestVotesQuery = latestVotesQuery.where('votingPower', '>', 50000);
+      historicalVotesQuery = historicalVotesQuery.where(
+        'votingPower',
+        '>',
+        50000
+      );
     } else if (fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND) {
-      votesQuery = votesQuery.where('votingPower', '>', 500000);
+      latestVotesQuery = latestVotesQuery.where('votingPower', '>', 500000);
+      historicalVotesQuery = historicalVotesQuery.where(
+        'votingPower',
+        '>',
+        500000
+      );
     } else if (fromFilter === FromFilterEnum.FIVE_MILLION) {
-      votesQuery = votesQuery.where('votingPower', '>', 5000000);
+      latestVotesQuery = latestVotesQuery.where('votingPower', '>', 5000000);
+      historicalVotesQuery = historicalVotesQuery.where(
+        'votingPower',
+        '>',
+        5000000
+      );
     } else if (fromFilter === FromFilterEnum.AUTHOR && author?.voters) {
       const authorAddresses = author.voters.map((av) => av.address);
       if (authorAddresses.length > 0) {
-        votesQuery = votesQuery.where('voterAddress', 'in', authorAddresses);
+        latestVotesQuery = latestVotesQuery.where(
+          'voterAddress',
+          'in',
+          authorAddresses
+        );
+        historicalVotesQuery = historicalVotesQuery.where(
+          'voterAddress',
+          'in',
+          authorAddresses
+        );
       }
     }
 
-    const allVotesForProposals = await votesQuery.execute();
-    allVotes.push(...allVotesForProposals);
+    const [historicalVotesForProposals, latestVotesForProposals] =
+      await Promise.all([
+        historicalVotesQuery.execute(),
+        latestVotesQuery.execute(),
+      ]);
 
-    // Group votes by proposal
-    const votesByProposal = new Map<string, Selectable<Vote>[]>();
-    allVotesForProposals.forEach((vote) => {
-      const proposalVotes = votesByProposal.get(vote.proposalId) || [];
+    allVotes.push(...historicalVotesForProposals);
+
+    const historicalVotesByProposal = new Map<string, Selectable<Vote>[]>();
+    historicalVotesForProposals.forEach((vote) => {
+      const proposalVotes =
+        historicalVotesByProposal.get(vote.proposalId) || [];
       proposalVotes.push(vote);
-      votesByProposal.set(vote.proposalId, proposalVotes);
+      historicalVotesByProposal.set(vote.proposalId, proposalVotes);
+    });
+
+    const latestVotesByProposal = new Map<string, Selectable<Vote>[]>();
+    latestVotesForProposals.forEach((vote) => {
+      const proposalVotes = latestVotesByProposal.get(vote.proposalId) || [];
+      proposalVotes.push(vote);
+      latestVotesByProposal.set(vote.proposalId, proposalVotes);
     });
 
     // Process each proposal with its votes
     for (const proposal of proposals) {
       try {
-        const proposalVotes = votesByProposal.get(proposal.id) || [];
-        const filteredVotesForTimeline = proposalVotes;
+        const historicalVotes =
+          historicalVotesByProposal.get(proposal.id) || [];
+        const latestVotes = latestVotesByProposal.get(proposal.id) || [];
 
         const filteredProcessedResults = await processResultsAction(
           proposal,
-          filteredVotesForTimeline,
+          historicalVotes,
           {
             withVotes: true,
             withTimeseries: false,
@@ -931,7 +974,6 @@ export async function getFeed(
         >();
 
         if (filteredProcessedResults.votes) {
-          filteredProcessedVotes.push(...filteredProcessedResults.votes);
           filteredProcessedResults.votes.forEach((vote) => {
             // Get the date in locale format to use as key
             const date = vote.createdAt.toLocaleDateString();
@@ -1059,10 +1101,9 @@ export async function getFeed(
         });
 
         if (currentTimestamp >= startedAt) {
-          const allVotesForProposal = votesByProposal.get(proposal.id) || [];
           const processedResults = await processResultsAction(
             proposal,
-            allVotesForProposal,
+            latestVotes,
             {
               withVotes: true,
               withTimeseries: false,
@@ -1075,8 +1116,7 @@ export async function getFeed(
             (feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES ||
               feedFilter == FeedFilterEnum.VOTES)
           ) {
-            // Votes are already filtered at database level, just add them
-            processedVotes.push(...processedResults.votes);
+            processedVotes.push(...(filteredProcessedResults.votes ?? []));
           }
 
           const metadata =

@@ -355,6 +355,7 @@ export async function getVotesWithVoters(proposalId: string) {
     .where('vote.proposalId', '=', proposalId)
     .orderBy('vote.voterAddress', 'asc')
     .orderBy('vote.createdAt', 'desc')
+    .orderBy('vote.id', 'desc')
     .execute();
 
   if (votesWithAllData.length === 0) {
@@ -517,6 +518,8 @@ export async function getDelegateVotingPower(
     .selectFrom('vote')
     .where('voterAddress', '=', voterAddress)
     .where('proposalId', '=', proposalId)
+    .orderBy('createdAt', 'desc')
+    .orderBy('id', 'desc')
     .selectAll()
     .executeTakeFirst();
 
@@ -577,7 +580,6 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   const daoIds = [...new Set(proposals.map((p) => p.daoId))];
   const allVotes = await db
     .selectFrom('vote')
-    .distinctOn(['proposalId', 'voterAddress'])
     .select([
       'id',
       'choice',
@@ -589,8 +591,8 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     ])
     .where('proposalId', 'in', validProposalIds)
     .orderBy('proposalId', 'asc')
-    .orderBy('voterAddress', 'asc')
     .orderBy('createdAt', 'desc')
+    .orderBy('id', 'desc')
     .execute();
 
   const voterAddresses = [
@@ -786,6 +788,7 @@ export async function getVotesMinimal(
     ])
     .orderBy('voterAddress', 'asc')
     .orderBy('createdAt', 'desc')
+    .orderBy('id', 'desc')
     .execute();
 
   return votes.map((v) => ({

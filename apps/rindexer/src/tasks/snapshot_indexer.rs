@@ -11,7 +11,7 @@ use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vot
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::Set,
-    ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
     prelude::{Expr, Uuid},
 };
 use std::time::Duration as StdDuration;
@@ -21,6 +21,15 @@ use tracing::{debug, error, info, instrument, warn};
 const REFRESH_INTERVAL: StdDuration = StdDuration::from_secs(60);
 const HIDDEN_VOTE_MAX_RETRIES: usize = 15;
 const HIDDEN_VOTE_RETRY_DELAY_SECONDS: u64 = 60;
+const VOTE_CURSOR_OVERLAP_SECONDS: i64 = 300;
+
+fn vote_cursor_with_overlap(cursor: i64) -> i64 {
+    (cursor - VOTE_CURSOR_OVERLAP_SECONDS).max(0)
+}
+
+fn should_reconcile_snapshot_votes(expected_count: u64, current_voter_count: u64) -> bool {
+    current_voter_count < expected_count
+}
 
 /// Main entry point for periodic snapshot indexing
 #[instrument(name = "run_periodic_snapshot_indexing", skip_all)]
@@ -375,7 +384,7 @@ async fn get_vote_cursor(space: &str) -> Result<i64> {
             .await?;
 
         if let Some(vote) = latest_vote {
-            let cursor = vote.created_at.and_utc().timestamp();
+            let cursor = vote_cursor_with_overlap(vote.created_at.and_utc().timestamp());
             debug!(space = %space, cursor = cursor, "Using vote cursor from database");
             return Ok(cursor);
         }
@@ -496,19 +505,22 @@ async fn reconcile_active_proposal_votes(
             continue;
         };
 
-        // Count actual votes in DB
-        let db_count = vote::Entity::find()
+        // Count current voters in DB rather than raw historical vote events.
+        let current_voter_count = vote::Entity::find()
             .filter(vote::Column::ProposalId.eq(prop.id))
+            .select_only()
+            .column(vote::Column::VoterAddress)
+            .distinct()
             .count(db)
             .await?;
 
-        if db_count < expected_count {
+        if should_reconcile_snapshot_votes(expected_count, current_voter_count) {
             warn!(
                 space = %space,
                 proposal_id = %prop.external_id,
                 expected = expected_count,
-                actual = db_count,
-                delta = expected_count - db_count,
+                actual = current_voter_count,
+                delta = expected_count - current_voter_count,
                 "Vote count mismatch detected, reconciling"
             );
 
@@ -574,19 +586,22 @@ async fn reconcile_ended_proposal_votes(
             continue;
         };
 
-        // Count actual votes in DB
-        let db_count = vote::Entity::find()
+        // Count current voters in DB rather than raw historical vote events.
+        let current_voter_count = vote::Entity::find()
             .filter(vote::Column::ProposalId.eq(prop.id))
+            .select_only()
+            .column(vote::Column::VoterAddress)
+            .distinct()
             .count(db)
             .await?;
 
-        if db_count < expected_count {
+        if should_reconcile_snapshot_votes(expected_count, current_voter_count) {
             warn!(
                 space = %space,
                 proposal_id = %prop.external_id,
                 expected = expected_count,
-                actual = db_count,
-                delta = expected_count - db_count,
+                actual = current_voter_count,
+                delta = expected_count - current_voter_count,
                 "Ended proposal vote count mismatch detected, reconciling"
             );
 
@@ -614,4 +629,27 @@ async fn reconcile_ended_proposal_votes(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        VOTE_CURSOR_OVERLAP_SECONDS, should_reconcile_snapshot_votes, vote_cursor_with_overlap,
+    };
+
+    #[test]
+    fn vote_cursor_applies_overlap_without_going_negative() {
+        assert_eq!(
+            vote_cursor_with_overlap(1_000),
+            1_000 - VOTE_CURSOR_OVERLAP_SECONDS
+        );
+        assert_eq!(vote_cursor_with_overlap(VOTE_CURSOR_OVERLAP_SECONDS / 2), 0);
+    }
+
+    #[test]
+    fn reconciliation_uses_current_unique_voter_count() {
+        assert!(should_reconcile_snapshot_votes(1_553, 1_544));
+        assert!(!should_reconcile_snapshot_votes(1_553, 1_553));
+        assert!(!should_reconcile_snapshot_votes(1_553, 1_569));
+    }
 }
