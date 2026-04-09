@@ -8,6 +8,10 @@ import {
   OTPEmail,
   resend,
 } from '@proposalsapp/emails';
+import {
+  buildChangeEmailTemplateProps,
+  ensureAuthEmailWasSent,
+} from '@/lib/auth/email-delivery';
 
 export const auth = betterAuth({
   appName: 'proposals.app',
@@ -35,16 +39,13 @@ export const auth = betterAuth({
       otpLength: 6,
       expiresIn: 300,
       async sendVerificationOTP({ email, otp }) {
-        const { error } = await resend.emails.send({
+        const result = await resend.emails.send({
           from: 'proposals.app <noreply@proposals.app>',
           to: [email],
           subject: 'Welcome to proposals.app!',
           react: OTPEmail({ verificationCode: otp, email }),
         });
-
-        if (error) {
-          console.log('Error sending verification OTP:', error);
-        }
+        ensureAuthEmailWasSent(result, 'verification email');
       },
     }),
     nextCookies(),
@@ -132,20 +133,16 @@ export const auth = betterAuth({
       email: string;
       url: string;
     }) => {
-      const { error } = await resend.emails.send({
+      const result = await resend.emails.send({
         from: 'proposals.app <noreply@proposals.app>',
         to: [email],
         subject: 'Verify your email change',
         react: ChangeEmailTemplate({
-          currentEmail: email,
-          newEmail: email, // This would need to be passed differently in production
+          ...buildChangeEmailTemplateProps(email),
           verificationUrl: url,
         }),
       });
-
-      if (error) {
-        console.log('Error sending change email verification:', error);
-      }
+      ensureAuthEmailWasSent(result, 'email change verification email');
     },
     sendDeleteAccountVerification: async ({
       email,
@@ -154,7 +151,7 @@ export const auth = betterAuth({
       email: string;
       url: string;
     }) => {
-      const { error } = await resend.emails.send({
+      const result = await resend.emails.send({
         from: 'proposals.app <noreply@proposals.app>',
         to: [email],
         subject: 'Delete your account',
@@ -163,10 +160,7 @@ export const auth = betterAuth({
           verificationUrl: url,
         }),
       });
-
-      if (error) {
-        console.log('Error sending delete account verification:', error);
-      }
+      ensureAuthEmailWasSent(result, 'account deletion verification email');
     },
   },
 });

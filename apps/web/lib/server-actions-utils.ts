@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth/auth';
 import { db } from '@proposalsapp/db';
 import { daoSlugSchema } from '@/lib/validations';
+import { toPublicServerActionError } from '@/lib/public-error-message';
 
 /**
  * Get the current user session (unified auth for all DAOs)
@@ -144,9 +145,8 @@ export async function handleServerAction<T>(
     const data = await action();
     return createSuccessResult(data);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[${errorContext}] Error:`, error);
-    return createErrorResult(errorMessage);
+    return createErrorResult(toPublicServerActionError(error));
   }
 }
 
@@ -161,9 +161,8 @@ export async function handleVoidServerAction(
     await action();
     return createSuccessVoidResult();
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[${errorContext}] Error:`, error);
-    return createErrorVoidResult(errorMessage);
+    return createErrorVoidResult(toPublicServerActionError(error));
   }
 }
 

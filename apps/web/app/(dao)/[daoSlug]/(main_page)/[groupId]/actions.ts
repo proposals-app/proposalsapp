@@ -30,41 +30,62 @@ import { getDelegateByDiscourseUser } from './components/feed/actions';
 import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
 import { requireAuth } from '@/lib/server-actions-utils';
+import { updateLastReadForDao } from '@/lib/last-read-update';
 import { revalidateTag, cacheLife, cacheTag } from 'next/cache';
 import { groupIdSchema } from '@/lib/validations';
 import type { SupportedGovernorType } from '@/lib/governance-config';
 
 export async function updateLastReadAt(groupId: string, daoSlug: string) {
+  // Validate groupId
   try {
-    // Validate groupId
-    try {
-      groupIdSchema.parse(groupId);
-    } catch {
-      // Invalid groupId, silently return
-      return;
-    }
-    const { userId } = await requireAuth(daoSlug);
-
-    const now = new Date();
-
-    await db
-      .insertInto('userProposalGroupLastRead')
-      .values({
-        userId,
-        proposalGroupId: groupId,
-        lastReadAt: now,
-      })
-      .onConflict((oc) =>
-        oc
-          .columns(['userId', 'proposalGroupId'])
-          .doUpdateSet({ lastReadAt: now })
-      )
-      .execute();
-
-    revalidateTag(`groups-user-${userId}-${daoSlug}`, 'max');
-  } catch (_error) {
-    // Silently fail for this function as it's not critical
+    groupIdSchema.parse(groupId);
+  } catch {
+    // Invalid groupId, silently return
+    return;
   }
+
+  await updateLastReadForDao(
+    {
+      authenticate: async (slug) => {
+        const { userId } = await requireAuth(slug);
+        return userId;
+      },
+      findScopedGroupId: async (candidateGroupId, slug) => {
+        const scopedGroup = await db
+          .selectFrom('proposalGroup as pg')
+          .innerJoin('dao as d', 'd.id', 'pg.daoId')
+          .select('pg.id')
+          .where('pg.id', '=', candidateGroupId)
+          .where('d.slug', '=', slug)
+          .executeTakeFirst();
+
+        return scopedGroup?.id ?? null;
+      },
+      upsertLastRead: async (userId, scopedGroupId, now) => {
+        await db
+          .insertInto('userProposalGroupLastRead')
+          .values({
+            userId,
+            proposalGroupId: scopedGroupId,
+            lastReadAt: now,
+          })
+          .onConflict((oc) =>
+            oc
+              .columns(['userId', 'proposalGroupId'])
+              .doUpdateSet({ lastReadAt: now })
+          )
+          .execute();
+      },
+      revalidate: (userId, slug) => {
+        revalidateTag(`groups-user-${userId}-${slug}`, 'max');
+      },
+    },
+    {
+      groupId,
+      daoSlug,
+      now: new Date(),
+    }
+  );
 }
 
 export type SelectableProposalWithGovernor = Selectable<Proposal> & {

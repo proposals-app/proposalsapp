@@ -23,8 +23,8 @@ export interface ChangeEmailProps {
 }
 
 export default function ChangeEmailTemplate({
-  currentEmail = 'user@example.com',
-  newEmail = 'newemail@example.com',
+  currentEmail,
+  newEmail,
   verificationUrl = 'https://proposals.app/verify-email-change',
 }: ChangeEmailProps) {
   return (
@@ -52,7 +52,7 @@ export default function ChangeEmailTemplate({
               </Row>
 
               <Text className='mb-4 font-bold text-neutral-700 dark:text-neutral-300'>
-                Hi {currentEmail},
+                Hi there,
               </Text>
 
               <Text className='mb-4 text-neutral-700 dark:text-neutral-300'>
@@ -60,19 +60,28 @@ export default function ChangeEmailTemplate({
                 proposals.app.
               </Text>
 
-              <Text className='mb-4 text-neutral-700 dark:text-neutral-300'>
-                Your current email address is:{' '}
-                <strong className='text-neutral-800 dark:text-neutral-100'>
-                  {currentEmail}
-                </strong>
-              </Text>
+              {currentEmail ? (
+                <Text className='mb-4 text-neutral-700 dark:text-neutral-300'>
+                  Your current email address is:{' '}
+                  <strong className='text-neutral-800 dark:text-neutral-100'>
+                    {currentEmail}
+                  </strong>
+                </Text>
+              ) : null}
 
-              <Text className='mb-6 text-neutral-700 dark:text-neutral-300'>
-                You asked to change it to:{' '}
-                <strong className='text-neutral-800 dark:text-neutral-100'>
-                  {newEmail}
-                </strong>
-              </Text>
+              {newEmail ? (
+                <Text className='mb-6 text-neutral-700 dark:text-neutral-300'>
+                  You asked to change it to:{' '}
+                  <strong className='text-neutral-800 dark:text-neutral-100'>
+                    {newEmail}
+                  </strong>
+                </Text>
+              ) : (
+                <Text className='mb-6 text-neutral-700 dark:text-neutral-300'>
+                  Please confirm the email address change request from your
+                  account settings.
+                </Text>
+              )}
 
               <Text className='mb-6 text-neutral-700 dark:text-neutral-300'>
                 To confirm this change, please click the button below.

@@ -1,5 +1,6 @@
 use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
-use anyhow::{Context, Result};
+use proposalsapp_rindexer::supervision::run_task_forever;
+use anyhow::{Context, Result, anyhow};
 use dotenv::dotenv;
 use extensions::db_extension::initialize_db;
 use reqwest::Client;
@@ -64,9 +65,10 @@ async fn main() -> Result<()> {
     });
 
     let proposal_state_handle = tokio::spawn(async {
-        if let Err(e) = run_periodic_proposal_state_update().await {
-            error!("Error in periodic proposal state update task: {:?}", e);
-        }
+        run_task_forever("proposal-state", Duration::from_secs(5), || async {
+            run_periodic_proposal_state_update().await
+        })
+        .await;
     });
 
     let uptime_handle = tokio::spawn(async move {
@@ -94,30 +96,35 @@ async fn main() -> Result<()> {
 
     // Start rindexer in a separate task
     info!("Starting rindexer");
+    let manifest_path = env::current_dir()
+        .context("Failed to get current directory")?
+        .join("rindexer.yaml");
     let rindexer_handle = tokio::spawn(async move {
-        let path = env::current_dir()
-            .context("Failed to get current directory")
-            .unwrap();
-        let manifest_path = path.join("rindexer.yaml");
+        run_task_forever("rindexer", Duration::from_secs(5), move || {
+            let manifest_path = manifest_path.clone();
 
-        let indexer_settings = StartDetails {
-            manifest_path: &manifest_path,
-            indexing_details: Some(IndexingDetails {
-                registry: register_all_handlers(&manifest_path).await,
-                trace_registry: TraceCallbackRegistry { events: vec![] },
-                event_stream: None,
-            }),
-            graphql_details: GraphqlOverrideSettings {
-                enabled: false,
-                override_port: None,
-            },
-            cron_scheduler_handle: None,
-            watch: false,
-        };
+            async move {
+                let indexer_settings = StartDetails {
+                    manifest_path: &manifest_path,
+                    indexing_details: Some(IndexingDetails {
+                        registry: register_all_handlers(&manifest_path).await,
+                        trace_registry: TraceCallbackRegistry { events: vec![] },
+                        event_stream: None,
+                    }),
+                    graphql_details: GraphqlOverrideSettings {
+                        enabled: false,
+                        override_port: None,
+                    },
+                    cron_scheduler_handle: None,
+                    watch: false,
+                };
 
-        if let Err(e) = start_rindexer(indexer_settings).await {
-            error!("Rindexer failed: {:?}", e);
-        }
+                start_rindexer(indexer_settings)
+                    .await
+                    .map_err(|err| anyhow!("Rindexer failed: {:?}", err))
+            }
+        })
+        .await;
     });
 
     info!("All tasks started, application running indefinitely");

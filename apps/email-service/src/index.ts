@@ -9,6 +9,7 @@ import {
   NewDiscussionEmailTemplate,
   EndingProposalEmailTemplate,
 } from '@proposalsapp/emails';
+import { deliverNotification } from './notification-delivery';
 import { createServer } from 'http';
 import pino from 'pino';
 
@@ -172,13 +173,22 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
         'new_proposal'
       );
 
-      await sendEmail(
-        user.email,
-        `New proposal in ${dao.name}`,
-        html,
-        idempotencyKey
+      await deliverNotification(
+        {
+          sendEmail,
+          recordNotification,
+        },
+        {
+          userId: user.id,
+          targetId: proposal.id,
+          type: 'new_proposal',
+          daoId: dao.id,
+          to: user.email,
+          subject: `New proposal in ${dao.name}`,
+          html,
+          idempotencyKey,
+        }
       );
-      await recordNotification(user.id, proposal.id, 'new_proposal', dao.id);
     }
   }
 }
@@ -243,13 +253,22 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
         'ending_proposal'
       );
 
-      await sendEmail(
-        user.email,
-        `Proposal ending soon in ${dao.name}`,
-        html,
-        idempotencyKey
+      await deliverNotification(
+        {
+          sendEmail,
+          recordNotification,
+        },
+        {
+          userId: user.id,
+          targetId: proposal.id,
+          type: 'ending_proposal',
+          daoId: dao.id,
+          to: user.email,
+          subject: `Proposal ending soon in ${dao.name}`,
+          html,
+          idempotencyKey,
+        }
       );
-      await recordNotification(user.id, proposal.id, 'ending_proposal', dao.id);
     }
   }
 }
@@ -354,13 +373,22 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
         'new_discussion'
       );
 
-      await sendEmail(
-        user.email,
-        `New discussion in ${dao.name}`,
-        html,
-        idempotencyKey
+      await deliverNotification(
+        {
+          sendEmail,
+          recordNotification,
+        },
+        {
+          userId: user.id,
+          targetId: topic.id,
+          type: 'new_discussion',
+          daoId: dao.id,
+          to: user.email,
+          subject: `New discussion in ${dao.name}`,
+          html,
+          idempotencyKey,
+        }
       );
-      await recordNotification(user.id, topic.id, 'new_discussion', dao.id);
     }
   }
 }
@@ -384,6 +412,7 @@ async function sendEmail(
     logger.info(`Email sent to ${to}: ${subject}`);
   } catch (error) {
     logger.error({ err: error }, `Failed to send email to ${to}`);
+    throw error;
   }
 }
 
