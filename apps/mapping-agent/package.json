@@ -2,18 +2,18 @@
   "name": "@proposalsapp/mapping-agent",
   "version": "1.0.0",
   "dependencies": {
-    "@mariozechner/pi-coding-agent": "^0.65.0",
+    "@mariozechner/pi-coding-agent": "^0.70.5",
     "@proposalsapp/db": "workspace:*",
     "@sinclair/typebox": "^0.34.49",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "pino": "^10.3.1"
   },
   "devDependencies": {
-    "@types/node": "^25.3.0",
-    "esbuild": "^0.27.0",
+    "@types/node": "^25.6.0",
+    "esbuild": "^0.28.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.2"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   },
   "main": "./src/index.ts",
   "scripts": {

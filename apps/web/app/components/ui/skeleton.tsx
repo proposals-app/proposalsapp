@@ -31,7 +31,8 @@ const skeletonVariants = cva('skeleton-blueprint', {
 });
 
 interface SkeletonProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof skeletonVariants> {
   width?: string | number;
   height?: string | number;

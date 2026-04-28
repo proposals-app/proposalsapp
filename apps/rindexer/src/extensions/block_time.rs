@@ -1,4 +1,6 @@
-use crate::rindexer_lib::typings::networks::get_provider_cache_for_network;
+use crate::rindexer_lib::typings::networks::{
+    get_arbitrum_provider_cache, get_ethereum_provider_cache,
+};
 use alloy::{eips::BlockId, providers::Provider};
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -271,6 +273,16 @@ async fn process_block_timestamp_request(
     } else {
         // Future block: go directly to scan API
         process_future_block_timestamp(config, block_number).await
+    }
+}
+
+async fn get_provider_cache_for_network(
+    network: &str,
+) -> Arc<rindexer::provider::JsonRpcCachedProvider> {
+    match network {
+        "ethereum" => get_ethereum_provider_cache().await,
+        "arbitrum" => get_arbitrum_provider_cache().await,
+        _ => panic!("Network not supported: {network}"),
     }
 }
 

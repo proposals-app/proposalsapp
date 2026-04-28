@@ -2,17 +2,16 @@
   "name": "@proposalsapp/db",
   "version": "1.0.0",
   "dependencies": {
-    "dotenv": "^17.3.1",
-    "kysely": "^0.28.11",
-    "pg": "8.18.0"
+    "dotenv": "^17.4.2",
+    "kysely": "^0.28.16",
+    "pg": "8.20.0"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.13",
-    "@types/dotenv": "^8.2.3",
-    "@types/pg": "8",
+    "@types/pg": "^8.20.0",
     "kysely-codegen": "0.20.0",
     "kysely-ctl": "^0.20.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "main": "./src/index.ts",
   "scripts": {

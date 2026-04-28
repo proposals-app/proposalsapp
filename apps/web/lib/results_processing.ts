@@ -10,16 +10,10 @@ export type VoteType =
   | 'quadratic'
   | 'ranked-choice';
 
-export interface ProcessedVote
-  extends Pick<
-    Selectable<Vote>,
-    | 'createdAt'
-    | 'proposalId'
-    | 'reason'
-    | 'voterAddress'
-    | 'votingPower'
-    | 'id'
-  > {
+export interface ProcessedVote extends Pick<
+  Selectable<Vote>,
+  'createdAt' | 'proposalId' | 'reason' | 'voterAddress' | 'votingPower' | 'id'
+> {
   choice: {
     choiceIndex: number;
     weight: number;

@@ -6,11 +6,7 @@ export interface UpdateLastReadDependencies {
     groupId: string,
     daoSlug: string
   ) => Promise<string | null>;
-  upsertLastRead: (
-    userId: string,
-    groupId: string,
-    now: Date
-  ) => Promise<void>;
+  upsertLastRead: (userId: string, groupId: string, now: Date) => Promise<void>;
   revalidate: (userId: string, daoSlug: string) => void;
 }
 

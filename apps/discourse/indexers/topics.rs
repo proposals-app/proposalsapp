@@ -116,7 +116,7 @@ impl TopicIndexer {
 
                     if !fetch_all {
                         // Sort topics by bumped_at DESC for recent updates before applying lookback
-                        topics_on_page.sort_by(|a, b| b.bumped_at.cmp(&a.bumped_at));
+                        topics_on_page.sort_by_key(|topic| std::cmp::Reverse(topic.bumped_at));
                     }
 
                     let mut topics_to_process_posts = Vec::new();

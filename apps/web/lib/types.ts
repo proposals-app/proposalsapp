@@ -9,8 +9,10 @@ export type ProposalMetadata = {
   scoresState: string;
 };
 
-export interface ProposalWithMetadata
-  extends Omit<Selectable<Proposal>, 'metadata'> {
+export interface ProposalWithMetadata extends Omit<
+  Selectable<Proposal>,
+  'metadata'
+> {
   metadata: ProposalMetadata;
 }
 

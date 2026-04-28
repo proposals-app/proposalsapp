@@ -5,6 +5,7 @@ import {
   AuthStorage,
   createAgentSession,
   DefaultResourceLoader,
+  getAgentDir,
   ModelRegistry,
   SessionManager,
   SettingsManager,
@@ -352,6 +353,7 @@ export async function runPiAgent(
   const thinkingLevel = normalizeThinkingLevel(input.thinking);
   const resourceLoader = new DefaultResourceLoader({
     cwd: process.cwd(),
+    agentDir: input.configDir ?? getAgentDir(),
     noExtensions: true,
     noSkills: true,
     noPromptTemplates: true,

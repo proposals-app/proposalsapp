@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createAgentSession = vi.fn();
 const DefaultResourceLoader = vi.fn();
+const getAgentDir = vi.fn(() => '/tmp/pi-agent');
 const SessionManager = {
   inMemory: vi.fn(),
 };
@@ -24,6 +25,7 @@ vi.mock('@mariozechner/pi-coding-agent', () => ({
   AuthStorage,
   createAgentSession,
   DefaultResourceLoader,
+  getAgentDir,
   ModelRegistry,
   SessionManager,
   SettingsManager,

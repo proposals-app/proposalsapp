@@ -2,12 +2,10 @@
 use super::super::super::typings::rindexer::events::arbitrum_sc_nominations::{
     ArbitrumSCNominationsEventType, ProposalCreatedEvent, ProposalExecutedEvent, no_extensions,
 };
-use crate::{
-    extensions::{
-        block_time::estimate_timestamp,
-        db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_proposal},
-    },
-    rindexer_lib::typings::rindexer::events::arbitrum_sc_nominations::arbitrum_sc_nominations_contract,
+use super::contracts::arbitrum_sc_nominations_contract;
+use crate::extensions::{
+    block_time::estimate_timestamp,
+    db_extension::{DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, store_proposal},
 };
 use alloy::{hex::ToHexExt, primitives::U256};
 use anyhow::{Context, Result};

@@ -2,12 +2,9 @@
 use super::super::super::typings::rindexer::events::arb_token::{
     ARBTokenEventType, DelegateChangedEvent, DelegateVotesChangedEvent, no_extensions,
 };
-use crate::{
-    extensions::{
-        block_time::estimate_timestamp,
-        db_extension::{DAO_SLUG_ID_MAP, store_delegations, store_voting_powers},
-    },
-    rindexer_lib::typings::rindexer::events::arb_token::arb_token_contract,
+use crate::extensions::{
+    block_time::estimate_timestamp,
+    db_extension::{DAO_SLUG_ID_MAP, store_delegations, store_voting_powers},
 };
 use alloy::hex::ToHexExt;
 use futures::stream::{self, StreamExt};

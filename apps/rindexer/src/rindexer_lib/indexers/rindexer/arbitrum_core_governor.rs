@@ -3,15 +3,13 @@ use super::super::super::typings::rindexer::events::arbitrum_core_governor::{
     ArbitrumCoreGovernorEventType, ProposalCreatedEvent, ProposalExecutedEvent,
     ProposalExtendedEvent, VoteCastEvent, no_extensions,
 };
-use crate::{
-    extensions::{
-        block_time::estimate_timestamp,
-        db_extension::{
-            DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB,
-            calculate_total_delegated_voting_power, store_proposal, store_votes,
-        },
+use super::contracts::arbitrum_core_governor_contract;
+use crate::extensions::{
+    block_time::estimate_timestamp,
+    db_extension::{
+        DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, calculate_total_delegated_voting_power,
+        store_proposal, store_votes,
     },
-    rindexer_lib::typings::rindexer::events::arbitrum_core_governor::arbitrum_core_governor_contract,
 };
 use alloy::{hex::ToHexExt, primitives::U256};
 use anyhow::{Context, Result};

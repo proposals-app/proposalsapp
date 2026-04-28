@@ -3,9 +3,9 @@ import { toPublicServerActionError } from './public-error-message';
 
 describe('toPublicServerActionError', () => {
   it('preserves explicit authentication errors', () => {
-    expect(toPublicServerActionError(new Error('Authentication required'))).toBe(
-      'Authentication required'
-    );
+    expect(
+      toPublicServerActionError(new Error('Authentication required'))
+    ).toBe('Authentication required');
   });
 
   it('hides low-level internal failures', () => {

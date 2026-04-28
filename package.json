@@ -4,12 +4,12 @@
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.13",
     "headless-web3-provider": "^0.3.2",
-    "npm-check-updates": "^19.4.1"
+    "npm-check-updates": "^22.0.1"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@10.30.0",
+  "packageManager": "pnpm@10.33.2",
   "private": true,
   "scripts": {
     "build-email-service": "pnpm --filter @proposalsapp/email-service run build",
@@ -35,7 +35,7 @@
   "type": "module",
   "pnpm": {
     "overrides": {
-      "prettier": "^3.6.2"
+      "prettier": "^3.8.3"
     },
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide",

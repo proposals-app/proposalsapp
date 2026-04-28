@@ -27,12 +27,10 @@ async fn restarts_a_task_after_an_error() -> Result<()> {
 
                 async move {
                     let attempt = attempts.fetch_add(1, Ordering::SeqCst) + 1;
-                    if attempt >= 2 {
-                        if let Some(sender) =
-                            signal.lock().expect("signal mutex poisoned").take()
-                        {
-                            let _ = sender.send(());
-                        }
+                    if attempt >= 2
+                        && let Some(sender) = signal.lock().expect("signal mutex poisoned").take()
+                    {
+                        let _ = sender.send(());
                     }
 
                     if attempt == 1 {
@@ -70,12 +68,10 @@ async fn restarts_a_task_after_unexpected_completion() -> Result<()> {
 
                 async move {
                     let attempt = attempts.fetch_add(1, Ordering::SeqCst) + 1;
-                    if attempt >= 2 {
-                        if let Some(sender) =
-                            signal.lock().expect("signal mutex poisoned").take()
-                        {
-                            let _ = sender.send(());
-                        }
+                    if attempt >= 2
+                        && let Some(sender) = signal.lock().expect("signal mutex poisoned").take()
+                    {
+                        let _ = sender.send(());
                     }
 
                     Ok(())

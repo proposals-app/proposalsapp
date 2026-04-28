@@ -1,8 +1,8 @@
 use self::rindexer_lib::indexers::all_handlers::register_all_handlers;
-use proposalsapp_rindexer::supervision::run_task_forever;
 use anyhow::{Context, Result, anyhow};
 use dotenv::dotenv;
 use extensions::db_extension::initialize_db;
+use proposalsapp_rindexer::supervision::run_task_forever;
 use reqwest::Client;
 use rindexer::{
     GraphqlOverrideSettings, IndexingDetails, StartDetails,
@@ -108,7 +108,7 @@ async fn main() -> Result<()> {
                     manifest_path: &manifest_path,
                     indexing_details: Some(IndexingDetails {
                         registry: register_all_handlers(&manifest_path).await,
-                        trace_registry: TraceCallbackRegistry { events: vec![] },
+                        trace_registry: TraceCallbackRegistry::new(),
                         event_stream: None,
                     }),
                     graphql_details: GraphqlOverrideSettings {

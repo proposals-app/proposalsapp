@@ -3,6 +3,7 @@ use super::super::super::typings::rindexer::events::uni_governor::{
     ProposalCreatedData, ProposalCreatedEvent, ProposalExecutedEvent, UniGovernorEventType,
     VoteCastData, VoteCastEvent, no_extensions,
 };
+use super::contracts::uni_governor_contract;
 use crate::{
     extensions::{
         block_time::estimate_timestamp,
@@ -11,10 +12,7 @@ use crate::{
             calculate_total_delegated_voting_power, store_proposal, store_votes,
         },
     },
-    rindexer_lib::typings::{
-        networks::get_provider_cache_for_network,
-        rindexer::events::uni_governor::uni_governor_contract,
-    },
+    rindexer_lib::typings::networks::get_ethereum_provider,
 };
 use alloy::{
     hex::ToHexExt,
@@ -221,10 +219,9 @@ async fn fetch_uni_governor_logs(
     from_block: u64,
     to_block: u64,
 ) -> Result<Vec<RpcLog>> {
-    let provider = get_provider_cache_for_network("ethereum").await;
-    let inner_provider = provider.get_inner_provider();
+    let provider = get_ethereum_provider().await;
 
-    inner_provider
+    provider
         .client()
         .request::<(serde_json::Value,), Vec<RpcLog>>(
             "eth_getLogs",
