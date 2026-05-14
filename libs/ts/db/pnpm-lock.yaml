@@ -11,8 +11,8 @@ importers:
         specifier: ^17.4.2
         version: 17.4.2
       kysely:
-        specifier: ^0.28.16
-        version: 0.28.16
+        specifier: ^0.28.17
+        version: 0.28.17
       pg:
         specifier: 8.20.0
         version: 8.20.0
@@ -25,10 +25,10 @@ importers:
         version: 8.20.0
       kysely-codegen:
         specifier: 0.20.0
-        version: 0.20.0(kysely@0.28.16)(pg@8.20.0)(typescript@6.0.3)
+        version: 0.20.0(kysely@0.28.17)(pg@8.20.0)(typescript@6.0.3)
       kysely-ctl:
         specifier: ^0.20.0
-        version: 0.20.0(kysely@0.28.16)(typescript@6.0.3)
+        version: 0.20.0(kysely@0.28.17)(typescript@6.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -358,10 +358,10 @@ packages:
       kysely-prisma-postgres:
         optional: true
 
-  kysely@0.28.16:
+  kysely@0.28.17:
     resolution:
       {
-        integrity: sha512-3i5pmOiZvMDj00qhrIVbH0AnioVTx22DMP7Vn5At4yJO46iy+FM8Y/g61ltenLVSo3fiO8h8Q3QOFgf/gQ72ww==,
+        integrity: sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q==,
       }
     engines: { node: ">=20.0.0" }
 
@@ -794,14 +794,14 @@ snapshots:
 
   json-parse-even-better-errors@2.3.1: {}
 
-  kysely-codegen@0.20.0(kysely@0.28.16)(pg@8.20.0)(typescript@6.0.3):
+  kysely-codegen@0.20.0(kysely@0.28.17)(pg@8.20.0)(typescript@6.0.3):
     dependencies:
       chalk: 4.1.2
       cosmiconfig: 9.0.0(typescript@6.0.3)
       diff: 8.0.3
       dotenv: 17.4.2
       dotenv-expand: 12.0.3
-      kysely: 0.28.16
+      kysely: 0.28.17
       micromatch: 4.0.8
       minimist: 1.2.8
       pluralize: 8.0.0
@@ -811,14 +811,14 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  kysely-ctl@0.20.0(kysely@0.28.16)(typescript@6.0.3):
+  kysely-ctl@0.20.0(kysely@0.28.17)(typescript@6.0.3):
     dependencies:
       c12: 3.3.3
       citty: 0.1.6
       confbox: 0.2.2
       consola: 3.4.2
       jiti: 2.6.1
-      kysely: 0.28.16
+      kysely: 0.28.17
       nypm: 0.6.5
       ofetch: 1.5.1
       pathe: 2.0.3
@@ -829,7 +829,7 @@ snapshots:
       - magicast
       - typescript
 
-  kysely@0.28.16: {}
+  kysely@0.28.17: {}
 
   lines-and-columns@1.2.4: {}
 

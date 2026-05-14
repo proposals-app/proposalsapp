@@ -5,3 +5,11 @@ packages:
   - "apps/web"
   - "apps/email-service"
   - "apps/mapping-agent"
+allowBuilds:
+  core-js: true
+  core-js-pure: true
+  esbuild: true
+  koffi: true
+  protobufjs: true
+  sharp: true
+  unrs-resolver: true
