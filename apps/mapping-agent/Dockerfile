@@ -16,12 +16,12 @@ RUN pnpm install --frozen-lockfile
 COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
 COPY libs/ts/db/ ./libs/ts/db/
 
-RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild apps/${APP_NAME}/src/index.ts \
+RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild src/index.ts \
     --bundle \
     --platform=node \
     --target=node22 \
     --format=esm \
-    --outfile=apps/${APP_NAME}/dist/index.mjs \
+    --outfile=dist/index.mjs \
     --external:dotenv \
     --external:pg \
     --external:pino \
