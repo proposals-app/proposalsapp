@@ -5,7 +5,7 @@ FROM node:22-bookworm AS builder
 WORKDIR /app
 ARG APP_NAME
 
-RUN corepack enable && corepack prepare pnpm@10.30.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
 
 COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
 COPY apps/${APP_NAME}/package.json ./apps/${APP_NAME}/
@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile
 COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
 COPY libs/ts/db/ ./libs/ts/db/
 
-RUN npx esbuild apps/${APP_NAME}/src/index.ts \
+RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild apps/${APP_NAME}/src/index.ts \
     --bundle \
     --platform=node \
     --target=node22 \

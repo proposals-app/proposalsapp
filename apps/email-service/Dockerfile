@@ -7,7 +7,7 @@ WORKDIR /app
 ARG APP_NAME
 
 # Install and enable Corepack
-RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
 
 # Copy package-related files
 COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
@@ -24,7 +24,7 @@ COPY libs/ts/db/ ./libs/ts/db/
 COPY libs/ts/emails/ ./libs/ts/emails/
 
 # Bundle with esbuild into a single file (resolves workspace TS imports)
-RUN npx esbuild apps/${APP_NAME}/src/index.ts \
+RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild apps/${APP_NAME}/src/index.ts \
     --bundle \
     --platform=node \
     --target=node22 \
