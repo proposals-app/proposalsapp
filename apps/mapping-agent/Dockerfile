@@ -21,7 +21,8 @@ RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild src/index.ts \
     --platform=node \
     --target=node22 \
     --format=esm \
-    --outfile=dist/index.mjs
+    --outfile=dist/index.mjs \
+    --banner:js="import{createRequire as __createRequire}from'module';const require=__createRequire(import.meta.url);"
 
 RUN CI=true pnpm prune --prod
 
