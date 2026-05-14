@@ -21,12 +21,7 @@ RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild src/index.ts \
     --platform=node \
     --target=node22 \
     --format=esm \
-    --outfile=dist/index.mjs \
-    --external:dotenv \
-    --external:pg \
-    --external:pino \
-    --external:@mariozechner/pi-coding-agent \
-    --banner:js="import{createRequire}from'module';const require=createRequire(import.meta.url);"
+    --outfile=dist/index.mjs
 
 RUN CI=true pnpm prune --prod
 
@@ -39,8 +34,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder --chown=node:node /app/apps/${APP_NAME}/dist/ /app/apps/${APP_NAME}/dist/
-COPY --from=builder --chown=node:node /app/apps/${APP_NAME}/node_modules/ /app/apps/${APP_NAME}/node_modules/
-COPY --from=builder --chown=node:node /app/node_modules/ /app/node_modules/
 COPY --from=builder --chown=node:node /app/package.json /app/
 
 ENV NODE_ENV=production
