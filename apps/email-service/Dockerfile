@@ -49,6 +49,7 @@ ARG APP_NAME
 
 # Copy only necessary files (runtime image provides `node` user)
 COPY --from=builder --chown=node:node /app/apps/${APP_NAME}/dist/ /app/apps/${APP_NAME}/dist/
+COPY --from=builder --chown=node:node /app/apps/${APP_NAME}/node_modules/ /app/apps/${APP_NAME}/node_modules/
 COPY --from=builder --chown=node:node /app/node_modules/ /app/node_modules/
 COPY --from=builder --chown=node:node /app/package.json /app/
 
