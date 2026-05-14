@@ -28,9 +28,8 @@ RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild src/index.ts \
     --bundle \
     --platform=node \
     --target=node22 \
-    --format=esm \
-    --outfile=dist/index.mjs \
-    --banner:js="import{createRequire as __createRequire}from'module';const require=__createRequire(import.meta.url);"
+    --format=cjs \
+    --outfile=dist/index.cjs
 
 # Prune dev dependencies for smaller image
 RUN CI=true pnpm prune --prod
@@ -53,4 +52,4 @@ USER node
 EXPOSE 3000
 
 # Run bundled JavaScript directly with node
-CMD ["node", "apps/email-service/dist/index.mjs"]
+CMD ["node", "apps/email-service/dist/index.cjs"]
