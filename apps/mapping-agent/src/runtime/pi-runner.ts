@@ -17,6 +17,15 @@ const DEFAULT_MAX_TOKENS = 4_096;
 const DEFAULT_API_KEY = 'lmstudio';
 const DEFAULT_SOFT_DECISION_QUERY_TARGET = 10;
 const DEFAULT_HURRY_QUERY_THRESHOLD = 20;
+const TEXTUAL_TOOL_CALL_MARKERS = [
+  '<|tool_call',
+  '<tool_call',
+  'tool_call|>',
+  '</tool_call>',
+  'tool_call',
+  '[tool_request]',
+  '[end_tool_request]',
+] as const;
 
 export interface RunPiAgentInput {
   extensionFactory: ExtensionFactory;
@@ -141,6 +150,70 @@ function extractAssistantText(message: { content?: unknown }): string {
     })
     .join('\n')
     .trim();
+}
+
+function containsTextualToolCall(text: string, toolNames: string[]): boolean {
+  const normalizedText = text.toLowerCase();
+  if (!normalizedText.trim()) {
+    return false;
+  }
+
+  if (
+    !TEXTUAL_TOOL_CALL_MARKERS.some((marker) => normalizedText.includes(marker))
+  ) {
+    return false;
+  }
+
+  return toolNames
+    .map((toolName) => toolName.toLowerCase())
+    .some(
+      (toolName) =>
+        normalizedText.includes(`call:${toolName}`) ||
+        normalizedText.includes(`"name":"${toolName}"`) ||
+        normalizedText.includes(`"name": "${toolName}"`) ||
+        normalizedText.includes(`'name':'${toolName}'`) ||
+        normalizedText.includes(`'name': '${toolName}'`)
+    );
+}
+
+function createSessionTimeoutError(
+  result: PiAgentRunResult,
+  elapsedMs: number
+): PiAgentSessionAbortedError {
+  return new PiAgentSessionAbortedError(
+    `Pi agent session timed out after ${Math.ceil(elapsedMs / 1000)} seconds`,
+    result
+  );
+}
+
+async function waitForPromptWithinTimeout(
+  promptPromise: Promise<void>,
+  timeoutMs: number,
+  onTimeout: () => void,
+  createTimeoutError: () => Error
+): Promise<void> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      timedOut = true;
+      onTimeout();
+      reject(createTimeoutError());
+    }, timeoutMs);
+  });
+
+  try {
+    await Promise.race([promptPromise, timeoutPromise]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+
+    if (timedOut) {
+      promptPromise.catch(() => undefined);
+    }
+  }
 }
 
 function isLmStudioQwenModel(
@@ -544,7 +617,19 @@ export async function runPiAgent(
 
       const toolCallCountBeforeTurn = result.toolCalls.length;
       assistantTurnFailure = null;
-      await session.prompt(nextPrompt);
+      const elapsedBeforePromptMs = Date.now() - startedAtMs;
+      if (elapsedBeforePromptMs >= input.timeoutMs) {
+        throw createSessionTimeoutError(result, elapsedBeforePromptMs);
+      }
+
+      await waitForPromptWithinTimeout(
+        session.prompt(nextPrompt),
+        input.timeoutMs - elapsedBeforePromptMs,
+        () => {
+          abortPromise = session.abort().catch(() => undefined);
+        },
+        () => createSessionTimeoutError(result, Date.now() - startedAtMs)
+      );
 
       if (assistantTurnFailure) {
         throw assistantTurnFailure;
@@ -557,6 +642,20 @@ export async function runPiAgent(
       const madeToolCallThisTurn =
         result.toolCalls.length > toolCallCountBeforeTurn;
       const elapsedMs = Date.now() - startedAtMs;
+      if (elapsedMs >= input.timeoutMs) {
+        throw createSessionTimeoutError(result, elapsedMs);
+      }
+
+      if (
+        !madeToolCallThisTurn &&
+        containsTextualToolCall(lastAssistantTurnText, input.activeToolNames)
+      ) {
+        throw new PiAgentSessionAbortedError(
+          'Pi agent emitted a textual tool call instead of a native tool event',
+          result
+        );
+      }
+
       const isPastReadBudget = result.queryCallCount >= input.maxQueryCalls;
       const isHurryPhase =
         result.queryCallCount >=

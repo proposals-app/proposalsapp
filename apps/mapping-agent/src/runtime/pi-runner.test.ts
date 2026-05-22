@@ -1192,6 +1192,168 @@ describe('runPiAgent', () => {
     );
   });
 
+  it('aborts when the model emits a serialized tool call as assistant text', async () => {
+    const listeners: Array<(event: unknown) => void> = [];
+    const session = {
+      agent: {},
+      subscribe: vi.fn((listener) => {
+        listeners.push(listener);
+        return vi.fn();
+      }),
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => undefined),
+      prompt: vi.fn(async () => {
+        for (const listener of listeners) {
+          listener({
+            type: 'message_end',
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: '<|tool_call>call:query_proposal_mapping_data{query: "select * from current_case"}<tool_call|>',
+                },
+              ],
+            },
+          });
+          listener({
+            type: 'turn_end',
+            turnIndex: 0,
+            message: {
+              role: 'assistant',
+              content: [],
+            },
+            toolResults: [],
+          });
+        }
+      }),
+      dispose: vi.fn(),
+    };
+
+    modelRegistry.find.mockReturnValue({
+      provider: 'lmstudio',
+      id: 'google/gemma-4-31b',
+    });
+    createAgentSession.mockResolvedValue({
+      session,
+      extensionsResult: {
+        extensions: [],
+        errors: [],
+        runtime: {},
+      },
+    });
+
+    await expect(
+      runPiAgent({
+        extensionFactory: vi.fn(),
+        activeToolNames: [
+          'query_proposal_mapping_data',
+          'propose_proposal_group_mapping',
+          'decline_proposal_group_mapping',
+        ],
+        queryToolName: 'query_proposal_mapping_data',
+        decisionToolNames: [
+          'propose_proposal_group_mapping',
+          'decline_proposal_group_mapping',
+        ],
+        systemPrompt: 'system prompt',
+        prompt: 'resolve the mapping case',
+        provider: 'lmstudio',
+        model: 'google/gemma-4-31b',
+        thinking: 'off',
+        baseUrl: 'http://ai-box:1234/v1',
+        timeoutMs: 300_000,
+        contextWindow: 131_072,
+        maxQueryCalls: 20,
+        minQueryCallsBeforeDecision: 0,
+        requireResolvedDecision: true,
+      })
+    ).rejects.toMatchObject({
+      name: 'PiAgentSessionAbortedError',
+      message: expect.stringContaining(
+        'textual tool call instead of a native tool event'
+      ),
+    });
+
+    expect(session.prompt).toHaveBeenCalledTimes(1);
+    expect(session.dispose).toHaveBeenCalled();
+  });
+
+  it('hard-aborts the pi session when the prompt exceeds the session timeout', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const listeners: Array<(event: unknown) => void> = [];
+      const session = {
+        agent: {},
+        subscribe: vi.fn((listener) => {
+          listeners.push(listener);
+          return vi.fn();
+        }),
+        setActiveToolsByName: vi.fn(),
+        abort: vi.fn(async () => undefined),
+        prompt: vi.fn(() => new Promise<void>(() => undefined)),
+        dispose: vi.fn(),
+      };
+
+      modelRegistry.find.mockReturnValue({
+        provider: 'lmstudio',
+        id: 'google/gemma-4-31b',
+      });
+      createAgentSession.mockResolvedValue({
+        session,
+        extensionsResult: {
+          extensions: [],
+          errors: [],
+          runtime: {},
+        },
+      });
+
+      const pendingRun = runPiAgent({
+        extensionFactory: vi.fn(),
+        activeToolNames: [
+          'query_proposal_mapping_data',
+          'propose_proposal_group_mapping',
+          'decline_proposal_group_mapping',
+        ],
+        queryToolName: 'query_proposal_mapping_data',
+        decisionToolNames: [
+          'propose_proposal_group_mapping',
+          'decline_proposal_group_mapping',
+        ],
+        systemPrompt: 'system prompt',
+        prompt: 'resolve the mapping case',
+        provider: 'lmstudio',
+        model: 'google/gemma-4-31b',
+        thinking: 'off',
+        baseUrl: 'http://ai-box:1234/v1',
+        timeoutMs: 30_000,
+        contextWindow: 131_072,
+        maxQueryCalls: 20,
+        minQueryCallsBeforeDecision: 0,
+        requireResolvedDecision: true,
+      });
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(session.prompt).toHaveBeenCalledTimes(1);
+
+      const runRejection = expect(pendingRun).rejects.toMatchObject({
+        name: 'PiAgentSessionAbortedError',
+        message: expect.stringContaining('timed out after 30 seconds'),
+      });
+
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      await runRejection;
+      expect(session.abort).toHaveBeenCalledTimes(1);
+      expect(session.dispose).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('aborts instead of re-prompting when the model returns an error turn', async () => {
     const listeners: Array<(event: unknown) => void> = [];
     let promptCallCount = 0;
