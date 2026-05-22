@@ -158,22 +158,34 @@ function containsTextualToolCall(text: string, toolNames: string[]): boolean {
     return false;
   }
 
-  if (
-    !TEXTUAL_TOOL_CALL_MARKERS.some((marker) => normalizedText.includes(marker))
-  ) {
+  const normalizedToolNames = toolNames.map((toolName) =>
+    toolName.toLowerCase()
+  );
+  const mentionedToolName = normalizedToolNames.find(
+    (toolName) =>
+      normalizedText.includes(`call:${toolName}`) ||
+      normalizedText.includes(`"name":"${toolName}"`) ||
+      normalizedText.includes(`"name": "${toolName}"`) ||
+      normalizedText.includes(`'name':'${toolName}'`) ||
+      normalizedText.includes(`'name': '${toolName}'`) ||
+      normalizedText.includes(`"tool":"${toolName}"`) ||
+      normalizedText.includes(`"tool": "${toolName}"`) ||
+      normalizedText.includes(`'tool':'${toolName}'`) ||
+      normalizedText.includes(`'tool': '${toolName}'`)
+  );
+
+  if (!mentionedToolName) {
     return false;
   }
 
-  return toolNames
-    .map((toolName) => toolName.toLowerCase())
-    .some(
-      (toolName) =>
-        normalizedText.includes(`call:${toolName}`) ||
-        normalizedText.includes(`"name":"${toolName}"`) ||
-        normalizedText.includes(`"name": "${toolName}"`) ||
-        normalizedText.includes(`'name':'${toolName}'`) ||
-        normalizedText.includes(`'name': '${toolName}'`)
-    );
+  return (
+    TEXTUAL_TOOL_CALL_MARKERS.some((marker) =>
+      normalizedText.includes(marker)
+    ) ||
+    normalizedText.includes('```json') ||
+    normalizedText.includes('"tool"') ||
+    normalizedText.includes("'tool'")
+  );
 }
 
 function createSessionTimeoutError(
@@ -458,7 +470,7 @@ export async function runPiAgent(
       defaultModel: input.model,
       defaultThinkingLevel: thinkingLevel,
     }),
-    tools: [],
+    noTools: 'builtin',
   });
   session.agent.toolExecution = 'sequential';
   session.setActiveToolsByName(input.activeToolNames);

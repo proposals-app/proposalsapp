@@ -181,8 +181,8 @@ describe('runPiAgent', () => {
     expect(createAgentSession).toHaveBeenCalledWith(
       expect.objectContaining({
         model,
+        noTools: 'builtin',
         thinkingLevel: 'off',
-        tools: [],
       })
     );
     expect(session.setActiveToolsByName).toHaveBeenCalledWith([
@@ -1212,6 +1212,100 @@ describe('runPiAgent', () => {
                 {
                   type: 'text',
                   text: '<|tool_call>call:query_proposal_mapping_data{query: "select * from current_case"}<tool_call|>',
+                },
+              ],
+            },
+          });
+          listener({
+            type: 'turn_end',
+            turnIndex: 0,
+            message: {
+              role: 'assistant',
+              content: [],
+            },
+            toolResults: [],
+          });
+        }
+      }),
+      dispose: vi.fn(),
+    };
+
+    modelRegistry.find.mockReturnValue({
+      provider: 'lmstudio',
+      id: 'google/gemma-4-31b',
+    });
+    createAgentSession.mockResolvedValue({
+      session,
+      extensionsResult: {
+        extensions: [],
+        errors: [],
+        runtime: {},
+      },
+    });
+
+    await expect(
+      runPiAgent({
+        extensionFactory: vi.fn(),
+        activeToolNames: [
+          'query_proposal_mapping_data',
+          'propose_proposal_group_mapping',
+          'decline_proposal_group_mapping',
+        ],
+        queryToolName: 'query_proposal_mapping_data',
+        decisionToolNames: [
+          'propose_proposal_group_mapping',
+          'decline_proposal_group_mapping',
+        ],
+        systemPrompt: 'system prompt',
+        prompt: 'resolve the mapping case',
+        provider: 'lmstudio',
+        model: 'google/gemma-4-31b',
+        thinking: 'off',
+        baseUrl: 'http://ai-box:1234/v1',
+        timeoutMs: 300_000,
+        contextWindow: 131_072,
+        maxQueryCalls: 20,
+        minQueryCallsBeforeDecision: 0,
+        requireResolvedDecision: true,
+      })
+    ).rejects.toMatchObject({
+      name: 'PiAgentSessionAbortedError',
+      message: expect.stringContaining(
+        'textual tool call instead of a native tool event'
+      ),
+    });
+
+    expect(session.prompt).toHaveBeenCalledTimes(1);
+    expect(session.dispose).toHaveBeenCalled();
+  });
+
+  it('aborts when the model emits a JSON tool call as assistant text', async () => {
+    const listeners: Array<(event: unknown) => void> = [];
+    const session = {
+      agent: {},
+      subscribe: vi.fn((listener) => {
+        listeners.push(listener);
+        return vi.fn();
+      }),
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => undefined),
+      prompt: vi.fn(async () => {
+        for (const listener of listeners) {
+          listener({
+            type: 'message_end',
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: [
+                    '```json',
+                    '{',
+                    '  "tool": "query_proposal_mapping_data",',
+                    '  "sql": "select * from current_case"',
+                    '}',
+                    '```',
+                  ].join('\n'),
                 },
               ],
             },
