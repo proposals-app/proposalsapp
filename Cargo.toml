@@ -11,11 +11,11 @@ async-trait = "0.1.89"
 axum = "0.8.9"
 backtrace = "0.3.76"
 bincode = "3.0.0"
-chrono = "0.4.44"
+chrono = "0.4.45"
 csv = "1.4.0"
 dotenv = "0.15.0"
 fancy-regex = "0.18.0"
-fastembed = "5.13.4"
+fastembed = "5.16.0"
 futures = "0.3.32"
 gag = "1.0"
 html-escape = "0.2.13"
@@ -29,19 +29,19 @@ oneshot = "0.2.1"
 proposalsapp-db = { path = "libs/rust/db" }
 proptest = "1.11"
 rand = "0.10.1"
-redis = { version = "1.2.1", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "1.2.2", features = ["tokio-comp", "connection-manager"] }
 regex = "1.12.3"
-reqwest = { version = "0.13.3", default-features = false }
-reqwest-middleware = "0.5.1"
+reqwest = { version = "0.13.4", default-features = false }
+reqwest-middleware = "0.5.2"
 reqwest-retry = "0.9.1"
 rindexer = { git = "https://github.com/joshstevens19/rindexer", branch = "release/0.40.0", package = "rindexer" }
 rustls = "0.23.40"
 scraper = "0.27.0"
 sea-orm = { version = "1.1.20", default-features = false }
 serde = "1.0.228"
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 serde_yaml = "0.9.34"
-serial_test = "3.4.0"
+serial_test = "3.5.0"
 testcontainers = "0.27.3"
 thiserror = "2.0.18"
 tokio = "1.52.3"

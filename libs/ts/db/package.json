@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "dependencies": {
     "dotenv": "^17.4.2",
-    "kysely": "^0.28.17",
-    "pg": "8.20.0"
+    "kysely": "^0.29.2",
+    "pg": "8.21.0"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.13",
     "@types/pg": "^8.20.0",
     "kysely-codegen": "0.20.0",
-    "kysely-ctl": "^0.20.0",
+    "kysely-ctl": "^0.21.0",
     "typescript": "^6.0.3"
   },
   "main": "./src/index.ts",

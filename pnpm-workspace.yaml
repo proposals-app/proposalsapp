@@ -5,6 +5,19 @@ packages:
   - "apps/web"
   - "apps/email-service"
   - "apps/mapping-agent"
+overrides:
+  prettier: ^3.8.3
+onlyBuiltDependencies:
+  - "@tailwindcss/oxide"
+  - "bufferutil"
+  - "core-js"
+  - "core-js-pure"
+  - "esbuild"
+  - "protobufjs"
+  - "sharp"
+  - "unrs-resolver"
+  - "utf-8-validate"
+  - "ws"
 allowBuilds:
   core-js: true
   core-js-pure: true
