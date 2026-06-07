@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 ARG APP_NAME=discourse
-# Rust 1.88+ required for alloy dependency
-ARG RUST_VERSION=1.92
+# Rust 1.95+ required by upgraded Rust dependencies
+ARG RUST_VERSION=1.96
 
 # Stage 1: Planner - generates recipe.json for dependency caching
 FROM rust:${RUST_VERSION}-bookworm AS planner
