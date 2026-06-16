@@ -2,7 +2,6 @@ import {
   CamelCasePlugin,
   DeduplicateJoinsPlugin,
   Kysely,
-  ParseJSONResultsPlugin,
   PostgresDialect,
   sql,
   type ExpressionBuilder,
@@ -65,11 +64,7 @@ const createDbInstance = () => {
     dialect: new PostgresDialect({
       pool: db_pool_public,
     }),
-    plugins: [
-      new CamelCasePlugin(),
-      new DeduplicateJoinsPlugin(),
-      new ParseJSONResultsPlugin(),
-    ],
+    plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
   });
 };
 

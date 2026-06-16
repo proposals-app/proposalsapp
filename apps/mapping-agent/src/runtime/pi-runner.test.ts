@@ -402,6 +402,95 @@ describe('runPiAgent', () => {
     );
   });
 
+  it('registers LM Studio LMS qwen identifiers with native thinking support', async () => {
+    const listeners: Array<(event: unknown) => void> = [];
+    const session = {
+      agent: {},
+      subscribe: vi.fn((listener) => {
+        listeners.push(listener);
+        return vi.fn();
+      }),
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => undefined),
+      prompt: vi.fn(async () => {
+        for (const listener of listeners) {
+          listener({
+            type: 'tool_execution_start',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            args: { reason: 'done' },
+          });
+          listener({
+            type: 'tool_execution_end',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            isError: false,
+            result: {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({ declined: true }),
+                },
+              ],
+            },
+          });
+        }
+      }),
+      dispose: vi.fn(),
+    };
+    const model = {
+      provider: 'lmstudio',
+      id: 'qwen3.6-27b-q8',
+    };
+
+    modelRegistry.find.mockReturnValue(model);
+    createAgentSession.mockResolvedValue({
+      session,
+      extensionsResult: {
+        extensions: [],
+        errors: [],
+        runtime: {},
+      },
+    });
+
+    await runPiAgent({
+      extensionFactory: vi.fn(),
+      activeToolNames: ['query_delegate_mapping_data'],
+      queryToolName: 'query_delegate_mapping_data',
+      decisionToolNames: [
+        'propose_delegate_mapping',
+        'decline_delegate_mapping',
+      ],
+      systemPrompt: 'system prompt',
+      prompt: 'resolve the mapping case',
+      provider: 'lmstudio',
+      model: 'qwen3.6-27b-q8',
+      thinking: 'low',
+      baseUrl: 'http://ai-box:2234/v1',
+      apiKey: 'lmstudio',
+      contextWindow: 65_536,
+      timeoutMs: 30_000,
+      maxQueryCalls: 4,
+    });
+
+    expect(modelRegistry.registerProvider).toHaveBeenCalledWith(
+      'lmstudio',
+      expect.objectContaining({
+        models: [
+          expect.objectContaining({
+            id: 'qwen3.6-27b-q8',
+            reasoning: true,
+            contextWindow: 65_536,
+            compat: expect.objectContaining({
+              thinkingFormat: 'qwen',
+              supportsReasoningEffort: false,
+            }),
+          }),
+        ],
+      })
+    );
+  });
+
   it('registers non-lmstudio OpenAI-compatible providers without lmstudio compat flags', async () => {
     const listeners: Array<(event: unknown) => void> = [];
     const session = {

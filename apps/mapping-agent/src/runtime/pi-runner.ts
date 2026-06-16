@@ -12,6 +12,7 @@ import {
   type AgentSessionEvent,
   type ExtensionFactory,
 } from '@mariozechner/pi-coding-agent';
+import { isLmStudioQwenModel } from '../shared/pi-model';
 
 const DEFAULT_MAX_TOKENS = 4_096;
 const DEFAULT_API_KEY = 'lmstudio';
@@ -226,15 +227,6 @@ async function waitForPromptWithinTimeout(
       promptPromise.catch(() => undefined);
     }
   }
-}
-
-function isLmStudioQwenModel(
-  input: Pick<RunPiAgentInput, 'provider' | 'model'>
-) {
-  return (
-    input.provider === 'lmstudio' &&
-    input.model.toLowerCase().startsWith('qwen/')
-  );
 }
 
 function createModelRegistryForRun(input: RunPiAgentInput): {

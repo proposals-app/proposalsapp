@@ -1,3 +1,5 @@
+import { isLmStudioQwenModel } from './shared/pi-model';
+
 const DEFAULT_DAO_CATEGORY_FILTERS: Record<string, number[]> = {
   arbitrum: [7, 8, 9],
   uniswap: [5, 8, 9, 10],
@@ -109,10 +111,12 @@ export function loadConfig(): MappingAgentConfig {
     (piProvider === 'openrouter' ? process.env.OPENROUTER_API_KEY : null) ||
     null;
   const piModel = process.env.MAPPING_AGENT_PI_MODEL || null;
-  const defaultThinking =
-    piProvider === 'lmstudio' && piModel?.toLowerCase().startsWith('qwen/')
-      ? 'xhigh'
-      : 'low';
+  const defaultThinking = isLmStudioQwenModel({
+    provider: piProvider,
+    model: piModel,
+  })
+    ? 'xhigh'
+    : 'low';
 
   return {
     port: parseInteger(process.env.PORT, 3000),

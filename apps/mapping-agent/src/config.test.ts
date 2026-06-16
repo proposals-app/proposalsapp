@@ -85,4 +85,13 @@ describe('loadConfig', () => {
 
     expect(loadConfig().pi.thinking).toBe('xhigh');
   });
+
+  it('defaults lmstudio LMS qwen identifiers to xhigh thinking', async () => {
+    vi.stubEnv('MAPPING_AGENT_PI_PROVIDER', 'lmstudio');
+    vi.stubEnv('MAPPING_AGENT_PI_MODEL', 'qwen3.6-27b-q8');
+
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig().pi.thinking).toBe('xhigh');
+  });
 });
