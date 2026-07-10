@@ -15,11 +15,12 @@ use sea_orm::{
     prelude::{Expr, Uuid},
 };
 use std::collections::{HashMap, HashSet};
-use std::time::Duration as StdDuration;
+use std::time::{Duration as StdDuration, Instant as StdInstant};
 use tracing::{debug, error, info, instrument, warn};
 
 // Constants
 const REFRESH_INTERVAL: StdDuration = StdDuration::from_secs(60);
+const FULL_PROPOSAL_SYNC_INTERVAL: StdDuration = StdDuration::from_secs(6 * 60 * 60);
 const HIDDEN_VOTE_MAX_RETRIES: usize = 15;
 const HIDDEN_VOTE_RETRY_DELAY_SECONDS: u64 = 60;
 const VOTE_CURSOR_OVERLAP_SECONDS: i64 = 300;
@@ -43,8 +44,12 @@ fn should_fetch_next_vote_page(page_len: usize, page_size: usize) -> bool {
 #[instrument(name = "run_periodic_snapshot_indexing", skip_all)]
 pub async fn run_periodic_snapshot_indexing() -> Result<()> {
     info!("Starting simplified snapshot indexing with cursors");
+    let mut last_full_proposal_sync: Option<StdInstant> = None;
 
     loop {
+        let full_proposal_sync_due = last_full_proposal_sync
+            .is_none_or(|last_sync| last_sync.elapsed() >= FULL_PROPOSAL_SYNC_INTERVAL);
+        let mut full_proposal_sync_succeeded = true;
         let snapshot_governors = {
             // Collect governor info synchronously
             let dao_governor_map = DAO_SLUG_GOVERNOR_TYPE_ID_MAP
@@ -98,6 +103,13 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
                     error!(space = %space, error = %e, "Failed to index proposals");
                 }
 
+                if full_proposal_sync_due
+                    && let Err(e) = sync_all_snapshot_proposals(&space, governor_id, dao_id).await
+                {
+                    full_proposal_sync_succeeded = false;
+                    error!(space = %space, error = %e, "Failed to fully synchronize Snapshot proposals");
+                }
+
                 // Index votes
                 if let Err(e) = index_votes(&space, governor_id, dao_id).await {
                     error!(space = %space, error = %e, "Failed to index votes");
@@ -113,10 +125,69 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
                     error!(space = %space, error = %e, "Failed to reconcile Snapshot vote gaps");
                 }
             }
+
+            if full_proposal_sync_due && full_proposal_sync_succeeded {
+                last_full_proposal_sync = Some(StdInstant::now());
+            }
         }
 
         tokio::time::sleep(REFRESH_INTERVAL).await;
     }
+}
+
+/// Refresh metadata for the complete current proposal history.
+///
+/// Older rows can predate fields used by vote reconciliation, so a cursor-only
+/// importer is not sufficient for a durable backfill.
+#[instrument(name = "sync_all_snapshot_proposals", skip_all, fields(space = space))]
+async fn sync_all_snapshot_proposals(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
+    let api = SnapshotApi::new();
+    let mut skip = 0;
+    let mut provider_ids = HashSet::new();
+
+    loop {
+        let proposals = api
+            .fetch_space_proposals_page(space, skip, PROPOSAL_PAGE_SIZE)
+            .await?;
+        let page_len = proposals.len();
+        if page_len == 0 {
+            break;
+        }
+
+        for proposal in proposals {
+            provider_ids.insert(proposal.id.clone());
+            store_snapshot_proposal(proposal, governor_id, dao_id).await?;
+        }
+        skip += page_len;
+        if page_len < PROPOSAL_PAGE_SIZE {
+            break;
+        }
+    }
+
+    if provider_ids.is_empty() {
+        anyhow::bail!("Snapshot returned no proposals for configured space {space}");
+    }
+
+    let db = DB.get().context("DB not initialized")?;
+    let unavailable_proposals = proposal::Entity::find()
+        .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(proposal::Column::ExternalId.is_not_in(provider_ids.iter().cloned()))
+        .all(db)
+        .await?;
+    for unavailable in unavailable_proposals {
+        if unavailable.proposal_state != ProposalState::Defeated {
+            let mut active_model: proposal::ActiveModel = unavailable.into();
+            active_model.proposal_state = Set(ProposalState::Defeated);
+            active_model.update(db).await?;
+        }
+    }
+
+    info!(
+        space = %space,
+        proposal_count = provider_ids.len(),
+        "Fully synchronized Snapshot proposal metadata"
+    );
+    Ok(())
 }
 
 /// Index proposals using cursor-based pagination + refresh active proposals

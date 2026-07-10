@@ -290,6 +290,53 @@ impl SnapshotApi {
             .proposals)
     }
 
+    /// Fetch a page of all current proposals for a space.
+    pub async fn fetch_space_proposals_page(
+        &self,
+        space: &str,
+        skip: usize,
+        limit: usize,
+    ) -> Result<Vec<SnapshotProposal>> {
+        let space_literal = graphql_string_literal(space);
+        let query = format!(
+            r#"
+            {{
+                proposals(
+                    first: {limit},
+                    skip: {skip},
+                    where: {{ space: {space_literal} }},
+                    orderBy: "created",
+                    orderDirection: asc
+                ) {{
+                    id
+                    author
+                    title
+                    body
+                    discussion
+                    choices
+                    scores_state
+                    privacy
+                    created
+                    start
+                    end
+                    quorum
+                    link
+                    state
+                    type
+                    flagged
+                    ipfs
+                    votes
+                }}
+            }}"#
+        );
+
+        let response: SnapshotProposalsResponse = self.fetch_graphql(&query).await?;
+        Ok(response
+            .data
+            .context("Snapshot space proposals response omitted data")?
+            .proposals)
+    }
+
     /// Fetch all votes for a specific proposal (handles pagination internally)
     #[instrument(name = "fetch_all_proposal_votes", skip(self))]
     pub async fn fetch_all_proposal_votes(&self, proposal_id: &str) -> Result<Vec<SnapshotVote>> {
@@ -752,6 +799,11 @@ mod tests {
             .await
             .unwrap();
         assert!(!proposals.is_empty());
+        let all_proposals = api
+            .fetch_space_proposals_page("uniswapgovernance.eth", 0, 1_000)
+            .await
+            .unwrap();
+        assert!(all_proposals.len() >= proposals.len());
 
         let proposal = proposals
             .into_iter()
