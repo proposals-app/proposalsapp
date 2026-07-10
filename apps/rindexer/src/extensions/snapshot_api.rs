@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use tracing::{debug, info, instrument, warn};
 
 pub const SNAPSHOT_GRAPHQL_ENDPOINT: &str = "https://hub.snapshot.org/graphql";
+const MAX_GRAPHQL_SKIP: usize = 5_000;
 
 /// Token bucket rate limiter for 60 requests per minute
 #[derive(Debug)]
@@ -341,19 +342,47 @@ impl SnapshotApi {
     #[instrument(name = "fetch_all_proposal_votes", skip(self))]
     pub async fn fetch_all_proposal_votes(&self, proposal_id: &str) -> Result<Vec<SnapshotVote>> {
         let mut all_votes = Vec::new();
-        let mut skip = 0;
+        let mut created_cursor = 0;
+        let mut same_timestamp_skip = 0;
         const BATCH_SIZE: usize = 1_000;
 
         loop {
             let votes = self
-                .fetch_proposal_votes_batch(proposal_id, skip, BATCH_SIZE)
+                .fetch_proposal_votes_batch(
+                    proposal_id,
+                    created_cursor,
+                    same_timestamp_skip,
+                    BATCH_SIZE,
+                )
                 .await?;
             if votes.is_empty() {
                 break;
             }
 
-            skip += votes.len();
+            let page_len = votes.len();
+            let last_created = votes
+                .last()
+                .expect("non-empty vote page must have a last vote")
+                .created;
+            let votes_at_last_timestamp = votes
+                .iter()
+                .filter(|vote| vote.created == last_created)
+                .count();
+            if last_created == created_cursor {
+                same_timestamp_skip += page_len;
+            } else {
+                created_cursor = last_created;
+                same_timestamp_skip = votes_at_last_timestamp;
+            }
+            if same_timestamp_skip > MAX_GRAPHQL_SKIP {
+                bail!(
+                    "Snapshot proposal {proposal_id} has more than {MAX_GRAPHQL_SKIP} votes at timestamp {created_cursor}; exact pagination is not possible with the provider's skip limit"
+                );
+            }
             all_votes.extend(votes);
+            if page_len < BATCH_SIZE {
+                break;
+            }
         }
 
         info!(proposal_id = %proposal_id, total_votes = all_votes.len(), "Fetched all votes for proposal");
@@ -364,6 +393,7 @@ impl SnapshotApi {
     async fn fetch_proposal_votes_batch(
         &self,
         proposal_id: &str,
+        created_gte: i64,
         skip: usize,
         limit: usize,
     ) -> Result<Vec<SnapshotVote>> {
@@ -375,7 +405,8 @@ impl SnapshotApi {
                     first: {limit},
                     skip: {skip},
                     where: {{
-                        proposal: {proposal_id_literal}
+                        proposal: {proposal_id_literal},
+                        created_gte: {created_gte}
                     }},
                     orderBy: "created",
                     orderDirection: asc
@@ -393,7 +424,7 @@ impl SnapshotApi {
             }}"#
         );
 
-        debug!(proposal_id = %proposal_id, skip = skip, limit = limit, "Fetching vote batch");
+        debug!(proposal_id = %proposal_id, created_gte, skip, limit, "Fetching vote batch");
 
         let response: SnapshotVotesResponse = self.fetch_graphql(&query).await?;
         response
@@ -822,5 +853,21 @@ mod tests {
             .await
             .unwrap();
         assert!(vote_page.len() <= 5);
+
+        let large_proposal_id =
+            "0xb581f3aed701ae889c1d79406acdf3d653e6eb4323cb5e46635f729e6313da4d";
+        let large_proposal = api
+            .fetch_proposal_by_id(large_proposal_id)
+            .await
+            .unwrap()
+            .unwrap();
+        let large_vote_set = api
+            .fetch_all_proposal_votes(large_proposal_id)
+            .await
+            .unwrap();
+        assert_eq!(
+            large_vote_set.len() as u64,
+            large_proposal.votes.unwrap_or_default()
+        );
     }
 }
