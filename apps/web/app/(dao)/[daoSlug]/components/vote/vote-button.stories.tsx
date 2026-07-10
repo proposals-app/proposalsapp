@@ -41,12 +41,7 @@ enum ProposalState {
 
 // Define a local JsonValue type
 type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 // Define a local Proposal interface based on usage in this file
 interface Proposal {
@@ -409,8 +404,7 @@ async function fetchLatestSnapshotProposal(
 // --- On-Chain Fetching Logic ---
 const findEventAbi = (abi: Abi, eventName: string): AbiEvent | undefined =>
   abi.find((item) => item.type === 'event' && item.name === eventName) as
-    | AbiEvent
-    | undefined;
+    AbiEvent | undefined;
 
 // Define the explicit type for decoded logs based on ABI for each governor
 type DecodedProposalCreatedCoreLog = DecodeEventLogReturnType<
@@ -453,8 +447,7 @@ async function fetchLatestOnchainProposal(
 
   // Define a union type for decoded logs based on the chosen ABI
   type DecodedProposalCreatedLog =
-    | DecodedProposalCreatedCoreLog
-    | DecodedProposalCreatedTreasuryLog;
+    DecodedProposalCreatedCoreLog | DecodedProposalCreatedTreasuryLog;
 
   try {
     // Fetch the latest proposal ID using the event log approach primarily.

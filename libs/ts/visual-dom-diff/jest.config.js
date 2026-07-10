@@ -1,5 +1,16 @@
+const { createDefaultEsmPreset } = require('ts-jest')
+
+const esmPreset = createDefaultEsmPreset({
+    tsconfig: {
+        esModuleInterop: true,
+        module: 'ES2022',
+        moduleResolution: 'Bundler',
+        target: 'ES2022',
+    },
+})
+
 module.exports = {
-    preset: 'ts-jest',
+    ...esmPreset,
     setupFiles: ['<rootDir>/scripts/jestSetUp'],
     testMatch: [`<rootDir>/src/**/*.test.ts`],
     testEnvironment: 'node',

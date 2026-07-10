@@ -80,9 +80,7 @@ export function VoteButton({
   const metadata = proposal.metadata as ProposalMetadata | null;
   // Ensure voteType is compatible with snapshotVoteModalComponents keys if it's offchain
   const voteType = metadata?.voteType as
-    | keyof typeof snapshotVoteModalComponents
-    | 'basic'
-    | undefined; // Assuming 'basic' might be used for onchain
+    keyof typeof snapshotVoteModalComponents | 'basic' | undefined; // Assuming 'basic' might be used for onchain
 
   if (!voteType) {
     console.warn(`VoteButton: Proposal ${proposal.id} has no valid vote type.`);

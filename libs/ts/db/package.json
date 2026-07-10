@@ -4,7 +4,7 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "kysely": "^0.29.2",
-    "pg": "8.21.0"
+    "pg": "8.22.0"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.13",

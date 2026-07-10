@@ -4,20 +4,20 @@
   "dependencies": {
     "@proposalsapp/db": "workspace:*",
     "@proposalsapp/emails": "workspace:*",
-    "@react-email/render": "^2.0.8",
+    "@react-email/render": "^2.0.10",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
-    "node-cron": "^4.2.1",
+    "node-cron": "^4.5.0",
     "pino": "^10.3.1",
-    "resend": "^6.12.4"
+    "resend": "^6.16.0"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^26.1.0",
     "@types/node-cron": "^3.0.11",
-    "esbuild": "^0.28.0",
-    "tsx": "^4.22.4",
+    "esbuild": "^0.28.1",
+    "tsx": "^4.22.5",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.9"
   },
   "main": "./src/index.ts",
   "scripts": {

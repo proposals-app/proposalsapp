@@ -68,8 +68,7 @@ const testClient = createTestClient({
 
 // Define a type that is a union of the two governor ABIs to allow viem to infer types
 type GovernorAbi =
-  | typeof ARBITRUM_CORE_GOVERNOR_ABI
-  | typeof ARBITRUM_TREASURY_GOVERNOR_ABI;
+  typeof ARBITRUM_CORE_GOVERNOR_ABI | typeof ARBITRUM_TREASURY_GOVERNOR_ABI;
 
 // Define a type for the VoteCast log arguments (generic enough for both ABIs)
 type VoteCastEventArgs = {
@@ -85,8 +84,7 @@ type VoteCastEventArgs = {
 
 const findEventAbi = (abi: Abi, eventName: string): AbiEvent | undefined =>
   abi.find((item) => item.type === 'event' && item.name === eventName) as
-    | AbiEvent
-    | undefined;
+    AbiEvent | undefined;
 
 async function connectWallet(
   page: Page,

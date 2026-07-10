@@ -11,11 +11,11 @@ importers:
         specifier: ^17.4.2
         version: 17.4.2
       kysely:
-        specifier: ^0.28.17
-        version: 0.28.17
+        specifier: ^0.29.2
+        version: 0.29.3
       pg:
-        specifier: 8.20.0
-        version: 8.20.0
+        specifier: 8.22.0
+        version: 8.22.0
     devDependencies:
       "@tsconfig/recommended":
         specifier: ^1.0.13
@@ -25,10 +25,10 @@ importers:
         version: 8.20.0
       kysely-codegen:
         specifier: 0.20.0
-        version: 0.20.0(kysely@0.28.17)(pg@8.20.0)(typescript@6.0.3)
+        version: 0.20.0(kysely@0.29.3)(pg@8.22.0)(typescript@6.0.3)
       kysely-ctl:
-        specifier: ^0.20.0
-        version: 0.20.0(kysely@0.28.17)(typescript@6.0.3)
+        specifier: ^0.21.0
+        version: 0.21.0(kysely@0.29.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -130,6 +130,12 @@ packages:
         integrity: sha512-kEV95lFBhQgtogAPlQfJJ0WGVSokvLr/UEoFPiKKOXF7pl98HfUVUD0ejsuTCld/9xH9vogSywZ5KqHzXrZpqg==,
       }
 
+  citty@0.2.2:
+    resolution:
+      {
+        integrity: sha512-+6vJA3L98yv+IdfKGZHBNiGW5KHn22e/JwID0Strsz8h4S/csAu/OuICwxrg44k5MRiZHWIo8XXuJgQTriRP4w==,
+      }
+
   color-convert@2.0.1:
     resolution:
       {
@@ -147,6 +153,12 @@ packages:
     resolution:
       {
         integrity: sha512-1NB+BKqhtNipMsov4xI/NnhCKp9XG9NamYp5PVm9klAT0fsrNPjaFICsCFhNhwZJKNh7zB/3q8qXz0E9oaMNtQ==,
+      }
+
+  confbox@0.2.4:
+    resolution:
+      {
+        integrity: sha512-ysOGlgTFbN2/Y6Cg3Iye8YKulHw+R2fNXHrgSmXISQdMnomY6eNDprVdW9R5xBguEqI954+S6709UyiO7B+6OQ==,
       }
 
   consola@3.4.2:
@@ -221,12 +233,6 @@ packages:
         integrity: sha512-7dFHNmqeFSEt2ZBsCriorKnn3Z2pj+fd9kmI6QoWw4//DL+icEBfc0U7qJCisqrTsKTjw4fNFy2pW9OqStD84g==,
       }
 
-  exsolve@1.0.7:
-    resolution:
-      {
-        integrity: sha512-VO5fQUzZtI6C+vx4w/4BWJpg3s/5l+6pRQEHzFRM8WFi4XffSP1Z+4qi7GbjWbvRQEbdIco5mIMq+zX4rPuLrw==,
-      }
-
   exsolve@1.0.8:
     resolution:
       {
@@ -278,6 +284,13 @@ packages:
     resolution:
       {
         integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==,
+      }
+    hasBin: true
+
+  jiti@2.7.0:
+    resolution:
+      {
+        integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==,
       }
     hasBin: true
 
@@ -338,15 +351,15 @@ packages:
       tedious:
         optional: true
 
-  kysely-ctl@0.20.0:
+  kysely-ctl@0.21.0:
     resolution:
       {
-        integrity: sha512-JoUBvW0uaEvM7BbR/JKaePvjQqZ8sHGOgy1VSESCjCIh5tIjP6pCuSz/u35hWpZnWrqeonqTjndW7xC7UNzqPA==,
+        integrity: sha512-tovLEh+5eHgBt1P9L42Y3lgEI7cXK0nAPIBFg+dmTXUlmb2Ats3X3D0TwUtCV63XzVEdRV5dONa8DBhRiEf8fg==,
       }
-    engines: { node: ">=20" }
+    engines: { node: ">=22" }
     hasBin: true
     peerDependencies:
-      kysely: ">=0.18.1 <0.29.0"
+      kysely: ">=0.18.1 <0.30.0"
       kysely-neon: ^2
       kysely-postgres-js: ^2 || ^3
       kysely-prisma-postgres: ^0.1
@@ -358,12 +371,12 @@ packages:
       kysely-prisma-postgres:
         optional: true
 
-  kysely@0.28.17:
+  kysely@0.29.3:
     resolution:
       {
-        integrity: sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q==,
+        integrity: sha512-VHtBdW6XB/pgoTSqraM3UAa2rYoYdNXqnNPpX+8XXP+cwYbVEFuAp3HyPt1vpNfU9l7Y2kpUrA9QDPsy8uUqOQ==,
       }
-    engines: { node: ">=20.0.0" }
+    engines: { node: ">=22.0.0" }
 
   lines-and-columns@1.2.4:
     resolution:
@@ -394,6 +407,14 @@ packages:
     resolution:
       {
         integrity: sha512-K6AJy1GMVyfyMXRVB88700BJqNUkByijGJM8kEHpLdcAt+vSQAVfkWWHYzuRXHSY6xA2sNc5RjTj0p9rE2izVQ==,
+      }
+    engines: { node: ">=18" }
+    hasBin: true
+
+  nypm@0.6.8:
+    resolution:
+      {
+        integrity: sha512-Q9K4Diu6l5u6xJQogeFSs/zKtyMSgFKFtRQV+tHP4kL7KPm2grpBU0dFIwFaXwNxN0MtfKWc43VpCugAa+LPsw==,
       }
     engines: { node: ">=18" }
     hasBin: true
@@ -436,16 +457,16 @@ packages:
         integrity: sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g==,
       }
 
-  pg-cloudflare@1.3.0:
+  pg-cloudflare@1.4.0:
     resolution:
       {
-        integrity: sha512-6lswVVSztmHiRtD6I8hw4qP/nDm1EJbKMRhf3HCYaqud7frGysPv7FYJ5noZQdhQtN2xJnimfMtvQq21pdbzyQ==,
+        integrity: sha512-Vo7z/6rrQYxpNRylp4Tlob2elzbh+N/MOQbxFVWCxS7oEx6jF53GTJFxK2WWpKuBRkmiin4Mt+xofFDjx09R0A==,
       }
 
-  pg-connection-string@2.12.0:
+  pg-connection-string@2.14.0:
     resolution:
       {
-        integrity: sha512-U7qg+bpswf3Cs5xLzRqbXbQl85ng0mfSV/J0nnA31MCLgvEaAo7CIhmeyrmJpOr7o+zm0rXK+hNnT5l9RHkCkQ==,
+        integrity: sha512-XwWDGcLRGCXAR8F/AM5bG7Q+A3Wm2s6QeEjlOKZLlH3UYcguiqCWKyWXVag5TLTIjR7oOJUY8kcADaZgWPyLeg==,
       }
 
   pg-int8@1.0.1:
@@ -455,10 +476,10 @@ packages:
       }
     engines: { node: ">=4.0.0" }
 
-  pg-pool@3.13.0:
+  pg-pool@3.14.0:
     resolution:
       {
-        integrity: sha512-gB+R+Xud1gLFuRD/QgOIgGOBE2KCQPaPwkzBBGC9oG69pHTkhQeIuejVIk3/cnDyX39av2AxomQiyPT13WKHQA==,
+        integrity: sha512-gKtPkFdQPU3DksooVLi9LsjZxrsBUZIpa+7aVx+LV5pNh0KzP4Zleud2po+ConrxbuXGBJ6Hfer6hdgpIBpBaw==,
       }
     peerDependencies:
       pg: ">=8.0"
@@ -469,10 +490,10 @@ packages:
         integrity: sha512-pfsxk2M9M3BuGgDOfuy37VNRRX3jmKgMjcvAcWqNDpZSf4cUmv8HSOl5ViRQFsfARFn0KuUQTgLxVMbNq5NW3g==,
       }
 
-  pg-protocol@1.13.0:
+  pg-protocol@1.15.0:
     resolution:
       {
-        integrity: sha512-zzdvXfS6v89r6v7OcFCHfHlyG/wvry1ALxZo4LqgUoy7W9xhBDMaqOuMiF3qEV45VqsN6rdlcehHrfDtlCPc8w==,
+        integrity: sha512-cq9sECI5s0+uPUXjbz8ioyPJni6RzsRib0US67i5IoTZKw8fNeYlVE7u8F4dG7vEJJtc5wdD1K189lCCUwqWTQ==,
       }
 
   pg-types@2.2.0:
@@ -482,10 +503,10 @@ packages:
       }
     engines: { node: ">=4" }
 
-  pg@8.20.0:
+  pg@8.22.0:
     resolution:
       {
-        integrity: sha512-ldhMxz2r8fl/6QkXnBD3CR9/xg694oT6DZQ2s6c/RI28OjtSOpxnPrUCGOBJ46RCUxcWdx3p6kw/xnDHjKvaRA==,
+        integrity: sha512-8wih1vVIBMxoUM2oB4soJsD9tDnDpLv4OXBJ+EJzFsvycD+lfyIreC2gGHq78f8jbLLt+bvlPTFdFZfJkOuzAA==,
       }
     engines: { node: ">= 16.0.0" }
     peerDependencies:
@@ -517,6 +538,12 @@ packages:
     resolution:
       {
         integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==,
+      }
+
+  pkg-types@2.3.1:
+    resolution:
+      {
+        integrity: sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg==,
       }
 
   pluralize@8.0.0:
@@ -581,10 +608,10 @@ packages:
       }
     engines: { node: ">= 10.x" }
 
-  std-env@3.10.0:
+  std-env@4.2.0:
     resolution:
       {
-        integrity: sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==,
+        integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==,
       }
 
   supports-color@7.2.0:
@@ -601,25 +628,19 @@ packages:
       }
     engines: { node: ">=18" }
 
+  tinyexec@1.2.4:
+    resolution:
+      {
+        integrity: sha512-SHf/r48b7vOrjve9PxJo3MN5v5yuyjHvdUcrQffT3WXMUfnGmHDVbC4k3sHJaJTgZCwpUplIaAo5ANtMyp3YHg==,
+      }
+    engines: { node: ">=18" }
+
   to-regex-range@5.0.1:
     resolution:
       {
         integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==,
       }
     engines: { node: ">=8.0" }
-
-  tsconfck@3.1.6:
-    resolution:
-      {
-        integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==,
-      }
-    engines: { node: ^18 || >=20 }
-    hasBin: true
-    peerDependencies:
-      typescript: ^5.0.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
 
   typescript@6.0.3:
     resolution:
@@ -717,6 +738,8 @@ snapshots:
 
   citty@0.2.1: {}
 
+  citty@0.2.2: {}
+
   color-convert@2.0.1:
     dependencies:
       color-name: 1.1.4
@@ -724,6 +747,8 @@ snapshots:
   color-name@1.1.4: {}
 
   confbox@0.2.2: {}
+
+  confbox@0.2.4: {}
 
   consola@3.4.2: {}
 
@@ -756,8 +781,6 @@ snapshots:
     dependencies:
       is-arrayish: 0.2.1
 
-  exsolve@1.0.7: {}
-
   exsolve@1.0.8: {}
 
   fill-range@7.1.1:
@@ -786,6 +809,8 @@ snapshots:
 
   jiti@2.6.1: {}
 
+  jiti@2.7.0: {}
+
   js-tokens@4.0.0: {}
 
   js-yaml@4.1.0:
@@ -794,42 +819,40 @@ snapshots:
 
   json-parse-even-better-errors@2.3.1: {}
 
-  kysely-codegen@0.20.0(kysely@0.28.17)(pg@8.20.0)(typescript@6.0.3):
+  kysely-codegen@0.20.0(kysely@0.29.3)(pg@8.22.0)(typescript@6.0.3):
     dependencies:
       chalk: 4.1.2
       cosmiconfig: 9.0.0(typescript@6.0.3)
       diff: 8.0.3
       dotenv: 17.4.2
       dotenv-expand: 12.0.3
-      kysely: 0.28.17
+      kysely: 0.29.3
       micromatch: 4.0.8
       minimist: 1.2.8
       pluralize: 8.0.0
       zod: 4.3.6
     optionalDependencies:
-      pg: 8.20.0
+      pg: 8.22.0
     transitivePeerDependencies:
       - typescript
 
-  kysely-ctl@0.20.0(kysely@0.28.17)(typescript@6.0.3):
+  kysely-ctl@0.21.0(kysely@0.29.3):
     dependencies:
       c12: 3.3.3
-      citty: 0.1.6
-      confbox: 0.2.2
+      citty: 0.2.2
+      confbox: 0.2.4
       consola: 3.4.2
-      jiti: 2.6.1
-      kysely: 0.28.17
-      nypm: 0.6.5
+      jiti: 2.7.0
+      kysely: 0.29.3
+      nypm: 0.6.8
       ofetch: 1.5.1
       pathe: 2.0.3
-      pkg-types: 2.3.0
-      std-env: 3.10.0
-      tsconfck: 3.1.6(typescript@6.0.3)
+      pkg-types: 2.3.1
+      std-env: 4.2.0
     transitivePeerDependencies:
       - magicast
-      - typescript
 
-  kysely@0.28.17: {}
+  kysely@0.29.3: {}
 
   lines-and-columns@1.2.4: {}
 
@@ -847,6 +870,12 @@ snapshots:
       citty: 0.2.1
       pathe: 2.0.3
       tinyexec: 1.0.2
+
+  nypm@0.6.8:
+    dependencies:
+      citty: 0.2.2
+      pathe: 2.0.3
+      tinyexec: 1.2.4
 
   ofetch@1.5.1:
     dependencies:
@@ -871,20 +900,20 @@ snapshots:
 
   perfect-debounce@2.1.0: {}
 
-  pg-cloudflare@1.3.0:
+  pg-cloudflare@1.4.0:
     optional: true
 
-  pg-connection-string@2.12.0: {}
+  pg-connection-string@2.14.0: {}
 
   pg-int8@1.0.1: {}
 
-  pg-pool@3.13.0(pg@8.20.0):
+  pg-pool@3.14.0(pg@8.22.0):
     dependencies:
-      pg: 8.20.0
+      pg: 8.22.0
 
   pg-protocol@1.11.0: {}
 
-  pg-protocol@1.13.0: {}
+  pg-protocol@1.15.0: {}
 
   pg-types@2.2.0:
     dependencies:
@@ -894,15 +923,15 @@ snapshots:
       postgres-date: 1.0.7
       postgres-interval: 1.2.0
 
-  pg@8.20.0:
+  pg@8.22.0:
     dependencies:
-      pg-connection-string: 2.12.0
-      pg-pool: 3.13.0(pg@8.20.0)
-      pg-protocol: 1.13.0
+      pg-connection-string: 2.14.0
+      pg-pool: 3.14.0(pg@8.22.0)
+      pg-protocol: 1.15.0
       pg-types: 2.2.0
       pgpass: 1.0.5
     optionalDependencies:
-      pg-cloudflare: 1.3.0
+      pg-cloudflare: 1.4.0
 
   pgpass@1.0.5:
     dependencies:
@@ -915,7 +944,13 @@ snapshots:
   pkg-types@2.3.0:
     dependencies:
       confbox: 0.2.2
-      exsolve: 1.0.7
+      exsolve: 1.0.8
+      pathe: 2.0.3
+
+  pkg-types@2.3.1:
+    dependencies:
+      confbox: 0.2.4
+      exsolve: 1.0.8
       pathe: 2.0.3
 
   pluralize@8.0.0: {}
@@ -941,7 +976,7 @@ snapshots:
 
   split2@4.2.0: {}
 
-  std-env@3.10.0: {}
+  std-env@4.2.0: {}
 
   supports-color@7.2.0:
     dependencies:
@@ -949,13 +984,11 @@ snapshots:
 
   tinyexec@1.0.2: {}
 
+  tinyexec@1.2.4: {}
+
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
-
-  tsconfck@3.1.6(typescript@6.0.3):
-    optionalDependencies:
-      typescript: 6.0.3
 
   typescript@6.0.3: {}
 

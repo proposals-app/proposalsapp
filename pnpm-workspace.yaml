@@ -6,7 +6,7 @@ packages:
   - "apps/email-service"
   - "apps/mapping-agent"
 overrides:
-  prettier: ^3.8.3
+  prettier: ^3.9.4
 onlyBuiltDependencies:
   - "@tailwindcss/oxide"
   - "bufferutil"

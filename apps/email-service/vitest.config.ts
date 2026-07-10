@@ -18,10 +18,7 @@ export default defineConfig({
       ],
     },
     // Run integration tests in sequence to avoid container conflicts
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    isolate: false,
+    maxWorkers: 1,
   },
 });

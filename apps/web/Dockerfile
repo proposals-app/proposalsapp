@@ -6,7 +6,7 @@ FROM node:22-bookworm AS builder
 WORKDIR /app
 
 # Install and enable Corepack
-RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 
 # Copy package-related files
 COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./

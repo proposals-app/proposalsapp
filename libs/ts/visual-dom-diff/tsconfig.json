@@ -1,14 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES2015",
-    "module": "commonjs",
+    "module": "Node16",
     "lib": ["es6", "dom"],
-    "moduleResolution": "node",
+    "moduleResolution": "Node16",
+    "types": ["jest"],
     "rootDir": "./src",
     "outDir": "./lib",
     "preserveConstEnums": true,
     "declaration": true,
     "importHelpers": true,
+    "isolatedModules": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

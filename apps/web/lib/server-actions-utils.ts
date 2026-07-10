@@ -99,12 +99,10 @@ export async function getOptionalUserAndDao(daoSlug: string) {
  * Standard result types for server actions
  */
 export type ServerActionResult<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string; code?: string };
+  { success: true; data: T } | { success: false; error: string; code?: string };
 
 export type ServerActionVoidResult =
-  | { success: true }
-  | { success: false; error: string; code?: string };
+  { success: true } | { success: false; error: string; code?: string };
 
 /**
  * Creates a success result for server actions

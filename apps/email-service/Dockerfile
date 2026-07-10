@@ -7,7 +7,7 @@ WORKDIR /app
 ARG APP_NAME
 
 # Install and enable Corepack
-RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 
 # Copy package-related files
 COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
