@@ -800,6 +800,8 @@ fn parse_graphql_response<T: DeserializeOwned>(body: &str) -> Result<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::{
         SnapshotApi, SnapshotVotesResponse, graphql_string_literal, parse_graphql_response,
     };
@@ -868,6 +870,29 @@ mod tests {
         assert_eq!(
             large_vote_set.len() as u64,
             large_proposal.votes.unwrap_or_default()
+        );
+
+        // Snapshot retains multiple vote messages when a voter changes their
+        // vote, while the proposal's `votes` field counts distinct voters.
+        let revote_proposal_id =
+            "0xa0e14b85197d73e825ac30f72b7d895d644ed06159a32a578f4efe47a2739b2f";
+        let revote_proposal = api
+            .fetch_proposal_by_id(revote_proposal_id)
+            .await
+            .unwrap()
+            .unwrap();
+        let revote_messages = api
+            .fetch_all_proposal_votes(revote_proposal_id)
+            .await
+            .unwrap();
+        let distinct_voters: HashSet<String> = revote_messages
+            .iter()
+            .map(|vote| vote.voter.to_lowercase())
+            .collect();
+        assert_eq!(revote_messages.len(), distinct_voters.len());
+        assert_ne!(
+            distinct_voters.len() as u64,
+            revote_proposal.votes.unwrap_or_default()
         );
     }
 }

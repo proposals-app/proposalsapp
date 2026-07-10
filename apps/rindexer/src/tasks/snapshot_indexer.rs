@@ -40,6 +40,25 @@ fn should_fetch_next_vote_page(page_len: usize, page_size: usize) -> bool {
     page_len == page_size
 }
 
+/// Keep the latest Snapshot message for each voter.
+///
+/// The proposal metadata count is not authoritative for every historical
+/// proposal, and Snapshot may retain more than one message when a voter
+/// changes a vote. The complete vote query plus this canonicalization yields
+/// the current distinct-voter set used by the application.
+fn canonicalize_snapshot_votes(mut votes: Vec<SnapshotVote>) -> Vec<SnapshotVote> {
+    votes.sort_by(|left, right| {
+        left.created
+            .cmp(&right.created)
+            .then_with(|| left.ipfs.cmp(&right.ipfs))
+    });
+    let mut latest_by_voter = HashMap::new();
+    for vote in votes {
+        latest_by_voter.insert(vote.voter.to_lowercase(), vote);
+    }
+    latest_by_voter.into_values().collect()
+}
+
 /// Main entry point for periodic snapshot indexing
 #[instrument(name = "run_periodic_snapshot_indexing", skip_all)]
 pub async fn run_periodic_snapshot_indexing() -> Result<()> {
@@ -651,7 +670,7 @@ async fn reconcile_snapshot_proposal_votes(
     );
 
     let api = SnapshotApi::new();
-    let Some(current_proposal) = api.fetch_proposal_by_id(&prop.external_id).await? else {
+    let Some(mut current_proposal) = api.fetch_proposal_by_id(&prop.external_id).await? else {
         warn!(
             space = %space,
             proposal_id = %prop.external_id,
@@ -672,29 +691,34 @@ async fn reconcile_snapshot_proposal_votes(
         }
         return Ok(());
     };
-    let provider_expected_count = current_proposal.votes.unwrap_or_default();
-    store_snapshot_proposal(current_proposal, governor_id, dao_id)
-        .await
-        .with_context(|| format!("Failed to refresh Snapshot proposal {}", prop.external_id))?;
+    let provider_reported_count = current_proposal.votes.unwrap_or_default();
 
-    let votes = api.fetch_all_proposal_votes(&prop.external_id).await?;
-    let provider_count = votes.len() as u64;
-    if provider_count != provider_expected_count {
-        anyhow::bail!(
-            "Snapshot proposal {} reports {} votes but returned {}",
-            prop.external_id,
-            provider_expected_count,
-            provider_count
-        );
-    }
+    let vote_messages = api.fetch_all_proposal_votes(&prop.external_id).await?;
 
-    let provider_vote_ids: HashSet<String> = votes.iter().map(|vote| vote.ipfs.clone()).collect();
-    if provider_vote_ids.len() != votes.len() {
+    let message_ids: HashSet<String> = vote_messages.iter().map(|vote| vote.ipfs.clone()).collect();
+    if message_ids.len() != vote_messages.len() {
         anyhow::bail!(
             "Snapshot proposal {} returned duplicate vote IDs",
             prop.external_id
         );
     }
+
+    let votes = canonicalize_snapshot_votes(vote_messages);
+    let authoritative_voter_count = votes.len() as u64;
+    if authoritative_voter_count != provider_reported_count {
+        warn!(
+            proposal_id = %prop.external_id,
+            provider_reported_count,
+            authoritative_voter_count,
+            "Snapshot proposal metadata disagrees with its complete distinct-voter set; using vote query"
+        );
+    }
+    current_proposal.votes = Some(authoritative_voter_count);
+    store_snapshot_proposal(current_proposal, governor_id, dao_id)
+        .await
+        .with_context(|| format!("Failed to refresh Snapshot proposal {}", prop.external_id))?;
+
+    let provider_vote_ids: HashSet<String> = votes.iter().map(|vote| vote.ipfs.clone()).collect();
 
     let existing_votes = vote::Entity::find()
         .filter(vote::Column::ProposalId.eq(prop.id))
@@ -731,11 +755,11 @@ async fn reconcile_snapshot_proposal_votes(
     }
 
     let repaired_voter_count = count_snapshot_proposal_voters(prop.id).await?;
-    if repaired_voter_count != provider_expected_count {
+    if repaired_voter_count != authoritative_voter_count {
         anyhow::bail!(
             "Snapshot proposal {} reconciliation remained incomplete: expected {}, found {}",
             prop.external_id,
-            provider_expected_count,
+            authoritative_voter_count,
             repaired_voter_count
         );
     }
@@ -746,7 +770,8 @@ async fn reconcile_snapshot_proposal_votes(
         deleted_count = stale_vote_row_ids.len(),
         repaired_voter_count,
         previous_expected_count = expected_count,
-        provider_expected_count,
+        provider_reported_count,
+        authoritative_voter_count,
         "Snapshot proposal vote reconciliation finished"
     );
     Ok(())
@@ -771,9 +796,10 @@ async fn count_snapshot_proposal_voters(proposal_id: Uuid) -> Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::{
-        VOTE_CURSOR_OVERLAP_SECONDS, should_fetch_next_vote_page, should_reconcile_snapshot_votes,
-        vote_cursor_with_overlap,
+        VOTE_CURSOR_OVERLAP_SECONDS, canonicalize_snapshot_votes, should_fetch_next_vote_page,
+        should_reconcile_snapshot_votes, vote_cursor_with_overlap,
     };
+    use crate::extensions::snapshot_api::{SnapshotProposalRef, SnapshotVote};
 
     #[test]
     fn vote_cursor_applies_overlap_without_going_negative() {
@@ -796,5 +822,29 @@ mod tests {
         assert!(should_fetch_next_vote_page(1_000, 1_000));
         assert!(!should_fetch_next_vote_page(999, 1_000));
         assert!(!should_fetch_next_vote_page(0, 1_000));
+    }
+
+    #[test]
+    fn canonicalization_keeps_latest_vote_per_case_insensitive_voter() {
+        let make_vote = |voter: &str, created: i64, ipfs: &str| SnapshotVote {
+            voter: voter.to_string(),
+            reason: None,
+            choice: serde_json::json!(1),
+            vp: 1.0,
+            created,
+            proposal: SnapshotProposalRef {
+                id: "proposal".to_string(),
+            },
+            ipfs: ipfs.to_string(),
+        };
+        let canonical = canonicalize_snapshot_votes(vec![
+            make_vote("0xAbC", 10, "old"),
+            make_vote("0xabc", 20, "new"),
+            make_vote("0xdef", 15, "other"),
+        ]);
+
+        assert_eq!(canonical.len(), 2);
+        assert!(canonical.iter().any(|vote| vote.ipfs == "new"));
+        assert!(!canonical.iter().any(|vote| vote.ipfs == "old"));
     }
 }
