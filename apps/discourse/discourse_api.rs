@@ -464,8 +464,12 @@ impl DiscourseApi {
             // Check if URL is still forbidden after cleanup.
             if forbidden_urls.contains_key(url) {
                 warn!(url, "Request blocked by forbidden cache.");
-
-                return Err(anyhow!("URL is cached as forbidden: {}", url));
+                return Err(HttpStatusError {
+                    status: StatusCode::FORBIDDEN,
+                    url: url.to_string(),
+                    body_preview: "cached public-access denial".to_string(),
+                }
+                .into());
             }
         } // Lock released here
 
@@ -717,11 +721,13 @@ mod tests {
             "/post_action_users.json?id=25079&post_action_type_id=2&page=0&limit=50",
             "/posts/77077/revisions/2.json",
         ] {
-            let error = api
-                .queue::<serde_json::Value>(inaccessible_endpoint, true)
-                .await
-                .unwrap_err();
-            assert!(has_http_status(&error, StatusCode::FORBIDDEN));
+            for _ in 0..2 {
+                let error = api
+                    .queue::<serde_json::Value>(inaccessible_endpoint, true)
+                    .await
+                    .unwrap_err();
+                assert!(has_http_status(&error, StatusCode::FORBIDDEN));
+            }
         }
     }
 
