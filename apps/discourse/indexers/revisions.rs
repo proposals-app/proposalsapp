@@ -1,7 +1,7 @@
 use crate::{
     RECENT_LOOKBACK_HOURS,
     db_handler::{db, upsert_revision},
-    discourse_api::{DiscourseApi, process_upload_urls},
+    discourse_api::{DiscourseApi, has_http_status, process_upload_urls},
     indexers::handle_join_result,
     models::revisions::Revision,
 };
@@ -9,13 +9,14 @@ use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
 use futures::stream::{self, StreamExt, TryStreamExt};
 use proposalsapp_db::models::{discourse_post, discourse_post_revision};
+use reqwest::StatusCode;
 use sea_orm::{
     ColumnTrait, Condition, EntityTrait, FromQueryResult, QueryFilter, QuerySelect, prelude::Uuid,
     sea_query::Expr,
 };
 use std::{collections::HashSet, sync::Arc};
 use tokio::task::JoinSet;
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info, instrument, warn};
 
 #[derive(Clone)] // Add Clone derive
 pub struct RevisionIndexer {
@@ -245,6 +246,14 @@ async fn update_revisions_for_post(
                 // Fetch the revision data
                 let mut revision: Revision = match api.queue(&url, priority).await {
                     Ok(rev) => rev,
+                    Err(error) if has_http_status(&error, StatusCode::FORBIDDEN) => {
+                        warn!(
+                            %url,
+                            rev_num,
+                            "Discourse does not expose this revision publicly; skipping it"
+                        );
+                        return Ok(());
+                    }
                     Err(e) => {
                         error!(error = ?e, %url, rev_num, "Failed to fetch revision data");
                         // Return error to stop processing this revision

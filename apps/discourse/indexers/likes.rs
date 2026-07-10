@@ -1,11 +1,15 @@
 use crate::{
-    MAX_PAGES_PER_RUN, db_handler::sync_post_likes, discourse_api::DiscourseApi,
-    indexers::PageCursor, models::likes::PostLikeResponse,
+    MAX_PAGES_PER_RUN,
+    db_handler::sync_post_likes,
+    discourse_api::{DiscourseApi, has_http_status},
+    indexers::PageCursor,
+    models::likes::PostLikeResponse,
 };
 use anyhow::{Context, Result};
+use reqwest::StatusCode;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use tracing::{debug, info, instrument};
+use tracing::{debug, info, instrument, warn};
 
 const LIKE_PAGE_SIZE: u32 = 50;
 
@@ -43,11 +47,20 @@ impl LikesIndexer {
             );
 
             debug!(%url, "Fetching likes for post");
-            let response: PostLikeResponse = self
-                .discourse_api
-                .queue(&url, priority) // Use priority flag
-                .await
-                .with_context(|| format!("Failed to fetch likes for post_id {post_id}"))?;
+            let response: PostLikeResponse = match self.discourse_api.queue(&url, priority).await {
+                Ok(response) => response,
+                Err(error) if has_http_status(&error, StatusCode::FORBIDDEN) => {
+                    warn!(
+                        post_id,
+                        "Discourse does not expose this post's liker identities; preserving indexed likes"
+                    );
+                    return Ok(());
+                }
+                Err(error) => {
+                    return Err(error)
+                        .with_context(|| format!("Failed to fetch likes for post_id {post_id}"));
+                }
+            };
 
             let user_ids: Vec<i32> = response
                 .post_action_users

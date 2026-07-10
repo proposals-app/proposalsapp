@@ -712,6 +712,17 @@ mod tests {
             .await
             .unwrap_err();
         assert!(is_invalid_page_error(&error));
+
+        for inaccessible_endpoint in [
+            "/post_action_users.json?id=25079&post_action_type_id=2&page=0&limit=50",
+            "/posts/77077/revisions/2.json",
+        ] {
+            let error = api
+                .queue::<serde_json::Value>(inaccessible_endpoint, true)
+                .await
+                .unwrap_err();
+            assert!(has_http_status(&error, StatusCode::FORBIDDEN));
+        }
     }
 
     // --- Keep Existing Tests ---
