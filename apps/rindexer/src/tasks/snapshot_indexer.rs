@@ -26,7 +26,7 @@ const HIDDEN_VOTE_RETRY_DELAY_SECONDS: u64 = 60;
 const VOTE_CURSOR_OVERLAP_SECONDS: i64 = 300;
 const PROPOSAL_PAGE_SIZE: usize = 1_000;
 const VOTE_PAGE_SIZE: usize = 1_000;
-const MAX_RECONCILIATIONS_PER_SPACE_PER_CYCLE: usize = 8;
+const MAX_RECONCILIATIONS_PER_SPACE_PER_CYCLE: usize = 32;
 
 fn vote_cursor_with_overlap(cursor: i64) -> i64 {
     (cursor - VOTE_CURSOR_OVERLAP_SECONDS).max(0)
