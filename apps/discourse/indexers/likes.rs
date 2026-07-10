@@ -1,5 +1,5 @@
 use crate::{
-    MAX_PAGES_PER_RUN, db_handler::upsert_post_likes_batch, discourse_api::DiscourseApi,
+    MAX_PAGES_PER_RUN, db_handler::sync_post_likes, discourse_api::DiscourseApi,
     indexers::PageCursor, models::likes::PostLikeResponse,
 };
 use anyhow::{Context, Result};
@@ -33,6 +33,7 @@ impl LikesIndexer {
         let mut pager = PageCursor::new(MAX_PAGES_PER_RUN);
         let mut total_rows: Option<i32> = None;
         let mut total_processed = 0;
+        let mut all_user_ids = Vec::new();
 
         loop {
             let page = pager.page();
@@ -71,12 +72,8 @@ impl LikesIndexer {
                 num_users, "Received likes, preparing batch upsert."
             );
 
-            // Perform batch upsert into the database
-            upsert_post_likes_batch(post_id, user_ids, dao_discourse_id)
-                .await
-                .with_context(|| format!("Failed to batch upsert likes for post_id {post_id}"))?;
-
             total_processed += num_users as i32;
+            all_user_ids.extend(user_ids);
 
             if let Some(total) = total_rows
                 && total_processed >= total
@@ -84,10 +81,12 @@ impl LikesIndexer {
                 break;
             }
 
-            if !pager.advance("post likes pages") {
-                break;
-            }
+            pager.advance("post likes pages")?;
         }
+
+        sync_post_likes(post_id, all_user_ids, dao_discourse_id)
+            .await
+            .with_context(|| format!("Failed to reconcile likes for post_id {post_id}"))?;
 
         info!(post_id, total_processed, "Successfully processed likes.");
         Ok(())

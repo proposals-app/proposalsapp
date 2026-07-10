@@ -45,12 +45,15 @@ pub struct ActionSummary {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PostResponse {
     pub post_stream: PostStream,
+    #[serde(default)]
     pub posts_count: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PostStream {
     pub posts: Vec<Post>,
+    #[serde(default)]
+    pub stream: Vec<i32>,
 }
 
 mod date_format {

@@ -93,7 +93,7 @@ impl RevisionIndexer {
             if join_set.len() >= max_concurrent_posts {
                 // Wait for one task to complete before spawning more
                 if let Some(result) = join_set.join_next().await {
-                    handle_join_result(result, "revision update");
+                    handle_join_result(result, "revision update")?;
                 }
             }
 
@@ -108,7 +108,7 @@ impl RevisionIndexer {
 
         // Wait for remaining tasks to complete
         while let Some(result) = join_set.join_next().await {
-            handle_join_result(result, "revision update");
+            handle_join_result(result, "revision update")?;
         }
 
         info!(

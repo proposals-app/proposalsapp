@@ -1,9 +1,10 @@
 use crate::{
     db_handler::upsert_category,
-    discourse_api::DiscourseApi,
+    discourse_api::{DiscourseApi, has_http_status},
     models::categories::{Category, CategoryResponse},
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
+use reqwest::StatusCode;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
 use tracing::{debug, error, info, instrument, warn};
@@ -30,7 +31,7 @@ impl CategoryIndexer {
         let response: CategoryResponse = match self.discourse_api.queue(url, false).await {
             Ok(res) => res,
             Err(e) => {
-                if e.to_string().contains("404") || e.to_string().contains("Not Found") {
+                if has_http_status(&e, StatusCode::NOT_FOUND) {
                     warn!(url = %url, "Categories endpoint not found, skipping category refresh.");
                     return Ok(());
                 }
@@ -40,8 +41,7 @@ impl CategoryIndexer {
         };
 
         if response.category_list.categories.is_empty() {
-            info!("Received empty category list. Stopping.");
-            return Ok(());
+            bail!("Discourse returned an empty category list");
         }
 
         let mut all_categories = Vec::new();
@@ -49,14 +49,9 @@ impl CategoryIndexer {
 
         let total_processed_categories = all_categories.len();
         for category in all_categories {
-            if let Err(e) = upsert_category(&category, dao_discourse_id).await {
-                error!(
-                    error = ?e,
-                    category_id = category.id,
-                    category_name = %category.name,
-                    "Failed to upsert category, continuing..."
-                );
-            }
+            upsert_category(&category, dao_discourse_id)
+                .await
+                .with_context(|| format!("Failed to upsert category {}", category.id))?;
         }
 
         info!(total_processed_categories, "Finished updating categories.");

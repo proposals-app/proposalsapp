@@ -3,7 +3,7 @@ use crate::extensions::{
         DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB,
         store_snapshot_proposal, store_votes,
     },
-    snapshot_api::SnapshotApi,
+    snapshot_api::{SnapshotApi, SnapshotVote},
 };
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
@@ -11,9 +11,10 @@ use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vot
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::Set,
-    ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
+    ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
     prelude::{Expr, Uuid},
 };
+use std::collections::{HashMap, HashSet};
 use std::time::Duration as StdDuration;
 use tracing::{debug, error, info, instrument, warn};
 
@@ -22,13 +23,20 @@ const REFRESH_INTERVAL: StdDuration = StdDuration::from_secs(60);
 const HIDDEN_VOTE_MAX_RETRIES: usize = 15;
 const HIDDEN_VOTE_RETRY_DELAY_SECONDS: u64 = 60;
 const VOTE_CURSOR_OVERLAP_SECONDS: i64 = 300;
+const PROPOSAL_PAGE_SIZE: usize = 1_000;
+const VOTE_PAGE_SIZE: usize = 1_000;
+const MAX_RECONCILIATIONS_PER_SPACE_PER_CYCLE: usize = 8;
 
 fn vote_cursor_with_overlap(cursor: i64) -> i64 {
     (cursor - VOTE_CURSOR_OVERLAP_SECONDS).max(0)
 }
 
 fn should_reconcile_snapshot_votes(expected_count: u64, current_voter_count: u64) -> bool {
-    current_voter_count < expected_count
+    current_voter_count != expected_count
+}
+
+fn should_fetch_next_vote_page(page_len: usize, page_size: usize) -> bool {
+    page_len == page_size
 }
 
 /// Main entry point for periodic snapshot indexing
@@ -100,14 +108,9 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
                     error!(space = %space, error = %e, "Failed to update ended snapshot proposals");
                 }
 
-                // Reconcile vote counts for active proposals
-                if let Err(e) = reconcile_active_proposal_votes(&space, governor_id, dao_id).await {
-                    error!(space = %space, error = %e, "Failed to reconcile active votes");
-                }
-
-                // Reconcile vote counts for recently ended proposals
-                if let Err(e) = reconcile_ended_proposal_votes(&space, governor_id, dao_id).await {
-                    error!(space = %space, error = %e, "Failed to reconcile ended votes");
+                // Repair bounded vote-count gaps across the complete proposal history.
+                if let Err(e) = reconcile_snapshot_vote_gaps(&space, governor_id, dao_id).await {
+                    error!(space = %space, error = %e, "Failed to reconcile Snapshot vote gaps");
                 }
             }
         }
@@ -125,23 +128,32 @@ async fn index_proposals(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result
     let cursor = get_proposal_cursor(space).await?;
     info!(space = %space, cursor = cursor, "Starting proposal indexing");
 
-    // Fetch next batch of proposals chronologically
-    let proposals = api.fetch_proposals_after(space, cursor, 100).await?;
-
-    if !proposals.is_empty() {
-        info!(space = %space, count = proposals.len(), "Fetched proposals");
-
-        // Store all proposals
-        for proposal in &proposals {
-            if let Err(e) = store_snapshot_proposal(proposal.clone(), governor_id, dao_id).await {
-                error!(proposal_id = %proposal.id, error = %e, "Failed to store proposal");
-            }
+    let mut skip = 0;
+    let mut fetched_count = 0;
+    loop {
+        let proposals = api
+            .fetch_proposals_after_page(space, cursor, skip, PROPOSAL_PAGE_SIZE)
+            .await?;
+        let page_len = proposals.len();
+        if page_len == 0 {
+            break;
         }
 
-        // Log the latest proposal timestamp (cursor is now from database)
-        if let Some(last) = proposals.last() {
-            debug!(space = %space, latest_created = last.created, "Processed proposals up to timestamp");
+        for proposal in proposals {
+            let proposal_id = proposal.id.clone();
+            store_snapshot_proposal(proposal, governor_id, dao_id)
+                .await
+                .with_context(|| format!("Failed to store Snapshot proposal {proposal_id}"))?;
         }
+        fetched_count += page_len;
+        skip += page_len;
+        if page_len < PROPOSAL_PAGE_SIZE {
+            break;
+        }
+    }
+
+    if fetched_count > 0 {
+        info!(space = %space, fetched_count, "Indexed Snapshot proposals");
     }
 
     // Also refresh active proposals (regardless of cursor)
@@ -162,9 +174,10 @@ async fn refresh_active_proposals(space: &str, governor_id: Uuid, dao_id: Uuid) 
         info!(space = %space, active_count = active_proposals.len(), "Refreshing active proposals");
 
         for proposal in active_proposals {
-            if let Err(e) = store_snapshot_proposal(proposal, governor_id, dao_id).await {
-                error!(error = %e, "Failed to update active proposal");
-            }
+            let proposal_id = proposal.id.clone();
+            store_snapshot_proposal(proposal, governor_id, dao_id)
+                .await
+                .with_context(|| format!("Failed to refresh active proposal {proposal_id}"))?;
         }
     }
 
@@ -180,51 +193,69 @@ async fn index_votes(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()>
     let cursor = get_vote_cursor(space).await?;
     info!(space = %space, cursor = cursor, "Starting vote indexing");
 
-    // Fetch votes directly by space and created time
-    let votes = api.fetch_votes_after(space, cursor, 500).await?;
-
-    if !votes.is_empty() {
-        info!(space = %space, vote_count = votes.len(), "Fetched votes");
-
-        // Get cursor before moving votes
-        let last_cursor = votes.last().map(|v| v.created);
-
-        // Convert SnapshotVotes to ActiveModels and persist before reconciliation runs.
-        let vote_count = votes.len();
-        let mut vote_models = Vec::new();
-        for vote in votes {
-            match vote.to_active_model(governor_id, dao_id) {
-                Ok(Some(vote_model)) => vote_models.push(vote_model),
-                Ok(None) => {
-                    debug!(voter = %vote.voter, "Skipped invalid vote");
-                }
-                Err(e) => {
-                    error!(voter = %vote.voter, error = %e, "Failed to convert vote");
-                }
-            }
+    // Paginate the complete overlap window in one cycle. Fetching only the first
+    // page can permanently skip votes when more than one page shares a timestamp.
+    let mut skip = 0;
+    let mut fetched_count = 0;
+    loop {
+        let votes = api
+            .fetch_votes_after_page(space, cursor, skip, VOTE_PAGE_SIZE)
+            .await?;
+        let page_len = votes.len();
+        if page_len == 0 {
+            break;
         }
 
-        if !vote_models.is_empty() {
-            match store_votes(vote_models, governor_id).await {
-                Ok(()) => {
-                    info!(vote_count = vote_count, "Successfully stored votes");
-                }
-                Err(e) => {
-                    error!(error = %e, vote_count = vote_count, "Failed to store votes");
-                }
-            }
-        }
+        let latest_created = votes.last().map(|vote| vote.created);
+        persist_snapshot_votes(votes, governor_id, dao_id).await?;
+        fetched_count += page_len;
+        skip += page_len;
 
-        // Log the latest vote timestamp (cursor is now from database)
-        if let Some(cursor) = last_cursor {
-            debug!(space = %space, latest_created = cursor, "Processed votes up to timestamp");
+        if let Some(latest_created) = latest_created {
+            debug!(space = %space, latest_created, "Processed Snapshot vote page");
         }
+        if !should_fetch_next_vote_page(page_len, VOTE_PAGE_SIZE) {
+            break;
+        }
+    }
+
+    if fetched_count > 0 {
+        info!(space = %space, fetched_count, "Indexed Snapshot vote window");
     }
 
     // Handle shutter proposals that just ended
     refetch_ended_shutter_votes(space, governor_id, dao_id).await?;
 
     Ok(())
+}
+
+async fn persist_snapshot_votes(
+    votes: Vec<SnapshotVote>,
+    governor_id: Uuid,
+    dao_id: Uuid,
+) -> Result<usize> {
+    let received_count = votes.len();
+    let mut vote_models = Vec::with_capacity(received_count);
+
+    for vote in votes {
+        match vote.to_active_model(governor_id, dao_id) {
+            Ok(Some(vote_model)) => vote_models.push(vote_model),
+            Ok(None) => anyhow::bail!("Snapshot vote from {} was invalid", vote.voter),
+            Err(error) => {
+                return Err(error).with_context(|| {
+                    format!("Failed to convert Snapshot vote from {}", vote.voter)
+                });
+            }
+        }
+    }
+
+    let stored_count = vote_models.len();
+    if stored_count > 0 {
+        store_votes(vote_models, governor_id).await?;
+    }
+
+    debug!(received_count, stored_count, "Persisted Snapshot votes");
+    Ok(stored_count)
 }
 
 /// Re-fetch votes for shutter proposals that recently ended (votes are now decrypted)
@@ -261,47 +292,31 @@ async fn refetch_ended_shutter_votes(space: &str, governor_id: Uuid, dao_id: Uui
             // Only refresh proposal data if votes were successfully retrieved and revealed
             if !votes.is_empty() && !votes.iter().any(|vote| vote.has_hidden_choice()) {
                 // Refresh the proposal itself to get updated state/scores after votes are revealed
-                if let Ok(Some(updated_proposal)) =
-                    api.fetch_proposal_by_id(&proposal.external_id).await
+                if let Some(updated_proposal) = api
+                    .fetch_proposal_by_id(&proposal.external_id)
+                    .await
+                    .with_context(|| {
+                        format!(
+                            "Failed to refresh shutter proposal {}",
+                            proposal.external_id
+                        )
+                    })?
                 {
-                    if let Err(e) =
-                        store_snapshot_proposal(updated_proposal, governor_id, dao_id).await
-                    {
-                        error!(proposal_id = %proposal.external_id, error = %e, "Failed to refresh shutter proposal after vote reveal");
-                    } else {
-                        debug!(proposal_id = %proposal.external_id, "Refreshed shutter proposal data after vote reveal");
-                    }
+                    store_snapshot_proposal(updated_proposal, governor_id, dao_id)
+                        .await
+                        .with_context(|| {
+                            format!("Failed to store shutter proposal {}", proposal.external_id)
+                        })?;
+                    debug!(proposal_id = %proposal.external_id, "Refreshed shutter proposal data after vote reveal");
                 }
             }
 
             if !votes.is_empty() {
                 info!(proposal_id = %proposal.external_id, vote_count = votes.len(), "Re-fetched shutter votes");
 
-                // Store votes in background
-                tokio::spawn({
-                    let votes = votes.clone();
-                    async move {
-                        // Convert SnapshotVotes to ActiveModels
-                        let mut vote_models = Vec::new();
-                        for vote in votes {
-                            match vote.to_active_model(governor_id, dao_id) {
-                                Ok(Some(vote_model)) => vote_models.push(vote_model),
-                                Ok(None) => {
-                                    debug!(voter = %vote.voter, "Skipped invalid shutter vote");
-                                }
-                                Err(e) => {
-                                    error!(voter = %vote.voter, error = %e, "Failed to convert shutter vote");
-                                }
-                            }
-                        }
-
-                        if !vote_models.is_empty()
-                            && let Err(e) = store_votes(vote_models, governor_id).await
-                        {
-                            error!(error = %e, "Failed to store re-fetched shutter votes");
-                        }
-                    }
-                });
+                persist_snapshot_votes(votes, governor_id, dao_id)
+                    .await
+                    .context("Failed to store re-fetched shutter votes")?;
             }
 
             // Rate limit between shutter re-fetches
@@ -434,20 +449,19 @@ async fn update_ended_snapshot_proposals(
         match api.fetch_proposal_by_id(&prop.external_id).await {
             Ok(Some(updated_proposal)) => {
                 // Proposal still exists on Snapshot — update with current state
-                if let Err(e) = store_snapshot_proposal(updated_proposal, governor_id, dao_id).await
-                {
-                    error!(
-                        proposal_id = %prop.external_id,
-                        error = %e,
-                        "Failed to update ended snapshot proposal"
-                    );
-                } else {
-                    info!(
-                        proposal_id = %prop.external_id,
-                        name = %prop.name,
-                        "Updated ended snapshot proposal state"
-                    );
-                }
+                store_snapshot_proposal(updated_proposal, governor_id, dao_id)
+                    .await
+                    .with_context(|| {
+                        format!(
+                            "Failed to update ended Snapshot proposal {}",
+                            prop.external_id
+                        )
+                    })?;
+                info!(
+                    proposal_id = %prop.external_id,
+                    name = %prop.name,
+                    "Updated ended snapshot proposal state"
+                );
             }
             Ok(None) => {
                 // Proposal no longer exists on Snapshot — mark as Defeated
@@ -460,12 +474,13 @@ async fn update_ended_snapshot_proposals(
                 active_model.proposal_state = Set(ProposalState::Defeated);
                 active_model.update(db).await?;
             }
-            Err(e) => {
-                error!(
-                    proposal_id = %prop.external_id,
-                    error = %e,
-                    "Failed to fetch proposal from Snapshot API"
-                );
+            Err(error) => {
+                return Err(error).with_context(|| {
+                    format!(
+                        "Failed to fetch ended Snapshot proposal {}",
+                        prop.external_id
+                    )
+                });
             }
         }
 
@@ -476,165 +491,217 @@ async fn update_ended_snapshot_proposals(
     Ok(())
 }
 
-/// Reconcile vote counts for active proposals by comparing DB counts with Snapshot API counts.
-/// If a mismatch is detected, re-fetches all votes for the proposal using skip-based pagination.
-#[instrument(name = "reconcile_active_proposal_votes", skip_all, fields(space = space))]
-async fn reconcile_active_proposal_votes(
-    space: &str,
-    governor_id: Uuid,
-    dao_id: Uuid,
-) -> Result<()> {
+/// Repair vote-count gaps across the complete Snapshot proposal history.
+///
+/// The work is bounded per cycle so live indexing remains responsive. Proposals
+/// are processed newest-first, and only provider vote IDs missing locally are
+/// persisted, avoiding repeated ENS work for millions of existing voters.
+#[instrument(name = "reconcile_snapshot_vote_gaps", skip_all, fields(space = space))]
+async fn reconcile_snapshot_vote_gaps(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
     let db = DB.get().context("DB not initialized")?;
-
-    // Find active proposals for this governor
-    let active_proposals = proposal::Entity::find()
+    let proposals = proposal::Entity::find()
         .filter(proposal::Column::GovernorId.eq(governor_id))
-        .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
+        .order_by_desc(proposal::Column::EndAt)
         .all(db)
         .await?;
+    let proposal_ids: Vec<Uuid> = proposals.iter().map(|proposal| proposal.id).collect();
+    let voter_counts: HashMap<Uuid, u64> = if proposal_ids.is_empty() {
+        HashMap::new()
+    } else {
+        vote::Entity::find()
+            .select_only()
+            .column(vote::Column::ProposalId)
+            .column_as(
+                Expr::cust(r#"COUNT(DISTINCT LOWER("voter_address"))"#),
+                "voter_count",
+            )
+            .filter(vote::Column::ProposalId.is_in(proposal_ids))
+            .group_by(vote::Column::ProposalId)
+            .into_tuple::<(Uuid, i64)>()
+            .all(db)
+            .await?
+            .into_iter()
+            .map(|(proposal_id, count)| (proposal_id, count.max(0) as u64))
+            .collect()
+    };
 
-    for prop in active_proposals {
-        // Get expected vote count from metadata
+    let mut reconciled = 0;
+    for prop in proposals {
         let expected_count = prop
             .metadata
             .as_ref()
             .and_then(|m| m.get("snapshot_vote_count"))
             .and_then(|v| v.as_u64());
-
         let Some(expected_count) = expected_count else {
             continue;
         };
+        let current_voter_count = voter_counts.get(&prop.id).copied().unwrap_or_default();
+        if !should_reconcile_snapshot_votes(expected_count, current_voter_count) {
+            continue;
+        }
 
-        // Count current voters in DB rather than raw historical vote events.
-        let current_voter_count = vote::Entity::find()
-            .filter(vote::Column::ProposalId.eq(prop.id))
-            .select_only()
-            .column(vote::Column::VoterAddress)
-            .distinct()
-            .count(db)
-            .await?;
-
-        if should_reconcile_snapshot_votes(expected_count, current_voter_count) {
-            warn!(
-                space = %space,
-                proposal_id = %prop.external_id,
-                expected = expected_count,
-                actual = current_voter_count,
-                delta = expected_count - current_voter_count,
-                "Vote count mismatch detected, reconciling"
-            );
-
-            let api = SnapshotApi::new();
-            let votes = api.fetch_all_proposal_votes(&prop.external_id).await?;
-
-            let mut vote_models = Vec::new();
-            for vote in votes {
-                match vote.to_active_model(governor_id, dao_id) {
-                    Ok(Some(m)) => vote_models.push(m),
-                    Ok(None) => {}
-                    Err(e) => error!(error = %e, "Failed to convert reconciliation vote"),
-                }
-            }
-
-            if !vote_models.is_empty() {
-                store_votes(vote_models, governor_id).await?;
-                info!(
-                    space = %space,
-                    proposal_id = %prop.external_id,
-                    "Reconciliation complete"
-                );
-            }
+        reconcile_snapshot_proposal_votes(
+            space,
+            &prop,
+            expected_count,
+            current_voter_count,
+            governor_id,
+            dao_id,
+        )
+        .await?;
+        reconciled += 1;
+        if reconciled >= MAX_RECONCILIATIONS_PER_SPACE_PER_CYCLE {
+            break;
         }
     }
 
+    if reconciled > 0 {
+        info!(space = %space, reconciled, "Reconciled Snapshot vote gaps");
+    }
     Ok(())
 }
 
-/// Reconcile vote counts for recently ended proposals.
-/// Catches missing votes that the cursor-based indexer may have skipped.
-/// Only checks proposals that ended within the last 7 days to bound the workload.
-#[instrument(name = "reconcile_ended_proposal_votes", skip_all, fields(space = space))]
-async fn reconcile_ended_proposal_votes(
+async fn reconcile_snapshot_proposal_votes(
     space: &str,
+    prop: &proposal::Model,
+    expected_count: u64,
+    current_voter_count: u64,
     governor_id: Uuid,
     dao_id: Uuid,
 ) -> Result<()> {
     let db = DB.get().context("DB not initialized")?;
+    warn!(
+        space = %space,
+        proposal_id = %prop.external_id,
+        expected = expected_count,
+        actual = current_voter_count,
+        delta = expected_count - current_voter_count,
+        "Snapshot vote gap detected"
+    );
 
-    let seven_days_ago = (Utc::now() - Duration::days(7)).naive_utc();
-
-    // Find non-active proposals that ended within the last 7 days
-    let ended_proposals = proposal::Entity::find()
-        .filter(proposal::Column::GovernorId.eq(governor_id))
-        .filter(
-            proposal::Column::ProposalState
-                .is_not_in([ProposalState::Active, ProposalState::Pending]),
-        )
-        .filter(proposal::Column::EndAt.gt(seven_days_ago))
-        .all(db)
-        .await?;
-
-    for prop in ended_proposals {
-        // Get expected vote count from metadata
-        let expected_count = prop
+    let api = SnapshotApi::new();
+    let Some(current_proposal) = api.fetch_proposal_by_id(&prop.external_id).await? else {
+        warn!(
+            space = %space,
+            proposal_id = %prop.external_id,
+            "Snapshot proposal no longer exists; preserving its historical votes"
+        );
+        let mut metadata = prop
             .metadata
-            .as_ref()
-            .and_then(|m| m.get("snapshot_vote_count"))
-            .and_then(|v| v.as_u64());
-
-        let Some(expected_count) = expected_count else {
-            continue;
-        };
-
-        // Count current voters in DB rather than raw historical vote events.
-        let current_voter_count = vote::Entity::find()
-            .filter(vote::Column::ProposalId.eq(prop.id))
-            .select_only()
-            .column(vote::Column::VoterAddress)
-            .distinct()
-            .count(db)
-            .await?;
-
-        if should_reconcile_snapshot_votes(expected_count, current_voter_count) {
-            warn!(
-                space = %space,
-                proposal_id = %prop.external_id,
-                expected = expected_count,
-                actual = current_voter_count,
-                delta = expected_count - current_voter_count,
-                "Ended proposal vote count mismatch detected, reconciling"
+            .clone()
+            .unwrap_or_else(|| serde_json::json!({}));
+        if let Some(metadata_object) = metadata.as_object_mut() {
+            metadata_object.insert(
+                "snapshot_vote_count".to_string(),
+                serde_json::json!(current_voter_count),
             );
-
-            let api = SnapshotApi::new();
-            let votes = api.fetch_all_proposal_votes(&prop.external_id).await?;
-
-            let mut vote_models = Vec::new();
-            for vote in votes {
-                match vote.to_active_model(governor_id, dao_id) {
-                    Ok(Some(m)) => vote_models.push(m),
-                    Ok(None) => {}
-                    Err(e) => error!(error = %e, "Failed to convert reconciliation vote"),
-                }
-            }
-
-            if !vote_models.is_empty() {
-                store_votes(vote_models, governor_id).await?;
-                info!(
-                    space = %space,
-                    proposal_id = %prop.external_id,
-                    "Ended proposal reconciliation complete"
-                );
-            }
+            let mut active_model: proposal::ActiveModel = prop.clone().into();
+            active_model.metadata = Set(Some(metadata));
+            active_model.update(db).await?;
         }
+        return Ok(());
+    };
+    let provider_expected_count = current_proposal.votes.unwrap_or_default();
+    store_snapshot_proposal(current_proposal, governor_id, dao_id)
+        .await
+        .with_context(|| format!("Failed to refresh Snapshot proposal {}", prop.external_id))?;
+
+    let votes = api.fetch_all_proposal_votes(&prop.external_id).await?;
+    let provider_count = votes.len() as u64;
+    if provider_count != provider_expected_count {
+        anyhow::bail!(
+            "Snapshot proposal {} reports {} votes but returned {}",
+            prop.external_id,
+            provider_expected_count,
+            provider_count
+        );
     }
 
+    let provider_vote_ids: HashSet<String> = votes.iter().map(|vote| vote.ipfs.clone()).collect();
+    if provider_vote_ids.len() != votes.len() {
+        anyhow::bail!(
+            "Snapshot proposal {} returned duplicate vote IDs",
+            prop.external_id
+        );
+    }
+
+    let existing_votes = vote::Entity::find()
+        .filter(vote::Column::ProposalId.eq(prop.id))
+        .all(db)
+        .await?;
+    let existing_vote_ids: HashSet<String> = existing_votes
+        .iter()
+        .filter_map(|vote| vote.txid.clone())
+        .collect();
+    let stale_vote_row_ids: Vec<Uuid> = existing_votes
+        .into_iter()
+        .filter(|vote| {
+            vote.txid
+                .as_ref()
+                .is_none_or(|txid| !provider_vote_ids.contains(txid))
+        })
+        .map(|vote| vote.id)
+        .collect();
+    let missing_votes: Vec<SnapshotVote> = votes
+        .into_iter()
+        .filter(|vote| !existing_vote_ids.contains(&vote.ipfs))
+        .collect();
+    let missing_count = missing_votes.len();
+
+    if missing_count > 0 {
+        persist_snapshot_votes(missing_votes, governor_id, dao_id).await?;
+    }
+    if !stale_vote_row_ids.is_empty() {
+        vote::Entity::delete_many()
+            .filter(vote::Column::Id.is_in(stale_vote_row_ids.iter().copied()))
+            .exec(db)
+            .await
+            .context("Failed to delete Snapshot votes absent from the provider")?;
+    }
+
+    let repaired_voter_count = count_snapshot_proposal_voters(prop.id).await?;
+    if repaired_voter_count != provider_expected_count {
+        anyhow::bail!(
+            "Snapshot proposal {} reconciliation remained incomplete: expected {}, found {}",
+            prop.external_id,
+            provider_expected_count,
+            repaired_voter_count
+        );
+    }
+    info!(
+        space = %space,
+        proposal_id = %prop.external_id,
+        missing_count,
+        deleted_count = stale_vote_row_ids.len(),
+        repaired_voter_count,
+        previous_expected_count = expected_count,
+        provider_expected_count,
+        "Snapshot proposal vote reconciliation finished"
+    );
     Ok(())
+}
+
+async fn count_snapshot_proposal_voters(proposal_id: Uuid) -> Result<u64> {
+    let db = DB.get().context("DB not initialized")?;
+    let count = vote::Entity::find()
+        .select_only()
+        .column_as(
+            Expr::cust(r#"COUNT(DISTINCT LOWER("voter_address"))"#),
+            "voter_count",
+        )
+        .filter(vote::Column::ProposalId.eq(proposal_id))
+        .into_tuple::<i64>()
+        .one(db)
+        .await?
+        .unwrap_or_default();
+    Ok(count.max(0) as u64)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        VOTE_CURSOR_OVERLAP_SECONDS, should_reconcile_snapshot_votes, vote_cursor_with_overlap,
+        VOTE_CURSOR_OVERLAP_SECONDS, should_fetch_next_vote_page, should_reconcile_snapshot_votes,
+        vote_cursor_with_overlap,
     };
 
     #[test]
@@ -650,6 +717,13 @@ mod tests {
     fn reconciliation_uses_current_unique_voter_count() {
         assert!(should_reconcile_snapshot_votes(1_553, 1_544));
         assert!(!should_reconcile_snapshot_votes(1_553, 1_553));
-        assert!(!should_reconcile_snapshot_votes(1_553, 1_569));
+        assert!(should_reconcile_snapshot_votes(1_553, 1_569));
+    }
+
+    #[test]
+    fn full_vote_pages_continue_pagination() {
+        assert!(should_fetch_next_vote_page(1_000, 1_000));
+        assert!(!should_fetch_next_vote_page(999, 1_000));
+        assert!(!should_fetch_next_vote_page(0, 1_000));
     }
 }

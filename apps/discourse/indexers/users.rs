@@ -1,7 +1,7 @@
 use crate::{
     MAX_PAGES_PER_RUN,
     db_handler::upsert_user,
-    discourse_api::DiscourseApi,
+    discourse_api::{DiscourseApi, is_invalid_page_error},
     indexers::PageCursor,
     models::users::{User, UserDetailResponse, UserResponse},
 };
@@ -143,9 +143,13 @@ impl UserIndexer {
             {
                 Ok(res) => res,
                 Err(e) => {
-                    // Handle 404 as end-of-pages signal
-                    if e.to_string().contains("404") || e.to_string().contains("Not Found") {
-                        info!(page, "Received 404/Not Found, assuming end of user pages.");
+                    // Public Discourse directories reject pages beyond their configured limit.
+                    // A real invalid-page response is the endpoint's end-of-results signal.
+                    if is_invalid_page_error(&e) {
+                        info!(
+                            page,
+                            "Received Discourse's invalid-page response; user directory is complete."
+                        );
                         break;
                     }
                     error!(error = ?e, page, url = %url, "Failed to fetch users page");
@@ -217,15 +221,9 @@ impl UserIndexer {
                 }
 
                 // Upsert the user data
-                if let Err(e) = upsert_user(&user, dao_discourse_id).await {
-                    error!(
-                        error = ?e,
-                        user_id = user.id,
-                        username = %user.username,
-                        "Failed to upsert user, continuing..."
-                    );
-                    // Optionally collect errors
-                }
+                upsert_user(&user, dao_discourse_id)
+                    .await
+                    .with_context(|| format!("Failed to upsert Discourse user {}", user.id))?;
             }
 
             info!(
@@ -235,15 +233,16 @@ impl UserIndexer {
 
             // Check termination conditions
             if let Some(limit) = page_limit
-                && page >= limit
+                && page + 1 >= limit
             {
-                info!(page, limit, "Reached page limit for user fetch. Stopping.");
+                info!(
+                    pages_processed = page + 1,
+                    limit, "Reached page limit for user fetch. Stopping."
+                );
                 break;
             }
 
-            if !pager.advance("user directory pages") {
-                break;
-            }
+            pager.advance("user directory pages")?;
         } // End loop
 
         let duration = start_time.elapsed();

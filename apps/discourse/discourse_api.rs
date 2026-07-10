@@ -19,6 +19,34 @@ use tokio::{
 };
 use tracing::{Instrument, debug, error, info, instrument, warn};
 
+#[derive(Clone, Debug, thiserror::Error)]
+#[error("Discourse API request failed for {url}: HTTP {status}: {body_preview}")]
+pub struct HttpStatusError {
+    pub status: StatusCode,
+    url: String,
+    body_preview: String,
+}
+
+pub fn has_http_status(error: &anyhow::Error, status: StatusCode) -> bool {
+    error.chain().any(|cause| {
+        cause
+            .downcast_ref::<HttpStatusError>()
+            .is_some_and(|http_error| http_error.status == status)
+    })
+}
+
+pub fn is_invalid_page_error(error: &anyhow::Error) -> bool {
+    error.chain().any(|cause| {
+        cause
+            .downcast_ref::<HttpStatusError>()
+            .is_some_and(|http_error| {
+                http_error.status == StatusCode::BAD_REQUEST
+                    && http_error.body_preview.contains("invalid parameters")
+                    && http_error.body_preview.contains("page")
+            })
+    })
+}
+
 // --- Constants ---
 const DEFAULT_QUEUE_SIZE: usize = 100_000;
 const DEFAULT_MAX_RETRIES: usize = 5;
@@ -393,11 +421,14 @@ impl DiscourseApi {
                     error!(url = %job.url, error = ?e, "Request ultimately failed, notifying waiters with error.");
                     // Send owned error to each waiter.
                     // We need to capture the error before the loop as `e` is moved into the first `context` call.
+                    let status_error = e.downcast_ref::<HttpStatusError>().cloned();
                     let error_message =
                         format!("Discourse API request failed for {endpoint_key_clone}: {e:?}");
                     for sender in senders {
-                        // Create a fresh anyhow::Error for each sender with the captured message.
-                        let err_to_send = anyhow!(error_message.clone());
+                        let err_to_send = status_error
+                            .clone()
+                            .map(anyhow::Error::new)
+                            .unwrap_or_else(|| anyhow!(error_message.clone()));
                         let _ = sender.send(Err(err_to_send));
                     }
                 }
@@ -521,11 +552,12 @@ impl DiscourseApi {
                                 debug!(url, "Added URL to forbidden cache.");
                             } // Lock released
 
-                            return Err(anyhow!(
-                                "Request failed with status {}: {}",
+                            return Err(HttpStatusError {
                                 status,
-                                body_preview
-                            ));
+                                url: url.to_string(),
+                                body_preview,
+                            }
+                            .into());
                         }
                         s if s.is_client_error() => {
                             // Other 4xx errors (e.g., 404 Not Found)
@@ -534,12 +566,12 @@ impl DiscourseApi {
                                 Err(_) => "[failed to read body]".to_string(),
                             };
                             error!(url, status = %s, body_preview, "Client error, failing permanently.");
-                            return Err(anyhow!(
-                                "Client error for {}: HTTP {}: {}",
-                                url,
-                                s,
-                                body_preview
-                            ));
+                            return Err(HttpStatusError {
+                                status: s,
+                                url: url.to_string(),
+                                body_preview,
+                            }
+                            .into());
                         }
                         // Handle unexpected non-success statuses
                         s => {
@@ -548,12 +580,12 @@ impl DiscourseApi {
                                 Err(_) => "[failed to read body]".to_string(),
                             };
                             error!(url, status = %s, body_preview, "Unexpected status, failing permanently.");
-                            return Err(anyhow!(
-                                "Request failed for {}: Unexpected status {}: {}",
-                                url,
-                                s,
-                                body_preview
-                            ));
+                            return Err(HttpStatusError {
+                                status: s,
+                                url: url.to_string(),
+                                body_preview,
+                            }
+                            .into());
                         }
                     }
                 }
@@ -618,6 +650,7 @@ pub fn process_upload_urls(raw_content: &str, base_url: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*; // Import items from parent module
+    use crate::models::posts::PostResponse;
     // use std::time::Duration; // Removed unused Duration
 
     #[test]
@@ -634,6 +667,51 @@ mod tests {
         let expected = "Text https://test.forum.local/uploads/short-url/file.jpg";
         let processed = process_upload_urls(raw, "https://test.forum.local/");
         assert_eq!(processed, expected);
+    }
+
+    #[tokio::test]
+    #[ignore = "calls real Discourse APIs"]
+    async fn live_post_stream_and_directory_contracts() {
+        let api = DiscourseApi::new("https://forum.arbitrum.foundation".to_string());
+        let topic: PostResponse = api
+            .queue("/t/31.json?include_raw=true", true)
+            .await
+            .unwrap();
+        assert!(topic.post_stream.stream.len() > topic.post_stream.posts.len());
+
+        let loaded_ids: std::collections::HashSet<i32> =
+            topic.post_stream.posts.iter().map(|post| post.id).collect();
+        let requested_ids: Vec<i32> = topic
+            .post_stream
+            .stream
+            .iter()
+            .copied()
+            .filter(|post_id| !loaded_ids.contains(post_id))
+            .take(5)
+            .collect();
+        let mut endpoint = "/t/31/posts.json?include_raw=true".to_string();
+        for post_id in &requested_ids {
+            endpoint.push_str("&post_ids%5B%5D=");
+            endpoint.push_str(&post_id.to_string());
+        }
+        let batch: PostResponse = api.queue(&endpoint, true).await.unwrap();
+        assert_eq!(batch.post_stream.posts.len(), requested_ids.len());
+        assert!(
+            batch
+                .post_stream
+                .posts
+                .iter()
+                .all(|post| post.raw.is_some())
+        );
+
+        let error = api
+            .queue::<serde_json::Value>(
+                "/directory_items.json?page=11&order=username&period=all&asc=true",
+                true,
+            )
+            .await
+            .unwrap_err();
+        assert!(is_invalid_page_error(&error));
     }
 
     // --- Keep Existing Tests ---

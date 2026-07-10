@@ -1,8 +1,9 @@
 use anyhow::{Context, Result, anyhow};
 use chrono::{TimeZone, Utc};
 use discourse::db_handler::{
-    get_or_create_unknown_user, get_post_like_count, initialize_db, upsert_category, upsert_post,
-    upsert_post_likes_batch, upsert_revision, upsert_topic, upsert_user,
+    get_or_create_unknown_user, get_post_like_count, initialize_db, sync_post_likes,
+    upsert_category, upsert_post, upsert_post_likes_batch, upsert_revision, upsert_topic,
+    upsert_user,
 };
 use discourse::models::{
     categories::Category,
@@ -557,6 +558,18 @@ fn test_upsert_revision_and_likes() -> Result<()> {
         let like_count = get_post_like_count(post.id, context.dao_discourse_id).await?;
 
         assert_eq!(like_count, 3);
+
+        sync_post_likes(post.id, vec![202, 404], context.dao_discourse_id).await?;
+        assert_eq!(
+            get_post_like_count(post.id, context.dao_discourse_id).await?,
+            2
+        );
+
+        sync_post_likes(post.id, Vec::new(), context.dao_discourse_id).await?;
+        assert_eq!(
+            get_post_like_count(post.id, context.dao_discourse_id).await?,
+            0
+        );
 
         Ok(())
     })

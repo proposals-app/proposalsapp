@@ -1,14 +1,13 @@
 use crate::{
-    MAX_PAGES_PER_RUN,
     db_handler::{db, get_or_create_unknown_user, get_post_like_count, upsert_post},
-    discourse_api::{DiscourseApi, process_upload_urls},
-    indexers::{PageCursor, likes::LikesIndexer, users::UserIndexer},
+    discourse_api::{DiscourseApi, has_http_status, process_upload_urls},
+    indexers::{likes::LikesIndexer, users::UserIndexer},
     models::posts::{Post, PostResponse},
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use futures::stream::{self, StreamExt};
-use proposalsapp_db::models::discourse_post;
-use reqwest::Client;
+use proposalsapp_db::models::{discourse_post, discourse_topic};
+use reqwest::{Client, StatusCode};
 use sea_orm::{
     ColumnTrait, Condition, EntityTrait, FromQueryResult, QueryFilter, QuerySelect,
     prelude::{Expr, Uuid},
@@ -20,6 +19,8 @@ use std::{
 };
 use tokio::{sync::Mutex, task};
 use tracing::{debug, error, info, instrument, warn};
+
+const POST_BATCH_SIZE: usize = 20;
 
 #[derive(Clone)] // Add Clone derive
 pub struct PostIndexer {
@@ -85,172 +86,96 @@ impl PostIndexer {
             "Found existing posts in DB"
         );
 
-        let mut pager = PageCursor::new(MAX_PAGES_PER_RUN);
-        let mut total_api_posts_count: Option<i32> = None; // Initialize lazily from first response
-        let mut total_processed_posts: i32 = 0;
-        let mut seen_in_api_post_ids: HashSet<i32> = HashSet::new();
-
-        loop {
-            let page = pager.page();
-            let url = format!("/t/{}.json?include_raw=true&page={}", topic_id, page + 1); // API often 1-based page
-            debug!(%url, "Fetching posts page");
-
-            match self
-                .discourse_api
-                .queue::<PostResponse>(&url, priority) // Use priority flag
-                .await
-            {
-                Ok(response) => {
-                    // Initialize total post count from the first response
-                    if total_api_posts_count.is_none() {
-                        total_api_posts_count = Some(response.posts_count);
-                        info!(
-                            topic_id,
-                            total_api_posts = response.posts_count,
-                            "Total posts reported by API"
-                        );
-                    }
-
-                    let posts_on_page = response.post_stream.posts;
-                    let num_posts_on_page = posts_on_page.len() as i32;
-                    let is_empty = posts_on_page.is_empty();
-
-                    if is_empty && page > 0 {
-                        // If we get an empty page after the first page, assume we're done.
-                        info!(
-                            topic_id,
-                            page, "Received empty post list. Assuming end of posts."
-                        );
-                        break;
-                    }
-                    if is_empty && page == 0 {
-                        info!(topic_id, "Topic contains no posts.");
-                        break;
-                    }
-
-                    // Collect IDs seen in this API response page
-                    let current_page_ids: HashSet<i32> =
-                        posts_on_page.iter().map(|p| p.id).collect();
-                    seen_in_api_post_ids.extend(current_page_ids);
-
-                    // Process posts concurrently using buffer_unordered
-                    // Wrap the processing in a task to handle potential errors per post
-                    let processing_results = stream::iter(posts_on_page)
-                        .map(|post| {
-                            let user_indexer = self.user_indexer.clone(); // Clone Arcs for the task
-                            let likes_indexer = self.likes_indexer.clone();
-                            let user_cache = Arc::clone(&self.user_cache);
-                            let api_handler = Arc::clone(&self.discourse_api); // Clone API handler Arc
-
-                            task::spawn(async move {
-                                Self::process_single_post(
-                                    post, // Takes ownership of post
-                                    dao_discourse_id,
-                                    api_handler,
-                                    user_indexer,
-                                    likes_indexer,
-                                    user_cache,
-                                    priority,
-                                )
-                                .await
-                            })
-                        })
-                        .buffer_unordered(10) // Limit concurrency
-                        .collect::<Vec<_>>() // Collect join handles
-                        .await;
-
-                    // Check results from concurrent processing
-                    let mut post_errors = Vec::new();
-                    for result in processing_results {
-                        match result {
-                            Ok(Ok(_)) => { /* Post processed successfully */ }
-                            Ok(Err(e)) => {
-                                // Error occurred within process_single_post
-                                error!(error = ?e, "Error processing individual post");
-                                post_errors.push(e);
-                            }
-                            Err(join_err) => {
-                                // Task panicked or was cancelled
-                                error!(error = ?join_err, "Post processing task failed");
-                                post_errors.push(
-                                    anyhow::Error::new(join_err)
-                                        .context("Post processing task failed"),
-                                );
-                            }
-                        }
-                    }
-
-                    // Optionally aggregate or handle post_errors (e.g., return first error or log summary)
-                    if !post_errors.is_empty() {
-                        warn!(
-                            topic_id,
-                            num_errors = post_errors.len(),
-                            "Encountered errors processing some posts for topic"
-                        );
-                        // Could return the first error if needed: return
-                        // Err(post_errors.remove(0));
-                    }
-
-                    total_processed_posts += num_posts_on_page;
-
-                    info!(
-                        topic_id,
-                        page = page + 1,
-                        num_posts_on_page,
-                        total_processed_posts,
-                        reported_total = total_api_posts_count.unwrap_or(-1),
-                        "Processed posts page"
-                    );
-
-                    // Check termination conditions
-                    // 1. If total processed meets or exceeds reported total (if reliable)
-                    if let Some(total_count) = total_api_posts_count {
-                        // Use >= because post count might fluctuate slightly during fetch
-                        if total_processed_posts >= total_count {
-                            info!(
-                                topic_id,
-                                total_processed_posts,
-                                total_count,
-                                "Reached or exceeded reported post count. Stopping."
-                            );
-                            break;
-                        }
-                    }
-                    if !pager.advance("topic post pages") {
-                        break;
-                    }
+        let topic_url = format!("/t/{topic_id}.json?include_raw=true");
+        let first_response: PostResponse =
+            match self.discourse_api.queue(&topic_url, priority).await {
+                Ok(response) => response,
+                Err(error) if has_http_status(&error, StatusCode::NOT_FOUND) => {
+                    warn!(topic_id, "Topic is no longer public; marking it invisible");
+                    discourse_topic::Entity::update_many()
+                        .col_expr(discourse_topic::Column::Visible, Expr::value(false))
+                        .filter(
+                            Condition::all()
+                                .add(discourse_topic::Column::ExternalId.eq(topic_id))
+                                .add(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id)),
+                        )
+                        .exec(db())
+                        .await
+                        .context("Failed to mark unavailable topic invisible")?;
+                    return Ok(());
                 }
-                Err(e) => {
-                    // Handle 404 specifically - might indicate end of pages or deleted topic
-                    if e.to_string().contains("404") || e.to_string().contains("Not Found") {
-                        warn!(topic_id, page, url=%url, "Received 404/Not Found fetching posts. Assuming end of pages or deleted topic.");
-                        // Check if *any* posts were processed for this topic. If not, maybe topic was deleted.
-                        if total_processed_posts == 0 && page == 0 {
-                            warn!(
-                                topic_id,
-                                "Topic might be deleted (404 on first page fetch)."
-                            );
-                            // Consider marking the topic itself as potentially deleted if needed
-                            // elsewhere.
-                        }
-                        break; // Stop pagination for this topic on 404
-                    } else {
-                        error!(error = ?e, topic_id, page, url = %url, "Failed to fetch posts page");
-                        // Return error to stop processing this topic
-                        return Err(e).context(format!(
-                            "Failed to fetch posts page {} for topic {}",
-                            page + 1,
-                            topic_id
-                        ));
-                    }
+                Err(error) => {
+                    return Err(error)
+                        .with_context(|| format!("Failed to fetch topic {topic_id} post stream"));
                 }
+            };
+
+        let expected_post_ids: HashSet<i32> =
+            first_response.post_stream.stream.iter().copied().collect();
+        if expected_post_ids.len() != first_response.post_stream.stream.len() {
+            bail!("Topic {topic_id} returned duplicate post IDs in its post stream");
+        }
+
+        let mut seen_in_api_post_ids = self
+            .process_posts(first_response.post_stream.posts, dao_discourse_id, priority)
+            .await?;
+
+        if !seen_in_api_post_ids.is_subset(&expected_post_ids) {
+            bail!("Topic {topic_id} returned posts outside its authoritative post stream");
+        }
+
+        let remaining_ids: Vec<i32> = first_response
+            .post_stream
+            .stream
+            .into_iter()
+            .filter(|post_id| !seen_in_api_post_ids.contains(post_id))
+            .collect();
+
+        for requested_ids in remaining_ids.chunks(POST_BATCH_SIZE) {
+            let mut url = format!("/t/{topic_id}/posts.json?include_raw=true");
+            for post_id in requested_ids {
+                url.push_str("&post_ids%5B%5D=");
+                url.push_str(&post_id.to_string());
             }
-        } // End loop
+
+            let response: PostResponse = self
+                .discourse_api
+                .queue(&url, priority)
+                .await
+                .with_context(|| format!("Failed to fetch post batch for topic {topic_id}"))?;
+            let returned_ids: HashSet<i32> = response
+                .post_stream
+                .posts
+                .iter()
+                .map(|post| post.id)
+                .collect();
+            let requested_id_set: HashSet<i32> = requested_ids.iter().copied().collect();
+            if returned_ids != requested_id_set {
+                bail!(
+                    "Topic {topic_id} post batch was incomplete: requested {}, received {}",
+                    requested_id_set.len(),
+                    returned_ids.len()
+                );
+            }
+
+            seen_in_api_post_ids.extend(
+                self.process_posts(response.post_stream.posts, dao_discourse_id, priority)
+                    .await?,
+            );
+        }
+
+        if seen_in_api_post_ids != expected_post_ids {
+            bail!(
+                "Topic {topic_id} post stream was not fully processed: expected {}, processed {}",
+                expected_post_ids.len(),
+                seen_in_api_post_ids.len()
+            );
+        }
 
         // --- Mark Deleted Posts ---
         // Find posts in the DB that were *not* seen in the API response during this run.
         let posts_to_mark_deleted_ids: Vec<i32> = existing_db_post_ids
-            .difference(&seen_in_api_post_ids)
+            .difference(&expected_post_ids)
             .cloned()
             .collect();
 
@@ -287,11 +212,53 @@ impl PostIndexer {
         let duration = start_time.elapsed();
         info!(
             topic_id,
-            total_processed_posts,
+            total_processed_posts = seen_in_api_post_ids.len(),
             duration = ?duration,
             "Finished updating posts for topic"
         );
         Ok(())
+    }
+
+    async fn process_posts(
+        &self,
+        posts: Vec<Post>,
+        dao_discourse_id: Uuid,
+        priority: bool,
+    ) -> Result<HashSet<i32>> {
+        let post_ids: HashSet<i32> = posts.iter().map(|post| post.id).collect();
+        if post_ids.len() != posts.len() {
+            bail!("Discourse returned duplicate posts in one response batch");
+        }
+
+        let processing_results = stream::iter(posts)
+            .map(|post| {
+                let user_indexer = self.user_indexer.clone();
+                let likes_indexer = self.likes_indexer.clone();
+                let user_cache = Arc::clone(&self.user_cache);
+                let api_handler = Arc::clone(&self.discourse_api);
+
+                task::spawn(async move {
+                    Self::process_single_post(
+                        post,
+                        dao_discourse_id,
+                        api_handler,
+                        user_indexer,
+                        likes_indexer,
+                        user_cache,
+                        priority,
+                    )
+                    .await
+                })
+            })
+            .buffer_unordered(10)
+            .collect::<Vec<_>>()
+            .await;
+
+        for result in processing_results {
+            result.context("Post processing task panicked or was cancelled")??;
+        }
+
+        Ok(post_ids)
     }
 
     /// Processes a single post: ensures user exists, processes content, upserts post, fetches likes
@@ -371,49 +338,25 @@ impl PostIndexer {
             .with_context(|| format!("Failed upsert_post for {post_external_id}"))?;
         debug!(post_id = post_external_id, "Post upserted successfully.");
 
-        // 4. Check and Fetch Likes if Necessary
-        if let Some(like_action) = post.actions_summary.iter().find(|item| item.id == 2) {
-            let api_like_count = like_action.count;
-            if api_like_count > 0 {
-                match get_post_like_count(post_external_id, dao_discourse_id).await {
-                    Ok(db_like_count) => {
-                        if api_like_count > db_like_count {
-                            info!(
-                                post_id = post_external_id,
-                                api_like_count,
-                                db_like_count,
-                                "API shows more likes than DB, fetching updates."
-                            );
-                            if let Err(e) = likes_indexer
-                                .fetch_and_store_likes(dao_discourse_id, post_external_id, priority)
-                                .await
-                            {
-                                error!(error = ?e, post_id = post_external_id, "Failed to fetch/store likes");
-                            }
-                        } else {
-                            debug!(
-                                post_id = post_external_id,
-                                api_like_count, db_like_count, "DB like count is up-to-date."
-                            );
-                        }
-                    }
-                    Err(e) => {
-                        error!(error = ?e, post_id = post_external_id, "Failed to get DB like count");
-                    }
-                }
-            } else {
-                debug!(
-                    post_id = post_external_id,
-                    "Post has no likes according to API summary."
-                );
-                // Optionally: Check DB count and delete if api_like_count is 0 but db_like_count >
-                // 0
-            }
-        } else {
-            debug!(
+        // 4. Reconcile likes whenever the provider count differs in either direction.
+        let api_like_count = post
+            .actions_summary
+            .iter()
+            .find(|item| item.id == 2)
+            .map(|item| item.count)
+            .unwrap_or_default();
+        let db_like_count = get_post_like_count(post_external_id, dao_discourse_id)
+            .await
+            .context("Failed to get indexed post-like count")?;
+        if api_like_count != db_like_count {
+            info!(
                 post_id = post_external_id,
-                "No like action summary found for post."
+                api_like_count, db_like_count, "Reconciling post likes"
             );
+            likes_indexer
+                .fetch_and_store_likes(dao_discourse_id, post_external_id, priority)
+                .await
+                .context("Failed to reconcile post likes")?;
         }
 
         Ok(()) // Indicate successful processing of this post

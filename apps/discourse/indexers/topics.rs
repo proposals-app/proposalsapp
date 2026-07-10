@@ -1,15 +1,17 @@
 use crate::{
     MAX_PAGES_PER_RUN, RECENT_LOOKBACK_HOURS,
-    db_handler::upsert_topic,
-    discourse_api::DiscourseApi,
+    db_handler::{db, upsert_topic},
+    discourse_api::{DiscourseApi, has_http_status},
     indexers::{PageCursor, handle_join_result, posts::PostIndexer},
     models::topics::TopicResponse,
 };
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
+use proposalsapp_db::models::discourse_topic;
 use reqwest::Client;
-use sea_orm::prelude::Uuid;
-use std::{sync::Arc, time::Instant};
+use reqwest::StatusCode;
+use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter, prelude::Uuid};
+use std::{collections::HashSet, sync::Arc, time::Instant};
 use tokio::task::JoinSet;
 use tracing::{debug, error, info, instrument};
 
@@ -80,6 +82,7 @@ impl TopicIndexer {
         debug!(?lookback_cutoff, "Using lookback cutoff for recent topics");
 
         let mut stop_pagination = false; // Flag to break outer loop
+        let mut seen_topic_ids = HashSet::new();
 
         loop {
             if stop_pagination {
@@ -134,18 +137,15 @@ impl TopicIndexer {
 
                         total_processed_topics += 1;
                         let topic_external_id = topic.id; // Store for logging/potential use
+                        seen_topic_ids.insert(topic_external_id);
 
                         // Upsert the topic information first
-                        match upsert_topic(&topic, dao_discourse_id).await {
-                            Ok(_) => {
-                                // Always queue post update for now (both recent and full)
-                                topics_to_process_posts.push(topic);
-                            }
-                            Err(e) => {
-                                error!(error = ?e, topic_id = topic_external_id, "Failed to upsert topic, skipping post update for this topic.");
-                                // Continue to next topic on the page
-                            }
-                        }
+                        upsert_topic(&topic, dao_discourse_id)
+                            .await
+                            .with_context(|| {
+                                format!("Failed to upsert topic {topic_external_id}")
+                            })?;
+                        topics_to_process_posts.push(topic);
                     } // End loop through topics on page
 
                     // Spawn tasks to update posts for the selected topics
@@ -153,7 +153,7 @@ impl TopicIndexer {
                         // Limit concurrency
                         while join_set.len() >= max_concurrent_post_updates {
                             if let Some(res) = join_set.join_next().await {
-                                handle_join_result(res, "post update");
+                                handle_join_result(res, "post update")?;
                             } else {
                                 // Should not happen unless JoinSet is already empty, but handle defensively
                                 break;
@@ -198,13 +198,13 @@ impl TopicIndexer {
                         stop_pagination = true; // Signal outer loop break
                     }
 
-                    if !stop_pagination && !pager.advance("topic pages") {
-                        stop_pagination = true;
+                    if !stop_pagination {
+                        pager.advance("topic pages")?;
                     }
                 }
                 Err(e) => {
                     // Handle 404 - could be end of pages or transient issue
-                    if e.to_string().contains("404") || e.to_string().contains("Not Found") {
+                    if has_http_status(&e, StatusCode::NOT_FOUND) {
                         info!(page, url=%url, "Received 404/Not Found fetching topics. Assuming end of pages.");
                         stop_pagination = true; // Stop pagination
                     } else {
@@ -212,7 +212,7 @@ impl TopicIndexer {
                         // Return error to stop the entire topic update process for this run
                         // Also wait for any spawned tasks before returning
                         while let Some(result) = join_set.join_next().await {
-                            handle_join_result(result, "post update");
+                            handle_join_result(result, "post update")?;
                         }
                         return Err(e).context(format!("Failed to fetch topics page {page}"));
                     }
@@ -227,7 +227,28 @@ impl TopicIndexer {
 
         // Wait for all remaining spawned post update tasks to complete
         while let Some(result) = join_set.join_next().await {
-            handle_join_result(result, "post update");
+            handle_join_result(result, "post update")?;
+        }
+
+        if fetch_all && !seen_topic_ids.is_empty() {
+            let update_result = discourse_topic::Entity::update_many()
+                .col_expr(
+                    discourse_topic::Column::Visible,
+                    sea_orm::prelude::Expr::value(false),
+                )
+                .filter(
+                    Condition::all()
+                        .add(discourse_topic::Column::DaoDiscourseId.eq(dao_discourse_id))
+                        .add(discourse_topic::Column::Visible.eq(true))
+                        .add(discourse_topic::Column::ExternalId.is_not_in(seen_topic_ids)),
+                )
+                .exec(db())
+                .await
+                .context("Failed to mark topics absent from the public directory invisible")?;
+            info!(
+                rows_affected = update_result.rows_affected,
+                "Reconciled topics no longer present in the public directory"
+            );
         }
 
         let duration = start_time.elapsed();

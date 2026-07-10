@@ -10,7 +10,7 @@ use proposalsapp_db::models::{
 };
 use sea_orm::{
     ActiveValue::NotSet, ColumnTrait, Condition, DatabaseConnection, EntityTrait, PaginatorTrait,
-    QueryFilter, Set, TryInsertResult, prelude::Uuid, sea_query::OnConflict,
+    QueryFilter, Set, TransactionTrait, TryInsertResult, prelude::Uuid, sea_query::OnConflict,
 };
 use std::time::Duration;
 use tracing::{debug, info, instrument};
@@ -501,6 +501,74 @@ pub async fn upsert_post_likes_batch(
         debug!(post_id, "No new likes to insert for this batch.");
     }
 
+    Ok(())
+}
+
+/// Replaces the indexed like set for a post with the provider's complete result.
+#[instrument(fields(post_id, user_count = user_ids.len(), dao_discourse_id = %dao_discourse_id))]
+pub async fn sync_post_likes(
+    post_id: i32,
+    user_ids: Vec<i32>,
+    dao_discourse_id: Uuid,
+) -> Result<()> {
+    let unique_user_ids: std::collections::HashSet<i32> = user_ids.into_iter().collect();
+    let transaction = db()
+        .begin()
+        .await
+        .context("Failed to start post-like reconciliation transaction")?;
+
+    if !unique_user_ids.is_empty() {
+        let like_models = unique_user_ids
+            .iter()
+            .copied()
+            .map(|user_id| discourse_post_like::ActiveModel {
+                id: NotSet,
+                external_discourse_post_id: Set(post_id),
+                external_user_id: Set(user_id),
+                created_at: Set(Utc::now().naive_utc()),
+                dao_discourse_id: Set(dao_discourse_id),
+            })
+            .collect::<Vec<_>>();
+        discourse_post_like::Entity::insert_many(like_models)
+            .on_conflict(
+                OnConflict::columns([
+                    discourse_post_like::Column::ExternalDiscoursePostId,
+                    discourse_post_like::Column::ExternalUserId,
+                    discourse_post_like::Column::DaoDiscourseId,
+                ])
+                .do_nothing()
+                .to_owned(),
+            )
+            .do_nothing()
+            .exec_without_returning(&transaction)
+            .await
+            .context("Failed to insert current post likes")?;
+    }
+
+    let mut stale_likes = discourse_post_like::Entity::delete_many().filter(
+        Condition::all()
+            .add(discourse_post_like::Column::ExternalDiscoursePostId.eq(post_id))
+            .add(discourse_post_like::Column::DaoDiscourseId.eq(dao_discourse_id)),
+    );
+    if !unique_user_ids.is_empty() {
+        stale_likes = stale_likes.filter(
+            discourse_post_like::Column::ExternalUserId.is_not_in(unique_user_ids.iter().copied()),
+        );
+    }
+    let deleted = stale_likes
+        .exec(&transaction)
+        .await
+        .context("Failed to delete stale post likes")?;
+
+    transaction
+        .commit()
+        .await
+        .context("Failed to commit post-like reconciliation")?;
+    debug!(
+        current_likes = unique_user_ids.len(),
+        deleted_likes = deleted.rows_affected,
+        "Reconciled post likes"
+    );
     Ok(())
 }
 

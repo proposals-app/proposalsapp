@@ -1,7 +1,7 @@
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 use once_cell::sync::Lazy;
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, de::DeserializeOwned};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, instrument, warn};
@@ -238,10 +238,11 @@ impl SnapshotApi {
 
     /// Fetch proposals after a given timestamp (cursor-based pagination)
     #[instrument(name = "fetch_proposals_after", skip(self))]
-    pub async fn fetch_proposals_after(
+    pub async fn fetch_proposals_after_page(
         &self,
         space: &str,
         after_timestamp: i64,
+        skip: usize,
         limit: usize,
     ) -> Result<Vec<SnapshotProposal>> {
         let space_literal = graphql_string_literal(space);
@@ -250,6 +251,7 @@ impl SnapshotApi {
             {{
                 proposals(
                     first: {limit},
+                    skip: {skip},
                     where: {{
                         space: {space_literal},
                         created_gt: {after_timestamp}
@@ -279,10 +281,13 @@ impl SnapshotApi {
             }}"#
         );
 
-        debug!(space = %space, after_timestamp = after_timestamp, limit = limit, "Fetching proposals");
+        debug!(space = %space, after_timestamp, skip, limit, "Fetching proposals");
 
         let response: SnapshotProposalsResponse = self.fetch_graphql(&query).await?;
-        Ok(response.data.map(|d| d.proposals).unwrap_or_default())
+        Ok(response
+            .data
+            .context("Snapshot proposals response omitted data")?
+            .proposals)
     }
 
     /// Fetch all votes for a specific proposal (handles pagination internally)
@@ -290,7 +295,7 @@ impl SnapshotApi {
     pub async fn fetch_all_proposal_votes(&self, proposal_id: &str) -> Result<Vec<SnapshotVote>> {
         let mut all_votes = Vec::new();
         let mut skip = 0;
-        const BATCH_SIZE: usize = 100;
+        const BATCH_SIZE: usize = 1_000;
 
         loop {
             let votes = self
@@ -344,7 +349,11 @@ impl SnapshotApi {
         debug!(proposal_id = %proposal_id, skip = skip, limit = limit, "Fetching vote batch");
 
         let response: SnapshotVotesResponse = self.fetch_graphql(&query).await?;
-        Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
+        response
+            .data
+            .context("Snapshot proposal votes response omitted data")?
+            .votes
+            .context("Snapshot proposal votes response omitted votes")
     }
 
     /// Fetch active proposals for a space
@@ -394,8 +403,8 @@ impl SnapshotApi {
         all_proposals.extend(
             active_response
                 .data
-                .map(|d| d.proposals)
-                .unwrap_or_default(),
+                .context("Snapshot active proposals response omitted data")?
+                .proposals,
         );
 
         // Fetch pending proposals
@@ -439,8 +448,8 @@ impl SnapshotApi {
         all_proposals.extend(
             pending_response
                 .data
-                .map(|d| d.proposals)
-                .unwrap_or_default(),
+                .context("Snapshot pending proposals response omitted data")?
+                .proposals,
         );
 
         info!(space = %space, active_count = all_proposals.len(), "Fetched active and pending proposals");
@@ -449,10 +458,11 @@ impl SnapshotApi {
 
     /// Fetch votes after a given timestamp for a space
     #[instrument(name = "fetch_votes_after", skip(self))]
-    pub async fn fetch_votes_after(
+    pub async fn fetch_votes_after_page(
         &self,
         space: &str,
         after_timestamp: i64,
+        skip: usize,
         limit: usize,
     ) -> Result<Vec<SnapshotVote>> {
         let space_literal = graphql_string_literal(space);
@@ -465,6 +475,7 @@ impl SnapshotApi {
                         created_gt: {after_timestamp}
                     }},
                     first: {limit},
+                    skip: {skip},
                     orderBy: "created",
                     orderDirection: asc
                 ) {{
@@ -481,10 +492,14 @@ impl SnapshotApi {
             }}"#
         );
 
-        debug!(space = %space, after_timestamp = after_timestamp, limit = limit, "Fetching votes");
+        debug!(space = %space, after_timestamp, skip, limit, "Fetching vote page");
 
         let response: SnapshotVotesResponse = self.fetch_graphql(&query).await?;
-        Ok(response.data.and_then(|d| d.votes).unwrap_or_default())
+        response
+            .data
+            .context("Snapshot vote page response omitted data")?
+            .votes
+            .context("Snapshot vote page response omitted votes")
     }
 
     /// Fetch a single proposal by ID to refresh its state
@@ -528,7 +543,12 @@ impl SnapshotApi {
         debug!(proposal_id = %proposal_id, "Fetching proposal by ID");
 
         let response: SnapshotProposalsResponse = self.fetch_graphql(&query).await?;
-        Ok(response.data.and_then(|d| d.proposals.into_iter().next()))
+        Ok(response
+            .data
+            .context("Snapshot proposal response omitted data")?
+            .proposals
+            .into_iter()
+            .next())
     }
 
     /// Fetch votes for a proposal with retry mechanism for hidden votes
@@ -589,7 +609,7 @@ impl SnapshotApi {
     /// Execute a GraphQL query with rate limiting and exponential backoff retry
     async fn fetch_graphql<T>(&self, query: &str) -> Result<T>
     where
-        T: for<'de> serde::Deserialize<'de>,
+        T: DeserializeOwned,
     {
         let mut last_error: Option<anyhow::Error> = None;
         let mut retry_delay = Duration::from_millis(Self::INITIAL_RETRY_DELAY_MS);
@@ -659,14 +679,11 @@ impl SnapshotApi {
                         return Err(anyhow::anyhow!("HTTP error {}: {}", status, error_text));
                     }
 
-                    // Success - parse response
-                    match response.json::<T>().await {
-                        Ok(result) => return Ok(result),
-                        Err(e) => {
-                            // JSON parse errors are not retried (indicates API response format issue)
-                            return Err(anyhow::anyhow!("Failed to parse response: {}", e));
-                        }
-                    }
+                    let body = response
+                        .text()
+                        .await
+                        .context("Failed to read Snapshot GraphQL response")?;
+                    return parse_graphql_response(&body);
                 }
                 Err(e) => {
                     // Network errors are retried
@@ -692,9 +709,22 @@ impl SnapshotApi {
     }
 }
 
+fn parse_graphql_response<T: DeserializeOwned>(body: &str) -> Result<T> {
+    let value: serde_json::Value =
+        serde_json::from_str(body).context("Failed to parse Snapshot GraphQL response as JSON")?;
+    if let Some(errors) = value.get("errors").and_then(serde_json::Value::as_array)
+        && !errors.is_empty()
+    {
+        bail!("Snapshot GraphQL returned errors: {}", errors[0]);
+    }
+    serde_json::from_value(value).context("Failed to decode Snapshot GraphQL response")
+}
+
 #[cfg(test)]
 mod tests {
-    use super::graphql_string_literal;
+    use super::{
+        SnapshotApi, SnapshotVotesResponse, graphql_string_literal, parse_graphql_response,
+    };
 
     #[test]
     fn graphql_string_literal_escapes_query_syntax() {
@@ -702,5 +732,43 @@ mod tests {
             graphql_string_literal("space\" } ) { votes { id } } #"),
             r#""space\" } ) { votes { id } } #""#
         );
+    }
+
+    #[test]
+    fn graphql_errors_are_not_treated_as_empty_data() {
+        let result = parse_graphql_response::<SnapshotVotesResponse>(
+            r#"{"data":null,"errors":[{"message":"rate limited"}]}"#,
+        );
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    #[ignore = "calls the real Snapshot GraphQL API"]
+    async fn live_snapshot_queries_return_consistent_results() {
+        let api = SnapshotApi::new();
+        let after = chrono::Utc::now().timestamp() - 365 * 24 * 60 * 60;
+        let proposals = api
+            .fetch_proposals_after_page("uniswapgovernance.eth", after, 0, 5)
+            .await
+            .unwrap();
+        assert!(!proposals.is_empty());
+
+        let proposal = proposals
+            .into_iter()
+            .min_by_key(|proposal| proposal.votes.unwrap_or_default())
+            .unwrap();
+        let refreshed = api
+            .fetch_proposal_by_id(&proposal.id)
+            .await
+            .unwrap()
+            .unwrap();
+        let votes = api.fetch_all_proposal_votes(&proposal.id).await.unwrap();
+        assert_eq!(votes.len() as u64, refreshed.votes.unwrap_or_default());
+
+        let vote_page = api
+            .fetch_votes_after_page("uniswapgovernance.eth", after, 0, 5)
+            .await
+            .unwrap();
+        assert!(vote_page.len() <= 5);
     }
 }

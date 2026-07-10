@@ -315,11 +315,9 @@ pub async fn store_votes(votes: Vec<vote::ActiveModel>, governor_id: Uuid) -> Re
         voter_count = voter_address_set.len(),
         "Starting voter storage in background"
     );
-    let voter_storage_result = store_voters(voter_address_set).await;
-    if let Err(e) = voter_storage_result {
-        // Log error but don't fail vote storage
-        error!(error = %e, "Failed to store voters, continuing with vote storage");
-    }
+    store_voters(voter_address_set)
+        .await
+        .context("Failed to store voters before storing votes")?;
 
     let mut vote_active_models = Vec::new();
     for vote in votes.clone() {
