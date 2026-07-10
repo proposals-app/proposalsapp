@@ -53,7 +53,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,id=cargo-target-discourse,target=/app/target,sharing=locked \
     --mount=type=cache,target=/sccache,sharing=locked \
-    cargo build --release --bin ${APP_NAME} \
+    cargo build --release --locked --bin ${APP_NAME} \
     && cp /app/target/release/${APP_NAME} /usr/local/bin/${APP_NAME}
 
 # Stage 3: Runtime - minimal production image

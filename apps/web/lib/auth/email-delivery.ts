@@ -1,4 +1,5 @@
 export interface EmailSendResult {
+  data?: unknown;
   error: unknown;
 }
 

@@ -39,17 +39,8 @@ export async function PostItem({
     item.daoDiscourseId
   );
 
-  const proposalIds = Array.from(new Set(group.proposals.map((p) => p.id)));
-  const topicIds = Array.from(new Set(group.topics.map((t) => t.id)));
-
   const delegate = isValidUserId
-    ? await getDelegateByDiscourseUser(
-        item.userId,
-        group.daoSlug,
-        false,
-        topicIds,
-        proposalIds
-      )
+    ? await getDelegateByDiscourseUser(item.userId, group.daoSlug)
     : null;
 
   const currentVotingPower =

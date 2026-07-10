@@ -45,19 +45,27 @@ function buildCorsHeaders(request: NextRequest) {
   return baseHeaders;
 }
 
-const emptyResponse = NextResponse.json(
-  {
-    currentVotingPower: 0,
-    historicalVotingPower: 0,
-  },
-  { headers: { 'Content-Type': 'application/json' } }
-);
-
 function buildEmptyResponse(request: NextRequest) {
-  return new NextResponse(emptyResponse.body, {
-    status: 200,
-    headers: buildCorsHeaders(request),
-  });
+  return NextResponse.json(
+    {
+      currentVotingPower: 0,
+      historicalVotingPower: 0,
+    },
+    { status: 200, headers: buildCorsHeaders(request) }
+  );
+}
+
+function buildUnavailableResponse(request: NextRequest) {
+  return NextResponse.json(
+    { error: 'Voting power is temporarily unavailable.' },
+    {
+      status: 503,
+      headers: {
+        ...buildCorsHeaders(request),
+        'Cache-Control': 'no-store',
+      },
+    }
+  );
 }
 
 export async function GET(
@@ -67,7 +75,7 @@ export async function GET(
   const { username, daoSlug } = await params;
 
   const ignoredUsersForDao = IGNORED_USERS[daoSlug] || [];
-  if (ignoredUsersForDao.includes(username)) {
+  if (ignoredUsersForDao.includes(username.toLowerCase())) {
     return NextResponse.json(
       {
         error: 'Access denied for this user.',
@@ -81,8 +89,7 @@ export async function GET(
 
   let parsedTimestamp: Date | undefined;
   if (timestampStr) {
-    const timestampNum = parseInt(timestampStr, 10);
-    if (isNaN(timestampNum)) {
+    if (!/^\d{1,12}$/.test(timestampStr)) {
       return NextResponse.json(
         {
           error:
@@ -91,6 +98,7 @@ export async function GET(
         { status: 400, headers: buildCorsHeaders(request) }
       );
     }
+    const timestampNum = Number(timestampStr);
     parsedTimestamp = new Date(timestampNum * 1000);
     if (isNaN(parsedTimestamp.getTime())) {
       return NextResponse.json(
@@ -234,7 +242,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error fetching voting power:', error);
-    return buildEmptyResponse(request);
+    return buildUnavailableResponse(request);
   }
 }
 

@@ -1,21 +1,16 @@
 import superjson from 'superjson';
-import {
-  createGroup,
-  getDao,
-  getGroupsData,
-  getUngroupedProposals,
-} from './actions';
+import { getDao, getGroupsData, getUngroupedProposals } from './actions';
 import GroupingInterface from './components/proposal-group';
 import { Suspense } from 'react';
 import {
   Badge,
-  Button,
   MappingTable,
   MappingTableCell,
   MappingTableRow,
   PageHeader,
 } from './components/ui';
 import { Spinner } from '@/app/components/ui/spinner';
+import { CreateRecordButton } from './components/create-record-button';
 
 async function MappingPage({
   params,
@@ -48,16 +43,9 @@ async function HeaderContainer({ daoSlug }: { daoSlug: string }) {
         },
       ]}
     >
-      <form
-        action={async () => {
-          'use server';
-          await createGroup(daoSlug);
-        }}
-      >
-        <Button type='submit' variant='primary' fullWidth>
-          Create Group
-        </Button>
-      </form>
+      <CreateRecordButton operation='groups.create'>
+        Create Group
+      </CreateRecordButton>
     </PageHeader>
   );
 }
@@ -127,16 +115,11 @@ async function UngroupedProposalsContainer({ daoSlug }: { daoSlug: string }) {
 
 // Group management interface that loads independently
 async function GroupManagementContainer({ daoSlug }: { daoSlug: string }) {
-  const [dao, { proposalGroups }] = await Promise.all([
-    getDao(daoSlug),
-    getGroupsData(daoSlug),
-  ]);
+  const { proposalGroups } = await getGroupsData(daoSlug);
 
   // Serialize the data with SuperJSON
   const serializedProps = superjson.stringify({
     proposalGroups,
-    daoSlug,
-    daoId: dao?.id || '',
   });
 
   return (

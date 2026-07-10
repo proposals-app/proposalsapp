@@ -2,14 +2,14 @@
 
 import { useCallback, useState } from 'react';
 import superjson from 'superjson';
-import {
-  deleteGroup,
-  saveGroups,
-  type FuzzySearchResult,
-  type GroupsDataReturnType,
-  type ProposalGroup,
-  type ProposalGroupItem,
+import type {
+  GroupsDataReturnType,
+  ProposalGroup,
+  ProposalGroupItem,
 } from '../actions';
+import type { FuzzySearchResult } from '../api-contract';
+import { callMappingApi } from '../api-client';
+import { toast } from 'sonner';
 import {
   Badge,
   Button,
@@ -27,7 +27,6 @@ interface SerializedProps {
 // Original props interface
 interface GroupingProps {
   proposalGroups: GroupsDataReturnType['proposalGroups'];
-  daoSlug: string;
 }
 
 /**
@@ -37,8 +36,7 @@ export default function GroupingInterface({
   serializedProps,
 }: SerializedProps) {
   // Deserialize the props using SuperJSON
-  const { proposalGroups, daoSlug }: GroupingProps =
-    superjson.parse(serializedProps);
+  const { proposalGroups }: GroupingProps = superjson.parse(serializedProps);
 
   // State management
   const [groups, setGroups] = useState<ProposalGroup[]>(() =>
@@ -91,20 +89,10 @@ export default function GroupingInterface({
    */
   const saveGroupsToServer = useCallback(
     async (groupsToSave: ProposalGroup[]) => {
-      setIsLoading(true);
-      try {
-        // Ensure all dates are in ISO string format
-        const formattedGroups = groupsToSave.map((group) => ({
-          ...group,
-          createdAt: group.createdAt,
-        }));
-
-        await saveGroups(formattedGroups);
-      } catch (error) {
-        console.error('Failed to save groups:', error);
-      } finally {
-        setIsLoading(false);
-      }
+      await callMappingApi({
+        operation: 'groups.save',
+        groups: groupsToSave,
+      });
     },
     []
   );
@@ -179,6 +167,7 @@ export default function GroupingInterface({
       setGroups(updatedGroups);
     } catch (error) {
       console.error('Failed to add item to group:', error);
+      toast.error('Failed to add item to group');
     } finally {
       setIsLoading(false);
     }
@@ -225,6 +214,7 @@ export default function GroupingInterface({
       setGroups(updatedGroups);
     } catch (error) {
       console.error('Failed to remove item from group:', error);
+      toast.error('Failed to remove item from group');
     } finally {
       setIsLoading(false);
     }
@@ -262,6 +252,7 @@ export default function GroupingInterface({
       setEditingGroupName('');
     } catch (error) {
       console.error('Failed to update group name:', error);
+      toast.error('Failed to update group name');
     } finally {
       setIsLoading(false);
     }
@@ -285,7 +276,7 @@ export default function GroupingInterface({
 
     try {
       // Delete the group from the server
-      await deleteGroup(groupId);
+      await callMappingApi({ operation: 'groups.delete', groupId });
 
       // Update local state
       setGroups((prevGroups) =>
@@ -293,6 +284,7 @@ export default function GroupingInterface({
       );
     } catch (error) {
       console.error('Failed to delete group:', error);
+      toast.error('Failed to delete group');
     } finally {
       setIsLoading(false);
     }
@@ -417,7 +409,6 @@ export default function GroupingInterface({
 
                     {/* Fuzzy search to add items */}
                     <FuzzyItemSearch
-                      daoSlug={daoSlug}
                       excludeItems={group.items.map(getItemIdentifier)}
                       onSelectItem={handleItemSelect}
                       isLoading={isLoading}

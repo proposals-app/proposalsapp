@@ -35,6 +35,7 @@ interface VoteButtonProps {
   governor: SupportedGovernorType;
   overwriteSnapshotSpace?: string;
   overwriteSnapshotHub?: string;
+  overwriteOnchainChainId?: number;
 }
 
 export interface VoteModalContentProps {
@@ -61,6 +62,7 @@ export function VoteButton({
   governor,
   overwriteSnapshotSpace,
   overwriteSnapshotHub,
+  overwriteOnchainChainId,
 }: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { isConnected } = useAccount();
@@ -190,7 +192,7 @@ export function VoteButton({
             choices={choices}
             governorAddress={governorConfig.address}
             governorAbi={GOVERNOR_VOTE_ABI}
-            chainId={governorConfig.chainId}
+            chainId={overwriteOnchainChainId ?? governorConfig.chainId}
             onVoteSubmit={handleSuccessfulVote}
             onClose={() => setIsOpen(false)}
           />

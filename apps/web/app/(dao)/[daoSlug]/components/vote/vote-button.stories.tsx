@@ -120,9 +120,12 @@ interface MockProposal {
 
 const TEST_NODE_URL = 'http://localhost:8545';
 const TEST_NODE_WS_URL = 'ws://localhost:8545';
+const TEST_NODE_CHAIN_ID = 31_337;
 
 const testnode = {
   ...arbitrum,
+  id: TEST_NODE_CHAIN_ID,
+  name: 'Arbitrum Fork',
   rpcUrls: {
     default: {
       http: [TEST_NODE_URL],
@@ -891,7 +894,13 @@ const OnchainProposalStory: React.FC<{
   }
 
   // Proposal is already of type Proposal | null, pass directly
-  return <VoteButton governor={governor} proposal={proposal} />;
+  return (
+    <VoteButton
+      governor={governor}
+      proposal={proposal}
+      overwriteOnchainChainId={TEST_NODE_CHAIN_ID}
+    />
+  );
 };
 
 // --- Storybook Configuration ---

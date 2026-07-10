@@ -14,6 +14,7 @@ COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
 COPY apps/${APP_NAME}/package.json ./apps/${APP_NAME}/
 COPY libs/ts/db/package.json ./libs/ts/db/
 COPY libs/ts/emails/package.json ./libs/ts/emails/
+COPY libs/ts/governance/package.json ./libs/ts/governance/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -22,6 +23,7 @@ RUN pnpm install --frozen-lockfile
 COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
 COPY libs/ts/db/ ./libs/ts/db/
 COPY libs/ts/emails/ ./libs/ts/emails/
+COPY libs/ts/governance/ ./libs/ts/governance/
 
 # Bundle with esbuild into a single file (resolves workspace TS imports)
 RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild src/index.ts \

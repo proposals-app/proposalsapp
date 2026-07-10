@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build
+      BETTER_AUTH_SECRET: ci-only-secret-that-is-long-enough-for-builds
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@11.9.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify toolchain and workspace
+        run: pnpm verify-setup
+      - name: Check formatting and lint
+        run: |
+          pnpm lint
+          pnpm format
+          shellcheck update-deps.sh scripts/verify-setup.sh apps/web/scripts/*.sh
+      - name: Build applications and libraries
+        run: |
+          pnpm build-web
+          pnpm build-email-service
+          pnpm build-mapping-agent
+          pnpm build-emails
+          pnpm --filter @proposalsapp/web build-storybook
+          pnpm --filter @proposalsapp/visual-dom-diff build
+      - name: Run TypeScript tests
+        run: |
+          pnpm --filter @proposalsapp/web test
+          pnpm --filter @proposalsapp/email-service exec vitest run
+          pnpm --filter @proposalsapp/mapping-agent test
+
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@11.9.0 --activate
+      - name: Install TypeScript dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component clippy,rustfmt
+          rustup default 1.96.0
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+      - name: Lint Rust workspace
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Test Rust workspace
+        run: cargo test --workspace --all-targets --locked

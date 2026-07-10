@@ -168,7 +168,7 @@ async function UniswapPageContent() {
   const userId = session?.user?.id;
   const renderedAtMs = Date.now();
 
-  const result = await getGroups(daoSlug, userId);
+  const result = await getGroups(daoSlug);
   if (!result) {
     return null;
   }

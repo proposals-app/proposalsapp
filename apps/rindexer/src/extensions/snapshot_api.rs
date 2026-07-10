@@ -225,6 +225,10 @@ pub struct SnapshotApi {
     client: Client,
 }
 
+fn graphql_string_literal(value: &str) -> String {
+    serde_json::to_string(value).expect("serializing a string cannot fail")
+}
+
 impl SnapshotApi {
     pub fn new() -> Self {
         Self {
@@ -240,13 +244,14 @@ impl SnapshotApi {
         after_timestamp: i64,
         limit: usize,
     ) -> Result<Vec<SnapshotProposal>> {
+        let space_literal = graphql_string_literal(space);
         let query = format!(
             r#"
             {{
                 proposals(
                     first: {limit},
                     where: {{
-                        space: "{space}",
+                        space: {space_literal},
                         created_gt: {after_timestamp}
                     }},
                     orderBy: "created",
@@ -310,6 +315,7 @@ impl SnapshotApi {
         skip: usize,
         limit: usize,
     ) -> Result<Vec<SnapshotVote>> {
+        let proposal_id_literal = graphql_string_literal(proposal_id);
         let query = format!(
             r#"
             {{
@@ -317,7 +323,7 @@ impl SnapshotApi {
                     first: {limit},
                     skip: {skip},
                     where: {{
-                        proposal: "{proposal_id}"
+                        proposal: {proposal_id_literal}
                     }},
                     orderBy: "created",
                     orderDirection: asc
@@ -344,6 +350,7 @@ impl SnapshotApi {
     /// Fetch active proposals for a space
     #[instrument(name = "fetch_active_proposals", skip(self))]
     pub async fn fetch_active_proposals(&self, space: &str) -> Result<Vec<SnapshotProposal>> {
+        let space_literal = graphql_string_literal(space);
         // Fetch active and pending proposals separately since the API doesn't support arrays for state
         let mut all_proposals = Vec::new();
 
@@ -353,7 +360,7 @@ impl SnapshotApi {
             {{
                 proposals(
                     where: {{
-                        space: "{space}",
+                        space: {space_literal},
                         state: "active"
                     }},
                     first: 10,
@@ -397,7 +404,7 @@ impl SnapshotApi {
             {{
                 proposals(
                     where: {{
-                        space: "{space}",
+                        space: {space_literal},
                         state: "pending"
                     }},
                     first: 10,
@@ -448,12 +455,13 @@ impl SnapshotApi {
         after_timestamp: i64,
         limit: usize,
     ) -> Result<Vec<SnapshotVote>> {
+        let space_literal = graphql_string_literal(space);
         let query = format!(
             r#"
             {{
                 votes(
                     where: {{
-                        space: "{space}",
+                        space: {space_literal},
                         created_gt: {after_timestamp}
                     }},
                     first: {limit},
@@ -485,12 +493,13 @@ impl SnapshotApi {
         &self,
         proposal_id: &str,
     ) -> Result<Option<SnapshotProposal>> {
+        let proposal_id_literal = graphql_string_literal(proposal_id);
         let query = format!(
             r#"
             {{
                 proposals(
                     where: {{
-                        id: "{proposal_id}"
+                        id: {proposal_id_literal}
                     }},
                     first: 1
                 ) {{
@@ -680,5 +689,18 @@ impl SnapshotApi {
         }
 
         Err(last_error.unwrap_or_else(|| anyhow::anyhow!("Max retries exceeded")))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::graphql_string_literal;
+
+    #[test]
+    fn graphql_string_literal_escapes_query_syntax() {
+        assert_eq!(
+            graphql_string_literal("space\" } ) { votes { id } } #"),
+            r#""space\" } ) { votes { id } } #""#
+        );
     }
 }

@@ -4,25 +4,27 @@
   "dependencies": {
     "@proposalsapp/db": "workspace:*",
     "@proposalsapp/emails": "workspace:*",
-    "@react-email/render": "^2.0.10",
+    "@proposalsapp/governance": "workspace:*",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
     "node-cron": "^4.5.0",
     "pino": "^10.3.1",
-    "resend": "^6.16.0"
+    "react-email": "6.6.6",
+    "resend": "6.17.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.1.1",
     "@types/node-cron": "^3.0.11",
     "esbuild": "^0.28.1",
     "tsx": "^4.22.5",
-    "typescript": "^6.0.3",
+    "typescript": "5.9.3",
     "vitest": "^4.1.9"
   },
   "main": "./src/index.ts",
   "scripts": {
     "start": "tsx src/index.ts",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "test": "vitest run"
   },
   "type": "module"
 }

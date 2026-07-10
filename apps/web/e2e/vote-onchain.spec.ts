@@ -1,6 +1,11 @@
 import { testWithSynpress } from '@synthetixio/synpress';
-import { MetaMask, metaMaskFixtures } from '@synthetixio/synpress/playwright';
+import { metaMaskFixtures } from '@synthetixio/synpress/playwright';
 import type { Page } from '@playwright/test';
+import {
+  approveMetaMaskConnection,
+  approveMetaMaskNetworkSetup,
+  approveMetaMaskTransaction,
+} from './helpers/metamask';
 import basicSetup from './wallet-setup/basic.setup';
 import {
   type Abi,
@@ -44,6 +49,8 @@ const VERIFICATION_MAX_ATTEMPTS = 20; // Increased attempts for onchain event pr
 // --- Viem Test Client Setup ---
 const testnode = {
   ...arbitrum,
+  id: 31_337,
+  name: 'Arbitrum Fork',
   rpcUrls: {
     default: {
       http: [TEST_NODE_URL],
@@ -86,12 +93,7 @@ const findEventAbi = (abi: Abi, eventName: string): AbiEvent | undefined =>
   abi.find((item) => item.type === 'event' && item.name === eventName) as
     AbiEvent | undefined;
 
-async function connectWallet(
-  page: Page,
-  metamask: MetaMask,
-  metamaskPage: Page,
-  testLogPrefix: string = ''
-) {
+async function connectWallet(page: Page, testLogPrefix: string = '') {
   console.log(`${testLogPrefix} Connecting wallet...`);
   await expect(
     page.getByTestId('rk-connect-button'),
@@ -99,82 +101,14 @@ async function connectWallet(
   ).toBeVisible({ timeout: 20000 });
 
   await page.getByTestId('rk-connect-button').click();
-  await page.getByTestId('rk-wallet-option-io.metamask').click();
-
-  await metamask.connectToDapp();
-
-  try {
-    const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' });
-    if (await gotItButton.isVisible({ timeout: 3000 })) {
-      console.log(`${testLogPrefix} Handling Metamask 'Got it' button...`);
-      await gotItButton.click();
-    }
-  } catch (_e) {
-    console.log(`${testLogPrefix} 'Got it' button not found, continuing...`);
-  }
-
-  try {
-    await metamask.approveNewNetwork();
-  } catch (_e) {
-    console.log(
-      `${testLogPrefix} Approve new network skipped/failed, continuing...`
-    );
-  }
-  try {
-    await metamask.approveSwitchNetwork();
-  } catch (_e) {
-    console.log(
-      `${testLogPrefix} Approve switch network skipped/failed, continuing...`
-    );
-  }
+  await page.getByTestId('rk-wallet-option-metaMask').click();
+  await approveMetaMaskConnection(page);
+  await approveMetaMaskNetworkSetup(page);
   console.log(`${testLogPrefix} Wallet connected.`);
-}
-
-async function handlePotentialGotItButton(
-  metamaskPage: Page,
-  testLogPrefix: string = '',
-  maxAttempts: number = 3
-) {
-  console.log(`${testLogPrefix} Checking for Metamask 'Got it' button...`);
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' });
-      const isVisible = await gotItButton.isVisible({ timeout: 2000 });
-
-      if (isVisible) {
-        console.log(
-          `${testLogPrefix} 'Got it' button found on attempt ${attempt}, clicking...`
-        );
-        await gotItButton.click();
-        console.log(`${testLogPrefix} 'Got it' button clicked successfully.`);
-        return true;
-      } else if (attempt < maxAttempts) {
-        console.log(
-          `${testLogPrefix} 'Got it' button not visible on attempt ${attempt}, waiting before next check...`
-        );
-        await metamaskPage.waitForTimeout(1000);
-      }
-    } catch (e) {
-      console.error(
-        `${testLogPrefix} Error checking for 'Got it' button on attempt ${attempt}: ${e}`
-      );
-      if (attempt < maxAttempts) {
-        await metamaskPage.waitForTimeout(1000);
-      }
-    }
-  }
-
-  console.log(
-    `${testLogPrefix} 'Got it' button did not appear after ${maxAttempts} attempts, continuing.`
-  );
-  return false;
 }
 
 async function submitVoteAndConfirmMetamaskTx(
   page: Page,
-  metamaskPage: Page,
-  metamask: MetaMask,
   testLogPrefix: string = '',
   confirmationDelay: number = VOTE_CONFIRMATION_DELAY
 ) {
@@ -185,13 +119,10 @@ async function submitVoteAndConfirmMetamaskTx(
   ).toBeEnabled();
   await submitVoteButton.click();
 
-  await metamaskPage.waitForTimeout(1000);
-  await handlePotentialGotItButton(metamaskPage, testLogPrefix);
-
   console.log(`${testLogPrefix} Confirming vote transaction in Metamask...`);
   // This confirms the transaction in the Metamask popup.
   // It does NOT wait for the transaction to be mined or confirmed onchain.
-  await metamask.confirmTransaction();
+  await approveMetaMaskTransaction(page);
 
   console.log(
     `${testLogPrefix} Vote submitted via UI and confirmed in Metamask. Waiting ${confirmationDelay / 1000}s before searching for onchain event...`
@@ -804,10 +735,7 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
 
   // --- Test Case ---
   test('[Arbitrum Core] should create proposal, vote random choice via UI, verify via onchain event and state', async ({
-    context,
     page,
-    metamaskPage,
-    extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Arbitrum Core]';
@@ -826,18 +754,12 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     console.log(`${testLogPrefix} Using Proposal ID: ${proposalId}`);
 
     // 2. Setup Metamask and navigate
-    const metamask = new MetaMask(
-      context,
-      metamaskPage,
-      basicSetup.walletPassword,
-      extensionId
-    );
     await page.goto(
-      'http://localhost:6006/?story=vote-button--on--chain--arbitrum-core'
+      'http://localhost:6006/iframe.html?id=dao-voting-votebutton--on-chain-arbitrum-core&viewMode=story'
     );
 
     // 3. Connect Wallet
-    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+    await connectWallet(page, testLogPrefix);
 
     // 4. Vote via UI (Select choice and enter reason)
     console.log(`${testLogPrefix} Voting via UI...`);
@@ -894,8 +816,6 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     // This triggers the transaction but does not wait for it to be mined.
     await submitVoteAndConfirmMetamaskTx(
       page,
-      metamaskPage,
-      metamask,
       testLogPrefix,
       VOTE_CONFIRMATION_DELAY
     );
@@ -927,10 +847,7 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
 
   // --- NEW TEST CASE ---
   test('[Arbitrum Treasury] should create proposal, vote random choice via UI, verify via onchain event and state', async ({
-    context,
     page,
-    metamaskPage,
-    extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Arbitrum Treasury]';
@@ -949,18 +866,12 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     console.log(`${testLogPrefix} Using Proposal ID: ${proposalId}`);
 
     // 2. Setup Metamask and navigate to the TREASURY story
-    const metamask = new MetaMask(
-      context,
-      metamaskPage,
-      basicSetup.walletPassword,
-      extensionId
-    );
     await page.goto(
-      'http://localhost:6006/?story=vote-button--on--chain--arbitrum-treasury'
+      'http://localhost:6006/iframe.html?id=dao-voting-votebutton--on-chain-arbitrum-treasury&viewMode=story'
     );
 
     // 3. Connect Wallet
-    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+    await connectWallet(page, testLogPrefix);
 
     // 4. Vote via UI (Select choice and enter reason)
     console.log(`${testLogPrefix} Voting via UI...`);
@@ -1014,8 +925,6 @@ test.describe.serial('Onchain Voting E2E Tests', () => {
     // 5. Submit Vote and Confirm Transaction in Metamask
     await submitVoteAndConfirmMetamaskTx(
       page,
-      metamaskPage,
-      metamask,
       testLogPrefix,
       VOTE_CONFIRMATION_DELAY
     );

@@ -1,5 +1,6 @@
 pub mod db_handler;
 pub mod discourse_api;
+pub mod health;
 pub mod indexers;
 pub mod models;
 

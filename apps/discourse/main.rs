@@ -1,10 +1,12 @@
 #![warn(unused_extern_crates)]
 
-use anyhow::{Context, Error, Result};
-use axum::Router;
+use anyhow::{Context, Error, Result, anyhow};
+use axum::{Json, Router, extract::State, http::StatusCode};
+use chrono::Utc;
 use discourse::{
     db_handler::{db, initialize_db},
     discourse_api::DiscourseApi,
+    health::{HealthRegistry, HealthSnapshot, HealthStatus},
     indexers::{
         categories::CategoryIndexer, revisions::RevisionIndexer, topics::TopicIndexer,
         users::UserIndexer,
@@ -29,6 +31,14 @@ const INITIAL_FULL_REFRESH_TASK_DELAY: Duration = Duration::from_secs(60);
 
 const RECENT_UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 const INITIAL_RECENT_UPDATE_TASK_DELAY: Duration = Duration::from_secs(5);
+
+struct RefreshLoopConfig {
+    dao_name: String,
+    task_prefix: &'static str,
+    start_delay: Duration,
+    interval: Duration,
+    cycle_label: &'static str,
+}
 
 #[tokio::main]
 #[instrument]
@@ -64,7 +74,10 @@ async fn main() -> Result<()> {
     info!("Database initialized.");
 
     // Start health check server
-    let app = Router::new().route("/health", axum::routing::get(|| async { "OK" }));
+    let health = HealthRegistry::default();
+    let app = Router::new()
+        .route("/health", axum::routing::get(health_handler))
+        .with_state(health.clone());
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
     let health_server_handle = tokio::spawn(async move {
@@ -159,11 +172,14 @@ async fn main() -> Result<()> {
 
         spawn_refresh_loop(
             &mut indexer_tasks,
-            dao_name.clone(),
-            "full_refresh",
-            INITIAL_FULL_REFRESH_TASK_DELAY,
-            FULL_REFRESH_INTERVAL,
-            "full refresh",
+            health.clone(),
+            RefreshLoopConfig {
+                dao_name: dao_name.clone(),
+                task_prefix: "full_refresh",
+                start_delay: INITIAL_FULL_REFRESH_TASK_DELAY,
+                interval: FULL_REFRESH_INTERVAL,
+                cycle_label: "full refresh",
+            },
             move || {
                 let cat_idx_full = cat_idx_full.clone();
                 let user_idx_full = user_idx_full.clone();
@@ -183,12 +199,12 @@ async fn main() -> Result<()> {
                         Result<()>,
                     ) = tokio::join!(cat_fut, user_fut, topic_fut, rev_fut);
 
-                    log_indexer_result("Full Categories", &cat_res);
-                    log_indexer_result("Full Users", &user_res);
-                    log_indexer_result("Full Topics/Posts", &topic_res);
-                    log_indexer_result("Full Revisions", &rev_res);
-
-                    Ok(())
+                    aggregate_indexer_results([
+                        ("Full Categories", cat_res),
+                        ("Full Users", user_res),
+                        ("Full Topics/Posts", topic_res),
+                        ("Full Revisions", rev_res),
+                    ])
                 }
             },
         );
@@ -202,11 +218,14 @@ async fn main() -> Result<()> {
 
         spawn_refresh_loop(
             &mut indexer_tasks,
-            dao_name.clone(),
-            "recent_updates",
-            INITIAL_RECENT_UPDATE_TASK_DELAY,
-            RECENT_UPDATE_INTERVAL,
-            "recent updates",
+            health.clone(),
+            RefreshLoopConfig {
+                dao_name,
+                task_prefix: "recent_updates",
+                start_delay: INITIAL_RECENT_UPDATE_TASK_DELAY,
+                interval: RECENT_UPDATE_INTERVAL,
+                cycle_label: "recent updates",
+            },
             move || {
                 let cat_idx_recent = cat_idx_recent.clone();
                 let user_idx_recent = user_idx_recent.clone();
@@ -226,12 +245,12 @@ async fn main() -> Result<()> {
                         Result<()>,
                     ) = tokio::join!(cat_fut, user_fut, topic_fut, rev_fut);
 
-                    log_indexer_result("Full Categories", &cat_res);
-                    log_indexer_result("Recent Users", &user_res);
-                    log_indexer_result("Recent Topics/Posts", &topic_res);
-                    log_indexer_result("Recent Revisions", &rev_res);
-
-                    Ok(())
+                    aggregate_indexer_results([
+                        ("Full Categories", cat_res),
+                        ("Recent Users", user_res),
+                        ("Recent Topics/Posts", topic_res),
+                        ("Recent Revisions", rev_res),
+                    ])
                 }
             },
         );
@@ -274,33 +293,42 @@ async fn main() -> Result<()> {
 
 fn spawn_refresh_loop<F, Fut>(
     indexer_tasks: &mut JoinSet<Result<(), Error>>,
-    dao_name: String,
-    task_prefix: &'static str,
-    start_delay: Duration,
-    interval_duration: Duration,
-    cycle_label: &'static str,
+    health: HealthRegistry,
+    config: RefreshLoopConfig,
     cycle: F,
 ) where
     F: Fn() -> Fut + Send + 'static,
     Fut: Future<Output = Result<(), Error>> + Send + 'static,
 {
+    let RefreshLoopConfig {
+        dao_name,
+        task_prefix,
+        start_delay,
+        interval,
+        cycle_label,
+    } = config;
     let task_name = format!("{task_prefix}_{dao_name}");
+    health.register(task_name.clone());
     let span_dao_name = dao_name.clone();
 
     indexer_tasks.spawn(
         async move {
             info!(task = %task_name, cycle = cycle_label, "Starting refresh task loop");
             let start_delay = tokio::time::Instant::now() + start_delay;
-            let mut interval = interval_at(start_delay, interval_duration);
-            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            let mut ticker = interval_at(start_delay, interval);
+            ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
             loop {
-                interval.tick().await;
+                ticker.tick().await;
                 info!(task = %task_name, cycle = cycle_label, "Running refresh cycle...");
                 let cycle_start = Instant::now();
 
-                if let Err(e) = cycle().await {
-                    error!(task = %task_name, cycle = cycle_label, error = ?e, "Refresh cycle failed.");
+                match cycle().await {
+                    Ok(()) => health.record_success(&task_name, Utc::now()),
+                    Err(e) => {
+                        health.record_failure(&task_name, Utc::now(), format!("{e:#}"));
+                        error!(task = %task_name, cycle = cycle_label, error = ?e, "Refresh cycle failed.");
+                    }
                 }
 
                 info!(
@@ -315,15 +343,36 @@ fn spawn_refresh_loop<F, Fut>(
     );
 }
 
-/// Helper function to log the result of an indexer operation.
-fn log_indexer_result(task_description: &str, result: &Result<()>) {
-    match result {
-        Ok(_) => {
+fn aggregate_indexer_results<const N: usize>(
+    results: [(&'static str, Result<()>); N],
+) -> Result<()> {
+    let mut failures = Vec::new();
+
+    for (task_description, result) in results {
+        if let Err(error) = result {
+            error!(error = ?error, "{} update failed.", task_description);
+            failures.push(format!("{task_description}: {error:#}"));
+        } else {
             info!("{} update finished successfully.", task_description);
         }
-        Err(e) => {
-            // Log the full error chain using `{:?}`
-            error!(error = ?e, "{} update failed.", task_description);
-        }
     }
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(anyhow!(failures.join("; ")))
+    }
+}
+
+async fn health_handler(
+    State(health): State<HealthRegistry>,
+) -> (StatusCode, Json<HealthSnapshot>) {
+    let snapshot = health.snapshot();
+    let status_code = if snapshot.status == HealthStatus::Healthy {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (status_code, Json(snapshot))
 }

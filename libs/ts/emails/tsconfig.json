@@ -4,7 +4,8 @@
     "outDir": "dist",
     "jsx": "react",
     "resolveJsonModule": true,
-    "composite": true
+    "composite": true,
+    "types": ["node"]
   },
   "include": ["src/**/*", "components/**/*", "emails/**/*", "test_data/*.json"]
 }

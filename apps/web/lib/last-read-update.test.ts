@@ -55,25 +55,26 @@ describe('updateLastReadForDao', () => {
     expect(revalidate).not.toHaveBeenCalled();
   });
 
-  it('does not swallow authentication failures', async () => {
-    const authError = new Error('Authentication required');
+  it('skips the write for anonymous visitors', async () => {
+    const findScopedGroupId = vi.fn(async () => 'group-1');
+    const upsertLastRead = vi.fn(async () => undefined);
 
-    await expect(
-      updateLastReadForDao(
-        {
-          authenticate: vi.fn(async () => {
-            throw authError;
-          }),
-          findScopedGroupId: vi.fn(async () => 'group-1'),
-          upsertLastRead: vi.fn(async () => undefined),
-          revalidate: vi.fn(),
-        },
-        {
-          daoSlug: 'arbitrum',
-          groupId: 'group-1',
-          now: new Date('2026-04-09T12:00:00.000Z'),
-        }
-      )
-    ).rejects.toThrow('Authentication required');
+    const result = await updateLastReadForDao(
+      {
+        authenticate: vi.fn(async () => null),
+        findScopedGroupId,
+        upsertLastRead,
+        revalidate: vi.fn(),
+      },
+      {
+        daoSlug: 'arbitrum',
+        groupId: 'group-1',
+        now: new Date('2026-04-09T12:00:00.000Z'),
+      }
+    );
+
+    expect(result).toBe('ignored');
+    expect(findScopedGroupId).not.toHaveBeenCalled();
+    expect(upsertLastRead).not.toHaveBeenCalled();
   });
 });

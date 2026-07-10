@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server';
 import { DiscourseResultCard } from './components/results/discourse-result-card';
 import { TimelineEventType } from '@/lib/types';
 import { db, sql } from '@proposalsapp/db';
+import { getProposalStateImageDimensions } from '@/lib/proposal-state-image';
 
 // Function to get group ID from topic slug
 async function getGroupIdFromTopicSlug(
@@ -65,11 +66,23 @@ async function getGroupIdFromTopicSlug(
 let cachedFonts: { regular: ArrayBuffer; bold: ArrayBuffer } | null = null;
 async function getFiraSansCondensedFonts() {
   if (cachedFonts) return cachedFonts;
+  const fetchFont = async (url: string) => {
+    const response = await fetch(url, {
+      cache: 'force-cache',
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Font request failed with status ${response.status}`);
+    }
+
+    return response;
+  };
   const [regular, bold] = await Promise.all([
-    fetch(
+    fetchFont(
       'https://fonts.gstatic.com/s/firasanscondensed/v10/wEOhEADFm8hSaQTFG18FErVhsC9x-tarYfE.ttf'
     ),
-    fetch(
+    fetchFont(
       'https://fonts.gstatic.com/s/firasanscondensed/v10/wEOsEADFm8hSaQTFG18FErVhsC9x-tarWU3IiMM.ttf'
     ),
   ]);
@@ -90,13 +103,9 @@ export async function GET(
   // Add cache jitter: 60 seconds base + random 0-30 seconds
   const cacheMaxAge = 60 + Math.floor(Math.random() * 30);
 
-  // Extract query parameters for width, height, and debug mode
+  // Extract bounded query parameters for dimensions and debug mode.
   const { searchParams } = new URL(request.url);
-  // Use higher resolution defaults for better image quality
-  const width = parseInt(searchParams.get('width') || '1200', 10);
-  const baseHeight = parseInt(searchParams.get('height') || '60', 10);
-  // Double the height when width < 600 for two-row layout
-  const height = width < 600 ? baseHeight * 2 : baseHeight;
+  const { width, height } = getProposalStateImageDimensions(searchParams);
   const debug = searchParams.get('debug') === 'true';
 
   // Get the group ID from the topic slug
@@ -207,7 +216,6 @@ export async function GET(
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers':
           'Content-Type, Authorization, X-Requested-With, Discourse-Logged-In, Discourse-Present',
-        'Access-Control-Allow-Credentials': 'true',
         'Cache-Control': `public, max-age=${cacheMaxAge}, stale-while-revalidate=30`,
       },
     });

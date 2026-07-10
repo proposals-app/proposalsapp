@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
-import type { Api, Model } from '@mariozechner/pi-ai';
-import type { ThinkingLevel } from '@mariozechner/pi-agent-core';
+import type { Api, Model } from '@earendil-works/pi-ai';
+import type { ThinkingLevel } from '@earendil-works/pi-agent-core';
 import {
   AuthStorage,
   createAgentSession,
@@ -11,7 +11,7 @@ import {
   SettingsManager,
   type AgentSessionEvent,
   type ExtensionFactory,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 import { isLmStudioQwenModel } from '../shared/pi-model';
 
 const DEFAULT_MAX_TOKENS = 4_096;

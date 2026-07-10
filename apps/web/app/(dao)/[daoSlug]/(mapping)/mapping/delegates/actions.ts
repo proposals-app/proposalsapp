@@ -1,14 +1,10 @@
-'use server';
-
-import {
-  db,
-  type DiscourseUser,
-  type Selectable,
-  type Voter,
-} from '@proposalsapp/db';
+import { db } from '@proposalsapp/db';
 import Fuse from 'fuse.js';
 import type { AsyncReturnType } from '@/lib/utils';
 import { revalidateTag } from 'next/cache';
+import { requireDao } from '@/lib/server-actions-utils';
+import { daoIdSchema } from '@/lib/validations';
+import type { DiscourseUserSummary, VoterSummary } from '../api-contract';
 
 export type DelegatesWithMappingsReturnType = AsyncReturnType<
   typeof getDelegatesWithMappings
@@ -63,12 +59,16 @@ export async function getDelegatesWithMappings(daoSlug: string) {
       ? db
           .selectFrom('discourseUser')
           .where('id', 'in', discourseUserIds)
-          .selectAll()
+          .select(['id', 'username', 'name'])
           .execute()
-      : Promise.resolve([] as Selectable<DiscourseUser>[]),
+      : Promise.resolve([] as DiscourseUserSummary[]),
     voterIds.length > 0
-      ? db.selectFrom('voter').where('id', 'in', voterIds).selectAll().execute()
-      : Promise.resolve([] as Selectable<Voter>[]),
+      ? db
+          .selectFrom('voter')
+          .where('id', 'in', voterIds)
+          .select(['id', 'address', 'ens'])
+          .execute()
+      : Promise.resolve([] as VoterSummary[]),
   ]);
 
   const discourseUserById = new Map(
@@ -109,11 +109,11 @@ export async function getDelegatesWithMappings(daoSlug: string) {
 
     const mappedDiscourseUsers = discourseMappings
       .map((mapping) => discourseUserById.get(mapping.discourseUserId))
-      .filter((user): user is Selectable<DiscourseUser> => Boolean(user));
+      .filter((user): user is DiscourseUserSummary => Boolean(user));
 
     const mappedVoters = voterMappings
       .map((mapping) => voterById.get(mapping.voterId))
-      .filter((voter): voter is Selectable<Voter> => Boolean(voter));
+      .filter((voter): voter is VoterSummary => Boolean(voter));
 
     const timestamps = [
       ...discourseMappings.map((mapping) => mapping.periodStart),
@@ -163,152 +163,105 @@ export async function fuzzySearchDiscourseUsers(
   daoSlug: string,
   searchTerm: string,
   excludeUserIds: string[] = []
-): Promise<Selectable<DiscourseUser>[]> {
-  // Remove 'use cache' directive to ensure fresh results each time
-  // This ensures the search functionality works properly
+): Promise<DiscourseUserSummary[]> {
+  const dao = await requireDao(daoSlug);
+  const daoDiscourse = await db
+    .selectFrom('daoDiscourse')
+    .where('daoId', '=', dao.id)
+    .select('id')
+    .executeTakeFirst();
 
-  // Validate inputs
-  if (!searchTerm || !searchTerm.trim() || !daoSlug) {
-    console.log('Invalid search term or daoSlug:', { searchTerm, daoSlug });
-    return [];
+  if (!daoDiscourse) return [];
+
+  let query = db
+    .selectFrom('discourseUser')
+    .where('daoDiscourseId', '=', daoDiscourse.id);
+
+  if (excludeUserIds.length > 0) {
+    query = query.where('id', 'not in', excludeUserIds);
   }
 
-  try {
-    const dao = await db
-      .selectFrom('dao')
-      .where('slug', '=', daoSlug)
-      .selectAll()
-      .executeTakeFirst();
+  const users = await query.select(['id', 'username', 'name']).execute();
+  const fuse = new Fuse(users, {
+    keys: ['username', 'name'],
+    threshold: 0.3,
+  });
 
-    if (!dao) {
-      console.error(`DAO not found: ${daoSlug}`);
-      return [];
-    }
-
-    const daoDiscourse = await db
-      .selectFrom('daoDiscourse')
-      .where('daoId', '=', dao.id)
-      .selectAll()
-      .executeTakeFirst();
-
-    if (!daoDiscourse) {
-      console.log('No daoDiscourse found for dao:', daoSlug);
-      return [];
-    }
-
-    let query = db
-      .selectFrom('discourseUser')
-      .where('daoDiscourseId', '=', daoDiscourse.id);
-
-    if (excludeUserIds.length > 0) {
-      query = query.where('id', 'not in', excludeUserIds);
-    }
-
-    const allDiscourseUsers = await query.selectAll().execute();
-    console.log(`Found ${allDiscourseUsers.length} discourse users for search`);
-
-    if (allDiscourseUsers.length === 0) {
-      return [];
-    }
-
-    const fuse = new Fuse(allDiscourseUsers, {
-      keys: ['username', 'name'],
-      threshold: 0.3,
-    });
-
-    const results = fuse.search(searchTerm).map((result) => result.item);
-    console.log(
-      `Search for "${searchTerm}" returned ${results.length} results`
-    );
-    return results;
-  } catch (error) {
-    console.error('Error in fuzzySearchDiscourseUsers:', error);
-    return [];
-  }
+  return fuse
+    .search(searchTerm)
+    .slice(0, 100)
+    .map((result) => result.item);
 }
 
 export async function fuzzySearchVoters(
   daoSlug: string,
   searchTerm: string,
   excludeVoterIds: string[] = []
-): Promise<Selectable<Voter>[]> {
-  // Remove 'use cache' directive to ensure fresh results each time
-  // This ensures the search functionality works properly
+): Promise<VoterSummary[]> {
+  const dao = await requireDao(daoSlug);
 
-  // Validate inputs
-  if (!searchTerm || !searchTerm.trim() || !daoSlug) {
-    console.log('Invalid search term or daoSlug:', { searchTerm, daoSlug });
-    return [];
-  }
-
-  try {
-    const dao = await db
-      .selectFrom('dao')
-      .where('slug', '=', daoSlug)
-      .selectAll()
-      .executeTakeFirst();
-
-    if (!dao) {
-      console.error(`DAO not found: ${daoSlug}`);
-      return [];
-    }
-
-    // Limit voters to those relevant to the DAO by checking membership via IN subqueries
-    // (easier to type correctly than cross-scope whereRef conditions)
-    let query = db
-      .selectFrom('voter')
-      .where((eb) =>
-        eb.or([
-          eb(
-            'address',
-            'in',
-            db
-              .selectFrom('votingPowerTimeseries as vp')
-              .select('vp.voter')
-              .where('vp.daoId', '=', dao.id)
-          ),
-          eb(
-            'address',
-            'in',
-            db
-              .selectFrom('vote as vo')
-              .select('vo.voterAddress')
-              .where('vo.daoId', '=', dao.id)
-          ),
-        ])
-      );
-
-    if (excludeVoterIds.length > 0) {
-      query = query.where('id', 'not in', excludeVoterIds);
-    }
-
-    const allVoters = await query.selectAll().execute();
-    console.log(`Found ${allVoters.length} voters for search`);
-
-    if (allVoters.length === 0) {
-      return [];
-    }
-
-    const fuse = new Fuse(allVoters, {
-      keys: ['address', 'ens'],
-      threshold: 0.3,
-    });
-
-    const results = fuse.search(searchTerm).map((result) => result.item);
-    console.log(
-      `Search for "${searchTerm}" returned ${results.length} results`
+  // Voters are global records; scope the search to addresses with DAO activity.
+  let query = db
+    .selectFrom('voter')
+    .where((eb) =>
+      eb.or([
+        eb(
+          'address',
+          'in',
+          db
+            .selectFrom('votingPowerTimeseries as vp')
+            .select('vp.voter')
+            .where('vp.daoId', '=', dao.id)
+        ),
+        eb(
+          'address',
+          'in',
+          db
+            .selectFrom('vote as vo')
+            .select('vo.voterAddress')
+            .where('vo.daoId', '=', dao.id)
+        ),
+      ])
     );
-    return results;
-  } catch (error) {
-    console.error('Error in fuzzySearchVoters:', error);
-    return [];
+
+  if (excludeVoterIds.length > 0) {
+    query = query.where('id', 'not in', excludeVoterIds);
   }
+
+  const voters = await query.select(['id', 'address', 'ens']).execute();
+  const fuse = new Fuse(voters, {
+    keys: ['address', 'ens'],
+    threshold: 0.3,
+  });
+
+  return fuse
+    .search(searchTerm)
+    .slice(0, 100)
+    .map((result) => result.item);
 }
 
 export async function mapDiscourseUserToDelegate(
+  daoSlug: string,
   delegateId: string,
   discourseUserId: string
 ) {
+  daoIdSchema.parse(delegateId);
+  daoIdSchema.parse(discourseUserId);
+  const dao = await requireDao(daoSlug);
+  await assertDelegateBelongsToDao(delegateId, dao.id);
+
+  const discourseUser = await db
+    .selectFrom('discourseUser as du')
+    .innerJoin('daoDiscourse as dd', 'dd.id', 'du.daoDiscourseId')
+    .select('du.id')
+    .where('du.id', '=', discourseUserId)
+    .where('dd.daoId', '=', dao.id)
+    .executeTakeFirst();
+
+  if (!discourseUser) {
+    throw new Error('Discourse user does not belong to this DAO');
+  }
+
   await db
     .insertInto('delegateToDiscourseUser')
     .values({
@@ -322,7 +275,16 @@ export async function mapDiscourseUserToDelegate(
   revalidateTag('delegatesWithMappings', 'max');
 }
 
-export async function mapVoterToDelegate(delegateId: string, voterId: string) {
+export async function mapVoterToDelegate(
+  daoSlug: string,
+  delegateId: string,
+  voterId: string
+) {
+  daoIdSchema.parse(delegateId);
+  daoIdSchema.parse(voterId);
+  const dao = await requireDao(daoSlug);
+  await assertDelegateBelongsToDao(delegateId, dao.id);
+
   await db
     .insertInto('delegateToVoter')
     .values({
@@ -337,9 +299,15 @@ export async function mapVoterToDelegate(delegateId: string, voterId: string) {
 }
 
 export async function unmapDiscourseUserFromDelegate(
+  daoSlug: string,
   delegateId: string,
   discourseUserId: string
 ) {
+  daoIdSchema.parse(delegateId);
+  daoIdSchema.parse(discourseUserId);
+  const dao = await requireDao(daoSlug);
+  await assertDelegateBelongsToDao(delegateId, dao.id);
+
   await db
     .deleteFrom('delegateToDiscourseUser')
     .where('delegateId', '=', delegateId)
@@ -350,9 +318,15 @@ export async function unmapDiscourseUserFromDelegate(
 }
 
 export async function unmapVoterFromDelegate(
+  daoSlug: string,
   delegateId: string,
   voterId: string
 ) {
+  daoIdSchema.parse(delegateId);
+  daoIdSchema.parse(voterId);
+  const dao = await requireDao(daoSlug);
+  await assertDelegateBelongsToDao(delegateId, dao.id);
+
   await db
     .deleteFrom('delegateToVoter')
     .where('delegateId', '=', delegateId)
@@ -363,16 +337,7 @@ export async function unmapVoterFromDelegate(
 }
 
 export async function createDelegate(daoSlug: string) {
-  const dao = await db
-    .selectFrom('dao')
-    .where('slug', '=', daoSlug)
-    .selectAll()
-    .executeTakeFirst();
-
-  if (!dao) {
-    console.error(`DAO not found: ${daoSlug}`);
-    return;
-  }
+  const dao = await requireDao(daoSlug);
 
   await db
     .insertInto('delegate')
@@ -384,7 +349,11 @@ export async function createDelegate(daoSlug: string) {
   revalidateTag('delegatesWithMappings', 'max');
 }
 
-export async function deleteDelegate(delegateId: string) {
+export async function deleteDelegate(daoSlug: string, delegateId: string) {
+  daoIdSchema.parse(delegateId);
+  const dao = await requireDao(daoSlug);
+  await assertDelegateBelongsToDao(delegateId, dao.id);
+
   await db.transaction().execute(async (trx) => {
     await trx
       .deleteFrom('delegateToDiscourseUser')
@@ -400,4 +369,20 @@ export async function deleteDelegate(delegateId: string) {
   });
 
   revalidateTag('delegatesWithMappings', 'max');
+}
+
+async function assertDelegateBelongsToDao(
+  delegateId: string,
+  daoId: string
+): Promise<void> {
+  const delegate = await db
+    .selectFrom('delegate')
+    .select('id')
+    .where('id', '=', delegateId)
+    .where('daoId', '=', daoId)
+    .executeTakeFirst();
+
+  if (!delegate) {
+    throw new Error('Delegate does not belong to this DAO');
+  }
 }

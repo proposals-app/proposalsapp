@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'Create and manage proposal groups for your DAO',
 };
 
-export default async function GroupLayout({
+export default function GroupLayout({
   children,
 }: {
   children: React.ReactNode;

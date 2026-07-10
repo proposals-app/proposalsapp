@@ -1,19 +1,15 @@
-'use server';
-
 import Fuse from 'fuse.js';
 import { db } from '@proposalsapp/db';
 import type { AsyncReturnType } from '@/lib/utils';
 import { revalidateTag, cacheTag, cacheLife } from 'next/cache';
-import {
-  type ServerActionVoidResult,
-  handleSilentServerAction,
-  handleVoidServerAction,
-} from '@/lib/server-actions-utils';
+import { requireDao } from '@/lib/server-actions-utils';
 import type {
   EditableProposalGroup,
   ProposalGroupItem as BaseProposalGroupItem,
   StoredProposalGroupItem,
 } from '@/lib/types';
+import { groupIdSchema } from '@/lib/validations';
+import type { FuzzySearchResult } from './api-contract';
 
 export type ProposalItem = Extract<BaseProposalGroupItem, { type: 'proposal' }>;
 export type TopicItem = Extract<BaseProposalGroupItem, { type: 'topic' }>;
@@ -89,15 +85,7 @@ export type UngroupedProposalsReturnType = AsyncReturnType<
   typeof getUngroupedProposals
 >;
 
-export interface FuzzySearchResult {
-  type: 'proposal' | 'topic';
-  name: string;
-  external_id?: string;
-  dao_discourse_id?: string;
-  governor_id?: string;
-  indexerName?: string;
-  score: number;
-}
+export type { FuzzySearchResult } from './api-contract';
 
 /**
  * Fetches all proposal groups for a given DAO
@@ -349,216 +337,199 @@ export async function fuzzySearchItems(
     return [];
   }
 
-  return handleSilentServerAction(
-    async () => {
-      const dao = await db
-        .selectFrom('dao')
-        .where('slug', '=', daoSlug)
-        .selectAll()
-        .executeTakeFirst();
+  const dao = await requireDao(daoSlug);
 
-      if (!dao) {
-        console.error(`DAO not found: ${daoSlug}`);
-        return [];
-      }
+  const daoDiscourse = await db
+    .selectFrom('daoDiscourse')
+    .where('daoId', '=', dao.id)
+    .selectAll()
+    .executeTakeFirst();
 
-      const daoDiscourse = await db
-        .selectFrom('daoDiscourse')
-        .where('daoId', '=', dao.id)
-        .selectAll()
-        .executeTakeFirst();
+  if (!daoDiscourse) return [];
 
-      if (!daoDiscourse) {
-        console.log('No daoDiscourse found for dao:', daoSlug);
-        return [];
-      }
+  const [proposals, topics] = await Promise.all([
+    db
+      .selectFrom('proposal')
+      .where('markedSpam', '=', false)
+      .where('proposal.daoId', '=', dao.id)
+      .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
+      .select([
+        'proposal.id',
+        'proposal.externalId',
+        'proposal.governorId',
+        'proposal.name as proposalName',
+        'daoGovernor.name as governorName',
+      ])
+      .execute(),
+    db
+      .selectFrom('discourseTopic')
+      .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
+      .leftJoin(
+        'daoDiscourse',
+        'daoDiscourse.id',
+        'discourseTopic.daoDiscourseId'
+      )
+      .select([
+        'discourseTopic.id',
+        'discourseTopic.externalId',
+        'discourseTopic.daoDiscourseId',
+        'title',
+        'daoDiscourse.discourseBaseUrl',
+      ])
+      .execute(),
+  ]);
 
-      const [proposals, topics] = await Promise.all([
-        db
-          .selectFrom('proposal')
-          .where('markedSpam', '=', false)
-          .where('proposal.daoId', '=', dao.id)
-          .leftJoin('daoGovernor', 'daoGovernor.id', 'proposal.governorId')
-          .select([
-            'proposal.id',
-            'proposal.externalId',
-            'proposal.governorId',
-            'proposal.name as proposalName',
-            'daoGovernor.name as governorName',
-          ])
-          .execute(),
-        db
-          .selectFrom('discourseTopic')
-          .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
-          .leftJoin(
-            'daoDiscourse',
-            'daoDiscourse.id',
-            'discourseTopic.daoDiscourseId'
-          )
-          .select([
-            'discourseTopic.id',
-            'discourseTopic.externalId',
-            'discourseTopic.daoDiscourseId',
-            'title',
-            'daoDiscourse.discourseBaseUrl',
-          ])
-          .execute(),
-      ]);
+  const allItems: (Omit<FuzzySearchResult, 'score'> & {
+    score?: number;
+  })[] = [
+    ...proposals.map((p) => ({
+      name: p.proposalName,
+      type: 'proposal' as const,
+      external_id: p.externalId,
+      governor_id: p.governorId,
+      indexerName: p.governorName ?? 'unknown',
+    })),
+    ...topics.map((t) => ({
+      name: t.title,
+      type: 'topic' as const,
+      external_id: String(t.externalId),
+      dao_discourse_id: t.daoDiscourseId,
+      indexerName: t.discourseBaseUrl ?? 'unknown',
+    })),
+  ];
 
-      const allItems: (Omit<FuzzySearchResult, 'score'> & {
-        score?: number;
-      })[] = [
-        ...proposals.map((p) => ({
-          name: p.proposalName,
-          type: 'proposal' as const,
-          external_id: p.externalId,
-          governor_id: p.governorId,
-          indexerName: p.governorName ?? 'unknown',
-        })),
-        ...topics.map((t) => ({
-          name: t.title,
-          type: 'topic' as const,
-          external_id: String(t.externalId),
-          dao_discourse_id: t.daoDiscourseId,
-          indexerName: t.discourseBaseUrl ?? 'unknown',
-        })),
-      ];
+  if (allItems.length === 0) return [];
 
-      if (allItems.length === 0) return [];
+  const fuse = new Fuse(allItems, {
+    keys: ['name'],
+    threshold: 0.5,
+    includeScore: true,
+  });
 
-      const fuse = new Fuse(allItems, {
-        keys: ['name'],
-        threshold: 0.5,
-        includeScore: true,
-      });
-
-      return fuse
-        .search(searchTerm)
-        .slice(0, 100)
-        .map((result) => ({
-          ...result.item,
-          score: result.score ?? 1.0,
-        }));
-    },
-    [],
-    'fuzzySearchItems'
-  );
+  return fuse
+    .search(searchTerm)
+    .slice(0, 100)
+    .map((result) => ({
+      ...result.item,
+      score: result.score ?? 1.0,
+    }));
 }
 /**
  * Saves updated groups to the database
  */
 export async function saveGroups(
+  daoSlug: string,
   groups: ProposalGroup[]
-): Promise<ServerActionVoidResult> {
-  'use server';
+): Promise<void> {
+  const dao = await requireDao(daoSlug);
+  const sanitizeItems = (items: NormalizableGroupItem[]) =>
+    items.map((item) => {
+      const normalized = normalizeGroupItem(item);
 
-  return handleVoidServerAction(async () => {
-    const sanitizeItems = (items: NormalizableGroupItem[]) =>
-      items.map((item) => {
-        const normalized = normalizeGroupItem(item);
-
-        if (normalized.type === 'proposal') {
-          return {
-            type: 'proposal' as const,
-            name: normalized.name,
-            externalId: normalized.externalId,
-            governorId: normalized.governorId,
-          };
-        }
-
+      if (normalized.type === 'proposal') {
         return {
-          type: 'topic' as const,
+          type: 'proposal' as const,
           name: normalized.name,
           externalId: normalized.externalId,
-          daoDiscourseId: normalized.daoDiscourseId,
+          governorId: normalized.governorId,
         };
-      });
-    await Promise.all(
-      groups.map(async (group) => {
-        if (group.id) {
-          await db
-            .insertInto('proposalGroup')
-            .values({
-              id: group.id,
-              name: group.name,
-              items: JSON.stringify(sanitizeItems(group.items)),
-              daoId: group.daoId,
-              createdAt: group.createdAt,
-            })
-            .onConflict((oc) =>
-              oc.column('id').doUpdateSet({
-                name: group.name,
-                items: JSON.stringify(sanitizeItems(group.items)),
-                daoId: group.daoId,
-                createdAt: group.createdAt,
-              })
-            )
-            .execute();
-        } else {
-          await db
-            .insertInto('proposalGroup')
-            .values({
-              name: group.name,
-              items: JSON.stringify(sanitizeItems(group.items)),
-              daoId: group.daoId,
-              createdAt: group.createdAt,
-            })
-            .execute();
-        }
-      })
-    );
+      }
 
-    revalidateTag('groupsData', 'max');
-    revalidateTag('ungroupedProposals', 'max');
-    revalidateTag('groups', 'max');
-  }, 'saveGroups');
+      return {
+        type: 'topic' as const,
+        name: normalized.name,
+        externalId: normalized.externalId,
+        daoDiscourseId: normalized.daoDiscourseId,
+      };
+    });
+  await db.transaction().execute(async (trx) => {
+    for (const group of groups) {
+      if (group.daoId !== dao.id) {
+        throw new Error('Proposal group does not belong to this DAO');
+      }
+
+      if (group.id) {
+        groupIdSchema.parse(group.id);
+        const result = await trx
+          .updateTable('proposalGroup')
+          .set({
+            name: group.name,
+            items: JSON.stringify(sanitizeItems(group.items)),
+          })
+          .where('id', '=', group.id)
+          .where('daoId', '=', dao.id)
+          .executeTakeFirst();
+
+        if (Number(result.numUpdatedRows) !== 1) {
+          throw new Error('Proposal group was not found in this DAO');
+        }
+      } else {
+        await trx
+          .insertInto('proposalGroup')
+          .values({
+            name: group.name,
+            items: JSON.stringify(sanitizeItems(group.items)),
+            daoId: dao.id,
+            createdAt: group.createdAt,
+          })
+          .execute();
+      }
+    }
+  });
+
+  revalidateTag('groupsData', 'max');
+  revalidateTag('ungroupedProposals', 'max');
+  revalidateTag('groups', 'max');
 }
 
 /**
  * Creates a new empty proposal group
  */
-export async function createGroup(
-  daoSlug: string
-): Promise<ServerActionVoidResult> {
-  'use server';
+export async function createGroup(daoSlug: string): Promise<void> {
+  const dao = await requireDao(daoSlug);
 
-  return handleVoidServerAction(async () => {
-    const dao = await getDao(daoSlug);
+  const newGroup: ProposalGroup = {
+    id: crypto.randomUUID(),
+    name: `New Group ${new Date().toLocaleString()}`,
+    items: [],
+    daoId: dao.id,
+    createdAt: new Date(),
+  };
 
-    if (!dao) {
-      throw new Error(`DAO not found: ${daoSlug}`);
-    }
+  await db
+    .insertInto('proposalGroup')
+    .values({
+      id: newGroup.id,
+      name: newGroup.name,
+      items: JSON.stringify(newGroup.items),
+      daoId: newGroup.daoId,
+      createdAt: newGroup.createdAt,
+    })
+    .execute();
 
-    const newGroup: ProposalGroup = {
-      id: crypto.randomUUID(),
-      name: `New Group ${new Date().toLocaleString()}`,
-      items: [],
-      daoId: dao.id,
-      createdAt: new Date(),
-    };
-
-    await db
-      .insertInto('proposalGroup')
-      .values({
-        id: newGroup.id,
-        name: newGroup.name,
-        items: JSON.stringify(newGroup.items),
-        daoId: newGroup.daoId,
-        createdAt: newGroup.createdAt,
-      })
-      .execute();
-
-    revalidateTag('groupsData', 'max');
-    revalidateTag('ungroupedProposals', 'max');
-    revalidateTag('groups', 'max');
-  }, 'createGroup');
+  revalidateTag('groupsData', 'max');
+  revalidateTag('ungroupedProposals', 'max');
+  revalidateTag('groups', 'max');
 }
 
 /**
  * Deletes a group from the database
  */
-export async function deleteGroup(groupId: string) {
-  await db.deleteFrom('proposalGroup').where('id', '=', groupId).execute();
+export async function deleteGroup(
+  daoSlug: string,
+  groupId: string
+): Promise<void> {
+  groupIdSchema.parse(groupId);
+  const dao = await requireDao(daoSlug);
+  const result = await db
+    .deleteFrom('proposalGroup')
+    .where('id', '=', groupId)
+    .where('daoId', '=', dao.id)
+    .executeTakeFirst();
+
+  if (Number(result.numDeletedRows) !== 1) {
+    throw new Error('Proposal group was not found in this DAO');
+  }
 
   revalidateTag('groupsData', 'max');
   revalidateTag('ungroupedProposals', 'max');

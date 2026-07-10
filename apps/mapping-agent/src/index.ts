@@ -6,20 +6,15 @@ import { runDelegateMappingWorker } from './delegates/worker';
 import { closeMappingAgentResources } from './lifecycle';
 import { createLogger } from './logger';
 import { runProposalMappingWorker } from './proposals/worker';
+import {
+  createTaskHealthState,
+  evaluateServiceHealth,
+  recordTaskFailure,
+  recordTaskSuccess,
+  type TaskHealthState,
+} from './health';
 
 dotenvConfig();
-
-interface WorkerHealthState {
-  lastRunAt: string | null;
-  lastError: string | null;
-}
-
-function createInitialWorkerState(): WorkerHealthState {
-  return {
-    lastRunAt: null,
-    lastError: null,
-  };
-}
 
 async function sleep(ms: number, signal: AbortSignal): Promise<void> {
   if (signal.aborted) {
@@ -51,17 +46,15 @@ async function runPeriodicTask(params: {
   intervalMs: number;
   signal: AbortSignal;
   logger: ReturnType<typeof createLogger>;
-  state: WorkerHealthState;
+  state: TaskHealthState;
   task: () => Promise<void>;
 }): Promise<void> {
   while (!params.signal.aborted) {
     try {
       await params.task();
-      params.state.lastRunAt = new Date().toISOString();
-      params.state.lastError = null;
+      recordTaskSuccess(params.state, new Date());
     } catch (error) {
-      params.state.lastError =
-        error instanceof Error ? error.message : String(error);
+      recordTaskFailure(params.state, new Date(), error);
       params.logger.error(
         {
           task: params.name,
@@ -79,18 +72,20 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const logger = createLogger(config.logLevel);
   const abortController = new AbortController();
-  const proposalState = createInitialWorkerState();
-  const delegateState = createInitialWorkerState();
-  const uptimeState = createInitialWorkerState();
+  const proposalState = createTaskHealthState();
+  const delegateState = createTaskHealthState();
+  const uptimeState = createTaskHealthState();
 
   const server = createServer((request, response) => {
     if (request.url === '/health' && request.method === 'GET') {
-      response.writeHead(200, {
+      const status = evaluateServiceHealth([proposalState, delegateState]);
+      response.writeHead(status === 'healthy' ? 200 : 503, {
         'content-type': 'application/json',
+        'cache-control': 'no-store',
       });
       response.end(
         JSON.stringify({
-          status: 'healthy',
+          status,
           proposalWorker: proposalState,
           delegateWorker: delegateState,
           uptime: uptimeState,

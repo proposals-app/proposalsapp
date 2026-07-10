@@ -12,6 +12,7 @@ import {
   buildChangeEmailTemplateProps,
   ensureAuthEmailWasSent,
 } from '@/lib/auth/email-delivery';
+import { getAuthSecret } from '@/lib/auth/auth-secret';
 
 export const auth = betterAuth({
   appName: 'proposals.app',
@@ -24,15 +25,18 @@ export const auth = betterAuth({
       `https://arbitrum.${root}`,
       `https://uniswap.${root}`,
     ];
-    const dev = [
-      'http://localhost:3000',
-      'http://arbitrum.localhost:3000',
-      'http://uniswap.localhost:3000',
-    ];
+    const dev =
+      process.env.NODE_ENV === 'production'
+        ? []
+        : [
+            'http://localhost:3000',
+            'http://arbitrum.localhost:3000',
+            'http://uniswap.localhost:3000',
+          ];
     const extra = process.env.WEB_URL ? [process.env.WEB_URL] : [];
     return [...base, ...dev, ...extra];
   })(),
-  secret: process.env.BETTER_AUTH_SECRET,
+  secret: getAuthSecret(),
 
   plugins: [
     emailOTP({

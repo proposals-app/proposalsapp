@@ -21,7 +21,7 @@ export const resend: {
   },
 };
 
-export { render } from '@react-email/render';
+export { render } from 'react-email';
 
 export { default as OTPEmail } from '../emails/otp-code';
 export { default as ChangeEmailTemplate } from '../emails/change-email';

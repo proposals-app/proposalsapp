@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Column, Img, Row, Text } from '@react-email/components';
+import { Column, Img, Row, Text } from 'react-email';
 
 interface AuthorProps {
   type: 'discussion' | 'proposal';

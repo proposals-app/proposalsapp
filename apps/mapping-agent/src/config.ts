@@ -1,9 +1,6 @@
 import { isLmStudioQwenModel } from './shared/pi-model';
+import { DAO_DISCOURSE_CATEGORY_FILTERS } from '@proposalsapp/governance';
 
-const DEFAULT_DAO_CATEGORY_FILTERS: Record<string, number[]> = {
-  arbitrum: [7, 8, 9],
-  uniswap: [5, 8, 9, 10],
-};
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 export interface PiAgentSettings {
@@ -64,7 +61,11 @@ function parseDaoCategoryFilters(
   value: string | undefined
 ): Record<string, number[]> {
   if (!value) {
-    return DEFAULT_DAO_CATEGORY_FILTERS;
+    return Object.fromEntries(
+      Object.entries(DAO_DISCOURSE_CATEGORY_FILTERS).map(
+        ([slug, categories]) => [slug, [...categories]]
+      )
+    );
   }
 
   try {

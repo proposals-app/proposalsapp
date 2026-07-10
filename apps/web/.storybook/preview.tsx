@@ -12,13 +12,14 @@ import { defineChain } from 'viem';
 import '@rainbow-me/rainbowkit/styles.css';
 import '../styles/globals.css';
 import { Toaster } from '../app/components/ui/sonner';
+import { AppThemeProvider } from '../app/components/providers/app-theme-provider';
 import { chromaticDecorator } from './chromatic-decorator';
 import { withDomSizer } from './dom-sizer-addon/preview';
 
 // Define a local version of the Arbitrum chain for onchain testing
 const arbitrumLocalhost = defineChain({
-  id: 42_161,
-  name: 'Arbitrum Localhost',
+  id: 31_337,
+  name: 'Arbitrum Fork',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
     default: {
@@ -70,9 +71,9 @@ const queryClient = new QueryClient();
 
 function TestWalletProvider({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <div className='light' data-theme='arbitrum'>
+    <AppThemeProvider>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
           <RainbowKitProvider
             modalSize='compact'
             theme={darkTheme({
@@ -85,9 +86,9 @@ function TestWalletProvider({ children }: { children: React.ReactNode }) {
             <Toaster />
             {children}
           </RainbowKitProvider>
-        </div>
-      </QueryClientProvider>
-    </WagmiProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </AppThemeProvider>
   );
 }
 

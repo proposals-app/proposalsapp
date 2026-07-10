@@ -1,21 +1,33 @@
-   #!/bin/bash
+#!/usr/bin/env bash
 
-   # Update Rust dependencies
-   cargo autoinherit
-   cargo upgrade
-   cargo sort -w
+set -euo pipefail
 
-   # Update root dependencies using npm-check-updates
-   echo "Updating dependencies in the root project..."
-   pnpm dlx npm-check-updates -u
-   pnpm install
+readonly NESTED_LOCKFILE_PACKAGES=(
+  "libs/ts/db"
+  "libs/ts/emails"
+  "libs/ts/visual-dom-diff"
+)
 
-   # Find all projects in the workspace and update their dependencies
-   echo "Updating dependencies in all workspace projects..."
-   for project in $(find . -name "package.json" -not -path "*/node_modules/*" -not -path "*/.next/*" -not -path "*/.react-email/*"); do
-     project_dir=$(dirname "$project")
-     echo "Updating dependencies in $project_dir..."
+echo "Updating compatible Rust dependencies..."
+cargo autoinherit
+cargo upgrade \
+  --exclude alloy \
+  --exclude alloy-ens \
+  --exclude rindexer
+cargo sort -w
+cargo update
 
-     # Run npm-check-updates
-     (cd "$project_dir" && pnpm dlx npm-check-updates -u && pnpm install)
-   done
+echo "Updating pnpm workspace dependencies..."
+pnpm dlx npm-check-updates \
+  --upgrade \
+  --workspaces \
+  --cooldown 7d \
+  --reject @playwright/test
+pnpm install
+
+echo "Refreshing nested lockfiles..."
+for package_dir in "${NESTED_LOCKFILE_PACKAGES[@]}"; do
+  pnpm --dir "${package_dir}" install --lockfile-only --ignore-workspace
+done
+
+echo "Dependency update complete. Run the full validation suite before committing."

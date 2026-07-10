@@ -25,153 +25,64 @@ export async function getDiscourseUser(userId: number, daoDiscourseId: string) {
 
 export async function getDelegateByDiscourseUser(
   discourseUserId: number,
-  daoSlug: string,
-  withPeriodCheck: boolean,
-  topicIds?: string[],
-  proposalIds?: string[]
+  daoSlug: string
 ) {
-  // 'use cache';
-  // cacheLife('hours');
-
   discourseUserIdSchema.parse(discourseUserId);
   daoSlugSchema.parse(daoSlug);
 
-  const dao = await db
-    .selectFrom('dao')
-    .selectAll()
+  const delegateData = await db
+    .selectFrom('discourseUser as du')
+    .innerJoin('daoDiscourse as dd', 'dd.id', 'du.daoDiscourseId')
+    .innerJoin('dao as dao', 'dao.id', 'dd.daoId')
+    .innerJoin(
+      'delegateToDiscourseUser as dtdu',
+      'dtdu.discourseUserId',
+      'du.id'
+    )
+    .innerJoin('delegate as d', (join) =>
+      join.onRef('d.id', '=', 'dtdu.delegateId').onRef('d.daoId', '=', 'dao.id')
+    )
+    .innerJoin('delegateToVoter as dtv', 'dtv.delegateId', 'd.id')
+    .innerJoin('voter as v', 'v.id', 'dtv.voterId')
+    .leftJoin('votingPowerLatest as vpl', (join) =>
+      join
+        .onRef('vpl.voter', '=', 'v.address')
+        .onRef('vpl.daoId', '=', 'dao.id')
+    )
+    .where('du.externalId', '=', discourseUserId)
     .where('dao.slug', '=', daoSlug)
-    .executeTakeFirst();
-
-  if (!dao) return null;
-
-  const daoDiscourse = await db
-    .selectFrom('daoDiscourse')
-    .selectAll()
-    .where('daoId', '=', dao.id)
-    .executeTakeFirst();
-
-  if (!daoDiscourse) return null;
-
-  // Fetch the discourse user
-  const discourseUser = await db
-    .selectFrom('discourseUser')
-    .selectAll()
-    .where('externalId', '=', discourseUserId)
-    .where('daoDiscourseId', '=', daoDiscourse.id)
-    .executeTakeFirst();
-
-  if (!discourseUser) return null;
-
-  // Find the associated delegate via delegateToDiscourseUser
-  const delegateToDiscourseUser = await db
-    .selectFrom('delegateToDiscourseUser')
-    .selectAll()
-    .where('discourseUserId', '=', discourseUser.id)
-    .executeTakeFirst();
-
-  if (!delegateToDiscourseUser) return null;
-
-  // Find the associated voter via delegateToVoter
-  const delegateToVoter = await db
-    .selectFrom('delegateToVoter')
-    .selectAll()
-    .where('delegateId', '=', delegateToDiscourseUser.delegateId)
-    .executeTakeFirst();
-
-  if (!delegateToVoter) return null;
-
-  // Fetch the voter using the voter ID from delegateToVoter
-  const voter = await db
-    .selectFrom('voter')
-    .selectAll()
-    .where('id', '=', delegateToVoter.voterId)
-    .executeTakeFirst();
-
-  if (!voter) return null;
-
-  let startTime: Date | undefined;
-  let endTime: Date | undefined;
-
-  if (withPeriodCheck) {
-    // Fetch the timestamps from proposals and topics
-    let proposalStartTimes: number[] = [];
-    let proposalEndTimes: number[] = [];
-
-    if (proposalIds && proposalIds.length > 0) {
-      const proposals = await db
-        .selectFrom('proposal')
-        .selectAll()
-        .where('id', 'in', proposalIds)
-        .execute();
-
-      proposalStartTimes = proposals.map((proposal) =>
-        proposal.startAt.getTime()
-      );
-      proposalEndTimes = proposals.map((proposal) => proposal.endAt.getTime());
-    }
-
-    let topicStartTimes: number[] = [];
-    let topicEndTimes: number[] = [];
-
-    if (topicIds && topicIds.length > 0) {
-      const topics = await db
-        .selectFrom('discourseTopic')
-        .selectAll()
-        .where('id', 'in', topicIds)
-        .execute();
-
-      topicStartTimes = topics.map((topic) => topic.createdAt.getTime());
-      topicEndTimes = topics.map((topic) => topic.lastPostedAt.getTime());
-    }
-
-    // Determine the start and end times based on proposals and topics
-    startTime = new Date(Math.min(...proposalStartTimes, ...topicStartTimes));
-
-    endTime = new Date(Math.max(...proposalEndTimes, ...topicEndTimes));
-  }
-
-  // Fetch the delegate with all related data in one query
-  let query = db
-    .selectFrom('delegate')
-    .innerJoin('delegateToVoter', 'delegate.id', 'delegateToVoter.delegateId')
-    .leftJoin(
-      'delegateToDiscourseUser',
-      'delegate.id',
-      'delegateToDiscourseUser.delegateId'
-    )
-    .leftJoin(
-      'discourseUser',
-      'discourseUser.id',
-      'delegateToDiscourseUser.discourseUserId'
-    )
-    .leftJoin('voter', 'voter.id', 'delegateToVoter.voterId')
-    .where('delegateToDiscourseUser.discourseUserId', '=', discourseUser.id);
-
-  if (withPeriodCheck && startTime && endTime) {
-    query = query
-      .where('delegateToVoter.periodStart', '<=', startTime)
-      .where('delegateToVoter.periodEnd', '>=', endTime);
-  }
-
-  const delegateData = await query
     .select([
-      'delegate.id as delegateId',
-      'discourseUser.name as discourseName',
-      'discourseUser.username as discourseUsername',
-      'discourseUser.avatarTemplate as discourseAvatarTemplate',
-      'voter.ens as voterEns',
-      'voter.address as voterAddress',
+      'd.id as delegateId',
+      'du.name as discourseName',
+      'du.username as discourseUsername',
+      'du.avatarTemplate as discourseAvatarTemplate',
+      'v.ens as voterEns',
+      'v.address as voterAddress',
+      'vpl.block as latestVotingPowerBlock',
+      'vpl.daoId as latestVotingPowerDaoId',
+      'vpl.id as latestVotingPowerId',
+      'vpl.timestamp as latestVotingPowerTimestamp',
+      'vpl.txid as latestVotingPowerTxid',
+      'vpl.voter as latestVotingPowerVoter',
+      'vpl.votingPower as latestVotingPowerValue',
     ])
+    .orderBy('dtdu.createdAt', 'desc')
+    .orderBy('dtv.createdAt', 'desc')
     .executeTakeFirst();
 
   if (!delegateData) return null;
 
-  const latestVotingPower = await db
-    .selectFrom('votingPowerLatest')
-    .selectAll()
-    .where('voter', '=', delegateData.voterAddress)
-    .where('daoId', '=', dao.id)
-    .executeTakeFirst();
+  const latestVotingPower = delegateData.latestVotingPowerId
+    ? {
+        block: delegateData.latestVotingPowerBlock!,
+        daoId: delegateData.latestVotingPowerDaoId!,
+        id: delegateData.latestVotingPowerId,
+        timestamp: delegateData.latestVotingPowerTimestamp!,
+        txid: delegateData.latestVotingPowerTxid,
+        voter: delegateData.latestVotingPowerVoter!,
+        votingPower: delegateData.latestVotingPowerValue!,
+      }
+    : undefined;
 
   // Transform the data into the expected format
   return {
@@ -189,6 +100,48 @@ export async function getDelegateByDiscourseUser(
       latestVotingPower,
     },
   };
+}
+
+export async function getDelegateVotingPowerByDiscourseUserIds(
+  discourseUserIds: number[],
+  daoSlug: string
+): Promise<Map<number, number>> {
+  daoSlugSchema.parse(daoSlug);
+  const uniqueIds = [...new Set(discourseUserIds)];
+  uniqueIds.forEach((id) => discourseUserIdSchema.parse(id));
+  if (uniqueIds.length === 0) return new Map();
+
+  const rows = await db
+    .selectFrom('discourseUser as du')
+    .innerJoin('daoDiscourse as dd', 'dd.id', 'du.daoDiscourseId')
+    .innerJoin('dao as dao', 'dao.id', 'dd.daoId')
+    .leftJoin(
+      'delegateToDiscourseUser as dtdu',
+      'dtdu.discourseUserId',
+      'du.id'
+    )
+    .leftJoin('delegate as d', (join) =>
+      join.onRef('d.id', '=', 'dtdu.delegateId').onRef('d.daoId', '=', 'dao.id')
+    )
+    .leftJoin('delegateToVoter as dtv', 'dtv.delegateId', 'd.id')
+    .leftJoin('voter as v', 'v.id', 'dtv.voterId')
+    .leftJoin('votingPowerLatest as vpl', (join) =>
+      join
+        .onRef('vpl.voter', '=', 'v.address')
+        .onRef('vpl.daoId', '=', 'dao.id')
+    )
+    .where('dao.slug', '=', daoSlug)
+    .where('du.externalId', 'in', uniqueIds)
+    .distinctOn('du.externalId')
+    .select(['du.externalId', 'vpl.votingPower'])
+    .orderBy('du.externalId', 'asc')
+    .orderBy('dtdu.createdAt', 'desc')
+    .orderBy('dtv.createdAt', 'desc')
+    .execute();
+
+  return new Map(
+    rows.map((row) => [row.externalId, row.votingPower ?? 0] as const)
+  );
 }
 
 export async function getPostLikesCount(

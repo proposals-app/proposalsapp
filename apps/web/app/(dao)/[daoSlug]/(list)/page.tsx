@@ -69,7 +69,7 @@ async function GroupsPageContent({
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
-  const groupsPromise = getGroups(daoSlug, userId);
+  const groupsPromise = getGroups(daoSlug);
 
   return (
     <>

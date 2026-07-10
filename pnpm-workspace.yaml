@@ -1,28 +1,85 @@
 packages:
   - "libs/ts/db"
   - "libs/ts/emails"
+  - "libs/ts/governance"
   - "libs/ts/visual-dom-diff"
   - "apps/web"
   - "apps/email-service"
   - "apps/mapping-agent"
+peerDependencyRules:
+  allowedVersions:
+    "@depay/web3-client@10.18.6>ethers": "6"
+    "abitype@1.0.0>zod": "4"
+    "abitype@1.0.8>zod": "4"
+    "isows>ws": "8.21.0"
+    "next>@playwright/test": "1.48.2"
 overrides:
+  "@babel/plugin-transform-modules-systemjs@<=7.29.3": 7.29.4
+  "@babel/core@<7.29.1": 7.29.7
+  "@protobufjs/utf8@<1.1.1": 1.1.1
+  "ajv@>=8.0.0 <8.18.0": 8.18.0
+  axios: 1.18.1
+  "basic-ftp@>=5.0.0 <5.3.1": 5.3.1
+  "bn.js@>=4.0.0 <4.12.3": 4.12.3
+  "bn.js@>=5.0.0 <5.2.3": 5.2.3
+  "brace-expansion@<2.0.0": 1.1.13
+  "brace-expansion@>=2.0.0 <3.0.0": 2.0.3
+  "brace-expansion@>=5.0.0 <5.0.6": 5.0.6
+  "defu@<6.1.5": 6.1.7
+  "dompurify@<3.4.11": 3.4.11
+  esbuild: 0.28.1
+  "fast-uri@>=3.0.0 <3.1.2": 3.1.2
+  "fast-xml-builder@<1.1.7": 1.2.1
+  "follow-redirects@<1.15.12": 1.16.0
+  "form-data@>=4.0.0 <4.0.6": 4.0.6
+  flatted: 3.4.2
+  "glob@>=10.2.0 <10.5.0": 10.5.0
+  "http-proxy-middleware@>=2.0.0 <2.0.10": 2.0.10
+  "ip-address@>=10.0.0 <10.1.1": 10.1.1
+  "jws@4.0.0": 4.0.1
+  "js-yaml@<4.0.0": 3.15.0
+  "js-yaml@>=4.0.0 <5.0.0": 4.3.0
+  "minimatch@<4.0.0": 3.1.5
+  "minimatch@>=9.0.0 <10.0.0": 9.0.9
+  "path-to-regexp@<0.1.13": 0.1.13
+  "picomatch@<2.3.2": 2.3.2
+  "postcss@>=8.0.0 <8.5.10": 8.5.16
   prettier: ^3.9.4
+  "protobufjs@>=7.0.0 <7.6.3": 7.6.3
+  qs: 6.15.3
+  "rollup@>=4.0.0 <4.59.0": 4.62.2
+  "socket.io-parser@>=4.0.0 <4.2.6": 4.2.6
+  "svgo@>=3.0.0 <3.3.3": 3.3.3
+  "tsup@<=8.3.4": 8.5.1
+  "ua-parser-js@>=2.0.0 <2.0.10": 2.0.10
+  "undici@>=7.0.0 <7.28.0": 7.28.0
+  use-sync-external-store: 1.6.0
+  "vite@>=8.0.0 <8.0.16": 8.1.4
+  "webpack-dev-server@<5.2.5": 5.2.6
+  "ws@>=7.0.0 <8.0.0": 7.5.11
+  "ws@>=8.0.0 <8.21.0": 8.21.0
 onlyBuiltDependencies:
+  - "@google/genai"
   - "@tailwindcss/oxide"
   - "bufferutil"
   - "core-js"
   - "core-js-pure"
   - "esbuild"
+  - "keccak"
   - "protobufjs"
   - "sharp"
   - "unrs-resolver"
   - "utf-8-validate"
   - "ws"
 allowBuilds:
+  "@google/genai": true
+  bufferutil: true
   core-js: true
   core-js-pure: true
   esbuild: true
+  keccak: true
   koffi: true
   protobufjs: true
   sharp: true
   unrs-resolver: true
+  utf-8-validate: true

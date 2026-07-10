@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    include: ['**/*.test.{ts,tsx,mts,mjs}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],

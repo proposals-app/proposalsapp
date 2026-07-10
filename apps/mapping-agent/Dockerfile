@@ -10,11 +10,13 @@ RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
 COPY apps/${APP_NAME}/package.json ./apps/${APP_NAME}/
 COPY libs/ts/db/package.json ./libs/ts/db/
+COPY libs/ts/governance/package.json ./libs/ts/governance/
 
 RUN pnpm install --frozen-lockfile
 
 COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
 COPY libs/ts/db/ ./libs/ts/db/
+COPY libs/ts/governance/ ./libs/ts/governance/
 
 RUN pnpm --filter @proposalsapp/${APP_NAME} exec esbuild src/index.ts \
     --bundle \

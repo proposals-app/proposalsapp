@@ -1,31 +1,33 @@
 'use client';
 
-import type { Selectable, Voter } from '@proposalsapp/db';
-import { fuzzySearchVoters } from '../../../delegates/actions';
+import type { VoterSummary } from '../../../api-contract';
+import { callMappingApi } from '../../../api-client';
 import FuzzySearch from './fuzzy-search';
 import { Badge } from '@/app/components/ui/badge';
 
 interface FuzzyVoterSearchProps {
-  daoSlug: string;
   excludeVoterIds?: string[];
-  onSelectVoter: (_voter: Selectable<Voter>) => void;
+  onSelectVoter: (_voter: VoterSummary) => void;
   isLoading?: boolean;
   className?: string;
 }
 
 const FuzzyVoterSearch: React.FC<FuzzyVoterSearchProps> = ({
-  daoSlug,
   excludeVoterIds = [],
   onSelectVoter,
   isLoading,
   className,
 }) => {
   const handleSearch = async (term: string) => {
-    return await fuzzySearchVoters(daoSlug, term, excludeVoterIds);
+    return callMappingApi<VoterSummary[]>({
+      operation: 'delegates.searchVoters',
+      query: term,
+      excludeIds: excludeVoterIds,
+    });
   };
 
   return (
-    <FuzzySearch<Selectable<Voter>>
+    <FuzzySearch<VoterSummary>
       placeholder='Search voters...'
       onSearch={handleSearch}
       onSelect={onSelectVoter}

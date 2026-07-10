@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { connection, NextResponse } from 'next/server';
 import { db, sql } from '@proposalsapp/db';
 import { redis } from '@/lib/redis';
 
@@ -7,6 +7,10 @@ const startTime = Date.now();
 const WARMUP_TIME = 10000; // 10 seconds warmup period
 
 export async function GET() {
+  // Readiness is meaningful only against the runtime dependencies. Without
+  // this boundary, Cache Components can execute these probes during `next build`.
+  await connection();
+
   const uptime = Date.now() - startTime;
   const isWarmedUp = uptime >= WARMUP_TIME;
 
@@ -51,9 +55,10 @@ async function checkDatabase() {
       message: 'Database connection is healthy',
     };
   } catch (error) {
+    console.error('Database readiness check failed', error);
     return {
       status: 'error',
-      message: `Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      message: 'Database connection failed',
     };
   }
 }
@@ -88,9 +93,10 @@ async function checkRedis() {
       message: `Redis connection is healthy (${pong})`,
     };
   } catch (error) {
+    console.error('Redis readiness check failed', error);
     return {
       status: 'error',
-      message: `Redis connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      message: 'Redis connection failed',
     };
   }
 }

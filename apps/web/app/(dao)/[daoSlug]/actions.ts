@@ -3,7 +3,7 @@
 import type { AsyncReturnType } from '@/lib/utils';
 import { db, sql } from '@proposalsapp/db';
 import { daoIdSchema, daoSlugSchema } from '@/lib/validations';
-import { requireAuthAndDao } from '@/lib/server-actions-utils';
+import { getCurrentUser, requireAuthAndDao } from '@/lib/server-actions-utils';
 import { revalidateTag, cacheTag, cacheLife } from 'next/cache';
 import { getFeed } from './(main_page)/[groupId]/actions';
 import { FeedFilterEnum, FromFilterEnum } from '@/app/searchParams';
@@ -255,7 +255,8 @@ async function getGroupsDataCached(daoSlug: string) {
 }
 
 // Main export function that combines cached data with user-specific data
-export async function getGroups(daoSlug: string, userId?: string) {
+export async function getGroups(daoSlug: string) {
+  const { userId } = await getCurrentUser(daoSlug);
   // Get the cached groups data
   const cachedData = await getGroupsDataCached(daoSlug);
 

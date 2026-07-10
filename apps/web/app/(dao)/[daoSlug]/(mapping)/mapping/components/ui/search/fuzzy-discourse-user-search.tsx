@@ -1,31 +1,33 @@
 'use client';
 
-import type { DiscourseUser, Selectable } from '@proposalsapp/db';
-import { fuzzySearchDiscourseUsers } from '../../../delegates/actions';
+import type { DiscourseUserSummary } from '../../../api-contract';
+import { callMappingApi } from '../../../api-client';
 import FuzzySearch from './fuzzy-search';
 import { Badge } from '@/app/components/ui/badge';
 
 interface FuzzyDiscourseUserSearchProps {
-  daoSlug: string;
   excludeUserIds?: string[];
-  onSelectUser: (_user: Selectable<DiscourseUser>) => void;
+  onSelectUser: (_user: DiscourseUserSummary) => void;
   isLoading?: boolean;
   className?: string;
 }
 
 const FuzzyDiscourseUserSearch: React.FC<FuzzyDiscourseUserSearchProps> = ({
-  daoSlug,
   excludeUserIds = [],
   onSelectUser,
   isLoading,
   className,
 }) => {
   const handleSearch = async (term: string) => {
-    return await fuzzySearchDiscourseUsers(daoSlug, term, excludeUserIds);
+    return callMappingApi<DiscourseUserSummary[]>({
+      operation: 'delegates.searchDiscourseUsers',
+      query: term,
+      excludeIds: excludeUserIds,
+    });
   };
 
   return (
-    <FuzzySearch<Selectable<DiscourseUser>>
+    <FuzzySearch<DiscourseUserSummary>
       placeholder='Search Discourse Users...'
       onSearch={handleSearch}
       onSelect={onSelectUser}

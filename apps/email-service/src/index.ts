@@ -3,15 +3,24 @@ import { Resend } from 'resend';
 import cron from 'node-cron';
 import { formatDistanceStrict } from 'date-fns';
 import { config as dotenv_config } from 'dotenv';
-import { render } from '@react-email/render';
+import { render, toPlainText } from 'react-email';
 import {
   NewProposalEmailTemplate,
   NewDiscussionEmailTemplate,
   EndingProposalEmailTemplate,
 } from '@proposalsapp/emails';
-import { deliverNotification } from './notification-delivery';
+import {
+  deliverNotificationToRecipients,
+  type NotificationRecipient,
+  type NotificationType,
+} from './notification-delivery';
 import { createServer } from 'http';
 import pino from 'pino';
+import {
+  DAO_DISCOURSE_CATEGORY_FILTERS,
+  ENABLED_DAO_SLUGS,
+} from '@proposalsapp/governance';
+import { requireResendDelivery } from './resend-delivery';
 
 dotenv_config();
 
@@ -49,14 +58,6 @@ const ENDING_PROPOSAL_MINUTES = 60;
 const NEW_DISCUSSION_MINUTES = 5;
 const COOLDOWN_HOURS = 24;
 
-const ENABLED_DAOS = ['arbitrum', 'uniswap'];
-
-// DAO-specific Discourse category filters
-const DAO_DISCOURSE_CATEGORIES: Record<string, number[]> = {
-  arbitrum: [7, 8, 9],
-  uniswap: [5, 8, 9, 10],
-};
-
 // Initialize Resend
 const resend = new Resend(RESEND_API_KEY);
 
@@ -68,41 +69,41 @@ const resend = new Resend(RESEND_API_KEY);
 async function processNotifications(): Promise<void> {
   logger.info('Starting notification processing...');
 
-  try {
-    const daos = await db
-      .selectFrom('dao')
-      .selectAll()
-      .where('dao.slug', 'in', ENABLED_DAOS)
-      .execute();
-
-    for (const dao of daos) {
+  const daos = await db
+    .selectFrom('dao')
+    .selectAll()
+    .where('dao.slug', 'in', [...ENABLED_DAO_SLUGS])
+    .execute();
+  await settleAll(
+    daos.map(async (dao) => {
       try {
         await processDao(dao);
       } catch (error) {
-        logger.error({ err: error }, `Error processing ${dao.name}`);
+        logger.error(
+          { err: error, dao: dao.slug },
+          'DAO notification processing failed'
+        );
+        throw error;
       }
-    }
+    }),
+    'Notification processing failed'
+  );
 
-    logger.info('Notification processing completed');
-  } catch (error) {
-    logger.error({ err: error }, 'Error during notification processing');
-  }
+  logger.info('Notification processing completed');
 }
 
 // Process notifications for a DAO
 async function processDao(dao: Selectable<Dao>): Promise<void> {
   logger.info(`Processing ${dao.name}`);
 
-  try {
-    await processNewProposals(dao);
-    await processEndingProposals(dao);
-    await processNewDiscussions(dao);
-  } catch (error) {
-    logger.error(
-      { err: error },
-      `Error processing notifications for ${dao.name}`
-    );
-  }
+  await settleAll(
+    [
+      processNewProposals(dao),
+      processEndingProposals(dao),
+      processNewDiscussions(dao),
+    ],
+    `Notification processing failed for ${dao.slug}`
+  );
 }
 
 // ============================================
@@ -141,12 +142,8 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
     `Found ${newProposals.length} new proposals and ${users.length} users for ${dao.name}`
   );
 
-  for (const proposal of newProposals) {
-    for (const user of users) {
-      if (await alreadySent(user.id, proposal.id, 'new_proposal', dao.id))
-        continue;
-
-      // Get author ENS if available
+  await settleAll(
+    newProposals.map(async (proposal) => {
       const voter = proposal.author
         ? await db
             .selectFrom('voter')
@@ -154,7 +151,6 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
             .where('address', '=', proposal.author)
             .executeTakeFirst()
         : null;
-
       const html = await render(
         NewProposalEmailTemplate({
           proposalName: proposal.name,
@@ -167,30 +163,17 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
         })
       );
 
-      const idempotencyKey = generateIdempotencyKey(
-        user.id,
-        proposal.id,
-        'new_proposal'
-      );
-
-      await deliverNotification(
-        {
-          sendEmail,
-          recordNotification,
-        },
-        {
-          userId: user.id,
-          targetId: proposal.id,
-          type: 'new_proposal',
-          daoId: dao.id,
-          to: user.email,
-          subject: `New proposal in ${dao.name}`,
-          html,
-          idempotencyKey,
-        }
-      );
-    }
-  }
+      await notifyRecipients({
+        users,
+        targetId: proposal.id,
+        type: 'new_proposal',
+        daoId: dao.id,
+        subject: `New proposal in ${dao.name}`,
+        html,
+      });
+    }),
+    `New proposal notifications failed for ${dao.slug}`
+  );
 }
 
 // Process ending proposal notifications
@@ -226,11 +209,8 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
     `Found ${endingProposals.length} ending proposals and ${users.length} users for ${dao.name}`
   );
 
-  for (const proposal of endingProposals) {
-    for (const user of users) {
-      if (await alreadySent(user.id, proposal.id, 'ending_proposal', dao.id))
-        continue;
-
+  await settleAll(
+    endingProposals.map(async (proposal) => {
       const endTime = formatDistanceStrict(
         new Date(proposal.endAt),
         new Date(),
@@ -247,30 +227,17 @@ async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
         })
       );
 
-      const idempotencyKey = generateIdempotencyKey(
-        user.id,
-        proposal.id,
-        'ending_proposal'
-      );
-
-      await deliverNotification(
-        {
-          sendEmail,
-          recordNotification,
-        },
-        {
-          userId: user.id,
-          targetId: proposal.id,
-          type: 'ending_proposal',
-          daoId: dao.id,
-          to: user.email,
-          subject: `Proposal ending soon in ${dao.name}`,
-          html,
-          idempotencyKey,
-        }
-      );
-    }
-  }
+      await notifyRecipients({
+        users,
+        targetId: proposal.id,
+        type: 'ending_proposal',
+        daoId: dao.id,
+        subject: `Proposal ending soon in ${dao.name}`,
+        html,
+      });
+    }),
+    `Ending proposal notifications failed for ${dao.slug}`
+  );
 }
 
 // Process new discussion notifications
@@ -288,7 +255,7 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
   }
 
   // Get allowed category IDs for filtering
-  const allowedCategories = DAO_DISCOURSE_CATEGORIES[dao.slug];
+  const allowedCategories = DAO_DISCOURSE_CATEGORY_FILTERS[dao.slug];
 
   let query = db
     .selectFrom('discourseTopic')
@@ -349,13 +316,9 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
     `Found ${newTopics.length} new discussions and ${users.length} users for ${dao.name}`
   );
 
-  for (const topic of newTopics) {
-    const topicUrl = `${daoDiscourse.discourseBaseUrl}/t/${topic.slug}/${topic.externalId}`;
-
-    for (const user of users) {
-      if (await alreadySent(user.id, topic.id, 'new_discussion', dao.id))
-        continue;
-
+  await settleAll(
+    newTopics.map(async (topic) => {
+      const topicUrl = `${daoDiscourse.discourseBaseUrl}/t/${topic.slug}/${topic.externalId}`;
       const html = await render(
         NewDiscussionEmailTemplate({
           discussionTitle: topic.title,
@@ -367,35 +330,57 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
         })
       );
 
-      const idempotencyKey = generateIdempotencyKey(
-        user.id,
-        topic.id,
-        'new_discussion'
-      );
-
-      await deliverNotification(
-        {
-          sendEmail,
-          recordNotification,
-        },
-        {
-          userId: user.id,
-          targetId: topic.id,
-          type: 'new_discussion',
-          daoId: dao.id,
-          to: user.email,
-          subject: `New discussion in ${dao.name}`,
-          html,
-          idempotencyKey,
-        }
-      );
-    }
-  }
+      await notifyRecipients({
+        users,
+        targetId: topic.id,
+        type: 'new_discussion',
+        daoId: dao.id,
+        subject: `New discussion in ${dao.name}`,
+        html,
+      });
+    }),
+    `New discussion notifications failed for ${dao.slug}`
+  );
 }
 
 // ============================================
 // Helper Functions
 // ============================================
+
+async function notifyRecipients(input: {
+  users: NotificationRecipient[];
+  targetId: string;
+  type: NotificationType;
+  daoId: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
+  await deliverNotificationToRecipients(
+    { sendEmail, recordNotification, alreadySent },
+    {
+      recipients: input.users,
+      targetId: input.targetId,
+      type: input.type,
+      daoId: input.daoId,
+      subject: input.subject,
+      html: input.html,
+    }
+  );
+}
+
+async function settleAll(
+  work: Promise<void>[],
+  message: string
+): Promise<void> {
+  const results = await Promise.allSettled(work);
+  const failures = results.flatMap((result) =>
+    result.status === 'rejected' ? [result.reason] : []
+  );
+
+  if (failures.length > 0) {
+    throw new AggregateError(failures, message);
+  }
+}
 
 // Send email helper
 async function sendEmail(
@@ -405,36 +390,23 @@ async function sendEmail(
   idempotencyKey?: string
 ): Promise<void> {
   try {
-    await resend.emails.send(
-      { from: FROM_EMAIL, to, subject, html },
+    const result = await resend.emails.send(
+      { from: FROM_EMAIL, to, subject, html, text: toPlainText(html) },
       { idempotencyKey }
     );
-    logger.info(`Email sent to ${to}: ${subject}`);
+    const deliveryId = requireResendDelivery(result);
+    logger.info({ deliveryId, subject }, 'Email sent');
   } catch (error) {
-    logger.error({ err: error }, `Failed to send email to ${to}`);
+    logger.error({ err: error }, 'Failed to send email');
     throw error;
   }
-}
-
-// Generate idempotency key for email notifications
-function generateIdempotencyKey(
-  userId: string,
-  targetId: string,
-  type: 'new_proposal' | 'ending_proposal' | 'new_discussion'
-): string {
-  // Use a stable key based on user, target, and type only.
-  // The alreadySent() function handles the 24-hour cooldown period.
-  // Note: Resend idempotency keys expire after 24 hours, which aligns
-  // with our cooldown period, so duplicate sends are prevented both
-  // by our database check and by Resend's idempotency.
-  return `${userId}-${targetId}-${type}`;
 }
 
 // Check if we already sent this notification
 async function alreadySent(
   userId: string,
   targetId: string,
-  type: string,
+  type: NotificationType,
   daoId: string
 ): Promise<boolean> {
   const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000);
@@ -469,9 +441,13 @@ async function recordNotification(
         daoId,
         sentAt: new Date(),
       })
+      .onConflict((conflict) =>
+        conflict.columns(['userId', 'type', 'targetId']).doNothing()
+      )
       .execute();
   } catch (error) {
     logger.error({ err: error }, 'Failed to record notification');
+    throw error;
   }
 }
 
@@ -481,14 +457,32 @@ async function recordNotification(
 
 // Create health check server
 const PORT = process.env.PORT || 3000;
+const processingState: {
+  lastRunAt: string | null;
+  lastError: string | null;
+} = {
+  lastRunAt: null,
+  lastError: null,
+};
 const server = createServer((req, res) => {
   if (req.url === '/health' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    const isStarting = processingState.lastRunAt === null;
+    const status = isStarting
+      ? 'starting'
+      : processingState.lastError
+        ? 'degraded'
+        : 'healthy';
+    res.writeHead(isStarting || processingState.lastError ? 503 : 200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    });
     res.end(
       JSON.stringify({
-        status: 'healthy',
+        status,
         service: 'email-service',
         timestamp: new Date().toISOString(),
+        lastRunAt: processingState.lastRunAt,
+        lastError: processingState.lastError,
       })
     );
   } else {
@@ -528,8 +522,7 @@ if (BETTERSTACK_KEY) {
 
 let isProcessingNotifications = false;
 
-// Schedule cron job - runs every minute
-cron.schedule('* * * * *', async () => {
+async function runNotificationCycle(): Promise<void> {
   if (isProcessingNotifications) {
     logger.warn('Skipping notification check; previous run still in progress');
     return;
@@ -540,15 +533,24 @@ cron.schedule('* * * * *', async () => {
 
   try {
     await processNotifications();
+    processingState.lastError = null;
   } catch (error) {
     logger.error({ err: error }, 'Notification check failed');
+    processingState.lastError = 'Notification processing failed';
   } finally {
+    processingState.lastRunAt = new Date().toISOString();
     isProcessingNotifications = false;
   }
+}
+
+// Schedule cron job - runs every minute
+cron.schedule('* * * * *', () => {
+  void runNotificationCycle();
 });
 
 // Start the service
 logger.info('Email service started - checking for notifications every minute');
+void runNotificationCycle();
 
 // Handle shutdown
 process.on('SIGINT', async () => {

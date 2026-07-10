@@ -33,7 +33,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "tailwind.config.mjs",
-    "cache-handler.mjs",
     ".ladle",
     ".next/dev/types/**/*.ts"
   ],

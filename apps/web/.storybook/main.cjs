@@ -101,11 +101,7 @@ const config = {
     config.plugins = config.plugins || [];
     config.plugins.push(
       new webpack.DefinePlugin({
-        'process.env': JSON.stringify({
-          // Mock environment variables to prevent database connections
-          DATABASE_URL: 'mock://localhost/test',
-          NODE_ENV: 'test',
-        }),
+        'process.env.DATABASE_URL': JSON.stringify('mock://localhost/test'),
         'process.cwd': 'function() { return "/"; }',
         global: 'globalThis',
       })
@@ -144,6 +140,7 @@ const config = {
       ),
       'next/server$': path.resolve(__dirname, 'mocks/next-server.js'),
       'server-only$': path.resolve(__dirname, 'mocks/empty-module.js'),
+      '@react-native-async-storage/async-storage': false,
     };
 
     // Add a module replacement rule for mocked packages
@@ -179,17 +176,12 @@ const config = {
               resolveData.request = false;
             }
             // Mock the server actions for feed components
-            if (
-              resolveData.request &&
-              resolveData.request.endsWith('/actions')
-            ) {
-              resolveData.request = path.resolve(
-                __dirname,
-                'mocks/feed-actions.js'
+            const isFeedItemActionImport =
+              resolveData.request === '../../actions' &&
+              resolveData.context?.includes(
+                path.join('components', 'feed', 'items')
               );
-            }
-            // Also handle relative imports to actions
-            if (resolveData.request === '../../actions') {
+            if (isFeedItemActionImport) {
               resolveData.request = path.resolve(
                 __dirname,
                 'mocks/feed-actions.js'

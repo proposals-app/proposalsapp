@@ -1,19 +1,11 @@
 'use client';
 
-import type {
-  Delegate,
-  DiscourseUser,
-  Selectable,
-  Voter,
-} from '@proposalsapp/db';
+import type { Delegate, Selectable } from '@proposalsapp/db';
+import type { DiscourseUserSummary, VoterSummary } from '../../api-contract';
 import { useState } from 'react';
-import {
-  deleteDelegate,
-  mapDiscourseUserToDelegate,
-  mapVoterToDelegate,
-  unmapDiscourseUserFromDelegate,
-  unmapVoterFromDelegate,
-} from '../actions';
+import { useRouter } from 'next/navigation';
+import { callMappingApi } from '../../api-client';
+import { toast } from 'sonner';
 import {
   FuzzyDiscourseUserSearch,
   FuzzyVoterSearch,
@@ -28,9 +20,8 @@ import {
 
 interface EditDelegateRowProps {
   delegate: Selectable<Delegate>;
-  discourseUsers: Selectable<DiscourseUser>[];
-  voters: Selectable<Voter>[];
-  daoSlug: string;
+  discourseUsers: DiscourseUserSummary[];
+  voters: VoterSummary[];
   onCancel: () => void;
 }
 
@@ -38,13 +29,12 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
   delegate,
   discourseUsers,
   voters,
-  daoSlug,
   onCancel,
 }) => {
+  const router = useRouter();
   const [currentDiscourseUsers, setCurrentDiscourseUsers] =
-    useState<Selectable<DiscourseUser>[]>(discourseUsers);
-  const [currentVoters, setCurrentVoters] =
-    useState<Selectable<Voter>[]>(voters);
+    useState<DiscourseUserSummary[]>(discourseUsers);
+  const [currentVoters, setCurrentVoters] = useState<VoterSummary[]>(voters);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -56,25 +46,34 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
     ) {
       setIsDeleting(true);
       try {
-        await deleteDelegate(delegate.id);
-        // Optimistically remove the row from the UI, or re-fetch the data
-        onCancel(); // For simplicity, just close the edit row which will trigger re-fetch on page level
+        await callMappingApi({
+          operation: 'delegates.delete',
+          delegateId: delegate.id,
+        });
+        onCancel();
+        router.refresh();
       } catch (error) {
         console.error('Error deleting delegate:', error);
+        toast.error('Failed to delete delegate');
         setIsDeleting(false);
       }
     }
   };
 
   const handleMapDiscourseUser = async (
-    discourseUser: Selectable<DiscourseUser>
+    discourseUser: DiscourseUserSummary
   ) => {
     setIsSaving(true);
     try {
-      await mapDiscourseUserToDelegate(delegate.id, discourseUser.id);
+      await callMappingApi({
+        operation: 'delegates.mapDiscourseUser',
+        delegateId: delegate.id,
+        discourseUserId: discourseUser.id,
+      });
       setCurrentDiscourseUsers([...currentDiscourseUsers, discourseUser]);
     } catch (error) {
       console.error('Error mapping discourse user:', error);
+      toast.error('Failed to map discourse user');
     } finally {
       setIsSaving(false);
     }
@@ -83,24 +82,34 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
   const handleUnmapDiscourseUser = async (discourseUserId: string) => {
     setIsSaving(true);
     try {
-      await unmapDiscourseUserFromDelegate(delegate.id, discourseUserId);
+      await callMappingApi({
+        operation: 'delegates.unmapDiscourseUser',
+        delegateId: delegate.id,
+        discourseUserId,
+      });
       setCurrentDiscourseUsers(
         currentDiscourseUsers.filter((user) => user.id !== discourseUserId)
       );
     } catch (error) {
       console.error('Error unmapping discourse user:', error);
+      toast.error('Failed to unmap discourse user');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleMapVoter = async (voter: Selectable<Voter>) => {
+  const handleMapVoter = async (voter: VoterSummary) => {
     setIsSaving(true);
     try {
-      await mapVoterToDelegate(delegate.id, voter.id);
+      await callMappingApi({
+        operation: 'delegates.mapVoter',
+        delegateId: delegate.id,
+        voterId: voter.id,
+      });
       setCurrentVoters([...currentVoters, voter]);
     } catch (error) {
       console.error('Error mapping voter:', error);
+      toast.error('Failed to map voter');
     } finally {
       setIsSaving(false);
     }
@@ -109,10 +118,15 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
   const handleUnmapVoter = async (voterId: string) => {
     setIsSaving(true);
     try {
-      await unmapVoterFromDelegate(delegate.id, voterId);
+      await callMappingApi({
+        operation: 'delegates.unmapVoter',
+        delegateId: delegate.id,
+        voterId,
+      });
       setCurrentVoters(currentVoters.filter((v) => v.id !== voterId));
     } catch (error) {
       console.error('Error unmapping voter:', error);
+      toast.error('Failed to unmap voter');
     } finally {
       setIsSaving(false);
     }
@@ -159,7 +173,6 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
             )}
           </div>
           <FuzzyDiscourseUserSearch
-            daoSlug={daoSlug}
             excludeUserIds={currentDiscourseUsers.map((user) => user.id)}
             onSelectUser={handleMapDiscourseUser}
             isLoading={isSaving || isDeleting}
@@ -212,7 +225,6 @@ export const EditDelegateRow: React.FC<EditDelegateRowProps> = ({
             )}
           </div>
           <FuzzyVoterSearch
-            daoSlug={daoSlug}
             excludeVoterIds={currentVoters.map((voter) => voter.id)}
             onSelectVoter={handleMapVoter}
             isLoading={isSaving || isDeleting}
@@ -256,13 +268,12 @@ export const DelegateRow = ({
   delegate,
   discourseUsers,
   voters,
-  daoSlug,
 }: {
   delegate: Selectable<Delegate>;
-  discourseUsers: Selectable<DiscourseUser>[];
-  voters: Selectable<Voter>[];
-  daoSlug: string;
+  discourseUsers: DiscourseUserSummary[];
+  voters: VoterSummary[];
 }) => {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -272,7 +283,6 @@ export const DelegateRow = ({
         delegate={delegate}
         discourseUsers={discourseUsers}
         voters={voters}
-        daoSlug={daoSlug}
         onCancel={() => setIsEditing(false)}
       />
     );
@@ -376,8 +386,14 @@ export const DelegateRow = ({
                 return;
               setIsDeleting(true);
               try {
-                await deleteDelegate(delegate.id);
-                // Best-effort immediate UI feedback: hide edit or rely on tag revalidation
+                await callMappingApi({
+                  operation: 'delegates.delete',
+                  delegateId: delegate.id,
+                });
+                router.refresh();
+              } catch (error) {
+                console.error('Error deleting delegate:', error);
+                toast.error('Failed to delete delegate');
               } finally {
                 setIsDeleting(false);
               }

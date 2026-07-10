@@ -592,21 +592,15 @@ impl DiscourseApi {
     }
 }
 
-/// Replaces Discourse `upload://` URLs with full HTTP URLs based on the API's base URL.
-// This function doesn't need to be async anymore.
-#[instrument(skip(discourse_api, raw_content))] // Skip raw_content to avoid large logs
-pub fn process_upload_urls(raw_content: &str, discourse_api: Arc<DiscourseApi>) -> String {
-    // Return String directly
-    // Use the statically compiled regex for performance.
+/// Replaces Discourse `upload://` URLs with full HTTP URLs.
+#[instrument(skip(raw_content))]
+pub fn process_upload_urls(raw_content: &str, base_url: &str) -> String {
     let replaced_content = RE_UPLOAD_URL.replace_all(raw_content, |caps: &regex::Captures| {
-        let base_url = &discourse_api.base_url;
-        // Capture group 1: file identifier (guaranteed to exist by regex structure)
         let file_id = &caps[1];
         match caps.get(2) {
-            // Capture group 2: optional extension
             Some(ext) => format!(
                 "{}/uploads/short-url/{}.{}",
-                base_url.trim_end_matches('/'), // Ensure no double slash
+                base_url.trim_end_matches('/'),
                 file_id,
                 ext.as_str()
             ),
@@ -617,7 +611,7 @@ pub fn process_upload_urls(raw_content: &str, discourse_api: Arc<DiscourseApi>) 
             ),
         }
     });
-    replaced_content.into_owned() // Convert Cow<str> to String
+    replaced_content.into_owned()
 }
 
 // --- Tests ---
@@ -626,26 +620,19 @@ mod tests {
     use super::*; // Import items from parent module
     // use std::time::Duration; // Removed unused Duration
 
-    // Helper to create a simple API instance for tests that don't need a real server.
-    fn create_test_api() -> Arc<DiscourseApi> {
-        Arc::new(DiscourseApi::new("https://test.forum.local".to_string()))
-    }
-
-    #[tokio::test]
-    async fn test_process_upload_urls_basic() {
-        let api = create_test_api();
+    #[test]
+    fn test_process_upload_urls_basic() {
         let raw = "Some text with upload://file123.png and upload://anotherfile without extension.";
         let expected = "Some text with https://test.forum.local/uploads/short-url/file123.png and https://test.forum.local/uploads/short-url/anotherfile without extension.";
-        let processed = process_upload_urls(raw, api); // No await needed
+        let processed = process_upload_urls(raw, "https://test.forum.local");
         assert_eq!(processed, expected);
     }
 
-    #[tokio::test]
-    async fn test_process_upload_urls_trailing_slash() {
-        let api = Arc::new(DiscourseApi::new("https://test.forum.local/".to_string()));
+    #[test]
+    fn test_process_upload_urls_trailing_slash() {
         let raw = "Text upload://file.jpg";
-        let expected = "Text https://test.forum.local/uploads/short-url/file.jpg"; // No double slash
-        let processed = process_upload_urls(raw, api); // No await needed
+        let expected = "Text https://test.forum.local/uploads/short-url/file.jpg";
+        let processed = process_upload_urls(raw, "https://test.forum.local/");
         assert_eq!(processed, expected);
     }
 
@@ -654,10 +641,6 @@ mod tests {
     #[tokio::test]
     async fn test_process_post_raw_content() {
         // Use a real-looking URL even if the test doesn't hit the network for this function
-        let discourse_api = Arc::new(DiscourseApi::new(
-            "https://forum.arbitrum.foundation".to_string(),
-        ));
-
         let raw_content = r#"Yes, both Arbitrum DAO governors count the **Abstain** vote choice towards quorum.
 
 And for example, in the OpCo onchain vote, if **Abstain** wouldn't count towards quorum the proposal would have just very very barely passed, with **122.4M ARB** voting **For** and the 3% Quorum threshold being **121.8M ARB**.
@@ -665,8 +648,8 @@ And for example, in the OpCo onchain vote, if **Abstain** wouldn't count towards
 ![soon on arbitrum.proposals.app|690x234](upload://dL6cgekakAbqqmWl7b2EWSlhidB.png)
 "#;
 
-        // Process the raw content
-        let processed_content = process_upload_urls(raw_content, discourse_api); // No await needed
+        let processed_content =
+            process_upload_urls(raw_content, "https://forum.arbitrum.foundation");
 
         assert_eq!(
             processed_content,
@@ -681,10 +664,6 @@ And for example, in the OpCo onchain vote, if **Abstain** wouldn't count towards
 
     #[tokio::test]
     async fn test_process_post_raw_content_revision() {
-        let discourse_api = Arc::new(DiscourseApi::new(
-            "https://forum.arbitrum.foundation".to_string(),
-        ));
-
         let raw_content = r#"## Constitutional / Non-Constitutional
 
 Constitutional
@@ -819,8 +798,8 @@ Separately, we will submit an onchain proposal with the full ARB Staking impleme
 
 This proposal should not be relied on as legal, tax, or investment advice. Any projections included here are based on our best estimates and presented for informational purposes only."#;
 
-        // Process the raw content
-        let processed_content = process_upload_urls(raw_content, discourse_api); // No await needed
+        let processed_content =
+            process_upload_urls(raw_content, "https://forum.arbitrum.foundation");
 
         let expected_content = r#"## Constitutional / Non-Constitutional
 

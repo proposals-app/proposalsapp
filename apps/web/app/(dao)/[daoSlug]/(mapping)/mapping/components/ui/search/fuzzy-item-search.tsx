@@ -1,11 +1,11 @@
 'use client';
 
-import { fuzzySearchItems, type FuzzySearchResult } from '../../../actions';
+import type { FuzzySearchResult } from '../../../api-contract';
+import { callMappingApi } from '../../../api-client';
 import FuzzySearch from './fuzzy-search';
 import { Badge } from '@/app/components/ui/badge';
 
 interface FuzzyItemSearchProps {
-  daoSlug: string;
   excludeItems?: string[];
   onSelectItem: (_item: FuzzySearchResult) => void;
   isLoading?: boolean;
@@ -13,14 +13,16 @@ interface FuzzyItemSearchProps {
 }
 
 const FuzzyItemSearch: React.FC<FuzzyItemSearchProps> = ({
-  daoSlug,
   excludeItems = [],
   onSelectItem,
   isLoading,
   className,
 }) => {
   const handleSearch = async (term: string) => {
-    const results = await fuzzySearchItems(term, daoSlug);
+    const results = await callMappingApi<FuzzySearchResult[]>({
+      operation: 'groups.search',
+      query: term,
+    });
 
     // Filter out items that are already in the group if excludeItems is provided
     if (excludeItems.length > 0) {

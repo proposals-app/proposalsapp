@@ -21,7 +21,7 @@ const ModelRegistry = {
   inMemory: vi.fn(() => modelRegistry),
 };
 
-vi.mock('@mariozechner/pi-coding-agent', () => ({
+vi.mock('@earendil-works/pi-coding-agent', () => ({
   AuthStorage,
   createAgentSession,
   DefaultResourceLoader,

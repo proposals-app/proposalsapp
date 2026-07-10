@@ -360,7 +360,7 @@ impl PostIndexer {
         // 2. Process Raw Content (e.g., replace upload URLs)
         // This function is now sync, no need for spawn_blocking
         if let Some(raw_content) = &post.raw {
-            let processed_content = process_upload_urls(raw_content, discourse_api); // Call directly
+            let processed_content = process_upload_urls(raw_content, &discourse_api.base_url);
             post.raw = Some(processed_content); // Update post object
         }
 

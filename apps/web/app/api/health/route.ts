@@ -29,7 +29,7 @@ function checkEnvironment() {
   if (missing.length > 0) {
     return {
       status: 'error',
-      message: `Missing required environment variables: ${missing.join(', ')}`,
+      message: 'Required environment configuration is incomplete',
     };
   }
 

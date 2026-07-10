@@ -57,7 +57,7 @@ export function OnchainBasicVoteModalContent({
 
   const {
     data: hash,
-    writeContract,
+    writeContractAsync,
     isPending: isWritePending,
     error: writeError,
   } = useWriteContract();
@@ -123,7 +123,7 @@ export function OnchainBasicVoteModalContent({
       : [BigInt(proposal.externalId), selectedSupport];
 
     try {
-      writeContract({
+      await writeContractAsync({
         address: governorAddress,
         abi: governorAbi,
         chainId,

@@ -79,7 +79,7 @@ async function GroupPage({
 
   // Validate group exists - inside Suspense boundary
   const group = await getGroupCached(groupId);
-  if (!group) {
+  if (!group || group.daoSlug !== daoSlug) {
     notFound();
   }
 

@@ -7,6 +7,10 @@ edition = "2024"
 name = "proposalsapp-rindexer"
 path = "src/main.rs"
 
+[features]
+default = []
+live-tests = []
+
 [dependencies]
 alloy = { workspace = true, features = ["full"] }
 alloy-ens = { workspace = true, features = ["contract", "provider"] }

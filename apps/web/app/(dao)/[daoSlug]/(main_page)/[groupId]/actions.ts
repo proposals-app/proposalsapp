@@ -26,10 +26,10 @@ import {
   type Vote,
 } from '@proposalsapp/db';
 import { validate } from 'uuid';
-import { getDelegateByDiscourseUser } from './components/feed/actions';
+import { getDelegateVotingPowerByDiscourseUserIds } from './components/feed/actions';
 import { format } from 'date-fns-tz';
 import { formatDistanceToNow } from 'date-fns';
-import { requireAuth } from '@/lib/server-actions-utils';
+import { getCurrentUser } from '@/lib/server-actions-utils';
 import { updateLastReadForDao } from '@/lib/last-read-update';
 import { revalidateTag, cacheLife, cacheTag } from 'next/cache';
 import { groupIdSchema } from '@/lib/validations';
@@ -47,8 +47,8 @@ export async function updateLastReadAt(groupId: string, daoSlug: string) {
   await updateLastReadForDao(
     {
       authenticate: async (slug) => {
-        const { userId } = await requireAuth(slug);
-        return userId;
+        const { userId } = await getCurrentUser(slug);
+        return userId ?? null;
       },
       findScopedGroupId: async (candidateGroupId, slug) => {
         const scopedGroup = await db
@@ -975,7 +975,7 @@ export async function getFeed(
           historicalVotesByProposal.get(proposal.id) || [];
         const latestVotes = latestVotesByProposal.get(proposal.id) || [];
 
-        const filteredProcessedResults = await processResultsAction(
+        const filteredProcessedResults = processResultsAction(
           proposal,
           historicalVotes,
           {
@@ -1122,15 +1122,11 @@ export async function getFeed(
         });
 
         if (currentTimestamp >= startedAt) {
-          const processedResults = await processResultsAction(
-            proposal,
-            latestVotes,
-            {
-              withVotes: true,
-              withTimeseries: false,
-              aggregatedVotes: true,
-            }
-          );
+          const processedResults = processResultsAction(proposal, latestVotes, {
+            withVotes: true,
+            withTimeseries: false,
+            aggregatedVotes: true,
+          });
 
           if (
             processedResults.votes &&
@@ -1242,48 +1238,43 @@ export async function getFeed(
         (post.userId >= 1 && post.userId <= 2147483647) || post.userId < 0
     );
 
-    const filteredPosts = await Promise.all(
-      validPosts.map(async (post) => {
-        const delegate = await getDelegateByDiscourseUser(
-          post.userId,
-          dao.slug,
-          false,
-          topics.map((t) => t.id.toString()),
-          proposals.map((p) => p.id)
-        );
+    const votingPowerByDiscourseUserId =
+      await getDelegateVotingPowerByDiscourseUserIds(
+        validPosts.map((post) => post.userId),
+        dao.slug
+      );
+    const filteredPosts = validPosts.map((post) => {
+      const authorVotingPower =
+        votingPowerByDiscourseUserId.get(post.userId) ?? 0;
 
-        const authorVotingPower =
-          delegate?.delegatetovoter?.latestVotingPower?.votingPower || 0;
-
-        if (fromFilter === FromFilterEnum.ALL) {
-          return post;
-        } else if (
-          fromFilter === FromFilterEnum.FIFTY_THOUSAND &&
-          authorVotingPower > 50000
+      if (fromFilter === FromFilterEnum.ALL) {
+        return post;
+      } else if (
+        fromFilter === FromFilterEnum.FIFTY_THOUSAND &&
+        authorVotingPower > 50000
+      ) {
+        return post;
+      } else if (
+        fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND &&
+        authorVotingPower > 500000
+      ) {
+        return post;
+      } else if (
+        fromFilter === FromFilterEnum.FIVE_MILLION &&
+        authorVotingPower > 5000000
+      ) {
+        return post;
+      } else if (fromFilter == FromFilterEnum.AUTHOR) {
+        if (
+          author?.discourseUsers
+            .map((ad) => ad.username)
+            .includes(post.username)
         ) {
           return post;
-        } else if (
-          fromFilter === FromFilterEnum.FIVE_HUNDRED_THOUSAND &&
-          authorVotingPower > 500000
-        ) {
-          return post;
-        } else if (
-          fromFilter === FromFilterEnum.FIVE_MILLION &&
-          authorVotingPower > 5000000
-        ) {
-          return post;
-        } else if (fromFilter == FromFilterEnum.AUTHOR) {
-          if (
-            author?.discourseUsers
-              .map((ad) => ad.username)
-              .includes(post.username)
-          ) {
-            return post;
-          }
         }
-        return null;
-      })
-    );
+      }
+      return null;
+    });
 
     if (
       feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES ||

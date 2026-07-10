@@ -4,7 +4,10 @@ import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
 import rehypeRaw from 'rehype-raw';
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import rehypeSanitize, {
+  defaultSchema,
+  type Options as SanitizeOptions,
+} from 'rehype-sanitize';
 import { gfm } from 'micromark-extension-gfm';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
 import {
@@ -12,7 +15,7 @@ import {
   visualDomDiff,
 } from '@proposalsapp/visual-dom-diff';
 import { DIFF_EQUAL, diff_match_patch, type Diff } from 'diff-match-patch';
-import type { Nodes } from 'hast';
+import type { Nodes, Root } from 'hast';
 import { toDom } from 'hast-util-to-dom';
 import { JSDOM } from 'jsdom';
 import { fromMarkdown } from 'mdast-util-from-markdown';
@@ -23,6 +26,41 @@ import {
   QUOTE_STYLES,
   QUOTE_STYLES_POST,
 } from './markdown_styles';
+
+const markdownSanitizeSchema: SanitizeOptions = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    a: [
+      ...(defaultSchema.attributes?.a || []),
+      ['target'],
+      ['rel'],
+      ['className'],
+    ],
+    p: [...(defaultSchema.attributes?.p || []), ['className']],
+    img: [
+      ...(defaultSchema.attributes?.img || []),
+      ['className'],
+      ['loading'],
+      ['decoding'],
+    ],
+    table: [...(defaultSchema.attributes?.table || []), ['className']],
+    thead: [...(defaultSchema.attributes?.thead || []), ['className']],
+    tbody: [...(defaultSchema.attributes?.tbody || []), ['className']],
+    tr: [...(defaultSchema.attributes?.tr || []), ['className']],
+    td: [...(defaultSchema.attributes?.td || []), ['className', 'colspan']],
+    th: [...(defaultSchema.attributes?.th || []), ['className', 'colspan']],
+    details: [
+      ...(defaultSchema.attributes?.details || []),
+      ['className'],
+      ['open'],
+    ],
+    summary: [...(defaultSchema.attributes?.summary || []), ['className']],
+    div: [...(defaultSchema.attributes?.div || []), ['className', 'id']],
+    span: [...(defaultSchema.attributes?.span || []), ['className']],
+  },
+  clobberPrefix: 'md-',
+};
 
 /**
  * Escape HTML special characters to prevent XSS attacks.
@@ -431,50 +469,7 @@ export function markdownToHtml(
       // Convert to HAST allowing raw HTML, then sanitize
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeRaw)
-      .use(rehypeSanitize, {
-        ...defaultSchema,
-        // Extend default schema minimally to allow common attributes/classes we add
-        attributes: {
-          ...defaultSchema.attributes,
-          a: [
-            ...(defaultSchema.attributes?.a || []),
-            ['target'],
-            ['rel'],
-            ['className'],
-          ],
-          p: [...(defaultSchema.attributes?.p || []), ['className']],
-          img: [
-            ...(defaultSchema.attributes?.img || []),
-            ['className'],
-            ['loading'],
-            ['decoding'],
-          ],
-          table: [...(defaultSchema.attributes?.table || []), ['className']],
-          thead: [...(defaultSchema.attributes?.thead || []), ['className']],
-          tbody: [...(defaultSchema.attributes?.tbody || []), ['className']],
-          tr: [...(defaultSchema.attributes?.tr || []), ['className']],
-          td: [
-            ...(defaultSchema.attributes?.td || []),
-            ['className', 'colspan'],
-          ],
-          th: [
-            ...(defaultSchema.attributes?.th || []),
-            ['className', 'colspan'],
-          ],
-          details: [
-            ...(defaultSchema.attributes?.details || []),
-            ['className'],
-            ['open'],
-          ],
-          summary: [
-            ...(defaultSchema.attributes?.summary || []),
-            ['className'],
-          ],
-          div: [...(defaultSchema.attributes?.div || []), ['className', 'id']],
-          span: [...(defaultSchema.attributes?.span || []), ['className']],
-        },
-        clobberPrefix: 'md-',
-      })
+      .use(rehypeSanitize, markdownSanitizeSchema)
       .use(rehypeStringify);
 
     let html = processor.processSync(markdown).toString();
@@ -506,6 +501,7 @@ export function markdownDiff(
   previousContent: string
 ): string {
   try {
+    const sanitizer = unified().use(rehypeSanitize, markdownSanitizeSchema);
     const customToDom = (node: Nodes) => {
       const doc = getDocument();
       return toDom(node, { document: doc });
@@ -513,20 +509,24 @@ export function markdownDiff(
 
     // Parse both contents into DOM with full GFM support
     const currentTree = customToDom(
-      toHast(
-        fromMarkdown(currentContent, {
-          extensions: [gfm()],
-          mdastExtensions: [gfmFromMarkdown()],
-        })
-      )
+      sanitizer.runSync(
+        toHast(
+          fromMarkdown(currentContent, {
+            extensions: [gfm()],
+            mdastExtensions: [gfmFromMarkdown()],
+          })
+        ) as Root
+      ) as Nodes
     );
     const previousTree = customToDom(
-      toHast(
-        fromMarkdown(previousContent, {
-          extensions: [gfm()],
-          mdastExtensions: [gfmFromMarkdown()],
-        })
-      )
+      sanitizer.runSync(
+        toHast(
+          fromMarkdown(previousContent, {
+            extensions: [gfm()],
+            mdastExtensions: [gfmFromMarkdown()],
+          })
+        ) as Root
+      ) as Nodes
     );
 
     if (!currentTree || !previousTree) {

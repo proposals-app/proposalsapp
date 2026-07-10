@@ -667,8 +667,10 @@ async fn future_scan_api_request(
         .context("Failed to deserialize future scan API response")
 }
 
-// Unit tests
-#[cfg(test)]
+// These tests exercise live RPC and Etherscan endpoints. Keep them out of the
+// default test suite so local and CI runs are deterministic and do not consume
+// production API quotas. Run explicitly with `--features live-tests`.
+#[cfg(all(test, feature = "live-tests"))]
 mod tests {
     use super::*;
     use chrono::Datelike;
@@ -1175,8 +1177,8 @@ mod tests {
     }
 }
 
-// Integration tests
-#[cfg(test)]
+// These tests also depend on live chain state and external services.
+#[cfg(all(test, feature = "live-tests"))]
 mod integration_tests {
     use super::*;
     use chrono::Datelike;
@@ -1487,5 +1489,28 @@ mod integration_tests {
 
         cleanup_processor().await;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod config_tests {
+    use super::*;
+
+    #[test]
+    fn chain_configs_are_complete() {
+        let expected = [
+            ("ethereum", 1),
+            ("arbitrum", 42161),
+            ("optimism", 10),
+            ("polygon", 137),
+        ];
+
+        for (network, chain_id) in expected {
+            let config = get_chain_config(network).expect("supported network");
+            assert_eq!(config.network, network);
+            assert_eq!(config.chain_id, Some(chain_id));
+        }
+
+        assert!(get_chain_config("unsupported").is_err());
     }
 }

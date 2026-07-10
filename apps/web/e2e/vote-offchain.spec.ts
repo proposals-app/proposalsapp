@@ -1,10 +1,14 @@
 import { testWithSynpress } from '@synthetixio/synpress';
-import { MetaMask, metaMaskFixtures } from '@synthetixio/synpress/playwright';
-import { ethers } from 'ethers';
+import { metaMaskFixtures } from '@synthetixio/synpress/playwright';
+import { JsonRpcProvider } from '@ethersproject/providers';
+import { Wallet } from '@ethersproject/wallet';
 import snapshot from '@snapshot-labs/snapshot.js';
 import basicSetup from './wallet-setup/basic.setup';
-import fetch from 'cross-fetch';
 import type { Locator, Page } from '@playwright/test';
+import {
+  approveMetaMaskConnection,
+  approveMetaMaskSignature,
+} from './helpers/metamask';
 
 const HUB_URL = 'https://testnet.hub.snapshot.org';
 const SPACE_ID = 'proposalsapp-area51.eth';
@@ -58,6 +62,7 @@ if (!seedPhrase) {
 
 const test = testWithSynpress(metaMaskFixtures(basicSetup));
 const { expect } = test;
+const TEST_ACCOUNT_ADDRESS = Wallet.fromMnemonic(seedPhrase).address;
 
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
@@ -110,12 +115,7 @@ async function getStorybookFrame(page: Page, testLogPrefix: string = '') {
   return frame;
 }
 
-async function connectWallet(
-  page: Page,
-  metamask: MetaMask,
-  metamaskPage: Page,
-  testLogPrefix: string = ''
-) {
+async function connectWallet(page: Page, testLogPrefix: string = '') {
   console.log(`${testLogPrefix} Connecting wallet...`);
 
   const frame = await getStorybookFrame(page, testLogPrefix);
@@ -126,34 +126,8 @@ async function connectWallet(
   ).toBeVisible({ timeout: 20000 });
 
   await frame.getByTestId('rk-connect-button').click();
-  await frame.getByTestId('rk-wallet-option-io.metamask').click();
-
-  await metamask.connectToDapp();
-
-  try {
-    const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' });
-    if (await gotItButton.isVisible({ timeout: 3000 })) {
-      console.log(`${testLogPrefix} Handling Metamask 'Got it' button...`);
-      await gotItButton.click();
-    }
-  } catch (_e) {
-    console.log(`${testLogPrefix} 'Got it' button not found, continuing...`);
-  }
-
-  try {
-    await metamask.approveNewNetwork();
-  } catch (_e) {
-    console.log(
-      `${testLogPrefix} Approve new network skipped/failed, continuing...`
-    );
-  }
-  try {
-    await metamask.approveSwitchNetwork();
-  } catch (_e) {
-    console.log(
-      `${testLogPrefix} Approve switch network skipped/failed, continuing...`
-    );
-  }
+  await frame.getByTestId('rk-wallet-option-metaMask').click();
+  await approveMetaMaskConnection(page);
   console.log(`${testLogPrefix} Wallet connected.`);
 }
 
@@ -163,9 +137,9 @@ async function createSnapshotProposal(
   bodyText: string,
   choices: string[],
   testLogPrefix: string = ''
-): Promise<{ id: string; signerAddress: string; wallet: ethers.Wallet }> {
-  const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-  const wallet = ethers.Wallet.fromMnemonic(seedPhrase!).connect(provider);
+): Promise<{ id: string; signerAddress: string; wallet: Wallet }> {
+  const provider = new JsonRpcProvider(RPC_URL);
+  const wallet = Wallet.fromMnemonic(seedPhrase!).connect(provider);
   const signerAddress = await wallet.getAddress();
   const currentBlock = await provider.getBlockNumber();
 
@@ -504,51 +478,8 @@ async function verifyVoteViaApi(
   ).toBe(true);
 }
 
-async function handlePotentialGotItButton(
-  metamaskPage: Page,
-  testLogPrefix: string = '',
-  maxAttempts: number = 3
-) {
-  console.log(`${testLogPrefix} Checking for Metamask 'Got it' button...`);
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const gotItButton = metamaskPage.getByRole('button', { name: 'Got it' });
-      const isVisible = await gotItButton.isVisible({ timeout: 2000 });
-
-      if (isVisible) {
-        console.log(
-          `${testLogPrefix} 'Got it' button found on attempt ${attempt}, clicking...`
-        );
-        await gotItButton.click();
-        console.log(`${testLogPrefix} 'Got it' button clicked successfully.`);
-        return true;
-      } else if (attempt < maxAttempts) {
-        console.log(
-          `${testLogPrefix} 'Got it' button not visible on attempt ${attempt}, waiting before next check...`
-        );
-        await metamaskPage.waitForTimeout(1000);
-      }
-    } catch (e) {
-      console.log(
-        `${testLogPrefix} Error checking for 'Got it' button on attempt ${attempt}: ${e}`
-      );
-      if (attempt < maxAttempts) {
-        await metamaskPage.waitForTimeout(1000);
-      }
-    }
-  }
-
-  console.log(
-    `${testLogPrefix} 'Got it' button did not appear after ${maxAttempts} attempts, continuing.`
-  );
-  return false;
-}
-
 async function submitVoteAndConfirmMetamask(
   page: Page,
-  metamaskPage: Page,
-  metamask: MetaMask,
   testLogPrefix: string = '',
   apiVerificationDelay: number = API_VERIFICATION_DELAY
 ) {
@@ -560,11 +491,8 @@ async function submitVoteAndConfirmMetamask(
   ).toBeEnabled();
   await submitVoteButton.click();
 
-  await metamaskPage.waitForTimeout(1000);
-  await handlePotentialGotItButton(metamaskPage, testLogPrefix);
-
   console.log(`${testLogPrefix} Confirming vote signature in Metamask...`);
-  await metamask.confirmSignature();
+  await approveMetaMaskSignature(page);
 
   console.log(
     `${testLogPrefix} Vote submitted via UI, waiting ${apiVerificationDelay / 1000}s for API verification...`
@@ -574,10 +502,7 @@ async function submitVoteAndConfirmMetamask(
 
 test.describe.serial('Offchain Voting E2E Tests', () => {
   test('[Basic] should use active or create proposal, vote random choice via UI, verify via API', async ({
-    context,
     page,
-    metamaskPage,
-    extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Basic]';
@@ -596,16 +521,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       testLogPrefix
     );
 
-    const metamask = new MetaMask(
-      context,
-      metamaskPage,
-      basicSetup.walletPassword,
-      extensionId
-    );
     await page.goto(
-      `http://localhost:6006/?path=/story/vote-button--snapshot-basic&viewMode=story&nav=false&panel=false&toolbar=false`
+      `http://localhost:6006/?path=/story/dao-voting-votebutton--snapshot-basic&viewMode=story&nav=false&panel=false&toolbar=false`
     );
-    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+    await connectWallet(page, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
@@ -651,15 +570,13 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     await submitVoteAndConfirmMetamask(
       page,
-      metamaskPage,
-      metamask,
       testLogPrefix,
       API_VERIFICATION_DELAY
     );
 
     await verifyVoteViaApi(
       proposalId,
-      await metamask.getAccountAddress(),
+      TEST_ACCOUNT_ADDRESS,
       expectedChoiceValue,
       expectedReasonString,
       testLogPrefix
@@ -667,10 +584,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   test('[Single-Choice] should use active or create proposal, vote random choice via UI, verify via API', async ({
-    context,
     page,
-    metamaskPage,
-    extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Single-Choice]';
@@ -689,16 +603,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       testLogPrefix
     );
 
-    const metamask = new MetaMask(
-      context,
-      metamaskPage,
-      basicSetup.walletPassword,
-      extensionId
-    );
     await page.goto(
-      `http://localhost:6006/?path=/story/vote-button--snapshot-single-choice&viewMode=story&nav=false&panel=false&toolbar=false`
+      `http://localhost:6006/?path=/story/dao-voting-votebutton--snapshot-single-choice&viewMode=story&nav=false&panel=false&toolbar=false`
     );
-    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+    await connectWallet(page, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
@@ -744,15 +652,13 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     await submitVoteAndConfirmMetamask(
       page,
-      metamaskPage,
-      metamask,
       testLogPrefix,
       API_VERIFICATION_DELAY
     );
 
     await verifyVoteViaApi(
       proposalId,
-      await metamask.getAccountAddress(),
+      TEST_ACCOUNT_ADDRESS,
       expectedChoiceValue,
       expectedReasonString,
       testLogPrefix
@@ -760,10 +666,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   test('[Approval] should use active or create proposal, vote random multiple choices via UI, verify via API', async ({
-    context,
     page,
-    metamaskPage,
-    extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Approval]';
@@ -788,16 +691,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       testLogPrefix
     );
 
-    const metamask = new MetaMask(
-      context,
-      metamaskPage,
-      basicSetup.walletPassword,
-      extensionId
-    );
     await page.goto(
-      `http://localhost:6006/?path=/story/vote-button--snapshot-approval&viewMode=story&nav=false&panel=false&toolbar=false`
+      `http://localhost:6006/?path=/story/dao-voting-votebutton--snapshot-approval&viewMode=story&nav=false&panel=false&toolbar=false`
     );
-    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+    await connectWallet(page, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
@@ -860,15 +757,13 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     await submitVoteAndConfirmMetamask(
       page,
-      metamaskPage,
-      metamask,
       testLogPrefix,
       API_VERIFICATION_DELAY
     );
 
     await verifyVoteViaApi(
       proposalId,
-      await metamask.getAccountAddress(),
+      TEST_ACCOUNT_ADDRESS,
       expectedChoiceValue,
       expectedReasonString,
       testLogPrefix
@@ -876,10 +771,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   test('[Quadratic] should use active or create proposal, vote random choice via UI, verify via API', async ({
-    context,
     page,
-    metamaskPage,
-    extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Quadratic]';
@@ -898,16 +790,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       testLogPrefix
     );
 
-    const metamask = new MetaMask(
-      context,
-      metamaskPage,
-      basicSetup.walletPassword,
-      extensionId
-    );
     await page.goto(
-      `http://localhost:6006/?path=/story/vote-button--snapshot-quadratic&viewMode=story&nav=false&panel=false&toolbar=false`
+      `http://localhost:6006/?path=/story/dao-voting-votebutton--snapshot-quadratic&viewMode=story&nav=false&panel=false&toolbar=false`
     );
-    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+    await connectWallet(page, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
@@ -954,15 +840,13 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     await submitVoteAndConfirmMetamask(
       page,
-      metamaskPage,
-      metamask,
       testLogPrefix,
       API_VERIFICATION_DELAY
     );
 
     await verifyVoteViaApi(
       proposalId,
-      await metamask.getAccountAddress(),
+      TEST_ACCOUNT_ADDRESS,
       expectedChoiceValue,
       expectedReasonString,
       testLogPrefix
@@ -970,10 +854,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   test('[Ranked-Choice] should use active or create proposal, vote with random order via UI, verify via API', async ({
-    context,
     page,
-    metamaskPage,
-    extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Ranked-Choice]';
@@ -992,16 +873,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       testLogPrefix
     );
 
-    const metamask = new MetaMask(
-      context,
-      metamaskPage,
-      basicSetup.walletPassword,
-      extensionId
-    );
     await page.goto(
-      `http://localhost:6006/?path=/story/vote-button--snapshot-ranked-choice&viewMode=story&nav=false&panel=false&toolbar=false`
+      `http://localhost:6006/?path=/story/dao-voting-votebutton--snapshot-ranked-choice&viewMode=story&nav=false&panel=false&toolbar=false`
     );
-    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+    await connectWallet(page, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
@@ -1066,7 +941,9 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       }
     }
 
-    expectedFinalOrder = currentOrder.map((originalIndex) => originalIndex + 1);
+    const expectedFinalOrder = currentOrder.map(
+      (originalIndex) => originalIndex + 1
+    );
 
     console.log(
       `${testLogPrefix} Performing ${dragOperations.length} drag operations`
@@ -1262,8 +1139,6 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     await submitVoteAndConfirmMetamask(
       page,
-      metamaskPage,
-      metamask,
       testLogPrefix,
       API_VERIFICATION_DELAY
     );
@@ -1273,7 +1148,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
     );
     await verifyVoteViaApi(
       proposalId,
-      await metamask.getAccountAddress(),
+      TEST_ACCOUNT_ADDRESS,
       expectedFinalOrder,
       expectedReasonString,
       testLogPrefix
@@ -1281,10 +1156,7 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
   });
 
   test('[Weighted] should use active or create proposal, vote via UI (random weight distribution), verify via API', async ({
-    context,
     page,
-    metamaskPage,
-    extensionId,
   }) => {
     test.setTimeout(TEST_TIMEOUT);
     const testLogPrefix = '[Weighted]';
@@ -1303,16 +1175,10 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
       testLogPrefix
     );
 
-    const metamask = new MetaMask(
-      context,
-      metamaskPage,
-      basicSetup.walletPassword,
-      extensionId
-    );
     await page.goto(
-      `http://localhost:6006/?path=/story/vote-button--snapshot-weighted&viewMode=story&nav=false&panel=false&toolbar=false`
+      `http://localhost:6006/?path=/story/dao-voting-votebutton--snapshot-weighted&viewMode=story&nav=false&panel=false&toolbar=false`
     );
-    await connectWallet(page, metamask, metamaskPage, testLogPrefix);
+    await connectWallet(page, testLogPrefix);
 
     console.log(`${testLogPrefix} Voting via UI...`);
     const frame = await getStorybookFrame(page, testLogPrefix);
@@ -1383,15 +1249,13 @@ test.describe.serial('Offchain Voting E2E Tests', () => {
 
     await submitVoteAndConfirmMetamask(
       page,
-      metamaskPage,
-      metamask,
       testLogPrefix,
       API_VERIFICATION_DELAY
     );
 
     await verifyVoteViaApi(
       proposalId,
-      await metamask.getAccountAddress(),
+      TEST_ACCOUNT_ADDRESS,
       expectedChoiceValue,
       expectedReasonString,
       testLogPrefix

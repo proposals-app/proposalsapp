@@ -1,9 +1,10 @@
-import { createDelegate, getDelegatesWithMappings } from './actions';
+import { getDelegatesWithMappings } from './actions';
 import { getDao } from '../actions';
 import { DelegateRow } from './components/edit-delegate-row';
 import { Suspense } from 'react';
-import { Button, MappingTable, PageHeader } from '../components/ui';
+import { MappingTable, PageHeader } from '../components/ui';
 import { Spinner } from '@/app/components/ui/spinner';
+import { CreateRecordButton } from '../components/create-record-button';
 
 async function DelegatesPage({
   params,
@@ -35,16 +36,9 @@ async function HeaderContainer({ daoSlug }: { daoSlug: string }) {
         },
       ]}
     >
-      <form
-        action={async () => {
-          'use server';
-          await createDelegate(daoSlug);
-        }}
-      >
-        <Button type='submit' variant='primary' fullWidth>
-          Create Delegate
-        </Button>
-      </form>
+      <CreateRecordButton operation='delegates.create'>
+        Create Delegate
+      </CreateRecordButton>
     </PageHeader>
   );
 }
@@ -78,7 +72,6 @@ async function DelegatesContainer({ daoSlug }: { daoSlug: string }) {
           delegate={delegate}
           discourseUsers={discourseUsers}
           voters={voters}
-          daoSlug={daoSlug}
         />
       ))}
     </MappingTable>

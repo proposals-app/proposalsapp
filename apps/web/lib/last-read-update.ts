@@ -1,7 +1,7 @@
 export type UpdateLastReadResult = 'updated' | 'ignored';
 
 export interface UpdateLastReadDependencies {
-  authenticate: (daoSlug: string) => Promise<string>;
+  authenticate: (daoSlug: string) => Promise<string | null>;
   findScopedGroupId: (
     groupId: string,
     daoSlug: string
@@ -19,6 +19,11 @@ export async function updateLastReadForDao(
   }
 ): Promise<UpdateLastReadResult> {
   const userId = await dependencies.authenticate(input.daoSlug);
+
+  if (!userId) {
+    return 'ignored';
+  }
+
   const scopedGroupId = await dependencies.findScopedGroupId(
     input.groupId,
     input.daoSlug

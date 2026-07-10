@@ -1,8 +1,8 @@
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 import type {
   ExtensionAPI,
   ExtensionFactory,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 import { errorToolResponse, textToolResponse } from '../shared/tool-response';
 import {
   attachProposalToGroup,

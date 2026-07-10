@@ -255,13 +255,15 @@ async fn update_revisions_for_post(
                 };
 
                 // Process upload URLs in revision body content (sync function)
-                let processed_body =
-                    process_upload_urls(&revision.body_changes.side_by_side_markdown, api.clone());
+                let processed_body = process_upload_urls(
+                    &revision.body_changes.side_by_side_markdown,
+                    &api.base_url,
+                );
                 revision.body_changes.side_by_side_markdown = processed_body;
 
                 // Process title changes if they exist (sync function)
                 if let Some(title_changes) = &mut revision.title_changes {
-                    let processed_title = process_upload_urls(&title_changes.inline, api.clone());
+                    let processed_title = process_upload_urls(&title_changes.inline, &api.base_url);
                     title_changes.inline = processed_title;
                 }
 

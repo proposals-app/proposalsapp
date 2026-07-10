@@ -2,7 +2,40 @@ import * as React from 'react';
 import { type VariantProps, cva } from 'class-variance-authority';
 
 import { cn } from '../../../lib/utils';
-import { ResultsListBarsSkeleton as SkeletonResultsBars } from '@/app/(dao)/[daoSlug]/(results_page)/[groupId]/vote/[resultNumber]/components/result/results-list';
+
+function SkeletonResultsBars() {
+  return (
+    <div className='mt-4 flex min-h-[112px] w-72 flex-col gap-2 text-neutral-700 dark:text-neutral-200 sm:ml-6'>
+      <div className='flex w-full items-center gap-1 text-sm font-semibold'>
+        <div className='skeleton-blueprint skeleton-text h-6 w-6' />
+        <div className='skeleton-blueprint skeleton-text h-4 w-32' />
+      </div>
+      <div>
+        <div className='relative h-4 w-full'>
+          <div className='absolute inset-0 flex overflow-hidden border border-neutral-300 dark:border-neutral-700'>
+            <div className='skeleton-blueprint skeleton-text h-full w-1/3' />
+          </div>
+        </div>
+        <div className='mt-2 flex items-center gap-1 text-sm'>
+          <div className='skeleton-blueprint skeleton-text h-6 w-6' />
+          <span className='skeleton-blueprint skeleton-text h-4 w-16 font-semibold' />
+          <span className='skeleton-blueprint skeleton-text h-4 w-6' />
+          <span className='skeleton-blueprint skeleton-text h-4 w-12' />
+          <span className='skeleton-blueprint skeleton-text h-4 w-12' />
+        </div>
+      </div>
+      <div>
+        <div className='relative h-2 w-full overflow-hidden border border-neutral-300 dark:border-neutral-700'>
+          <div className='skeleton-blueprint skeleton-text absolute left-0 top-0 h-full w-1/2' />
+        </div>
+        <div className='mt-2 text-xs'>
+          <span className='skeleton-blueprint skeleton-text inline-block h-3 w-12 font-semibold' />
+          <span className='skeleton-blueprint skeleton-text ml-1 inline-block h-3 w-40' />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const skeletonVariants = cva('skeleton-blueprint', {
   variants: {
@@ -179,91 +212,7 @@ const SkeletonPost = React.forwardRef<HTMLDivElement, { className?: string }>(
 );
 SkeletonPost.displayName = 'SkeletonPost';
 
-const SkeletonVoteItem = React.forwardRef<
-  HTMLDivElement,
-  { className?: string; showColorBar?: boolean }
->(({ className, showColorBar = true }, ref) => {
-  return (
-    <div ref={ref} className={cn('space-y-3', className)}>
-      {showColorBar && (
-        <div className='skeleton-blueprint skeleton-text h-1 w-full' />
-      )}
-      <div className='flex items-start justify-between'>
-        <div className='flex-1 space-y-2'>
-          <SkeletonText size='md' width='75%' />
-          <SkeletonText size='sm' width='50%' />
-        </div>
-        <SkeletonButton size='sm' />
-      </div>
-      <div className='flex items-center space-x-4'>
-        <SkeletonText size='xs' width='15%' />
-        <SkeletonText size='xs' width='20%' />
-        <SkeletonText size='xs' width='10%' />
-      </div>
-    </div>
-  );
-});
-SkeletonVoteItem.displayName = 'SkeletonVoteItem';
-
-const SkeletonList = React.forwardRef<
-  HTMLDivElement,
-  {
-    items?: number;
-    itemComponent?: React.ComponentType<{ className?: string }>;
-    className?: string;
-    itemClassName?: string;
-  }
->(
-  (
-    {
-      items = 5,
-      itemComponent: ItemComponent = SkeletonPost,
-      className,
-      itemClassName,
-    },
-    ref
-  ) => {
-    return (
-      <div ref={ref} className={cn('space-y-6', className)}>
-        {Array.from({ length: items }).map((_, index) => (
-          <ItemComponent key={index} className={itemClassName} />
-        ))}
-      </div>
-    );
-  }
-);
-SkeletonList.displayName = 'SkeletonList';
-
 // Page-level skeleton layouts
-const SkeletonMainPage = React.forwardRef<
-  HTMLDivElement,
-  { className?: string }
->(({ className }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'flex min-h-screen w-full justify-center bg-neutral-50 dark:bg-neutral-900',
-        className
-      )}
-    >
-      <div className='w-full max-w-5xl px-4 py-6 md:px-8 md:py-10'>
-        <SkeletonHeader />
-
-        {/* Enhanced Action Bar Skeleton */}
-        <div className='flex flex-col items-start justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0'>
-          <SkeletonText width='12rem' size='xl' />
-          <SkeletonButton size='md' />
-        </div>
-
-        {/* Enhanced Groups List Skeleton */}
-        <SkeletonGroupList />
-      </div>
-    </div>
-  );
-});
-SkeletonMainPage.displayName = 'SkeletonMainPage';
-
 const SkeletonGroupPage = React.forwardRef<
   HTMLDivElement,
   { className?: string }
@@ -310,18 +259,6 @@ const SkeletonResultsPage = React.forwardRef<
   );
 });
 SkeletonResultsPage.displayName = 'SkeletonResultsPage';
-
-const SkeletonVPPage = React.forwardRef<HTMLDivElement, { className?: string }>(
-  ({ className }, ref) => {
-    return (
-      <div ref={ref} className={cn('container mx-auto p-4 py-10', className)}>
-        <div className='skeleton-blueprint mb-4 h-8 w-1/2 rounded-sm text-center text-2xl font-bold' />
-        <SkeletonChart />
-      </div>
-    );
-  }
-);
-SkeletonVPPage.displayName = 'SkeletonVPPage';
 
 // Header components
 const SkeletonHeader = React.forwardRef<HTMLDivElement, { className?: string }>(
@@ -750,37 +687,6 @@ const SkeletonGroupList = React.forwardRef<
 });
 SkeletonGroupList.displayName = 'SkeletonGroupList';
 
-const SkeletonGroupItem = React.forwardRef<
-  HTMLDivElement,
-  { className?: string }
->(({ className }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'flex space-x-4 border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-700 dark:bg-neutral-900',
-        className
-      )}
-    >
-      {/* Avatar Skeleton */}
-      <SkeletonGroupItemAvatar />
-
-      <div className='flex w-full flex-col justify-center space-y-2'>
-        {/* Group Name Skeleton */}
-        <SkeletonText width='12rem' size='md' />
-        {/* Author Name Skeleton */}
-        <SkeletonText width='8rem' size='sm' />
-        {/* Meta info line Skeleton */}
-        <div className='mt-2 flex flex-wrap gap-2'>
-          <SkeletonText width='3rem' size='xs' />
-          <SkeletonText width='4rem' size='xs' />
-        </div>
-      </div>
-    </div>
-  );
-});
-SkeletonGroupItem.displayName = 'SkeletonGroupItem';
-
 // Feed components
 const SkeletonFeed = React.forwardRef<HTMLDivElement, { className?: string }>(
   ({ className }, ref) => {
@@ -1183,67 +1089,6 @@ const HeaderSkeleton = React.forwardRef<HTMLDivElement, { className?: string }>(
 );
 HeaderSkeleton.displayName = 'HeaderSkeleton';
 
-// Group Item Skeleton - for individual group items in lists
-const SkeletonGroupItemDetailed = React.forwardRef<
-  HTMLDivElement,
-  { className?: string }
->(({ className }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'rounded-xs border border-neutral-200 bg-white p-2 dark:border-neutral-700 dark:bg-neutral-950 sm:p-3',
-        className
-      )}
-    >
-      <div className='relative flex flex-col gap-1 sm:gap-2'>
-        <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
-          <div className='sm:max-w-3/4 flex max-w-[60%] items-start gap-2'>
-            <div className='skeleton-blueprint skeleton-solid min-h-[32px] min-w-[32px] rounded-full sm:min-h-[40px] sm:min-w-[40px]' />
-            <div>
-              <div className='skeleton-blueprint skeleton-text mb-1 h-5 w-32' />
-              <div className='skeleton-blueprint skeleton-text h-4 w-20' />
-            </div>
-          </div>
-          <div className='skeleton-blueprint skeleton-text h-16 w-32' />
-        </div>
-      </div>
-    </div>
-  );
-});
-SkeletonGroupItemDetailed.displayName = 'SkeletonGroupItemDetailed';
-
-// Enhanced Group Item Skeleton - for streaming group items with enhanced visual fidelity
-const SkeletonGroupItemEnhanced = React.forwardRef<
-  HTMLDivElement,
-  { className?: string }
->(({ className }, ref) => {
-  return (
-    <SkeletonCard
-      ref={ref}
-      className={cn('p-2 sm:p-3', className)}
-      padding={false}
-    >
-      <div className='relative flex flex-col gap-1 sm:gap-2'>
-        <div className='flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-0'>
-          <div className='sm:max-w-3/4 flex max-w-[60%] items-start gap-2'>
-            <SkeletonGroupItemAvatar />
-            <div className='space-y-1'>
-              <SkeletonText width='8rem' size='md' />
-              <SkeletonText width='5rem' size='sm' />
-            </div>
-          </div>
-          <div className='space-y-1'>
-            <SkeletonText width='8rem' size='sm' />
-            <SkeletonText width='6rem' size='xs' />
-          </div>
-        </div>
-      </div>
-    </SkeletonCard>
-  );
-});
-SkeletonGroupItemEnhanced.displayName = 'SkeletonGroupItemEnhanced';
-
 // Action Bar Skeleton - for the action bar between summary header and group list
 const SkeletonActionBar = React.forwardRef<
   HTMLDivElement,
@@ -1299,20 +1144,6 @@ const SkeletonSearchAndFilter = React.forwardRef<
   );
 });
 SkeletonSearchAndFilter.displayName = 'SkeletonSearchAndFilter';
-
-// Complete Group List Page Skeleton - includes search, filters, and group list
-const SkeletonGroupListPage = React.forwardRef<
-  HTMLDivElement,
-  { className?: string }
->(({ className }, ref) => {
-  return (
-    <div ref={ref} className={cn('flex flex-col gap-6', className)}>
-      <SkeletonSearchAndFilter />
-      <SkeletonGroupList />
-    </div>
-  );
-});
-SkeletonGroupListPage.displayName = 'SkeletonGroupListPage';
 
 // Group List with Controls Skeleton - matches the exact GroupList component structure
 const SkeletonGroupListWithControls = React.forwardRef<
@@ -1593,13 +1424,9 @@ export {
   SkeletonButton,
   SkeletonCard,
   SkeletonPost,
-  SkeletonVoteItem,
-  SkeletonList,
   // Page layouts
-  SkeletonMainPage,
   SkeletonGroupPage,
   SkeletonResultsPage,
-  SkeletonVPPage,
   // Headers
   SkeletonHeader,
   SkeletonBodyHeader,
@@ -1612,9 +1439,6 @@ export {
   SkeletonPostedRevisions,
   // Lists and groups
   SkeletonGroupList,
-  SkeletonGroupItem,
-  SkeletonGroupItemDetailed,
-  SkeletonGroupItemEnhanced,
   SkeletonActiveGroupItem,
   SkeletonInactiveGroupItem,
   SkeletonDiscussionGroupItem,
@@ -1641,7 +1465,6 @@ export {
   // Specialized components
   SkeletonActionBar,
   SkeletonSearchAndFilter,
-  SkeletonGroupListPage,
   SkeletonGroupListWithControls,
   // Legacy aliases
   LoadingHeader,
