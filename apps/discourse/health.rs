@@ -67,14 +67,12 @@ impl HealthRegistry {
             .read()
             .expect("health registry lock poisoned")
             .clone();
-        let status = if tasks.is_empty() {
+        let status = if tasks.is_empty() || tasks.values().any(|task| task.last_error.is_some()) {
             HealthStatus::Degraded
-        } else if tasks.values().any(|task| task.last_attempt_at.is_none()) {
-            HealthStatus::Starting
-        } else if tasks.values().any(|task| task.last_error.is_some()) {
-            HealthStatus::Degraded
-        } else {
+        } else if tasks.values().any(|task| task.last_success_at.is_some()) {
             HealthStatus::Healthy
+        } else {
+            HealthStatus::Starting
         };
 
         HealthSnapshot { status, tasks }
@@ -96,6 +94,18 @@ mod tests {
         assert_eq!(registry.snapshot().status, HealthStatus::Degraded);
 
         registry.record_success("recent_arbitrum", now);
+        assert_eq!(registry.snapshot().status, HealthStatus::Healthy);
+    }
+
+    #[test]
+    fn reports_healthy_when_one_worker_succeeds_while_others_are_scheduled() {
+        let registry = HealthRegistry::default();
+        let now = Utc::now();
+        registry.register("recent_arbitrum");
+        registry.register("full_arbitrum");
+
+        registry.record_success("recent_arbitrum", now);
+
         assert_eq!(registry.snapshot().status, HealthStatus::Healthy);
     }
 
