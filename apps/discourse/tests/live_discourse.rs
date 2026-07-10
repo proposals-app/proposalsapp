@@ -482,10 +482,12 @@ fn live_discourse_endpoints() -> Result<()> {
                             revision.post_id == revision_post.id,
                             "revision post id mismatch"
                         );
-                        ensure!(
-                            !revision.body_changes.side_by_side_markdown.is_empty(),
-                            "revision body changes missing"
-                        );
+                        if let Some(body_changes) = &revision.body_changes {
+                            ensure!(
+                                !body_changes.side_by_side_markdown.is_empty(),
+                                "revision body changes present but empty"
+                            );
+                        }
 
                         let stored_post = discourse_post::Entity::find()
                             .filter(discourse_post::Column::ExternalId.eq(revision_post.id))

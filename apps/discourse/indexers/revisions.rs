@@ -7,7 +7,6 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use chrono::{Duration, Utc};
-use futures::stream::{self, StreamExt, TryStreamExt};
 use proposalsapp_db::models::{discourse_post, discourse_post_revision};
 use reqwest::StatusCode;
 use sea_orm::{
@@ -217,87 +216,89 @@ async fn update_revisions_for_post(
         .collect();
     debug!(post_id = %post_summary.id, ?existing_revision_versions, "Found existing revision versions in DB.");
 
-    // Determine which revisions are missing (from 2 up to the post's current version)
-    let mut missing_versions = Vec::new();
-    for rev_num in 2..=post_summary.version {
-        if !existing_revision_versions.contains(&rev_num) {
-            missing_versions.push(rev_num);
-        }
-    }
-
-    if missing_versions.is_empty() {
+    let expected_versions: HashSet<i32> = (2..=post_summary.version).collect();
+    if expected_versions.is_subset(&existing_revision_versions) {
         debug!(post_id = %post_summary.id, "No missing revisions detected for this post.");
         return Ok(());
     }
 
-    info!(post_id = %post_summary.id, missing_count = missing_versions.len(), ?missing_versions, "Fetching missing revisions.");
+    info!(post_id = %post_summary.id, "Walking provider revision chain from latest");
 
-    // Fetch and process missing revisions concurrently
-    let results = stream::iter(missing_versions)
-        .map(|rev_num| {
-            let api = Arc::clone(&discourse_api);
-            let post_internal_id = post_summary.id; // Internal UUID
-            let post_external_id = post_summary.external_id; // External ID
+    // Revision IDs and content versions diverge when hide/unhide events occur.
+    // Walking backwards from `latest` is the provider-authoritative way to
+    // discover every accessible content version.
+    let mut endpoint = "latest".to_string();
+    let mut visited_revision_ids = HashSet::new();
+    loop {
+        let url = format!(
+            "/posts/{}/revisions/{endpoint}.json",
+            post_summary.external_id
+        );
+        debug!(%url, "Fetching revision");
 
-            async move {
-                let url = format!("/posts/{post_external_id}/revisions/{rev_num}.json");
-                debug!(%url, "Fetching revision");
-
-                // Fetch the revision data
-                let mut revision: Revision = match api.queue(&url, priority).await {
-                    Ok(rev) => rev,
-                    Err(error) if has_http_status(&error, StatusCode::FORBIDDEN) => {
-                        warn!(
-                            %url,
-                            rev_num,
-                            "Discourse does not expose this revision publicly; skipping it"
-                        );
-                        return Ok(());
-                    }
-                    Err(e) => {
-                        error!(error = ?e, %url, rev_num, "Failed to fetch revision data");
-                        // Return error to stop processing this revision
-                        return Err(e.context(format!(
-                            "Failed to fetch revision v{rev_num} for post {post_external_id}"
-                        )));
-                    }
-                };
-
-                // Process upload URLs in revision body content (sync function)
-                let processed_body = process_upload_urls(
-                    &revision.body_changes.side_by_side_markdown,
-                    &api.base_url,
-                );
-                revision.body_changes.side_by_side_markdown = processed_body;
-
-                // Process title changes if they exist (sync function)
-                if let Some(title_changes) = &mut revision.title_changes {
-                    let processed_title = process_upload_urls(&title_changes.inline, &api.base_url);
-                    title_changes.inline = processed_title;
-                }
-
-                // Upsert the processed revision data
-                upsert_revision(&revision, dao_discourse_id, post_internal_id)
-                    .await
-                    .with_context(|| {
-                        format!(
-                            "Failed to upsert revision v{rev_num} for post_id {post_internal_id}"
-                        )
-                    })
+        let mut revision: Revision = match discourse_api.queue(&url, priority).await {
+            Ok(revision) => revision,
+            Err(error) if has_http_status(&error, StatusCode::FORBIDDEN) => {
+                warn!(%url, "Discourse does not expose this revision chain publicly; stopping");
+                break;
             }
-        })
-        .buffer_unordered(5) // Limit concurrent revision fetches per post
-        .try_collect::<Vec<()>>() // Collect results, stop on first error
-        .await;
+            Err(error) => {
+                error!(error = ?error, %url, "Failed to fetch revision data");
+                return Err(error.context(format!(
+                    "Failed to fetch revision {endpoint} for post {}",
+                    post_summary.external_id
+                )));
+            }
+        };
 
-    match results {
-        Ok(_) => {
-            info!(post_id = %post_summary.id, "Successfully updated missing revisions for post.");
-            Ok(())
+        if revision.post_id != post_summary.external_id {
+            anyhow::bail!(
+                "Discourse revision {} belongs to post {}, expected {}",
+                revision.current_revision,
+                revision.post_id,
+                post_summary.external_id
+            );
         }
-        Err(e) => {
-            error!(post_id = %post_summary.id, error = ?e, "Failed to update some revisions for post.");
-            Err(e) // Propagate the first error encountered
+        if !visited_revision_ids.insert(revision.current_revision) {
+            anyhow::bail!(
+                "Discourse revision chain for post {} contains a cycle at {}",
+                post_summary.external_id,
+                revision.current_revision
+            );
         }
+
+        if expected_versions.contains(&revision.current_version)
+            && !existing_revision_versions.contains(&revision.current_version)
+        {
+            if let Some(body_changes) = &mut revision.body_changes {
+                body_changes.side_by_side_markdown = process_upload_urls(
+                    &body_changes.side_by_side_markdown,
+                    &discourse_api.base_url,
+                );
+            }
+            if let Some(title_changes) = &mut revision.title_changes {
+                title_changes.inline =
+                    process_upload_urls(&title_changes.inline, &discourse_api.base_url);
+            }
+
+            upsert_revision(&revision, dao_discourse_id, post_summary.id)
+                .await
+                .with_context(|| {
+                    format!(
+                        "Failed to upsert content version {} from revision {} for post {}",
+                        revision.current_version,
+                        revision.current_revision,
+                        post_summary.external_id
+                    )
+                })?;
+        }
+
+        let Some(previous_revision) = revision.previous_revision else {
+            break;
+        };
+        endpoint = previous_revision.to_string();
     }
+
+    info!(post_id = %post_summary.id, "Successfully updated missing revisions for post.");
+    Ok(())
 }

@@ -28,20 +28,68 @@ pub struct Revision {
     pub display_username: String,
     pub avatar_template: String,
     pub edit_reason: Option<String>,
-    pub body_changes: BodyChanges,
+    /// Visibility-only revisions have no content diff but still advance the
+    /// provider's revision chain.
+    pub body_changes: Option<BodyChanges>,
     pub title_changes: Option<TitleChanges>,
     pub can_edit: bool,
 }
 
 impl Revision {
     pub fn get_cooked_markdown_before(&self) -> String {
-        let content = self.body_changes.side_by_side_markdown.clone();
-        markdown_changes::extract_before_content_markdown(&content).unwrap_or_default()
+        self.body_changes
+            .as_ref()
+            .and_then(|changes| {
+                markdown_changes::extract_before_content_markdown(&changes.side_by_side_markdown)
+                    .ok()
+            })
+            .unwrap_or_default()
     }
 
     pub fn get_cooked_markdown_after(&self) -> String {
-        let content = self.body_changes.side_by_side_markdown.clone();
-        markdown_changes::extract_after_content_markdown(&content).unwrap_or_default()
+        self.body_changes
+            .as_ref()
+            .and_then(|changes| {
+                markdown_changes::extract_after_content_markdown(&changes.side_by_side_markdown)
+                    .ok()
+            })
+            .unwrap_or_default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Revision;
+
+    #[test]
+    fn deserializes_visibility_only_revision() {
+        let revision: Revision = serde_json::from_str(
+            r#"{
+                "created_at":"2026-06-24T20:06:26.747Z",
+                "post_id":77077,
+                "previous_hidden":true,
+                "current_hidden":false,
+                "first_revision":3,
+                "previous_revision":null,
+                "current_revision":3,
+                "next_revision":4,
+                "last_revision":5,
+                "current_version":2,
+                "version_count":4,
+                "username":"opco",
+                "display_username":"OpCo",
+                "avatar_template":"/user_avatar/opco/{size}/15563_2.png",
+                "edit_reason":null,
+                "body_changes":null,
+                "title_changes":null,
+                "can_edit":false
+            }"#,
+        )
+        .expect("visibility-only revision should deserialize");
+
+        assert!(revision.body_changes.is_none());
+        assert_eq!(revision.current_revision, 3);
+        assert_eq!(revision.current_version, 2);
     }
 }
 

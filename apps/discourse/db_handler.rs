@@ -368,8 +368,14 @@ pub async fn upsert_revision(
     discourse_post_id: Uuid, // This is the internal UUID of the post
 ) -> Result<()> {
     // Extract structured diff content. Log errors but don't fail the upsert.
-    let cooked_body_before = revision.get_cooked_markdown_before();
-    let cooked_body_after = revision.get_cooked_markdown_after();
+    let cooked_body_before = revision
+        .body_changes
+        .as_ref()
+        .map(|_| revision.get_cooked_markdown_before());
+    let cooked_body_after = revision
+        .body_changes
+        .as_ref()
+        .map(|_| revision.get_cooked_markdown_after());
 
     let cooked_title_before = revision
         .title_changes
@@ -385,13 +391,19 @@ pub async fn upsert_revision(
         version: Set(revision.current_version),
         created_at: Set(revision.created_at.naive_utc()),
         username: Set(revision.username.clone()),
-        body_changes: Set(revision.body_changes.side_by_side_markdown.clone()), // Raw diff HTML
+        // The legacy column is non-null, so an empty raw diff represents a
+        // provider revision that changed visibility but not body content.
+        body_changes: Set(revision
+            .body_changes
+            .as_ref()
+            .map(|changes| changes.side_by_side_markdown.clone())
+            .unwrap_or_default()),
         title_changes: Set(revision.title_changes.as_ref().map(|tc| tc.inline.clone())),
         edit_reason: Set(revision.edit_reason.clone()),
         // Store the processed before/after content
-        cooked_body_before: Set(Some(cooked_body_before)),
+        cooked_body_before: Set(cooked_body_before),
         cooked_title_before: Set(cooked_title_before),
-        cooked_body_after: Set(Some(cooked_body_after)),
+        cooked_body_after: Set(cooked_body_after),
         cooked_title_after: Set(cooked_title_after),
         dao_discourse_id: Set(dao_discourse_id),
         discourse_post_id: Set(discourse_post_id), // Link to the internal post UUID

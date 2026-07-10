@@ -527,11 +527,11 @@ fn test_upsert_revision_and_likes() -> Result<()> {
             display_username: "Bob".to_string(),
             avatar_template: "https://example.com/avatar-bob.png".to_string(),
             edit_reason: Some("Fix typo".to_string()),
-            body_changes: BodyChanges {
+            body_changes: Some(BodyChanges {
                 inline: "-old +new".to_string(),
                 side_by_side: "old | new".to_string(),
                 side_by_side_markdown: "<del>old</del><ins>new</ins>".to_string(),
-            },
+            }),
             title_changes: Some(TitleChanges {
                 inline: "-Old +New".to_string(),
             }),

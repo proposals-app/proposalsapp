@@ -654,7 +654,7 @@ pub fn process_upload_urls(raw_content: &str, base_url: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*; // Import items from parent module
-    use crate::models::posts::PostResponse;
+    use crate::models::{posts::PostResponse, revisions::Revision};
     // use std::time::Duration; // Removed unused Duration
 
     #[test]
@@ -729,6 +729,21 @@ mod tests {
                 assert!(has_http_status(&error, StatusCode::FORBIDDEN));
             }
         }
+
+        let latest: Revision = api
+            .queue("/posts/77077/revisions/latest.json", true)
+            .await
+            .unwrap();
+        assert_eq!(latest.current_revision, latest.last_revision);
+        assert!(latest.previous_revision.is_some());
+
+        let visibility_only: Revision = api
+            .queue("/posts/77077/revisions/3.json", true)
+            .await
+            .unwrap();
+        assert_eq!(visibility_only.current_revision, 3);
+        assert_eq!(visibility_only.current_version, 2);
+        assert!(visibility_only.body_changes.is_none());
     }
 
     // --- Keep Existing Tests ---
