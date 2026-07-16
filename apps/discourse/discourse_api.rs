@@ -417,8 +417,14 @@ impl DiscourseApi {
                     }
                 }
                 Err(e) => {
-                    // Log the final error that prevented a successful response.
-                    error!(url = %job.url, error = ?e, "Request ultimately failed, notifying waiters with error.");
+                    // Public Discourse endpoints can intentionally hide liker identities or
+                    // revision history. Callers handle those denials without failing their
+                    // refresh cycle, so keep them out of the operational error stream.
+                    if has_http_status(&e, StatusCode::FORBIDDEN) {
+                        warn!(url = %job.url, error = ?e, "Public access denied; notifying waiters.");
+                    } else {
+                        error!(url = %job.url, error = ?e, "Request ultimately failed, notifying waiters with error.");
+                    }
                     // Send owned error to each waiter.
                     // We need to capture the error before the loop as `e` is moved into the first `context` call.
                     let status_error = e.downcast_ref::<HttpStatusError>().cloned();
@@ -543,7 +549,7 @@ impl DiscourseApi {
                                 Ok(text) => text.chars().take(100).collect::<String>(),
                                 Err(_) => "[failed to read body]".to_string(),
                             };
-                            error!(url, status = %status, body_preview, "Request forbidden (403), caching URL and failing permanently.");
+                            warn!(url, status = %status, body_preview, "Public access denied (403); caching URL.");
 
                             // Add to forbidden cache
                             {
