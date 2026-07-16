@@ -15,9 +15,9 @@ networks:
   - name: ethereum
     chain_id: 1
     rpc: ${ETHEREUM_NODE_URL}
-    max_block_range: 100
+    max_block_range: 50
     block_poll_frequency: 120000
-    compute_units_per_second: 20
+    compute_units_per_second: 5
 
   - name: arbitrum
     chain_id: 42161

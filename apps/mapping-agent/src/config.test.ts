@@ -94,4 +94,13 @@ describe('loadConfig', () => {
 
     expect(loadConfig().pi.thinking).toBe('xhigh');
   });
+
+  it('defaults lmstudio gemma 4 thinking to xhigh', async () => {
+    vi.stubEnv('MAPPING_AGENT_PI_PROVIDER', 'lmstudio');
+    vi.stubEnv('MAPPING_AGENT_PI_MODEL', 'gemma-4-31b-qat');
+
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig().pi.thinking).toBe('xhigh');
+  });
 });

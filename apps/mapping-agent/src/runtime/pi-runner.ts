@@ -12,7 +12,10 @@ import {
   type AgentSessionEvent,
   type ExtensionFactory,
 } from '@earendil-works/pi-coding-agent';
-import { isLmStudioQwenModel } from '../shared/pi-model';
+import {
+  isLmStudioQwenModel,
+  isLmStudioReasoningModel,
+} from '../shared/pi-model';
 
 const DEFAULT_MAX_TOKENS = 4_096;
 const DEFAULT_API_KEY = 'lmstudio';
@@ -241,6 +244,7 @@ function createModelRegistryForRun(input: RunPiAgentInput): {
 
   if (input.baseUrl) {
     const isLmStudioQwen = isLmStudioQwenModel(input);
+    const isLmStudioReasoning = isLmStudioReasoningModel(input);
     modelRegistry.registerProvider(input.provider, {
       api: 'openai-completions',
       apiKey: input.apiKey ?? DEFAULT_API_KEY,
@@ -249,7 +253,7 @@ function createModelRegistryForRun(input: RunPiAgentInput): {
         {
           id: input.model,
           name: input.model,
-          reasoning: isLmStudioQwen,
+          reasoning: isLmStudioReasoning,
           input: ['text'],
           contextWindow: input.contextWindow,
           maxTokens: DEFAULT_MAX_TOKENS,

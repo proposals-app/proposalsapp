@@ -12,6 +12,7 @@ import {
   type Vote,
 } from '@proposalsapp/db';
 import { getDaoExcludedVoterAddress } from '@/lib/dao-config';
+import { appendAll, chunkArray } from '@/lib/arrays';
 
 export async function getProposalGovernor(proposalId: string) {
   proposalIdSchema.parse(proposalId);
@@ -157,33 +158,18 @@ export async function getNonVoters(proposalId: string) {
   const eligibleVoterIds = eligibleVoters.map((v) => v.voterId);
 
   // Process current voting power in chunks to handle large datasets
-  const CHUNK_SIZE = 10000;
   const currentPowerMap = new Map<string, number>();
 
-  if (eligibleVoterAddresses.length <= CHUNK_SIZE) {
-    const currentPowers = await db
+  for (const chunk of chunkArray(eligibleVoterAddresses)) {
+    const chunkPowers = await db
       .selectFrom('votingPowerLatest')
       .where('daoId', '=', daoId)
-      .where('voter', 'in', eligibleVoterAddresses)
+      .where('voter', 'in', chunk)
       .select(['voter', 'votingPower'])
       .execute();
-    currentPowers.forEach((cp) => {
+    chunkPowers.forEach((cp) => {
       currentPowerMap.set(cp.voter, cp.votingPower);
     });
-  } else {
-    for (let i = 0; i < eligibleVoterAddresses.length; i += CHUNK_SIZE) {
-      const chunk = eligibleVoterAddresses.slice(i, i + CHUNK_SIZE);
-      if (chunk.length === 0) continue;
-      const chunkPowers = await db
-        .selectFrom('votingPowerLatest')
-        .where('daoId', '=', daoId)
-        .where('voter', 'in', chunk)
-        .select(['voter', 'votingPower'])
-        .execute();
-      chunkPowers.forEach((cp) => {
-        currentPowerMap.set(cp.voter, cp.votingPower);
-      });
-    }
   }
 
   // Link voters to discourse users for profile information
@@ -201,10 +187,7 @@ export async function getNonVoters(proposalId: string) {
 
     // Process delegate links in chunks to avoid parameter limits
     const allDelegateToVoterLinks: DelegateToVoterLink[] = [];
-    for (let i = 0; i < eligibleVoterIds.length; i += CHUNK_SIZE) {
-      const chunk = eligibleVoterIds.slice(i, i + CHUNK_SIZE);
-      if (chunk.length === 0) continue;
-
+    for (const chunk of chunkArray(eligibleVoterIds)) {
       const chunkLinks = await db
         .selectFrom('delegateToVoter as dtv')
         .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
@@ -215,7 +198,7 @@ export async function getNonVoters(proposalId: string) {
         .distinctOn('dtv.voterId')
         .select(['dtv.voterId', 'dtv.delegateId'])
         .execute();
-      allDelegateToVoterLinks.push(...chunkLinks);
+      appendAll(allDelegateToVoterLinks, chunkLinks);
     }
 
     delegateIdByVoterId = new Map(
@@ -227,10 +210,7 @@ export async function getNonVoters(proposalId: string) {
 
     if (allDelegateIds.length > 0) {
       const allDelegateToDiscourseLinks: DelegateToDiscourseLink[] = [];
-      for (let i = 0; i < allDelegateIds.length; i += CHUNK_SIZE) {
-        const chunk = allDelegateIds.slice(i, i + CHUNK_SIZE);
-        if (chunk.length === 0) continue;
-
+      for (const chunk of chunkArray(allDelegateIds)) {
         const chunkLinks = await db
           .selectFrom('delegateToDiscourseUser as dtdu')
           .where('dtdu.delegateId', 'in', chunk)
@@ -239,7 +219,7 @@ export async function getNonVoters(proposalId: string) {
           .distinctOn('dtdu.delegateId')
           .select(['dtdu.delegateId', 'dtdu.discourseUserId'])
           .execute();
-        allDelegateToDiscourseLinks.push(...chunkLinks);
+        appendAll(allDelegateToDiscourseLinks, chunkLinks);
       }
 
       discourseUserIdByDelegateId = new Map(
@@ -256,17 +236,14 @@ export async function getNonVoters(proposalId: string) {
 
       if (allDiscourseUserIds.length > 0) {
         const allDiscourseUsers: Selectable<DiscourseUser>[] = [];
-        for (let i = 0; i < allDiscourseUserIds.length; i += CHUNK_SIZE) {
-          const chunk = allDiscourseUserIds.slice(i, i + CHUNK_SIZE);
-          if (chunk.length === 0) continue;
-
+        for (const chunk of chunkArray(allDiscourseUserIds)) {
           const chunkUsers = await db
             .selectFrom('discourseUser')
             .where('id', 'in', chunk)
             .where('daoDiscourseId', '=', daoDiscourseId)
             .selectAll()
             .execute();
-          allDiscourseUsers.push(...chunkUsers);
+          appendAll(allDiscourseUsers, chunkUsers);
         }
         discourseUserMap = new Map(allDiscourseUsers.map((du) => [du.id, du]));
       }
@@ -611,21 +588,38 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     }));
   }
 
-  const voters = await db
-    .selectFrom('voter')
-    .select(['id', 'address', 'ens', 'avatar'])
-    .where('address', 'in', voterAddresses)
-    .execute();
+  const voters: Array<{
+    id: string;
+    address: string;
+    ens: string | null;
+    avatar: string | null;
+  }> = [];
+  for (const chunk of chunkArray(voterAddresses)) {
+    const chunkVoters = await db
+      .selectFrom('voter')
+      .select(['id', 'address', 'ens', 'avatar'])
+      .where('address', 'in', chunk)
+      .execute();
+    appendAll(voters, chunkVoters);
+  }
 
   const voterMap = new Map(voters.map((voter) => [voter.address, voter]));
   const voterIds = voters.map((v) => v.id);
 
-  const latestVotingPowers = await db
-    .selectFrom('votingPowerLatest')
-    .select(['voter', 'votingPower', 'daoId'])
-    .where('voter', 'in', voterAddresses)
-    .where('daoId', 'in', daoIds)
-    .execute();
+  const latestVotingPowers: Array<{
+    voter: string;
+    votingPower: number;
+    daoId: string;
+  }> = [];
+  for (const chunk of chunkArray(voterAddresses)) {
+    const chunkPowers = await db
+      .selectFrom('votingPowerLatest')
+      .select(['voter', 'votingPower', 'daoId'])
+      .where('voter', 'in', chunk)
+      .where('daoId', 'in', daoIds)
+      .execute();
+    appendAll(latestVotingPowers, chunkPowers);
+  }
 
   const latestVotingPowerMap = new Map<string, number>();
   latestVotingPowers.forEach((vp) => {
@@ -633,17 +627,25 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     latestVotingPowerMap.set(key, vp.votingPower);
   });
 
-  const delegateToVoterLinks = await db
-    .selectFrom('delegateToVoter as dtv')
-    .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
-    .where('dtv.voterId', 'in', voterIds)
-    .where('d.daoId', 'in', daoIds)
-    .orderBy('dtv.voterId', 'asc')
-    .orderBy('d.daoId', 'asc')
-    .orderBy('dtv.createdAt', 'desc')
-    .distinctOn(['dtv.voterId', 'd.daoId'])
-    .select(['dtv.voterId', 'dtv.delegateId', 'd.daoId'])
-    .execute();
+  const delegateToVoterLinks: Array<{
+    voterId: string;
+    delegateId: string;
+    daoId: string;
+  }> = [];
+  for (const chunk of chunkArray(voterIds)) {
+    const chunkLinks = await db
+      .selectFrom('delegateToVoter as dtv')
+      .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
+      .where('dtv.voterId', 'in', chunk)
+      .where('d.daoId', 'in', daoIds)
+      .orderBy('dtv.voterId', 'asc')
+      .orderBy('d.daoId', 'asc')
+      .orderBy('dtv.createdAt', 'desc')
+      .distinctOn(['dtv.voterId', 'd.daoId'])
+      .select(['dtv.voterId', 'dtv.delegateId', 'd.daoId'])
+      .execute();
+    appendAll(delegateToVoterLinks, chunkLinks);
+  }
 
   const delegateIdByVoterAndDao = new Map<string, string>();
   delegateToVoterLinks.forEach((link) => {
@@ -664,14 +666,21 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   let discourseUserIdByDelegateId = new Map<string, string>();
 
   if (delegateIds.length > 0 && daoDiscourses.length > 0) {
-    const delegateToDiscourseLinks = await db
-      .selectFrom('delegateToDiscourseUser as dtdu')
-      .where('dtdu.delegateId', 'in', delegateIds)
-      .orderBy('dtdu.delegateId', 'asc')
-      .orderBy('dtdu.createdAt', 'desc')
-      .distinctOn('dtdu.delegateId')
-      .select(['dtdu.delegateId', 'dtdu.discourseUserId'])
-      .execute();
+    const delegateToDiscourseLinks: Array<{
+      delegateId: string;
+      discourseUserId: string;
+    }> = [];
+    for (const chunk of chunkArray(delegateIds)) {
+      const chunkLinks = await db
+        .selectFrom('delegateToDiscourseUser as dtdu')
+        .where('dtdu.delegateId', 'in', chunk)
+        .orderBy('dtdu.delegateId', 'asc')
+        .orderBy('dtdu.createdAt', 'desc')
+        .distinctOn('dtdu.delegateId')
+        .select(['dtdu.delegateId', 'dtdu.discourseUserId'])
+        .execute();
+      appendAll(delegateToDiscourseLinks, chunkLinks);
+    }
 
     discourseUserIdByDelegateId = new Map(
       delegateToDiscourseLinks.map((link) => [
@@ -685,16 +694,20 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     ];
 
     if (discourseUserIds.length > 0) {
-      const discourseUsers = await db
-        .selectFrom('discourseUser')
-        .where('id', 'in', discourseUserIds)
-        .where(
-          'daoDiscourseId',
-          'in',
-          daoDiscourses.map((dd) => dd.id)
-        )
-        .selectAll()
-        .execute();
+      const discourseUsers: Selectable<DiscourseUser>[] = [];
+      for (const chunk of chunkArray(discourseUserIds)) {
+        const chunkUsers = await db
+          .selectFrom('discourseUser')
+          .where('id', 'in', chunk)
+          .where(
+            'daoDiscourseId',
+            'in',
+            daoDiscourses.map((dd) => dd.id)
+          )
+          .selectAll()
+          .execute();
+        appendAll(discourseUsers, chunkUsers);
+      }
 
       discourseUserMap = new Map(discourseUsers.map((du) => [du.id, du]));
     }

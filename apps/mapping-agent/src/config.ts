@@ -1,4 +1,4 @@
-import { isLmStudioQwenModel } from './shared/pi-model';
+import { isLmStudioReasoningModel } from './shared/pi-model';
 import { DAO_DISCOURSE_CATEGORY_FILTERS } from '@proposalsapp/governance';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
@@ -112,7 +112,7 @@ export function loadConfig(): MappingAgentConfig {
     (piProvider === 'openrouter' ? process.env.OPENROUTER_API_KEY : null) ||
     null;
   const piModel = process.env.MAPPING_AGENT_PI_MODEL || null;
-  const defaultThinking = isLmStudioQwenModel({
+  const defaultThinking = isLmStudioReasoningModel({
     provider: piProvider,
     model: piModel,
   })

@@ -56,6 +56,7 @@ export default async function Image({
         </div>
         <div
           style={{
+            display: 'flex',
             color: '#a0a0a0',
             fontSize: 28,
             marginTop: 12,

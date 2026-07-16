@@ -63,7 +63,7 @@ WORKDIR /app
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates libssl3t64 libunwind8 libdw1t64 \
+    ca-certificates curl libssl3t64 libunwind8 libdw1t64 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user with stable UID/GID

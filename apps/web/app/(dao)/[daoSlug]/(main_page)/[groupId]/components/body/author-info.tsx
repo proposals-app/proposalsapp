@@ -16,6 +16,7 @@ export const AuthorInfo = ({
         fetchPriority='high'
         width={40}
         height={40}
+        unoptimized
       />
     </div>
     <div className='font-bold text-neutral-700 dark:text-neutral-200'>

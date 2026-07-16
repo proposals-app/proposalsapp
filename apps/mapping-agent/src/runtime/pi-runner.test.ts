@@ -299,7 +299,7 @@ describe('runPiAgent', () => {
         models: [
           expect.objectContaining({
             id: 'google/gemma-4-31b',
-            reasoning: false,
+            reasoning: true,
             compat: expect.objectContaining({
               maxTokensField: 'max_tokens',
               supportsDeveloperRole: false,
@@ -488,6 +488,99 @@ describe('runPiAgent', () => {
           }),
         ],
       })
+    );
+  });
+
+  it('registers LM Studio Gemma 4 as a reasoning model', async () => {
+    const listeners: Array<(event: unknown) => void> = [];
+    const session = {
+      agent: {},
+      subscribe: vi.fn((listener) => {
+        listeners.push(listener);
+        return vi.fn();
+      }),
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => undefined),
+      prompt: vi.fn(async () => {
+        for (const listener of listeners) {
+          listener({
+            type: 'tool_execution_start',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            args: { reason: 'done' },
+          });
+          listener({
+            type: 'tool_execution_end',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            isError: false,
+            result: {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({ declined: true }),
+                },
+              ],
+            },
+          });
+        }
+      }),
+      dispose: vi.fn(),
+    };
+    const model = {
+      provider: 'lmstudio',
+      id: 'gemma-4-31b-qat',
+    };
+
+    modelRegistry.find.mockReturnValue(model);
+    createAgentSession.mockResolvedValue({
+      session,
+      extensionsResult: {
+        extensions: [],
+        errors: [],
+        runtime: {},
+      },
+    });
+
+    await runPiAgent({
+      extensionFactory: vi.fn(),
+      activeToolNames: ['query_delegate_mapping_data'],
+      queryToolName: 'query_delegate_mapping_data',
+      decisionToolNames: [
+        'propose_delegate_mapping',
+        'decline_delegate_mapping',
+      ],
+      systemPrompt: 'system prompt',
+      prompt: 'resolve the mapping case',
+      provider: 'lmstudio',
+      model: 'gemma-4-31b-qat',
+      thinking: 'xhigh',
+      baseUrl: 'http://ai-box:2234/v1',
+      apiKey: 'lmstudio',
+      contextWindow: 65_536,
+      timeoutMs: 30_000,
+      maxQueryCalls: 4,
+    });
+
+    expect(modelRegistry.registerProvider).toHaveBeenCalledWith(
+      'lmstudio',
+      expect.objectContaining({
+        models: [
+          expect.objectContaining({
+            id: 'gemma-4-31b-qat',
+            reasoning: true,
+            contextWindow: 65_536,
+            compat: expect.objectContaining({
+              supportsReasoningEffort: false,
+            }),
+          }),
+        ],
+      })
+    );
+
+    const registration = modelRegistry.registerProvider.mock.calls.at(-1)?.[1];
+    expect(registration?.models[0]?.compat).not.toHaveProperty(
+      'thinkingFormat'
     );
   });
 

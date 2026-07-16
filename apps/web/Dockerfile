@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: Builder (use -dev variant for build tools)
-FROM node:22-bookworm AS builder
+FROM node:24-bookworm AS builder
 
 WORKDIR /app
 
@@ -32,9 +32,13 @@ RUN touch apps/web/.env \
   && pnpm build-web
 
 # Stage 2: Runtime (use minimal runtime image - no shell, no package manager)
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the standalone server output and required runtime assets
 COPY --from=builder --chown=node:node /app/apps/web/.next/standalone/ /app/

@@ -42,6 +42,10 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 ARG APP_NAME
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy only necessary files (runtime image provides `node` user)
 COPY --from=builder --chown=node:node /app/apps/${APP_NAME}/dist/ /app/apps/${APP_NAME}/dist/
 COPY --from=builder --chown=node:node /app/package.json /app/

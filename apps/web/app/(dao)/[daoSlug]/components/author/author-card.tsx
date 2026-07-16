@@ -35,6 +35,7 @@ export function AuthorCard({
           alt={altText}
           width={40}
           height={40}
+          unoptimized
         />
       </div>
       <div className='flex flex-col text-neutral-800 dark:text-neutral-200'>

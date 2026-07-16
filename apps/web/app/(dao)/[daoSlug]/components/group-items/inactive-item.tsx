@@ -49,6 +49,7 @@ export function InactiveGroupItem({
                 className='h-full w-full object-cover'
                 fill
                 sizes='(min-width: 640px) 40px, 32px'
+                unoptimized
               />
             </div>
             <div>

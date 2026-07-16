@@ -68,6 +68,7 @@ export function HeaderClient({
             className='object-cover'
             width={40}
             height={40}
+            unoptimized
           />
         </div>
         <h1

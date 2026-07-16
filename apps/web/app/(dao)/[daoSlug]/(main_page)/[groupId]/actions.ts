@@ -34,6 +34,7 @@ import { updateLastReadForDao } from '@/lib/last-read-update';
 import { revalidateTag, cacheLife, cacheTag } from 'next/cache';
 import { groupIdSchema } from '@/lib/validations';
 import type { SupportedGovernorType } from '@/lib/governance-config';
+import { appendAll } from '@/lib/arrays';
 
 export async function updateLastReadAt(groupId: string, daoSlug: string) {
   // Validate groupId
@@ -951,7 +952,7 @@ export async function getFeed(
         latestVotesQuery.execute(),
       ]);
 
-    allVotes.push(...historicalVotesForProposals);
+    appendAll(allVotes, historicalVotesForProposals);
 
     const historicalVotesByProposal = new Map<string, Selectable<Vote>[]>();
     historicalVotesForProposals.forEach((vote) => {
@@ -1133,7 +1134,7 @@ export async function getFeed(
             (feedFilter == FeedFilterEnum.COMMENTS_AND_VOTES ||
               feedFilter == FeedFilterEnum.VOTES)
           ) {
-            processedVotes.push(...(filteredProcessedResults.votes ?? []));
+            appendAll(processedVotes, filteredProcessedResults.votes ?? []);
           }
 
           const metadata =

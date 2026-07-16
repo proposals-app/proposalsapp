@@ -809,7 +809,6 @@ export function processResultsAction(
 
   // Handle cases where choices might be missing or malformed early
   if (choices.length === 0) {
-    console.warn(`Proposal ${proposal.id} has no valid choices defined.`);
     return {
       proposal: processedProposal,
       choices: [],
