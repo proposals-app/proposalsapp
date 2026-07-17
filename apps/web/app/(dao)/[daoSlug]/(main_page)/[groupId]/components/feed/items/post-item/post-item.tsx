@@ -159,13 +159,15 @@ const PostContent = ({
 
   const { preview, hasMore } = extractPreview(processedContent);
   const shouldCollapse = hasMore && contentLength > CONTENT_THRESHOLD;
+  const authorUsername =
+    author?.externalId === -1 ? item.username : author?.username;
 
   return (
     <>
       <div className='flex cursor-default select-none flex-row justify-between'>
-        {author ? (
+        {author && authorUsername ? (
           <DiscourseAuthor
-            username={author.username}
+            username={authorUsername}
             ens={ens}
             avatar={author.avatarTemplate}
             currentVotingPower={currentVotingPower}
