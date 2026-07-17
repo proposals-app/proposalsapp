@@ -35,6 +35,12 @@ pub fn has_http_status(error: &anyhow::Error, status: StatusCode) -> bool {
     })
 }
 
+fn is_invalid_page_response(status: StatusCode, body_preview: &str) -> bool {
+    status == StatusCode::BAD_REQUEST
+        && body_preview.contains("invalid parameters")
+        && body_preview.contains("page")
+}
+
 fn is_missing_user_profile(url: &str, status: StatusCode) -> bool {
     if status != StatusCode::NOT_FOUND {
         return false;
@@ -51,9 +57,7 @@ pub fn is_invalid_page_error(error: &anyhow::Error) -> bool {
         cause
             .downcast_ref::<HttpStatusError>()
             .is_some_and(|http_error| {
-                http_error.status == StatusCode::BAD_REQUEST
-                    && http_error.body_preview.contains("invalid parameters")
-                    && http_error.body_preview.contains("page")
+                is_invalid_page_response(http_error.status, &http_error.body_preview)
             })
     })
 }
@@ -437,6 +441,8 @@ impl DiscourseApi {
                         && is_missing_user_profile(&job.url, StatusCode::NOT_FOUND)
                     {
                         warn!(url = %job.url, "Discourse user profile is unavailable; notifying waiters.");
+                    } else if is_invalid_page_error(&e) {
+                        info!(url = %job.url, "Discourse directory reached its final page; notifying waiters.");
                     } else {
                         error!(url = %job.url, error = ?e, "Request ultimately failed, notifying waiters with error.");
                     }
@@ -592,6 +598,8 @@ impl DiscourseApi {
                             };
                             if is_missing_user_profile(url, s) {
                                 warn!(url, status = %s, "Discourse user profile is unavailable.");
+                            } else if is_invalid_page_response(s, &body_preview) {
+                                info!(url, status = %s, "Discourse directory reached its final page.");
                             } else {
                                 error!(url, status = %s, body_preview, "Client error, failing permanently.");
                             }
@@ -715,6 +723,24 @@ mod tests {
         assert!(!is_missing_user_profile(
             "https://gov.uniswap.org/u/.json",
             StatusCode::NOT_FOUND
+        ));
+    }
+
+    #[test]
+    fn invalid_page_response_only_matches_directory_end_signal() {
+        let invalid_page = r#"{\"errors\":[\"invalid parameters\"],\"error_type\":\"invalid_parameters\",\"extras\":{\"page\":\"invalid\"}}"#;
+
+        assert!(is_invalid_page_response(
+            StatusCode::BAD_REQUEST,
+            invalid_page
+        ));
+        assert!(!is_invalid_page_response(
+            StatusCode::NOT_FOUND,
+            invalid_page
+        ));
+        assert!(!is_invalid_page_response(
+            StatusCode::BAD_REQUEST,
+            r#"{\"errors\":[\"invalid parameters\"]}"#
         ));
     }
 
