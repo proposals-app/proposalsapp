@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 use rand::seq::IndexedRandom;
 use regex::Regex;
 use reqwest::{
-    Client, StatusCode,
+    Client, StatusCode, Url,
     cookie::Jar,
     header::{HeaderMap, HeaderValue, RETRY_AFTER, USER_AGENT},
 };
@@ -32,6 +32,17 @@ pub fn has_http_status(error: &anyhow::Error, status: StatusCode) -> bool {
         cause
             .downcast_ref::<HttpStatusError>()
             .is_some_and(|http_error| http_error.status == status)
+    })
+}
+
+fn is_missing_user_profile(url: &str, status: StatusCode) -> bool {
+    if status != StatusCode::NOT_FOUND {
+        return false;
+    }
+
+    Url::parse(url).ok().is_some_and(|url| {
+        let path = url.path();
+        path.starts_with("/u/") && path.len() > "/u/.json".len() && path.ends_with(".json")
     })
 }
 
@@ -422,6 +433,10 @@ impl DiscourseApi {
                     // refresh cycle, so keep them out of the operational error stream.
                     if has_http_status(&e, StatusCode::FORBIDDEN) {
                         warn!(url = %job.url, error = ?e, "Public access denied; notifying waiters.");
+                    } else if has_http_status(&e, StatusCode::NOT_FOUND)
+                        && is_missing_user_profile(&job.url, StatusCode::NOT_FOUND)
+                    {
+                        warn!(url = %job.url, "Discourse user profile is unavailable; notifying waiters.");
                     } else {
                         error!(url = %job.url, error = ?e, "Request ultimately failed, notifying waiters with error.");
                     }
@@ -575,7 +590,11 @@ impl DiscourseApi {
                                 Ok(text) => text.chars().take(100).collect::<String>(),
                                 Err(_) => "[failed to read body]".to_string(),
                             };
-                            error!(url, status = %s, body_preview, "Client error, failing permanently.");
+                            if is_missing_user_profile(url, s) {
+                                warn!(url, status = %s, "Discourse user profile is unavailable.");
+                            } else {
+                                error!(url, status = %s, body_preview, "Client error, failing permanently.");
+                            }
                             return Err(HttpStatusError {
                                 status: s,
                                 url: url.to_string(),
@@ -677,6 +696,26 @@ mod tests {
         let expected = "Text https://test.forum.local/uploads/short-url/file.jpg";
         let processed = process_upload_urls(raw, "https://test.forum.local/");
         assert_eq!(processed, expected);
+    }
+
+    #[test]
+    fn missing_user_profile_only_matches_user_404s() {
+        assert!(is_missing_user_profile(
+            "https://gov.uniswap.org/u/deleted-user.json",
+            StatusCode::NOT_FOUND
+        ));
+        assert!(!is_missing_user_profile(
+            "https://gov.uniswap.org/u/deleted-user.json",
+            StatusCode::FORBIDDEN
+        ));
+        assert!(!is_missing_user_profile(
+            "https://gov.uniswap.org/t/123.json",
+            StatusCode::NOT_FOUND
+        ));
+        assert!(!is_missing_user_profile(
+            "https://gov.uniswap.org/u/.json",
+            StatusCode::NOT_FOUND
+        ));
     }
 
     #[tokio::test]

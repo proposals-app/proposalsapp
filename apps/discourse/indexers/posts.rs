@@ -304,13 +304,22 @@ impl PostIndexer {
                         cache.insert(username.clone(), user_id);
                     }
                     Err(e) => {
-                        warn!(username = %username, error = ?e, "Failed to fetch or upsert user, assigning to 'unknown_user'.");
+                        let missing_profile = has_http_status(&e, StatusCode::NOT_FOUND);
                         match get_or_create_unknown_user(dao_discourse_id).await {
                             Ok(unknown_user) => {
                                 post.user_id = unknown_user.id;
-                                post.username = unknown_user.username.clone();
-                                post.avatar_template = unknown_user.avatar_template;
-                                post.display_username = unknown_user.name;
+
+                                if missing_profile {
+                                    let first_missing_profile = {
+                                        let mut cache = user_cache.lock().await;
+                                        cache.insert(username.clone(), unknown_user.id).is_none()
+                                    };
+                                    if first_missing_profile {
+                                        warn!(username = %username, "Discourse user profile is unavailable; preserving the post author and using the fallback user relation.");
+                                    }
+                                } else {
+                                    warn!(username = %username, error = ?e, "Failed to fetch or upsert user; preserving the post author and using the fallback user relation.");
+                                }
                             }
                             Err(e_unknown) => {
                                 error!(error = ?e_unknown, post_id = post.id, "Failed to get or create 'unknown_user'. Skipping post upsert.");
