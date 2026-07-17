@@ -359,7 +359,7 @@ impl UserIndexer {
                 }
             }
             Err(e) => {
-                error!(error = ?e, url = %full_url, "Failed to send HEAD request for avatar URL. Falling back to original URL.");
+                warn!(error = ?e, url = %full_url, "Failed to send HEAD request for avatar URL. Falling back to original URL.");
                 // Fallback to the originally constructed URL on network error
                 Ok(full_url)
             }
