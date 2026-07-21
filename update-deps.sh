@@ -22,7 +22,13 @@ pnpm dlx npm-check-updates \
   --upgrade \
   --workspaces \
   --cooldown 7d \
-  --reject @playwright/test
+  --reject @playwright/test \
+  --reject @eslint/js \
+  --reject eslint \
+  --reject pnpm \
+  --reject postcss \
+  --reject typescript \
+  --reject wagmi
 pnpm install
 
 echo "Refreshing nested lockfiles..."

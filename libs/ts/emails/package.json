@@ -4,11 +4,11 @@
   "dependencies": {
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "react-email": "6.6.6",
-    "resend": "6.17.0"
+    "react-email": "6.8.1",
+    "resend": "6.17.2"
   },
   "devDependencies": {
-    "@react-email/ui": "6.6.6",
+    "@react-email/ui": "6.8.1",
     "@tsconfig/recommended": "^1.0.13",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",

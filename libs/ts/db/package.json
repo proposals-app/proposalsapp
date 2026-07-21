@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "dotenv": "^17.4.2",
-    "kysely": "^0.29.3",
+    "kysely": "^0.29.4",
     "pg": "8.22.0"
   },
   "devDependencies": {
