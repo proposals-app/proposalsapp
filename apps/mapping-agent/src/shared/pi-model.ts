@@ -26,6 +26,22 @@ export function isGemma4ModelId(model: string | null | undefined): boolean {
   );
 }
 
+export function isMuseGlimmerModelId(
+  model: string | null | undefined
+): boolean {
+  const normalized = model?.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return (
+    normalized.startsWith('muse-glimmer') ||
+    normalized.includes('/muse-glimmer') ||
+    normalized.includes('-muse-glimmer') ||
+    normalized.includes('_muse-glimmer')
+  );
+}
+
 export function isLmStudioQwenModel(input: {
   provider: string | null | undefined;
   model: string | null | undefined;
@@ -44,9 +60,23 @@ export function isLmStudioGemma4Model(input: {
   );
 }
 
+export function isLmStudioMuseGlimmerModel(input: {
+  provider: string | null | undefined;
+  model: string | null | undefined;
+}): boolean {
+  return (
+    input.provider?.toLowerCase() === 'lmstudio' &&
+    isMuseGlimmerModelId(input.model)
+  );
+}
+
 export function isLmStudioReasoningModel(input: {
   provider: string | null | undefined;
   model: string | null | undefined;
 }): boolean {
-  return isLmStudioQwenModel(input) || isLmStudioGemma4Model(input);
+  return (
+    isLmStudioQwenModel(input) ||
+    isLmStudioGemma4Model(input) ||
+    isLmStudioMuseGlimmerModel(input)
+  );
 }

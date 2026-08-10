@@ -13,6 +13,7 @@ import {
   type ExtensionFactory,
 } from '@earendil-works/pi-coding-agent';
 import {
+  isLmStudioMuseGlimmerModel,
   isLmStudioQwenModel,
   isLmStudioReasoningModel,
 } from '../shared/pi-model';
@@ -123,6 +124,19 @@ function normalizeThinkingLevel(value: string): PiThinkingLevel {
     default:
       return 'medium';
   }
+}
+
+function buildSystemPrompt(
+  input: RunPiAgentInput,
+  thinkingLevel: PiThinkingLevel
+): string {
+  if (!isLmStudioMuseGlimmerModel(input) || thinkingLevel === 'off') {
+    return input.systemPrompt;
+  }
+
+  const reasoningStrength = thinkingLevel === 'minimal' ? 'low' : thinkingLevel;
+
+  return `Reasoning strength: ${reasoningStrength}\n\n${input.systemPrompt}`;
 }
 
 function extractAssistantText(message: { content?: unknown }): string {
@@ -439,7 +453,7 @@ export async function runPiAgent(
     noSkills: true,
     noPromptTemplates: true,
     noThemes: true,
-    systemPrompt: input.systemPrompt,
+    systemPrompt: buildSystemPrompt(input, thinkingLevel),
     extensionFactories: [input.extensionFactory],
   });
   await resourceLoader.reload();
@@ -487,6 +501,7 @@ export async function runPiAgent(
   let decisionResolved = false;
   let assistantTurnFailure: PiAgentSessionAbortedError | null;
   let lastAssistantTurnText = '';
+  const isMuseGlimmer = isLmStudioMuseGlimmerModel(input);
   const baseOnPayload = session.agent.onPayload;
   session.agent.onPayload = async (payload, currentModel) => {
     const nextPayload =
@@ -506,6 +521,13 @@ export async function runPiAgent(
 
     return {
       ...(nextPayload as Record<string, unknown>),
+      ...(isMuseGlimmer
+        ? {
+            temperature: 1,
+            top_p: 0.95,
+            top_k: 64,
+          }
+        : {}),
       ...(input.baseUrl ? { parallel_tool_calls: false } : {}),
       ...(input.baseUrl ? { tool_choice: 'auto' } : {}),
     };

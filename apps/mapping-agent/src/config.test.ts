@@ -103,4 +103,13 @@ describe('loadConfig', () => {
 
     expect(loadConfig().pi.thinking).toBe('xhigh');
   });
+
+  it('defaults lmstudio Muse Glimmer thinking to xhigh', async () => {
+    vi.stubEnv('MAPPING_AGENT_PI_PROVIDER', 'lmstudio');
+    vi.stubEnv('MAPPING_AGENT_PI_MODEL', 'muse-glimmer-30b');
+
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig().pi.thinking).toBe('xhigh');
+  });
 });

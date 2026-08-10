@@ -584,6 +584,120 @@ describe('runPiAgent', () => {
     );
   });
 
+  it('registers Muse Glimmer as a reasoning model and sets its reasoning strength', async () => {
+    const listeners: Array<(event: unknown) => void> = [];
+    let requestPayload: unknown;
+    const session = {
+      agent: {},
+      subscribe: vi.fn((listener) => {
+        listeners.push(listener);
+        return vi.fn();
+      }),
+      setActiveToolsByName: vi.fn(),
+      abort: vi.fn(async () => undefined),
+      prompt: vi.fn(async () => {
+        requestPayload = await (
+          session.agent as {
+            onPayload: (payload: unknown, model: unknown) => Promise<unknown>;
+          }
+        ).onPayload({ model: 'muse-glimmer-30b' }, model);
+
+        for (const listener of listeners) {
+          listener({
+            type: 'tool_execution_start',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            args: { reason: 'done' },
+          });
+          listener({
+            type: 'tool_execution_end',
+            toolCallId: 'call-1',
+            toolName: 'decline_delegate_mapping',
+            isError: false,
+            result: {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({ declined: true }),
+                },
+              ],
+            },
+          });
+        }
+      }),
+      dispose: vi.fn(),
+    };
+    const model = {
+      provider: 'lmstudio',
+      id: 'muse-glimmer-30b',
+    };
+
+    modelRegistry.find.mockReturnValue(model);
+    createAgentSession.mockResolvedValue({
+      session,
+      extensionsResult: {
+        extensions: [],
+        errors: [],
+        runtime: {},
+      },
+    });
+
+    await runPiAgent({
+      extensionFactory: vi.fn(),
+      activeToolNames: ['query_delegate_mapping_data'],
+      queryToolName: 'query_delegate_mapping_data',
+      decisionToolNames: [
+        'propose_delegate_mapping',
+        'decline_delegate_mapping',
+      ],
+      systemPrompt: 'system prompt',
+      prompt: 'resolve the mapping case',
+      provider: 'lmstudio',
+      model: 'muse-glimmer-30b',
+      thinking: 'xhigh',
+      baseUrl: 'http://ai-box:2234/v1',
+      apiKey: 'lmstudio',
+      contextWindow: 65_536,
+      timeoutMs: 30_000,
+      maxQueryCalls: 4,
+    });
+
+    expect(modelRegistry.registerProvider).toHaveBeenCalledWith(
+      'lmstudio',
+      expect.objectContaining({
+        models: [
+          expect.objectContaining({
+            id: 'muse-glimmer-30b',
+            reasoning: true,
+            contextWindow: 65_536,
+            compat: expect.objectContaining({
+              supportsReasoningEffort: false,
+            }),
+          }),
+        ],
+      })
+    );
+    expect(DefaultResourceLoader).toHaveBeenCalledWith(
+      expect.objectContaining({
+        systemPrompt: 'Reasoning strength: xhigh\n\nsystem prompt',
+      })
+    );
+
+    expect(requestPayload).toEqual({
+      model: 'muse-glimmer-30b',
+      parallel_tool_calls: false,
+      temperature: 1,
+      tool_choice: 'auto',
+      top_k: 64,
+      top_p: 0.95,
+    });
+
+    const registration = modelRegistry.registerProvider.mock.calls.at(-1)?.[1];
+    expect(registration?.models[0]?.compat).not.toHaveProperty(
+      'thinkingFormat'
+    );
+  });
+
   it('registers non-lmstudio OpenAI-compatible providers without lmstudio compat flags', async () => {
     const listeners: Array<(event: unknown) => void> = [];
     const session = {
