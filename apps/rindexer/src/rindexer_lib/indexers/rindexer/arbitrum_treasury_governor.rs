@@ -194,6 +194,9 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     if let Err(e) = store_proposal(proposal).await {
                         error!(proposal_id = %proposal_id, error = %e, "Failed to store proposal");
+                        // Fail the batch so rindexer retries it instead of advancing the
+                        // checkpoint past rows that were never written.
+                        return Err(format!("Failed to store proposal {proposal_id}: {e:#}"));
                     } else {
                         debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumTreasuryGovernor Proposal stored");
                     }
@@ -263,6 +266,9 @@ async fn proposal_executed_handler(manifest_path: &PathBuf, registry: &mut Event
 
                     if let Err(e) = store_proposal(proposal).await {
                         error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal state to Executed");
+                        // Fail the batch so rindexer retries it instead of advancing the
+                        // checkpoint past rows that were never written.
+                        return Err(format!("Failed to update proposal state to Executed {proposal_id}: {e:#}"));
                     } else {
                         debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumTreasuryGovernor Proposal state updated to Executed");
                     }
@@ -343,6 +349,9 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
 
                     if let Err(e) = store_proposal(proposal).await {
                         error!(proposal_id = %proposal_id, error = %e, "Failed to update proposal end_at for ProposalExtended event");
+                        // Fail the batch so rindexer retries it instead of advancing the
+                        // checkpoint past rows that were never written.
+                        return Err(format!("Failed to update proposal end_at for ProposalExtended event {proposal_id}: {e:#}"));
                     } else {
                         debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, end_at = ?end_at, "ArbitrumTreasuryGovernor Proposal end_at updated for ProposalExtended event");
                     }
@@ -428,6 +437,9 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                 if let Err(e) = store_votes(votes, governor_id_for_votes).await {
                     error!(error = %e, "Failed to store votes");
+                    // Fail the batch so rindexer retries it instead of advancing the
+                    // checkpoint past rows that were never written.
+                    return Err(format!("Failed to store votes: {e:#}"));
                 }
 
                 info!(
