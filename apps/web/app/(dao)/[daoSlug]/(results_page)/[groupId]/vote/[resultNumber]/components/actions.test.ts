@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getVotesWithVoters } from './actions';
+import { getTotalDelegatedVpAtStart, getVotesWithVoters } from './actions';
 
 // Postgres rejects statements with more bind parameters than fit in the
 // protocol's 16-bit counter. The fake pg client below enforces the same limit
@@ -120,5 +120,43 @@ describe('getVotesWithVoters', () => {
     expect(Math.max(...fakeDb.state.parameterCounts)).toBeLessThan(
       POSTGRES_MAX_BIND_PARAMETERS
     );
+  });
+});
+
+describe('getTotalDelegatedVpAtStart', () => {
+  it('sums current voting power directly and looks up only voters changed after the start', async () => {
+    const startAt = new Date('2026-10-15T20:05:00.000Z');
+    const queries: { sql: string; params: unknown[] }[] = [];
+
+    fakeDb.state.handler = (sql, params) => {
+      queries.push({ sql, params });
+      if (sql.includes('from "proposal"')) {
+        return [{ dao_id: DAO_ID, start_at: startAt, dao_slug: 'arbitrum' }];
+      }
+      if (sql.includes('from "voting_power_latest"')) {
+        return [{ total: sql.includes('lateral') ? 25.5 : 100 }];
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    };
+
+    await expect(getTotalDelegatedVpAtStart(PROPOSAL_ID)).resolves.toBe(125.5);
+
+    const vpQueries = queries.filter(({ sql }) =>
+      sql.includes('from "voting_power_latest"')
+    );
+    expect(vpQueries).toHaveLength(2);
+    for (const { sql, params } of vpQueries) {
+      // The per-voter DISTINCT ON over the whole timeseries sorted millions of
+      // rows on disk for every results page view.
+      expect(sql).not.toContain('distinct on');
+      expect(params).toContain(DAO_ID);
+      expect(params).toContain(startAt);
+    }
+
+    const changed = vpQueries.find(({ sql }) => sql.includes('lateral'));
+    // The voting power at the start has to be the voter's last row at or
+    // before it, filtered after it is chosen, not the last positive row.
+    expect(changed?.sql).toMatch(/limit \$\d+\) as "at_start"/);
+    expect(changed?.sql).toContain('"at_start"."voting_power" > $');
   });
 });
