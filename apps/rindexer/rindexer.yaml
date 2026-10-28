@@ -18,6 +18,9 @@ networks:
   - name: ethereum
     chain_id: 1
     rpc: ${ETHEREUM_NODE_URL}
+    # Default only: src/rindexer_lib/typings/networks.rs reads
+    # ETHEREUM_MAX_BLOCK_RANGE, which can be raised behind the eRPC proxy
+    # (apps/erpc) since it splits ranges for the dRPC free plan.
     max_block_range: 50
     block_poll_frequency: 120000
     compute_units_per_second: 300
@@ -25,6 +28,7 @@ networks:
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
+    # Default only: overridden by ARBITRUM_MAX_BLOCK_RANGE (see above).
     max_block_range: 100
     # Dependency-ordered contracts fetch live logs from the last seen block to
     # the head in one eth_getLogs call, without applying max_block_range. Poll
