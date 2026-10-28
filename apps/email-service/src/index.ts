@@ -20,7 +20,11 @@ import {
   DAO_DISCOURSE_CATEGORY_FILTERS,
   ENABLED_DAO_SLUGS,
 } from '@proposalsapp/governance';
-import { requireResendDelivery } from './resend-delivery';
+import {
+  createSendThrottle,
+  parseMaxSendsPerSecond,
+  requireResendDelivery,
+} from './resend-delivery';
 import {
   findEndingProposals,
   findNewDiscussionTopics,
@@ -63,6 +67,10 @@ const FROM_EMAIL =
 
 // Initialize Resend
 const resend = new Resend(RESEND_API_KEY);
+const RESEND_MAX_SENDS_PER_SECOND = parseMaxSendsPerSecond(
+  process.env.RESEND_MAX_SENDS_PER_SECOND
+);
+const waitForSendSlot = createSendThrottle(RESEND_MAX_SENDS_PER_SECOND);
 
 // ============================================
 // Main Process Entry Points
@@ -331,6 +339,7 @@ async function sendEmail(
   idempotencyKey?: string
 ): Promise<void> {
   try {
+    await waitForSendSlot();
     const result = await resend.emails.send(
       { from: FROM_EMAIL, to, subject, html, text: toPlainText(html) },
       { idempotencyKey }
@@ -480,7 +489,10 @@ cron.schedule('* * * * *', () => {
 
 // Start the service
 logger.info(
-  { newItemLookbackHours: NEW_ITEM_LOOKBACK_HOURS },
+  {
+    newItemLookbackHours: NEW_ITEM_LOOKBACK_HOURS,
+    resendMaxSendsPerSecond: RESEND_MAX_SENDS_PER_SECOND,
+  },
   'Email service started - checking for notifications every minute'
 );
 void runNotificationCycle();
