@@ -1,0 +1,107 @@
+# eRPC in front of the dRPC free plan for the rindexer.
+#
+# dRPC's free plan rejects eth_getLogs spanning more than 100 blocks
+# ("ranges over 10000 blocks are not supported on free plan", code 35, for
+# anything past from+100). rindexer's dependency-ordered contracts fetch live
+# logs from their last synced block to the head in a single call, which can be
+# far more than 100 blocks after a catch-up or a slow cycle, and the Uniswap
+# backfill searches in wide ranges. eRPC splits every eth_getLogs into
+# 100-block requests and runs them concurrently, so callers can use any range.
+#
+# Required env vars (set on the eRPC service, never committed):
+#   DRPC_ETHEREUM_URL  - keyed dRPC Ethereum endpoint
+#   DRPC_ARBITRUM_URL  - keyed dRPC Arbitrum endpoint
+#
+# Clients use http://<host>:4000/proposalsapp/evm/<chainId>.
+
+logLevel: warn
+
+server:
+  listenV4: true
+  httpHostV4: "0.0.0.0"
+  httpPortV4: 4000
+  # rindexer's HTTP client gives up after 90s.
+  maxTimeout: 85s
+
+metrics:
+  enabled: true
+  listenV4: true
+  hostV4: "0.0.0.0"
+  port: 4001
+
+projects:
+  - id: proposalsapp
+    networkDefaults:
+      evm:
+        # Largest range a single client request may ask for. Ranges above the
+        # split threshold are fanned out; this only guards against runaway
+        # requests (1M Arbitrum blocks is ~3 days).
+        getLogsMaxAllowedRange: 1000000
+        getLogsSplitOnError: true
+        # Sub-requests in flight per client request: ~10 at ~0.3s each is
+        # ~30 requests/s per rindexer stream, leaving room under the budget
+        # below for the other streams.
+        getLogsSplitConcurrency: 10
+      failsafe:
+        - matchMethod: "*"
+          timeout:
+            duration: 80s
+          retry:
+            maxAttempts: 4
+            delay: 500ms
+            backoffFactor: 2
+            backoffMaxDelay: 5s
+            jitter: 250ms
+            # Empty eth_getLogs results are normal here; don't re-ask for them.
+            emptyResultMaxAttempts: 1
+
+    networks:
+      - architecture: evm
+        evm:
+          chainId: 1
+      - architecture: evm
+        evm:
+          chainId: 42161
+
+    upstreamDefaults:
+      evm:
+        # dRPC free plan: eth_getLogs over at most 100 blocks.
+        getLogsAutoSplittingRangeThreshold: 100
+      failsafe:
+        - matchMethod: "*"
+          timeout:
+            duration: 30s
+          retry:
+            maxAttempts: 3
+            delay: 300ms
+            backoffFactor: 2
+            backoffMaxDelay: 3s
+            jitter: 200ms
+            emptyResultMaxAttempts: 1
+
+    upstreams:
+      - id: drpc-ethereum
+        endpoint: "${DRPC_ETHEREUM_URL}"
+        rateLimitBudget: drpc-free
+        evm:
+          chainId: 1
+          statePollerInterval: 15s
+
+      - id: drpc-arbitrum
+        endpoint: "${DRPC_ARBITRUM_URL}"
+        rateLimitBudget: drpc-free
+        evm:
+          chainId: 42161
+          statePollerInterval: 5s
+
+rateLimiters:
+  budgets:
+    # dRPC free plan allows ~100 requests/s (120k CU/min at 20 CU per call)
+    # and may lower it to ~40/s under load. Over-budget requests fail fast
+    # and are retried by the failsafe policies above; eRPC's auto-tuner lowers
+    # the budget while dRPC returns rate-limit errors.
+    - id: drpc-free
+      rules:
+        - method: "*"
+          maxCount: 80
+          period: 1s

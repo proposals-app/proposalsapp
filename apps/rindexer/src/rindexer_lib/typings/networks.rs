@@ -13,6 +13,12 @@ use rindexer::{
     },
     public_read_env_value,
 };
+// Manually edited: max block ranges come from env (see extensions/rpc_limits.rs);
+// keep this when regenerating.
+use crate::extensions::rpc_limits::{
+    ARBITRUM_MAX_BLOCK_RANGE_ENV, DEFAULT_ARBITRUM_MAX_BLOCK_RANGE,
+    DEFAULT_ETHEREUM_MAX_BLOCK_RANGE, ETHEREUM_MAX_BLOCK_RANGE_ENV, max_block_range,
+};
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 use tokio::sync::broadcast::Sender;
@@ -62,7 +68,10 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                     .unwrap_or("ETHEREUM_NODE_URL".to_string()),
                 1,
                 Some(300),
-                Some(U64::from(50)),
+                Some(max_block_range(
+                    ETHEREUM_MAX_BLOCK_RANGE_ENV,
+                    DEFAULT_ETHEREUM_MAX_BLOCK_RANGE,
+                )),
                 Some(BlockPollFrequency::PollRateMs { millis: 120000 }),
                 HeaderMap::new(),
                 None,
@@ -89,7 +98,10 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                     .unwrap_or("ARBITRUM_NODE_URL".to_string()),
                 42161,
                 Some(500),
-                Some(U64::from(100)),
+                Some(max_block_range(
+                    ARBITRUM_MAX_BLOCK_RANGE_ENV,
+                    DEFAULT_ARBITRUM_MAX_BLOCK_RANGE,
+                )),
                 Some(BlockPollFrequency::PollRateMs { millis: 15000 }),
                 HeaderMap::new(),
                 None,
