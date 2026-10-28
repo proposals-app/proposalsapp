@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getTotalDelegatedVpAtStart, getVotesWithVoters } from './actions';
+import {
+  getTotalDelegatedVpAtStart,
+  getVotesWithVoters,
+  getVotesWithVotersForProposals,
+} from './actions';
 
 // Postgres rejects statements with more bind parameters than fit in the
 // protocol's 16-bit counter. The fake pg client below enforces the same limit
@@ -158,5 +162,64 @@ describe('getTotalDelegatedVpAtStart', () => {
     // before it, filtered after it is chosen, not the last positive row.
     expect(changed?.sql).toMatch(/limit \$\d+\) as "at_start"/);
     expect(changed?.sql).toContain('"at_start"."voting_power" > $');
+  });
+});
+
+describe('getVotesWithVotersForProposals', () => {
+  beforeEach(() => {
+    fakeDb.state.parameterCounts.length = 0;
+  });
+
+  it('only loads the requested votes when vote ids are given', async () => {
+    const queries: string[] = [];
+    fakeDb.state.handler = (sql, params) => {
+      queries.push(sql);
+      if (sql.includes('from "proposal"')) {
+        return [{ id: PROPOSAL_ID, dao_id: DAO_ID }];
+      }
+      if (sql.includes('from "vote"')) {
+        expect(sql).toMatch(/"id" in \(/);
+        return idsWithPrefix(params, 'vote-').map((id) => ({
+          id,
+          choice: 0,
+          created_at: new Date('2026-10-01T00:00:00.000Z'),
+          proposal_id: PROPOSAL_ID,
+          reason: null,
+          voter_address: `0x${id}`,
+          voting_power: 1,
+        }));
+      }
+      if (sql.includes('from "voter"')) {
+        return params.map((address, index) => ({
+          id: `voter-${index}`,
+          address,
+          ens: 'voter.eth',
+          avatar: null,
+        }));
+      }
+      return [];
+    };
+
+    const votes = await getVotesWithVotersForProposals(
+      [PROPOSAL_ID],
+      ['vote-a', 'vote-b']
+    );
+
+    expect(votes.map((vote) => vote.id).sort()).toEqual(['vote-a', 'vote-b']);
+    expect(votes.every((vote) => vote.ens === 'voter.eth')).toBe(true);
+    expect(queries.some((sql) => sql.includes('from "vote"'))).toBe(true);
+  });
+
+  it('skips the database when no vote ids are requested', async () => {
+    const queries: string[] = [];
+    fakeDb.state.handler = (sql) => {
+      queries.push(sql);
+      return [];
+    };
+
+    await expect(
+      getVotesWithVotersForProposals([PROPOSAL_ID], [])
+    ).resolves.toEqual([]);
+    expect(queries).toEqual([]);
   });
 });

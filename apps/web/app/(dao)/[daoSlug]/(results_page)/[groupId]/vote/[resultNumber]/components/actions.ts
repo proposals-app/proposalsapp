@@ -589,7 +589,13 @@ export async function getDelegateVotingPower(
 
 export type VotesWithVoters = AsyncReturnType<typeof getVotesWithVoters>;
 
-export async function getVotesWithVotersForProposals(proposalIds: string[]) {
+// When `voteIds` is given, only those votes (within the proposals) are loaded
+// and enriched. The group feed renders a handful of individual votes, and
+// loading every vote of a 100k+ vote proposal to find them took seconds.
+export async function getVotesWithVotersForProposals(
+  proposalIds: string[],
+  voteIds?: readonly string[]
+) {
   const validProposalIds = proposalIds.filter((id) => {
     try {
       proposalIdSchema.parse(id);
@@ -599,7 +605,7 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
     }
   });
 
-  if (validProposalIds.length === 0) {
+  if (validProposalIds.length === 0 || voteIds?.length === 0) {
     return [];
   }
 
@@ -614,22 +620,32 @@ export async function getVotesWithVotersForProposals(proposalIds: string[]) {
   }
 
   const daoIds = [...new Set(proposals.map((p) => p.daoId))];
-  const allVotes = await db
-    .selectFrom('vote')
-    .select([
-      'id',
-      'choice',
-      'createdAt',
-      'proposalId',
-      'reason',
-      'voterAddress',
-      'votingPower',
-    ])
-    .where('proposalId', 'in', validProposalIds)
-    .orderBy('proposalId', 'asc')
-    .orderBy('createdAt', 'desc')
-    .orderBy('id', 'desc')
-    .execute();
+  const selectVotes = () =>
+    db
+      .selectFrom('vote')
+      .select([
+        'id',
+        'choice',
+        'createdAt',
+        'proposalId',
+        'reason',
+        'voterAddress',
+        'votingPower',
+      ])
+      .where('proposalId', 'in', validProposalIds)
+      .orderBy('proposalId', 'asc')
+      .orderBy('createdAt', 'desc')
+      .orderBy('id', 'desc');
+
+  const allVotes = voteIds
+    ? (
+        await Promise.all(
+          chunkArray(voteIds).map((chunk) =>
+            selectVotes().where('id', 'in', chunk).execute()
+          )
+        )
+      ).flat()
+    : await selectVotes().execute();
 
   const voterAddresses = [
     ...new Set(allVotes.map((vote) => vote.voterAddress)),
