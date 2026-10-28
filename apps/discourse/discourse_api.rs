@@ -292,15 +292,13 @@ impl DiscourseApi {
         loop {
             tokio::select! {
                 Some(job) = receiver.recv() => {
-                    // Create logging info before moving job
-                    let url_log = job.url.clone();
-                    let endpoint_key_log = job.endpoint_key.clone();
+                    // Log inside the requester's span without keeping it entered: the
+                    // queue processing below awaits, and an entered guard held across
+                    // an await leaks this span into whatever else runs on the thread.
+                    job.span.in_scope(|| {
+                        debug!(url = %job.url, priority = job.priority, endpoint_key = %job.endpoint_key, "Received job, adding to internal queue.");
+                    });
                     let job_priority = job.priority;
-                    let span = job.span.clone(); // Clone the span
-
-                    // Enter span for proper tracing context
-                    let _enter = span.enter();
-                    debug!(url = %url_log, priority = job_priority, endpoint_key = %endpoint_key_log, "Received job, adding to internal queue.");
 
                     // Add job to appropriate queue
                     if job_priority {
@@ -342,16 +340,16 @@ impl DiscourseApi {
             let job_opt = priority_queue.pop_front();
 
             if let Some(job) = job_opt {
-                // Clone needed values for logging before moving job
-                let url_log = job.url.clone();
-                let endpoint_key_log = job.endpoint_key.clone();
+                // Run the job inside the requester's span. `instrument` enters the span
+                // only while the future is polled, so it cannot leak across awaits.
                 let span = job.span.clone();
-
-                // Enter the job's span before processing
-                let _enter = span.enter();
-                debug!(url = %url_log, endpoint_key = %endpoint_key_log, "Processing priority job");
-
-                self.process_job(job, true).await;
+                // Create the job future in the requester's span so `process_job`'s own
+                // span is parented to it.
+                let job_future = span.in_scope(|| {
+                    debug!(url = %job.url, endpoint_key = %job.endpoint_key, "Processing priority job");
+                    self.process_job(job, true)
+                });
+                job_future.instrument(span).await;
                 processed_count += 1;
             } else {
                 break;
@@ -363,16 +361,14 @@ impl DiscourseApi {
             let job_opt = normal_queue.pop_front();
 
             if let Some(job) = job_opt {
-                // Clone needed values for logging before moving job
-                let url_log = job.url.clone();
-                let endpoint_key_log = job.endpoint_key.clone();
                 let span = job.span.clone();
-
-                // Enter the job's span before processing
-                let _enter = span.enter();
-                debug!(url = %url_log, endpoint_key = %endpoint_key_log, "Processing normal job");
-
-                self.process_job(job, false).await;
+                // Create the job future in the requester's span so `process_job`'s own
+                // span is parented to it.
+                let job_future = span.in_scope(|| {
+                    debug!(url = %job.url, endpoint_key = %job.endpoint_key, "Processing normal job");
+                    self.process_job(job, false)
+                });
+                job_future.instrument(span).await;
                 processed_count += 1;
             } else {
                 break;
@@ -1117,5 +1113,92 @@ Separately, we will submit an onchain proposal with the full ARB Staking impleme
 This proposal should not be relied on as legal, tax, or investment advice. Any projections included here are based on our best estimates and presented for informational purposes only."#;
 
         assert_eq!(processed_content, expected_content);
+    }
+
+    /// Each recorded event's target and the names of the spans it was logged in.
+    type RecordedEvents = Vec<(&'static str, Vec<&'static str>)>;
+
+    #[derive(Clone, Default)]
+    struct EventScopes(Arc<Mutex<RecordedEvents>>);
+
+    impl<S> tracing_subscriber::Layer<S> for EventScopes
+    where
+        S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+    {
+        fn on_event(
+            &self,
+            event: &tracing::Event<'_>,
+            ctx: tracing_subscriber::layer::Context<'_, S>,
+        ) {
+            let spans = ctx
+                .event_scope(event)
+                .map(|scope| scope.map(|span| span.name()).collect())
+                .unwrap_or_default();
+            self.0
+                .lock()
+                .unwrap()
+                .push((event.metadata().target(), spans));
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn worker_keeps_request_spans_out_of_other_tasks() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tracing_subscriber::layer::SubscriberExt;
+
+        let scopes = EventScopes::default();
+        let _subscriber =
+            tracing::subscriber::set_default(tracing_subscriber::registry().with(scopes.clone()));
+
+        // A forum that answers after a short delay, so the worker awaits mid-request.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 4096];
+            let _ = socket.read(&mut buf).await.unwrap();
+            sleep(Duration::from_millis(200)).await;
+            socket
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}",
+                )
+                .await
+                .unwrap();
+        });
+
+        let api = DiscourseApi::new(format!("http://{addr}"));
+        let request = tokio::spawn(
+            async move { api.queue::<serde_json::Value>("/slow.json", false).await }
+                .instrument(tracing::info_span!("requester")),
+        );
+        let unrelated = tokio::spawn(async {
+            for _ in 0..8 {
+                info!(target: "unrelated_task", "tick");
+                sleep(Duration::from_millis(50)).await;
+            }
+        });
+
+        request.await.unwrap().unwrap();
+        unrelated.await.unwrap();
+
+        let scopes = scopes.0.lock().unwrap();
+        let unrelated_events: Vec<_> = scopes
+            .iter()
+            .filter(|(target, _)| *target == "unrelated_task")
+            .collect();
+        assert_eq!(unrelated_events.len(), 8);
+        for (_, spans) in unrelated_events {
+            assert!(
+                !spans.contains(&"requester"),
+                "an unrelated task logged inside the request span: {spans:?}"
+            );
+        }
+
+        // The worker's own request logs still belong to the requester.
+        assert!(scopes.iter().any(|(target, spans)| {
+            *target == "discourse::discourse_api"
+                && spans.contains(&"process_job")
+                && spans.contains(&"requester")
+        }));
     }
 }
