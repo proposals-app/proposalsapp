@@ -143,6 +143,19 @@ describe('processResultsAction', () => {
     expect(cumulativeSeries?.[1]).toBeCloseTo(result.finalResults[1], 10);
   });
 
+  it('computes relative voting power for proposals with 200k votes', () => {
+    const votes = Array.from({ length: 200_000 }, (_, index) =>
+      vote(`v${index}`, 0, index === 1234 ? 500 : 1)
+    );
+
+    const result = process('single-choice', ['For', 'Against'], votes);
+
+    expect(result.votes).toHaveLength(200_000);
+    const top = result.votes?.find((v) => v.id === 'v1234');
+    expect(top?.relativeVotingPower).toBe(1);
+    expect(result.votes?.[0].relativeVotingPower).toBe(1 / 500);
+  });
+
   it('rejects provider-invalid choice shapes instead of misattributing them', () => {
     const result = process(
       'weighted',
