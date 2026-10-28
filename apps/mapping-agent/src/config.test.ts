@@ -112,4 +112,29 @@ describe('loadConfig', () => {
 
     expect(loadConfig().pi.thinking).toBe('xhigh');
   });
+
+  it('defaults delegate retries to 30 minutes doubling up to 24 hours', async () => {
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig()).toEqual(
+      expect.objectContaining({
+        delegateRetryInitialMs: 30 * 60_000,
+        delegateRetryMaxMs: 24 * 3_600_000,
+      })
+    );
+  });
+
+  it('reads delegate retry delays from the environment', async () => {
+    vi.stubEnv('MAPPING_AGENT_DELEGATE_RETRY_INITIAL_MINUTES', '5');
+    vi.stubEnv('MAPPING_AGENT_DELEGATE_RETRY_MAX_HOURS', '2');
+
+    const { loadConfig } = await import('./config');
+
+    expect(loadConfig()).toEqual(
+      expect.objectContaining({
+        delegateRetryInitialMs: 5 * 60_000,
+        delegateRetryMaxMs: 2 * 3_600_000,
+      })
+    );
+  });
 });

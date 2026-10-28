@@ -8,7 +8,16 @@ import { getPublicSchemaExport } from '../shared/schema-export';
 import { createDelegateExtension } from './extension';
 import { buildDelegatePrompt, buildDelegateSystemPrompt } from './prompt';
 import { attachLatestDelegateDecisionSession } from '../shared/audit';
+import {
+  createRetryBackoff,
+  type RetryBackoff,
+  type RetryBackoffFailure,
+} from '../shared/retry-backoff';
 import { runDeterministicDelegateMappings } from './repository';
+
+// Kept for the life of the process so a case that keeps failing is retried
+// with growing gaps instead of on every pass.
+let sessionBackoff: RetryBackoff | null = null;
 
 export async function runDelegateMappingWorker(
   config: MappingAgentConfig,
@@ -26,6 +35,11 @@ export async function runDelegateMappingWorker(
     'vote',
     'voting_power_timeseries',
   ]);
+  sessionBackoff ??= createRetryBackoff({
+    initialDelayMs: config.delegateRetryInitialMs,
+    maxDelayMs: config.delegateRetryMaxMs,
+  });
+  const backoff = sessionBackoff;
 
   for (const dao of daos) {
     const allowedCategoryIds = config.daoCategoryFilters[dao.slug] ?? [];
@@ -65,6 +79,21 @@ export async function runDelegateMappingWorker(
     }
 
     for (const currentCase of unresolvedCases) {
+      const backoffKey = `${context.dao.id}:${currentCase.delegateId}`;
+      if (!backoff.shouldAttempt(backoffKey)) {
+        logger.debug(
+          {
+            daoSlug: dao.slug,
+            delegateId: currentCase.delegateId,
+            nextAttemptAt: new Date(
+              backoff.nextAttemptAtMs(backoffKey) ?? Date.now()
+            ).toISOString(),
+          },
+          'Skipping delegate agent session until its retry backoff expires'
+        );
+        continue;
+      }
+
       const sessionLogger = createAgentSessionLogger({
         logger,
         daoSlug: dao.slug,
@@ -129,6 +158,13 @@ export async function runDelegateMappingWorker(
           onEvent,
         });
 
+        let retry: RetryBackoffFailure | null = null;
+        if (output.decisionToolCallCount > 0) {
+          backoff.recordSuccess(backoffKey);
+        } else {
+          retry = backoff.recordFailure(backoffKey);
+        }
+
         if (output.decisionToolCallCount > 0) {
           const snapshot = sessionAudit.snapshot(output);
           await attachLatestDelegateDecisionSession({
@@ -146,10 +182,17 @@ export async function runDelegateMappingWorker(
             daoSlug: dao.slug,
             delegateId: currentCase.delegateId,
             output,
+            ...(retry
+              ? {
+                  failures: retry.failures,
+                  nextAttemptAt: new Date(retry.nextAttemptAtMs).toISOString(),
+                }
+              : {}),
           },
           'Delegate agent session completed'
         );
       } catch (error) {
+        const retry = backoff.recordFailure(backoffKey);
         const abortedResult =
           error instanceof PiAgentSessionAbortedError
             ? error.result
@@ -168,6 +211,8 @@ export async function runDelegateMappingWorker(
             delegateId: currentCase.delegateId,
             abortedResult,
             err: error,
+            failures: retry.failures,
+            nextAttemptAt: new Date(retry.nextAttemptAtMs).toISOString(),
           },
           'Delegate agent session did not finish cleanly'
         );
