@@ -13,9 +13,11 @@ function ModeToggleSkeleton() {
 }
 
 export function NavBar({ daoSlug }: { daoSlug: string }) {
+  // Relative path: the <Image> srcs below add the leading slash. A leading
+  // slash here produced protocol-relative '//assets/logo.svg' (host 'assets').
   const DAO_PICTURE_PATH = daoSlug
     ? `assets/project-logos/${daoSlug}`
-    : '/assets/logo';
+    : 'assets/logo';
 
   return (
     <div className='fill-neutral-800 dark:fill-neutral-200'>
