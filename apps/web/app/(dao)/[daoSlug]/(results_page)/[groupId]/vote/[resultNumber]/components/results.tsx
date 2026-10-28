@@ -15,6 +15,7 @@ import {
   ResultsListBarsSkeleton,
 } from './result/results-list';
 import { LoadingTable, ResultsTable } from './result/results-table';
+import { buildResultsTableRows } from './result/results-table-rows';
 import { processResultsAction } from '@/lib/results_processing';
 import { ResultsTitle } from './result/results-title';
 import { Suspense } from 'react';
@@ -241,14 +242,18 @@ async function ResultsTableContainer({
     resultsPromise,
     votesPromise,
   ]);
-  const serializedResults = superjson.serialize(processedResults);
-  const serializedVotes = superjson.serialize(votes);
+  // Send each vote once, joined with its voter details. Passing the processed
+  // votes and the raw votes separately put every vote in the page twice (about
+  // 74 MB of HTML for a 65k-vote proposal).
+  const { votes: processedVotes, ...resultsWithoutVotes } = processedResults;
+  const rows = buildResultsTableRows(processedVotes ?? [], votes);
+  const serializedResults = superjson.serialize(resultsWithoutVotes);
   return (
     <ResultsTable
       daoSlug={daoSlug}
       renderedAtMs={renderedAtMs}
       results={serializedResults}
-      votes={serializedVotes}
+      rows={rows}
     />
   );
 }

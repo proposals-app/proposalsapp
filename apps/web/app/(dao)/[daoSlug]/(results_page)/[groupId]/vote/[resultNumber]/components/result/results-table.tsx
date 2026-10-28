@@ -6,7 +6,6 @@ import { format, toZonedTime } from 'date-fns-tz';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AutoSizer, List, WindowScroller } from 'react-virtualized';
-import type { VotesWithVoters } from '../actions';
 import type {
   ProcessedResults,
   ProcessedVote,
@@ -14,6 +13,7 @@ import type {
 } from '@/lib/results_processing';
 import ArrowSvg from '@/public/assets/web/icons/arrow-up.svg';
 import superjson, { type SuperJSONResult } from 'superjson';
+import { defaultVoterAvatar, type ResultsTableRow } from './results-table-rows';
 import { SkeletonResultsTable } from '@/app/components/ui/skeleton';
 import { VoterAuthor } from '@/app/(dao)/[daoSlug]/components/author/author-voter';
 import {
@@ -28,12 +28,16 @@ import { getDaoTokenSymbol } from '@/lib/dao-config';
 interface ResultsTableProps {
   daoSlug: string;
   renderedAtMs: number;
+  // Processed results without the votes array; votes are passed as `rows`.
   results: SuperJSONResult;
-  votes: SuperJSONResult;
+  rows: ResultsTableRow[];
 }
 
 // Helper to get choice text from the new choice structure
-const getChoiceText = (vote: ProcessedVote, voteType: VoteType): string => {
+const getChoiceText = (
+  vote: Pick<ProcessedVote, 'choice'>,
+  voteType: VoteType
+): string => {
   if (!vote.choice || vote.choice.length === 0) return 'Unknown Choice';
 
   if (voteType == 'weighted') {
@@ -49,7 +53,7 @@ const getChoiceText = (vote: ProcessedVote, voteType: VoteType): string => {
 
 // Helper to check if a vote includes a specific choice text
 const voteIncludesChoiceText = (
-  vote: ProcessedVote,
+  vote: Pick<ProcessedVote, 'choice'>,
   choiceText: string
 ): boolean => {
   if (!vote.choice || vote.choice.length === 0) return false;
@@ -61,10 +65,9 @@ export function ResultsTable({
   daoSlug,
   renderedAtMs,
   results,
-  votes,
+  rows,
 }: ResultsTableProps) {
   const deserializedResults: ProcessedResults = superjson.deserialize(results);
-  const deserializedVotes: VotesWithVoters = superjson.deserialize(votes);
   const renderedAt = new Date(renderedAtMs);
   const tokenSymbol = getDaoTokenSymbol(daoSlug);
 
@@ -89,7 +92,7 @@ export function ResultsTable({
   }, []);
 
   const sortedAndFilteredVotes = useMemo(() => {
-    let filteredVotes = deserializedResults.votes || [];
+    let filteredVotes = rows;
 
     // Apply choice filter
     if (selectedChoice !== 'all') {
@@ -104,7 +107,7 @@ export function ResultsTable({
 
       switch (sortColumn) {
         case 'timestamp':
-          comparison = a.createdAt!.getTime() - b.createdAt!.getTime();
+          comparison = a.createdAt - b.createdAt;
           break;
         case 'votingPower':
           comparison = a.votingPower - b.votingPower;
@@ -113,7 +116,7 @@ export function ResultsTable({
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [deserializedResults.votes, sortColumn, sortDirection, selectedChoice]);
+  }, [rows, sortColumn, sortDirection, selectedChoice]);
 
   const handleSortChange = (column: typeof sortColumn) => {
     if (sortColumn === column) {
@@ -147,9 +150,7 @@ export function ResultsTable({
     style: React.CSSProperties;
   }) => {
     const vote = sortedAndFilteredVotes[index];
-    const voteWithVoter = deserializedVotes.find(
-      (voteWithViter) => voteWithViter.voterAddress == vote.voterAddress
-    );
+    const voter = vote.voter;
     const votingPowerPercentage =
       (vote.votingPower / deserializedResults.totalVotingPower) * 100;
     const shouldHideVote =
@@ -202,17 +203,17 @@ export function ResultsTable({
           <div className='flex h-full flex-col justify-between p-3'>
             {/* Top section: Delegate */}
             <div>
-              {voteWithVoter ? (
+              {voter ? (
                 <VoterAuthor
                   daoSlug={daoSlug}
-                  voterAddress={voteWithVoter.voterAddress}
-                  ens={voteWithVoter.ens}
-                  avatar={voteWithVoter.avatar}
-                  discourseUsername={voteWithVoter.discourseUsername}
+                  voterAddress={vote.voterAddress}
+                  ens={voter.ens}
+                  avatar={voter.avatar ?? defaultVoterAvatar(vote.voterAddress)}
+                  discourseUsername={voter.discourseUsername}
                   // Show event VP on mobile for relevance to the vote
-                  eventVotingPower={voteWithVoter.votingPower}
+                  eventVotingPower={vote.votingPower}
                   // Optionally hide current VP on mobile if too cluttered
-                  currentVotingPower={voteWithVoter.latestVotingPower}
+                  currentVotingPower={voter.latestVotingPower}
                 />
               ) : (
                 <div className='w-full truncate font-mono font-bold'>
@@ -266,7 +267,7 @@ export function ResultsTable({
               {/* Date (Right) */}
               <div className='text-right'>
                 <div className='font-bold'>
-                  {formatDistance(vote.createdAt!, renderedAt, {
+                  {formatDistance(vote.createdAt, renderedAt, {
                     addSuffix: true,
                   })}
                 </div>
@@ -278,15 +279,15 @@ export function ResultsTable({
           <div className='relative grid h-full grid-cols-7 items-center gap-4 px-2 pt-2'>
             {/* Column 1: Delegate */}
             <div className='col-span-2'>
-              {voteWithVoter ? (
+              {voter ? (
                 <VoterAuthor
                   daoSlug={daoSlug}
-                  voterAddress={voteWithVoter.voterAddress}
-                  ens={voteWithVoter.ens}
-                  discourseUsername={voteWithVoter.discourseUsername}
-                  avatar={voteWithVoter.avatar}
-                  currentVotingPower={voteWithVoter.latestVotingPower}
-                  eventVotingPower={voteWithVoter.votingPower}
+                  voterAddress={vote.voterAddress}
+                  ens={voter.ens}
+                  discourseUsername={voter.discourseUsername}
+                  avatar={voter.avatar ?? defaultVoterAvatar(vote.voterAddress)}
+                  currentVotingPower={voter.latestVotingPower}
+                  eventVotingPower={vote.votingPower}
                 />
               ) : (
                 <div className='w-full truncate font-mono font-bold'>
@@ -336,14 +337,14 @@ export function ResultsTable({
             {/* Column 4: Date */}
             <div className='col-span-1 px-2 text-right text-sm'>
               <div className='font-bold'>
-                {formatDistance(vote.createdAt!, renderedAt, {
+                {formatDistance(vote.createdAt, renderedAt, {
                   addSuffix: true,
                 })}
               </div>
               <div className=''>
                 {' '}
                 {/* Removed hidden, always show */}
-                {format(toZonedTime(vote.createdAt!, 'UTC'), 'MMM d, yyyy')} UTC
+                {format(toZonedTime(vote.createdAt, 'UTC'), 'MMM d, yyyy')} UTC
               </div>
             </div>
           </div>
