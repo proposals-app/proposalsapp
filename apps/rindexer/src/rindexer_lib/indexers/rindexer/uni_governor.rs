@@ -13,11 +13,11 @@ use crate::{
         },
         rpc_timeout::with_rpc_timeout,
     },
-    rindexer_lib::typings::networks::get_ethereum_provider,
+    rindexer_lib::typings::networks::{get_ethereum_provider, get_ethereum_provider_cache},
 };
 use alloy::{
     hex::ToHexExt,
-    primitives::{B256, Bytes, U256},
+    primitives::{B256, Bytes, U64, U256},
     providers::Provider,
     sol_types::SolEvent,
 };
@@ -28,7 +28,7 @@ use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vot
 use rindexer::{
     EthereumSqlTypeWrapper, PgType, PostgresClient, RindexerColorize,
     event::callback_registry::EventCallbackRegistry, indexer::IndexingEventProgressStatus,
-    rindexer_error,
+    provider::ChainProvider, rindexer_error,
 };
 use sea_orm::{
     ActiveModelTrait,
@@ -68,7 +68,8 @@ fn get_dao_id() -> Option<Uuid> {
 }
 
 const CONCURRENCY_LIMIT: usize = 100;
-const LOG_BLOCK_RANGE: u64 = 9_999;
+/// Used if the Ethereum provider has no max_block_range configured.
+const DEFAULT_LOG_BLOCK_RANGE: u64 = 50;
 const MAX_PROPOSAL_LOG_LOOKBACK_BLOCKS: u64 = 60_000;
 const LOG_LOOKAROUND_BLOCKS: u64 = 8;
 
@@ -116,6 +117,21 @@ fn vote_choice_from_support(support: u8) -> serde_json::Value {
         2 => 2.into(),
         _ => 2.into(),
     }
+}
+
+/// Block span (`to - from`) for one backfill eth_getLogs call.
+///
+/// The backfill builds its own eth_getLogs requests, so it has to respect the same range
+/// limit as the indexer: the dRPC free plan rejects ranges over 100 blocks.
+fn effective_log_block_range(configured: Option<U64>) -> u64 {
+    configured
+        .map(|range| range.to::<u64>())
+        .filter(|range| *range > 0)
+        .unwrap_or(DEFAULT_LOG_BLOCK_RANGE)
+}
+
+async fn log_block_range() -> u64 {
+    effective_log_block_range(get_ethereum_provider_cache().await.max_block_range())
 }
 
 fn parse_hex_u64(value: &str) -> Result<u64> {
@@ -289,9 +305,10 @@ async fn find_missing_proposal_created_log(
 ) -> Result<Option<DecodedProposalCreatedLog>> {
     let search_floor = start_block.saturating_sub(MAX_PROPOSAL_LOG_LOOKBACK_BLOCKS);
     let mut search_to = start_block.saturating_add(LOG_LOOKAROUND_BLOCKS);
+    let log_block_range = log_block_range().await;
 
     loop {
-        let search_from = search_to.saturating_sub(LOG_BLOCK_RANGE);
+        let search_from = search_to.saturating_sub(log_block_range);
         let logs = fetch_uni_governor_logs(
             "0x7d84a6263ae0d98d3329bd7b46bb4e8d6f98cd35a7adb45c274c8b7fd5ebd5e0",
             search_from,
@@ -323,9 +340,10 @@ async fn fetch_vote_cast_logs_for_proposal(
 ) -> Result<Vec<DecodedVoteCastLog>> {
     let mut decoded_logs = Vec::new();
     let mut chunk_start = start_block;
+    let log_block_range = log_block_range().await;
 
     while chunk_start <= end_block {
-        let chunk_end = chunk_start.saturating_add(LOG_BLOCK_RANGE).min(end_block);
+        let chunk_end = chunk_start.saturating_add(log_block_range).min(end_block);
         let logs = fetch_uni_governor_logs(
             "0xb8e138887d0aa13bab447e82de9d5c1777041ecd21ca36ba824ff1e6c07ddda4",
             chunk_start,
@@ -1045,4 +1063,21 @@ const UNISWAP_EXCLUDED_VOTER: &str = "0x1a9C8182C09F50C8318d769245beA52c32BE35BC
 #[instrument(name = "uni_governor_calculate_total_delegated_vp", skip(timestamp), fields(timestamp = ?timestamp))]
 async fn calculate_total_delegated_vp(timestamp: NaiveDateTime) -> Result<f64> {
     calculate_total_delegated_voting_power(timestamp, UNISWAP_EXCLUDED_VOTER).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DEFAULT_LOG_BLOCK_RANGE, effective_log_block_range};
+    use alloy::primitives::U64;
+
+    #[test]
+    fn backfill_log_range_follows_provider_limit() {
+        assert_eq!(effective_log_block_range(Some(U64::from(100))), 100);
+        assert_eq!(effective_log_block_range(Some(U64::from(2000))), 2000);
+        assert_eq!(
+            effective_log_block_range(Some(U64::ZERO)),
+            DEFAULT_LOG_BLOCK_RANGE
+        );
+        assert_eq!(effective_log_block_range(None), DEFAULT_LOG_BLOCK_RANGE);
+    }
 }
