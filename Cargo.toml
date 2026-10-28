@@ -55,6 +55,6 @@ uuid = "1.24"
 opt-level = 3
 codegen-units = 1
 lto = true
-debug = true
+debug = "line-tables-only"
 debug-assertions = true
 rpath = false
