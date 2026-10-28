@@ -187,6 +187,9 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     if let Err(e) = store_proposal(proposal).await {
                         error!(proposal_id = %proposal_id, error = %e, "Failed to store proposal");
+                        // Fail the batch so rindexer retries it instead of advancing the
+                        // checkpoint past rows that were never written.
+                        return Err(format!("Failed to store proposal {proposal_id}: {e:#}"));
                     } else {
                         debug!(proposal_id = %proposal_id, external_id = %result.event_data.proposalId, "ArbitrumSCNominations Proposal stored");
                     }

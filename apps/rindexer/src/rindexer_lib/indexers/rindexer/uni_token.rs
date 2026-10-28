@@ -120,6 +120,9 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     if let Err(e) = store_delegations(final_delegations).await {
                         error!(error = %e, "Failed to store delegations");
+                        // Fail the batch so rindexer retries it instead of advancing the
+                        // checkpoint past rows that were never written.
+                        return Err(format!("Failed to store delegations: {e:#}"));
                     }
                 }
 
@@ -224,6 +227,9 @@ async fn delegate_votes_changed_handler(
 
                     if let Err(e) = store_voting_powers(final_vps).await {
                         error!(error = %e, "Failed to store voting powers");
+                        // Fail the batch so rindexer retries it instead of advancing the
+                        // checkpoint past rows that were never written.
+                        return Err(format!("Failed to store voting powers: {e:#}"));
                     }
                 }
 
