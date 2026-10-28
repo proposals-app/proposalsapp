@@ -8,7 +8,7 @@ export interface NotificationDeliveryDependencies {
   recordNotification: (
     userId: string,
     targetId: string,
-    type: string,
+    type: NotificationType,
     daoId: string
   ) => Promise<void>;
 }
@@ -16,7 +16,7 @@ export interface NotificationDeliveryDependencies {
 export interface NotificationDeliveryInput {
   userId: string;
   targetId: string;
-  type: string;
+  type: NotificationType;
   daoId: string;
   to: string;
   subject: string;

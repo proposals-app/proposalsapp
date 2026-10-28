@@ -10,7 +10,9 @@ const HOUR_MS = 60 * 60 * 1000;
 // target) guarantees each item is still emailed at most once per user.
 export const DEFAULT_NEW_ITEM_LOOKBACK_HOURS = 24;
 
-// Ending-proposal reminders are re-sendable after this cooldown.
+// Ending-proposal reminders are re-sendable after this cooldown, e.g. when a
+// late-quorum vote extension moves the end of an on-chain proposal back into
+// the reminder window days later.
 export const ENDING_PROPOSAL_COOLDOWN_HOURS = 24;
 export const ENDING_PROPOSAL_MINUTES = 60;
 
@@ -150,4 +152,35 @@ export async function hasAlreadySent(input: {
   }
 
   return !!(await query.executeTakeFirst());
+}
+
+/**
+ * Records that `type` was emailed to the user for `targetId`.
+ * `user_notification` keeps one row per (user, type, target), so a repeat
+ * send (an ending-proposal reminder after its cooldown) refreshes `sent_at`;
+ * otherwise the cooldown would keep measuring from the first send and every
+ * later cycle would consider the reminder unsent.
+ */
+export async function recordNotificationSent(input: {
+  userId: string;
+  targetId: string;
+  type: NotificationType;
+  daoId: string;
+  sentAt?: Date;
+}): Promise<void> {
+  await db
+    .insertInto('userNotification')
+    .values({
+      userId: input.userId,
+      targetId: input.targetId,
+      type: input.type,
+      daoId: input.daoId,
+      sentAt: input.sentAt ?? new Date(),
+    })
+    .onConflict((conflict) =>
+      conflict.columns(['userId', 'type', 'targetId']).doUpdateSet((eb) => ({
+        sentAt: eb.ref('excluded.sentAt'),
+      }))
+    )
+    .execute();
 }
