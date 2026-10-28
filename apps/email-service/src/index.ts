@@ -1,4 +1,4 @@
-import { db, ProposalState, type Selectable, type Dao } from '@proposalsapp/db';
+import { db, type Selectable, type Dao } from '@proposalsapp/db';
 import { Resend } from 'resend';
 import cron from 'node-cron';
 import { formatDistanceStrict } from 'date-fns';
@@ -21,6 +21,13 @@ import {
   ENABLED_DAO_SLUGS,
 } from '@proposalsapp/governance';
 import { requireResendDelivery } from './resend-delivery';
+import {
+  findEndingProposals,
+  findNewDiscussionTopics,
+  findNewProposals,
+  hasAlreadySent,
+  NEW_ITEM_LOOKBACK_HOURS,
+} from './notification-selection';
 
 dotenv_config();
 
@@ -53,10 +60,6 @@ const BETTERSTACK_KEY = process.env.BETTERSTACK_KEY;
 
 const FROM_EMAIL =
   process.env.FROM_EMAIL || 'Proposals.app <no-reply@proposals.app>';
-const NEW_PROPOSAL_MINUTES = 5;
-const ENDING_PROPOSAL_MINUTES = 60;
-const NEW_DISCUSSION_MINUTES = 5;
-const COOLDOWN_HOURS = 24;
 
 // Initialize Resend
 const resend = new Resend(RESEND_API_KEY);
@@ -112,19 +115,9 @@ async function processDao(dao: Selectable<Dao>): Promise<void> {
 
 // Process new proposal notifications
 async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
-  // Get new proposals
-  const newProposals = await db
-    .selectFrom('proposal')
-    .selectAll()
-    .where('daoId', '=', dao.id)
-    .where('proposalState', '=', ProposalState.ACTIVE)
-    .where('markedSpam', '=', false)
-    .where(
-      'createdAt',
-      '>=',
-      new Date(Date.now() - NEW_PROPOSAL_MINUTES * 60 * 1000)
-    )
-    .execute();
+  // Active proposals whose voting opened within the lookback window; ones
+  // already emailed are skipped per recipient by `alreadySent`.
+  const newProposals = await findNewProposals(dao.id);
 
   if (newProposals.length === 0) {
     logger.debug(`No new proposals found for ${dao.name}`);
@@ -178,20 +171,7 @@ async function processNewProposals(dao: Selectable<Dao>): Promise<void> {
 
 // Process ending proposal notifications
 async function processEndingProposals(dao: Selectable<Dao>): Promise<void> {
-  // Get ending proposals
-  const endingProposals = await db
-    .selectFrom('proposal')
-    .selectAll()
-    .where('daoId', '=', dao.id)
-    .where('proposalState', '=', ProposalState.ACTIVE)
-    .where('markedSpam', '=', false)
-    .where(
-      'endAt',
-      '<=',
-      new Date(Date.now() + ENDING_PROPOSAL_MINUTES * 60 * 1000)
-    )
-    .where('endAt', '>', new Date())
-    .execute();
+  const endingProposals = await findEndingProposals(dao.id);
 
   if (endingProposals.length === 0) {
     logger.debug(`No ending proposals found for ${dao.name}`);
@@ -254,51 +234,12 @@ async function processNewDiscussions(dao: Selectable<Dao>): Promise<void> {
     return;
   }
 
-  // Get allowed category IDs for filtering
-  const allowedCategories = DAO_DISCOURSE_CATEGORY_FILTERS[dao.slug];
-
-  let query = db
-    .selectFrom('discourseTopic')
-    .innerJoin('discoursePost', (join) =>
-      join
-        .onRef('discoursePost.topicId', '=', 'discourseTopic.externalId')
-        .on('discoursePost.postNumber', '=', 1)
-        .onRef(
-          'discoursePost.daoDiscourseId',
-          '=',
-          'discourseTopic.daoDiscourseId'
-        )
-    )
-    .innerJoin('discourseUser', (join) =>
-      join
-        .onRef('discourseUser.externalId', '=', 'discoursePost.userId')
-        .onRef(
-          'discourseUser.daoDiscourseId',
-          '=',
-          'discoursePost.daoDiscourseId'
-        )
-    )
-    .select([
-      'discourseTopic.id',
-      'discourseTopic.title',
-      'discourseTopic.slug',
-      'discourseTopic.externalId',
-      'discourseUser.username',
-      'discourseUser.avatarTemplate',
-    ])
-    .where('discourseTopic.daoDiscourseId', '=', daoDiscourse.id)
-    .where(
-      'discourseTopic.createdAt',
-      '>=',
-      new Date(Date.now() - NEW_DISCUSSION_MINUTES * 60 * 1000)
-    );
-
-  // Apply category filter if configured
-  if (allowedCategories && allowedCategories.length > 0) {
-    query = query.where('discourseTopic.categoryId', 'in', allowedCategories);
-  }
-
-  const newTopics = await query.execute();
+  // Topics created within the lookback window; ones already emailed are
+  // skipped per recipient by `alreadySent`.
+  const newTopics = await findNewDiscussionTopics({
+    daoDiscourseId: daoDiscourse.id,
+    allowedCategories: DAO_DISCOURSE_CATEGORY_FILTERS[dao.slug],
+  });
 
   if (newTopics.length === 0) {
     logger.debug(`No new discussions found for ${dao.name}`);
@@ -402,26 +343,15 @@ async function sendEmail(
   }
 }
 
-// Check if we already sent this notification
+// Check if we already sent this notification. New-proposal and new-discussion
+// emails count any previous send; ending-proposal reminders use a cooldown.
 async function alreadySent(
   userId: string,
   targetId: string,
   type: NotificationType,
   daoId: string
 ): Promise<boolean> {
-  const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000);
-
-  const existing = await db
-    .selectFrom('userNotification')
-    .select('id')
-    .where('userId', '=', userId)
-    .where('targetId', '=', targetId)
-    .where('type', '=', type)
-    .where('daoId', '=', daoId)
-    .where('sentAt', '>=', cutoff)
-    .executeTakeFirst();
-
-  return !!existing;
+  return hasAlreadySent({ userId, targetId, type, daoId });
 }
 
 // Record notification sent
@@ -549,7 +479,10 @@ cron.schedule('* * * * *', () => {
 });
 
 // Start the service
-logger.info('Email service started - checking for notifications every minute');
+logger.info(
+  { newItemLookbackHours: NEW_ITEM_LOOKBACK_HOURS },
+  'Email service started - checking for notifications every minute'
+);
 void runNotificationCycle();
 
 // Handle shutdown

@@ -4,6 +4,7 @@ import type { AsyncReturnType } from '@/lib/utils';
 import { revalidateTag } from 'next/cache';
 import { requireDao } from '@/lib/server-actions-utils';
 import { daoIdSchema } from '@/lib/validations';
+import { appendAll, chunkArray } from '@/lib/arrays';
 import type { DiscourseUserSummary, VoterSummary } from '../api-contract';
 
 export type DelegatesWithMappingsReturnType = AsyncReturnType<
@@ -32,18 +33,34 @@ export async function getDelegatesWithMappings(daoSlug: string) {
 
   const delegateIds = delegates.map((delegate) => delegate.id);
 
-  const [delegateToDiscourseUsers, delegateToVoters] = await Promise.all([
-    db
-      .selectFrom('delegateToDiscourseUser')
-      .where('delegateId', 'in', delegateIds)
-      .select(['delegateId', 'discourseUserId', 'periodStart'])
-      .execute(),
-    db
-      .selectFrom('delegateToVoter')
-      .where('delegateId', 'in', delegateIds)
-      .select(['delegateId', 'voterId', 'periodStart'])
-      .execute(),
-  ]);
+  // Chunk id lookups so large DAOs stay under Postgres' 65,535
+  // bind-parameter limit per statement.
+  const delegateToDiscourseUsers: Array<{
+    delegateId: string;
+    discourseUserId: string;
+    periodStart: Date;
+  }> = [];
+  const delegateToVoters: Array<{
+    delegateId: string;
+    voterId: string;
+    periodStart: Date;
+  }> = [];
+  for (const chunk of chunkArray(delegateIds)) {
+    const [chunkDiscourseUsers, chunkVoters] = await Promise.all([
+      db
+        .selectFrom('delegateToDiscourseUser')
+        .where('delegateId', 'in', chunk)
+        .select(['delegateId', 'discourseUserId', 'periodStart'])
+        .execute(),
+      db
+        .selectFrom('delegateToVoter')
+        .where('delegateId', 'in', chunk)
+        .select(['delegateId', 'voterId', 'periodStart'])
+        .execute(),
+    ]);
+    appendAll(delegateToDiscourseUsers, chunkDiscourseUsers);
+    appendAll(delegateToVoters, chunkVoters);
+  }
 
   const discourseUserIds = [
     ...new Set(
@@ -54,22 +71,24 @@ export async function getDelegatesWithMappings(daoSlug: string) {
     ...new Set(delegateToVoters.map((mapping) => mapping.voterId)),
   ];
 
-  const [discourseUsers, voters] = await Promise.all([
-    discourseUserIds.length > 0
-      ? db
-          .selectFrom('discourseUser')
-          .where('id', 'in', discourseUserIds)
-          .select(['id', 'username', 'name'])
-          .execute()
-      : Promise.resolve([] as DiscourseUserSummary[]),
-    voterIds.length > 0
-      ? db
-          .selectFrom('voter')
-          .where('id', 'in', voterIds)
-          .select(['id', 'address', 'ens'])
-          .execute()
-      : Promise.resolve([] as VoterSummary[]),
-  ]);
+  const discourseUsers: DiscourseUserSummary[] = [];
+  for (const chunk of chunkArray(discourseUserIds)) {
+    const chunkUsers = await db
+      .selectFrom('discourseUser')
+      .where('id', 'in', chunk)
+      .select(['id', 'username', 'name'])
+      .execute();
+    appendAll(discourseUsers, chunkUsers);
+  }
+  const voters: VoterSummary[] = [];
+  for (const chunk of chunkArray(voterIds)) {
+    const chunkVoters = await db
+      .selectFrom('voter')
+      .where('id', 'in', chunk)
+      .select(['id', 'address', 'ens'])
+      .execute();
+    appendAll(voters, chunkVoters);
+  }
 
   const discourseUserById = new Map(
     discourseUsers.map((user) => [user.id, user])

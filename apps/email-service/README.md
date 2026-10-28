@@ -53,17 +53,20 @@ yarn start
 
 - `RESEND_API_KEY` - Required. Your Resend API key
 - `FROM_EMAIL` - Optional. Default: "Proposals.app <no-reply@proposals.app>"
+- `NEW_ITEM_LOOKBACK_HOURS` - Optional. Default: `24`. How far back to look for proposals whose
+  voting started and topics that were created
 
 ## How It Works
 
 1. **Every minute**, the cron job runs
 2. **For each DAO**, it checks for:
-   - New proposals (created in last 5 minutes)
+   - New proposals (active, voting started in the last 24 hours)
    - Ending proposals (ending in next 60 minutes)
-   - New discussions (created in last 5 minutes)
+   - New discussions (created in the last 24 hours)
 3. **For each notification type**, it:
    - Gets users who opted in for that notification type
-   - Checks if notification was already sent (24 hour cooldown)
+   - Checks if notification was already sent (new proposals and discussions: ever; ending proposals:
+     within a 24 hour cooldown)
    - Sends email using Resend
    - Records notification in database
 
