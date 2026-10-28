@@ -7,6 +7,7 @@ import {
 } from '@/lib/validations';
 import {
   db,
+  sql,
   type DiscourseUser,
   type Selectable,
   type Vote,
@@ -59,34 +60,72 @@ export async function getTotalDelegatedVpAtStart(
   if (!proposal) return 0;
   const excludedVoterAddress = getDaoExcludedVoterAddress(proposal.daoSlug);
 
-  // Join historical voting power with current voters to only count tokens still available for voting
-  const historicalPowersQuery = db
-    .selectFrom('votingPowerTimeseries as vp')
-    .innerJoin('votingPowerLatest as latest', (join) => {
-      let latestJoin = join
-        .onRef('latest.voter', '=', 'vp.voter')
-        .on('latest.daoId', '=', proposal.daoId)
-        .on('latest.votingPower', '>', 0);
+  const startAt = proposal.startAt;
 
-      if (excludedVoterAddress) {
-        latestJoin = latestJoin.on('latest.voter', '!=', excludedVoterAddress);
-      }
+  // Only voters who still hold voting power count. For a voter whose latest
+  // voting power change happened at or before the proposal start, that latest
+  // row is also their voting power at the start, so it can be summed directly.
+  // Only the few voters who changed after the start need a lookup of their
+  // last row at or before it, and that value must itself be positive.
+  let unchangedSinceStartQuery = db
+    .selectFrom('votingPowerLatest as latest')
+    .where('latest.daoId', '=', proposal.daoId)
+    .where('latest.votingPower', '>', 0)
+    .where('latest.timestamp', '<=', startAt)
+    .select((eb) =>
+      eb.fn
+        .coalesce(eb.fn.sum<number>('latest.votingPower'), sql<number>`0`)
+        .as('total')
+    );
 
-      return latestJoin;
-    })
-    .where('vp.daoId', '=', proposal.daoId)
-    .where('vp.votingPower', '>', 0)
-    .where('vp.timestamp', '<=', proposal.startAt)
-    .orderBy('vp.voter', 'asc')
-    .orderBy('vp.timestamp', 'desc')
-    .distinctOn(['vp.voter'])
-    .select(['vp.votingPower']);
+  let changedSinceStartQuery = db
+    .selectFrom('votingPowerLatest as latest')
+    .innerJoinLateral(
+      (eb) =>
+        eb
+          .selectFrom('votingPowerTimeseries as vp')
+          .whereRef('vp.voter', '=', 'latest.voter')
+          .whereRef('vp.daoId', '=', 'latest.daoId')
+          .where('vp.timestamp', '<=', startAt)
+          .orderBy('vp.timestamp', 'desc')
+          .orderBy('vp.block', 'desc')
+          .limit(1)
+          .select('vp.votingPower')
+          .as('atStart'),
+      (join) => join.onTrue()
+    )
+    .where('latest.daoId', '=', proposal.daoId)
+    .where('latest.votingPower', '>', 0)
+    .where('latest.timestamp', '>', startAt)
+    .where('atStart.votingPower', '>', 0)
+    .select((eb) =>
+      eb.fn
+        .coalesce(eb.fn.sum<number>('atStart.votingPower'), sql<number>`0`)
+        .as('total')
+    );
 
-  const historicalPowers = await historicalPowersQuery.execute();
+  if (excludedVoterAddress) {
+    unchangedSinceStartQuery = unchangedSinceStartQuery.where(
+      'latest.voter',
+      '!=',
+      excludedVoterAddress
+    );
+    changedSinceStartQuery = changedSinceStartQuery.where(
+      'latest.voter',
+      '!=',
+      excludedVoterAddress
+    );
+  }
 
-  if (historicalPowers.length === 0) return 0;
+  const [unchangedSinceStart, changedSinceStart] = await Promise.all([
+    unchangedSinceStartQuery.executeTakeFirst(),
+    changedSinceStartQuery.executeTakeFirst(),
+  ]);
 
-  return historicalPowers.reduce((sum, r) => sum + (r.votingPower || 0), 0);
+  return (
+    Number(unchangedSinceStart?.total ?? 0) +
+    Number(changedSinceStart?.total ?? 0)
+  );
 }
 
 export async function getNonVoters(proposalId: string) {
