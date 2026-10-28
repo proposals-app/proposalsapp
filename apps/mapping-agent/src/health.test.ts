@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createTaskHealthState,
   evaluateServiceHealth,
+  healthHttpStatus,
   recordTaskFailure,
   recordTaskSuccess,
 } from './health';
@@ -39,5 +40,11 @@ describe('mapping agent health', () => {
     recordTaskSuccess(delegate, now);
 
     expect(evaluateServiceHealth([proposal, delegate])).toBe('healthy');
+  });
+
+  it('answers 200 while starting so deploys do not wait for the first agent session', () => {
+    expect(healthHttpStatus('starting')).toBe(200);
+    expect(healthHttpStatus('healthy')).toBe(200);
+    expect(healthHttpStatus('degraded')).toBe(503);
   });
 });

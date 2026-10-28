@@ -9,6 +9,7 @@ import { runProposalMappingWorker } from './proposals/worker';
 import {
   createTaskHealthState,
   evaluateServiceHealth,
+  healthHttpStatus,
   recordTaskFailure,
   recordTaskSuccess,
   type TaskHealthState,
@@ -79,7 +80,7 @@ async function main(): Promise<void> {
   const server = createServer((request, response) => {
     if (request.url === '/health' && request.method === 'GET') {
       const status = evaluateServiceHealth([proposalState, delegateState]);
-      response.writeHead(status === 'healthy' ? 200 : 503, {
+      response.writeHead(healthHttpStatus(status), {
         'content-type': 'application/json',
         'cache-control': 'no-store',
       });

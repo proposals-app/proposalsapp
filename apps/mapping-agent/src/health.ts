@@ -46,3 +46,11 @@ export function evaluateServiceHealth(
 
   return 'healthy';
 }
+
+// The worker serves no traffic, so /health is a liveness check. The first
+// delegate pass can include an agent session lasting up to the session
+// timeout; answering 503 until it ends made Coolify's rolling deploys give
+// up and roll back. Only a failed cycle is reported as unhealthy.
+export function healthHttpStatus(status: ServiceHealthStatus): 200 | 503 {
+  return status === 'degraded' ? 503 : 200;
+}
