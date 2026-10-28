@@ -11,6 +11,7 @@ use crate::{
             DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB,
             calculate_total_delegated_voting_power, store_proposal, store_votes,
         },
+        rpc_timeout::with_rpc_timeout,
     },
     rindexer_lib::typings::networks::get_ethereum_provider,
 };
@@ -180,7 +181,7 @@ async fn build_vote_model_from_event(
     block_number: u64,
     transaction_hash: &str,
     governor_id: Uuid,
-) -> Option<vote::ActiveModel> {
+) -> Result<vote::ActiveModel> {
     let created_at = match estimate_timestamp("ethereum", block_number).await {
         Ok(ts) => ts,
         Err(e) => {
@@ -190,11 +191,14 @@ async fn build_vote_model_from_event(
                 error = %e,
                 "Failed to estimate created_at timestamp for VoteCast event"
             );
-            return None;
+            return Err(e.context(format!(
+                "Failed to estimate created_at timestamp for vote on proposal {} at block {block_number}",
+                event_data.proposalId
+            )));
         }
     };
 
-    Some(vote::ActiveModel {
+    Ok(vote::ActiveModel {
         id: NotSet,
         voter_address: Set(event_data.voter.to_string()),
         choice: Set(vote_choice_from_support(event_data.support)),
@@ -221,19 +225,22 @@ async fn fetch_uni_governor_logs(
 ) -> Result<Vec<RpcLog>> {
     let provider = get_ethereum_provider().await;
 
-    provider
-        .client()
-        .request::<(serde_json::Value,), Vec<RpcLog>>(
-            "eth_getLogs",
-            (json!({
-                "address": "0x408ed6354d4973f66138c91495f2f2fcbd8724c3",
-                "topics": [topic_id],
-                "fromBlock": format!("0x{:x}", from_block),
-                "toBlock": format!("0x{:x}", to_block),
-            }),),
-        )
-        .await
-        .context("Failed to fetch UniGovernor logs")
+    with_rpc_timeout(
+        "eth_getLogs",
+        provider
+            .client()
+            .request::<(serde_json::Value,), Vec<RpcLog>>(
+                "eth_getLogs",
+                (json!({
+                    "address": "0x408ed6354d4973f66138c91495f2f2fcbd8724c3",
+                    "topics": [topic_id],
+                    "fromBlock": format!("0x{:x}", from_block),
+                    "toBlock": format!("0x{:x}", to_block),
+                }),),
+            ),
+    )
+    .await
+    .context("Failed to fetch UniGovernor logs")
 }
 
 fn decode_proposal_created_log(log: RpcLog) -> Result<DecodedProposalCreatedLog> {
@@ -369,7 +376,9 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
 
                     let uni_governor = uni_governor_contract("ethereum").await;
 
-                    let proposal_state_result = uni_governor.state(proposal_id).call().await;
+                    let proposal_state_result =
+                        with_rpc_timeout("UniGovernor.state", uni_governor.state(proposal_id).call())
+                            .await;
                     let proposal_state = match proposal_state_result {
                         Ok(state_enum) => proposal_state_from_contract(state_enum),
                         Err(e) => {
@@ -394,7 +403,11 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                                 error = %e,
                                 "Failed to build proposal model from ProposalCreated event"
                             );
-                            continue;
+                            // Fail the batch so rindexer retries it (with backoff) instead of
+                            // advancing the checkpoint past a dropped proposal.
+                            return Err(format!(
+                                "Failed to build UniGovernor proposal {proposal_id}: {e:#}"
+                            ));
                         }
                     };
 
@@ -510,7 +523,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                 );
                 let governor_id_for_votes = get_governor_id().unwrap();
 
-                let votes: Vec<vote::ActiveModel> = stream::iter(results)
+                let votes: Vec<Result<vote::ActiveModel>> = stream::iter(results)
                     .map(|result| async move {
                         build_vote_model_from_event(
                             &result.event_data,
@@ -521,9 +534,14 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         .await
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
-                    .filter_map(|vote_opt| async { vote_opt }) // Filter out None values
                     .collect::<Vec<_>>()
                     .await;
+                // Fail the whole batch on any timestamp failure so rindexer retries it
+                // rather than advancing the checkpoint past dropped votes.
+                let votes = votes
+                    .into_iter()
+                    .collect::<Result<Vec<_>>>()
+                    .map_err(|e| format!("{e:#}"))?;
 
                 if let Err(e) = store_votes(votes, governor_id_for_votes).await {
                     error!(error = %e, "Failed to store votes");
@@ -584,12 +602,13 @@ pub async fn backfill_missing_proposals_and_votes() -> Result<()> {
     let governor_id = get_governor_id().context("Failed to get Uniswap governor ID")?;
     let uni_governor = uni_governor_contract("ethereum").await;
 
-    let proposal_count = uni_governor
-        .proposalCount()
-        .call()
-        .await
-        .context("Failed to fetch Uniswap proposalCount")?
-        .to::<u64>();
+    let proposal_count = with_rpc_timeout(
+        "UniGovernor.proposalCount",
+        uni_governor.proposalCount().call(),
+    )
+    .await
+    .context("Failed to fetch Uniswap proposalCount")?
+    .to::<u64>();
 
     let existing_ids: HashSet<u64> = proposal::Entity::find()
         .filter(proposal::Column::GovernorId.eq(governor_id))
@@ -619,7 +638,12 @@ pub async fn backfill_missing_proposals_and_votes() -> Result<()> {
     );
 
     for proposal_id in missing_ids {
-        let proposal_state = match uni_governor.state(U256::from(proposal_id)).call().await {
+        let proposal_state = match with_rpc_timeout(
+            "UniGovernor.state",
+            uni_governor.state(U256::from(proposal_id)).call(),
+        )
+        .await
+        {
             Ok(state) => proposal_state_from_contract(state),
             Err(error) => {
                 error!(
@@ -632,7 +656,12 @@ pub async fn backfill_missing_proposals_and_votes() -> Result<()> {
             }
         };
 
-        let proposal_details = match uni_governor.proposals(U256::from(proposal_id)).call().await {
+        let proposal_details = match with_rpc_timeout(
+            "UniGovernor.proposals",
+            uni_governor.proposals(U256::from(proposal_id)).call(),
+        )
+        .await
+        {
             Ok(details) => details,
             Err(error) => {
                 error!(
@@ -710,7 +739,9 @@ pub async fn backfill_missing_proposals_and_votes() -> Result<()> {
                 .await
             })
             .buffer_unordered(CONCURRENCY_LIMIT)
-            .filter_map(|vote| async move { vote })
+            // Failures are logged in build_vote_model_from_event; the live indexer
+            // still delivers these VoteCast events when it reaches their blocks.
+            .filter_map(|vote| async move { vote.ok() })
             .collect()
             .await;
 

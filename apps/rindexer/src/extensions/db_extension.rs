@@ -239,11 +239,10 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
                 .clone()
                 .take()
                 .unwrap_or(existing.txid.clone())),
-            metadata: Set(proposal
-                .metadata
-                .clone()
-                .take()
-                .unwrap_or(existing.metadata.clone())),
+            metadata: Set(match proposal.metadata.clone().take() {
+                Some(metadata) => preserve_metadata_keys(metadata, existing.metadata.as_ref()),
+                None => existing.metadata.clone(),
+            }),
             dao_id: Set(proposal.dao_id.clone().take().unwrap_or(existing.dao_id)),
             author: Set(proposal
                 .author
@@ -269,6 +268,32 @@ pub async fn store_proposal(proposal: proposal::ActiveModel) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Metadata key holding the distinct-voter count confirmed by Snapshot vote reconciliation.
+/// Provider metadata refreshes do not know it, so `store_proposal` carries it over.
+pub const SNAPSHOT_VOTE_COUNT_VERIFIED_KEY: &str = "snapshot_vote_count_verified";
+
+/// Keys written by local bookkeeping that a metadata refresh from the provider must keep.
+const PRESERVED_METADATA_KEYS: &[&str] = &[SNAPSHOT_VOTE_COUNT_VERIFIED_KEY];
+
+fn preserve_metadata_keys(
+    mut metadata: Option<serde_json::Value>,
+    existing: Option<&serde_json::Value>,
+) -> Option<serde_json::Value> {
+    if let (Some(new_object), Some(existing_object)) = (
+        metadata.as_mut().and_then(|value| value.as_object_mut()),
+        existing.and_then(|value| value.as_object()),
+    ) {
+        for key in PRESERVED_METADATA_KEYS {
+            if !new_object.contains_key(*key)
+                && let Some(value) = existing_object.get(*key)
+            {
+                new_object.insert((*key).to_string(), value.clone());
+            }
+        }
+    }
+    metadata
 }
 
 #[instrument(name = "db_store_votes", skip(votes), fields(vote_count = votes.len()))]
@@ -956,4 +981,44 @@ pub async fn calculate_total_delegated_voting_power(
     );
 
     Ok(total_vp)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SNAPSHOT_VOTE_COUNT_VERIFIED_KEY, preserve_metadata_keys};
+    use serde_json::json;
+
+    #[test]
+    fn metadata_refresh_keeps_verified_vote_count() {
+        let existing = json!({"snapshot_vote_count": 10, SNAPSHOT_VOTE_COUNT_VERIFIED_KEY: 9});
+        let refreshed = preserve_metadata_keys(
+            Some(json!({"snapshot_vote_count": 10, "scores_state": "final"})),
+            Some(&existing),
+        );
+        assert_eq!(
+            refreshed,
+            Some(json!({
+                "snapshot_vote_count": 10,
+                "scores_state": "final",
+                SNAPSHOT_VOTE_COUNT_VERIFIED_KEY: 9
+            }))
+        );
+    }
+
+    #[test]
+    fn explicit_verified_value_and_missing_existing_are_respected() {
+        let existing = json!({SNAPSHOT_VOTE_COUNT_VERIFIED_KEY: 9});
+        assert_eq!(
+            preserve_metadata_keys(
+                Some(json!({SNAPSHOT_VOTE_COUNT_VERIFIED_KEY: 12})),
+                Some(&existing)
+            ),
+            Some(json!({SNAPSHOT_VOTE_COUNT_VERIFIED_KEY: 12}))
+        );
+        assert_eq!(
+            preserve_metadata_keys(Some(json!({"a": 1})), None),
+            Some(json!({"a": 1}))
+        );
+        assert_eq!(preserve_metadata_keys(None, Some(&existing)), None);
+    }
 }

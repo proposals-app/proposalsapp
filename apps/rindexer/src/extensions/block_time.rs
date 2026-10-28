@@ -1,5 +1,6 @@
-use crate::rindexer_lib::typings::networks::{
-    get_arbitrum_provider_cache, get_ethereum_provider_cache,
+use crate::{
+    extensions::rpc_timeout::with_rpc_timeout,
+    rindexer_lib::typings::networks::{get_arbitrum_provider_cache, get_ethereum_provider_cache},
 };
 use alloy::{eips::BlockId, providers::Provider};
 use anyhow::{Context, Result};
@@ -255,7 +256,11 @@ async fn process_block_timestamp_request(
     config: ChainConfig,
     block_number: u64,
 ) -> Result<NaiveDateTime> {
-    let provider = get_provider_cache_for_network(config.network).await;
+    // Provider creation performs RPC calls (chain id) through the retrying client.
+    let provider = with_rpc_timeout("provider initialization", async {
+        Ok::<_, anyhow::Error>(get_provider_cache_for_network(config.network).await)
+    })
+    .await?;
 
     // First, determine if this is a past or future block
     let current_block = get_current_block_number(&provider).await?;
@@ -291,8 +296,7 @@ async fn get_provider_cache_for_network(
 async fn get_current_block_number(
     provider: &Arc<rindexer::provider::JsonRpcCachedProvider>,
 ) -> Result<u64> {
-    provider
-        .get_block_number()
+    with_rpc_timeout("eth_blockNumber", provider.get_block_number())
         .await
         .context("Failed to get current block number from provider")
         .map(|n| n.to::<u64>())
@@ -407,9 +411,11 @@ async fn get_timestamp_from_provider(
 
     let inner_provider = provider.get_inner_provider();
 
-    match inner_provider
-        .get_block(BlockId::Number(block_number.into()))
-        .await
+    match with_rpc_timeout(
+        "eth_getBlockByNumber",
+        inner_provider.get_block(BlockId::Number(block_number.into())),
+    )
+    .await
     {
         Ok(Some(block)) => {
             let timestamp = block.header.timestamp as i64;
@@ -440,13 +446,16 @@ async fn get_timestamp_from_raw_rpc(
     debug!("Making raw RPC request for block {}", block_number);
 
     // First try the typed request (existing behavior)
-    match inner_provider
-        .client()
-        .request::<_, Option<BlockTimestamp>>(
-            "eth_getBlockByNumber",
-            (format!("0x{:x}", block_number), false),
-        )
-        .await
+    match with_rpc_timeout(
+        "eth_getBlockByNumber (raw)",
+        inner_provider
+            .client()
+            .request::<_, Option<BlockTimestamp>>(
+                "eth_getBlockByNumber",
+                (format!("0x{:x}", block_number), false),
+            ),
+    )
+    .await
     {
         Ok(Some(block)) => {
             let timestamp = i64::from_str_radix(block.timestamp.trim_start_matches("0x"), 16)
@@ -464,13 +473,16 @@ async fn get_timestamp_from_raw_rpc(
             // If the typed request fails (likely due to mixHash deserialization),
             // try manual JSON parsing to bypass the issue - don't log the error as it's expected for Arbitrum blocks
 
-            match inner_provider
-                .client()
-                .request::<_, Option<serde_json::Value>>(
-                    "eth_getBlockByNumber",
-                    (format!("0x{:x}", block_number), false),
-                )
-                .await
+            match with_rpc_timeout(
+                "eth_getBlockByNumber (raw JSON)",
+                inner_provider
+                    .client()
+                    .request::<_, Option<serde_json::Value>>(
+                        "eth_getBlockByNumber",
+                        (format!("0x{:x}", block_number), false),
+                    ),
+            )
+            .await
             {
                 Ok(Some(block_json)) => {
                     // Extract timestamp manually from the JSON response

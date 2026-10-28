@@ -395,7 +395,7 @@ impl DiscourseApi {
 
         let endpoint_key_clone = job.endpoint_key.clone(); // Clone for metrics
 
-        info!(url = %job.url, "Executing request");
+        debug!(url = %job.url, "Executing request");
         // Execute the actual HTTP request with retries/backoff.
         let result: Result<String> = self.execute_request(&job.url).await;
         let request_duration = start_time.elapsed();
@@ -467,7 +467,7 @@ impl DiscourseApi {
         // Record overall job processing time (includes request execution + broadcasting logic).
         let total_job_duration = start_time.elapsed();
 
-        info!(url = %job.url, ?total_job_duration, "Finished processing job.");
+        debug!(url = %job.url, ?total_job_duration, "Finished processing job.");
     }
 
     /// Executes the HTTP GET request with retry logic and forbidden URL caching.
@@ -521,7 +521,7 @@ impl DiscourseApi {
                     // --- Handle Status Codes ---
                     match status {
                         StatusCode::OK => {
-                            info!(url, attempt, ?response_time, "Request successful (200 OK)");
+                            debug!(url, attempt, ?response_time, "Request successful (200 OK)");
                             // Read body text - potential point of failure
                             return response.text().await.with_context(|| {
                                 format!("Failed to read response body text for {url}")

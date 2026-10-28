@@ -13,7 +13,7 @@ use sea_orm::{
     QueryFilter, Set, TransactionTrait, TryInsertResult, prelude::Uuid, sea_query::OnConflict,
 };
 use std::time::Duration;
-use tracing::{debug, info, instrument};
+use tracing::{debug, instrument};
 
 // Use a OnceCell for safe, one-time initialization.
 pub static DB: OnceCell<DatabaseConnection> = OnceCell::new();
@@ -491,7 +491,7 @@ pub async fn upsert_post_likes_batch(
                 )
             })? {
             TryInsertResult::Inserted(rows_affected) => {
-                info!(
+                debug!(
                     post_id,
                     attempted_likes = attempted_insert_count,
                     inserted_likes = rows_affected,

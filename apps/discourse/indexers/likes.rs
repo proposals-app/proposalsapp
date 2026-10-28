@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use reqwest::StatusCode;
 use sea_orm::prelude::Uuid;
 use std::sync::Arc;
-use tracing::{debug, info, instrument, warn};
+use tracing::{debug, instrument, warn};
 
 const LIKE_PAGE_SIZE: u32 = 50;
 
@@ -32,7 +32,7 @@ impl LikesIndexer {
         post_id: i32,   // External Discourse Post ID
         priority: bool, // Whether to use priority queue for the API request
     ) -> Result<()> {
-        info!("Fetching and storing likes for post");
+        debug!("Fetching and storing likes for post");
 
         let mut pager = PageCursor::new(MAX_PAGES_PER_RUN);
         let mut total_rows: Option<i32> = None;
@@ -70,7 +70,7 @@ impl LikesIndexer {
 
             if user_ids.is_empty() {
                 if total_processed == 0 {
-                    info!(post_id, "No likes returned by API.");
+                    debug!(post_id, "No likes returned by API.");
                 }
                 break;
             }
@@ -101,7 +101,7 @@ impl LikesIndexer {
             .await
             .with_context(|| format!("Failed to reconcile likes for post_id {post_id}"))?;
 
-        info!(post_id, total_processed, "Successfully processed likes.");
+        debug!(post_id, total_processed, "Successfully processed likes.");
         Ok(())
     }
 }

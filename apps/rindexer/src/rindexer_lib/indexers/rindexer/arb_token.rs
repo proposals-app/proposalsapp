@@ -59,7 +59,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                     .unwrap();
 
                 // Process results in parallel using futures streams
-                let delegations: Vec<delegation::ActiveModel> = stream::iter(results)
+                let delegations: Vec<Result<delegation::ActiveModel, String>> = stream::iter(results)
                     .map(|result| async move {
                         let block_number = result.tx_information.block_number;
                         let delegator_addr = result.event_data.delegator;
@@ -74,10 +74,9 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                                     error = %e,
                                     "Failed to estimate timestamp for DelegateChanged event"
                                 );
-                                // Returning `Err` here will stop processing the batch.
-                                // Depending on your error handling strategy, you might want to handle this differently,
-                                // e.g., skip this event and continue with others, or retry.
-                                return None; // Skip this delegation if timestamp estimation fails
+                                // Fail the batch so rindexer retries it (with backoff) instead of
+                                // advancing the checkpoint past a dropped delegation.
+                                return Err(format!("Failed to estimate timestamp for DelegateChanged at block {block_number}: {e}"));
                             }
                         };
 
@@ -87,7 +86,7 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                             "Processed single event within batch"
                         );
 
-                        Some(delegation::ActiveModel {
+                        Ok(delegation::ActiveModel {
                             id: NotSet,
                             delegator: Set(delegator_addr.to_string()),
                             delegate: Set(delegate_addr.to_string()),
@@ -98,9 +97,11 @@ async fn delegate_changed_handler(manifest_path: &PathBuf, registry: &mut EventC
                         })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
-                    .filter_map(|delegation_opt| async { delegation_opt }) // Filter out None values
                     .collect::<Vec<_>>()
                     .await;
+                let delegations = delegations
+                    .into_iter()
+                    .collect::<Result<Vec<_>, String>>()?;
 
                 if !delegations.is_empty() {
                     // Deduplicate delegations by keeping only the last one for each (delegator, dao_id, block) combination
@@ -170,7 +171,7 @@ async fn delegate_votes_changed_handler(
                     .unwrap();
 
                 // Process results in parallel using futures streams
-                let vps: Vec<voting_power_timeseries::ActiveModel> = stream::iter(results)
+                let vps: Vec<Result<voting_power_timeseries::ActiveModel, String>> = stream::iter(results)
                     .map(|result| async move {
                         let block_number = result.tx_information.block_number;
                         let delegate_addr = result.event_data.delegate;
@@ -185,7 +186,8 @@ async fn delegate_votes_changed_handler(
                                     error = %e,
                                     "Failed to estimate timestamp for DelegateVotesChanged event"
                                 );
-                                return None; // Skip this voting power update if timestamp estimation fails
+                                // Fail the batch so rindexer retries it instead of dropping the update.
+                                return Err(format!("Failed to estimate timestamp for DelegateVotesChanged at block {block_number}: {e}"));
                             }
                         };
 
@@ -195,7 +197,7 @@ async fn delegate_votes_changed_handler(
                             "Processed single event within batch"
                         );
 
-                        Some(voting_power_timeseries::ActiveModel {
+                        Ok(voting_power_timeseries::ActiveModel {
                             id: NotSet,
                             voter: Set(delegate_addr.to_string()),
                             voting_power: Set(new_balance.to::<u128>() as f64 / (10.0f64.powi(18))),
@@ -206,9 +208,9 @@ async fn delegate_votes_changed_handler(
                         })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
-                    .filter_map(|vp_opt| async { vp_opt }) // Filter out None values
                     .collect::<Vec<_>>()
                     .await;
+                let vps = vps.into_iter().collect::<Result<Vec<_>, String>>()?;
 
                 if !vps.is_empty() {
                     // Deduplicate voting powers by keeping only the last one for each (voter, dao_id, block) combination

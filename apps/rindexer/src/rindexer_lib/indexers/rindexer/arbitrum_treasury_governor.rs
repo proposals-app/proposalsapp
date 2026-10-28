@@ -10,6 +10,7 @@ use crate::extensions::{
         DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, calculate_total_delegated_voting_power,
         store_proposal, store_votes,
     },
+    rpc_timeout::with_rpc_timeout,
 };
 use alloy::{hex::ToHexExt, primitives::U256};
 use anyhow::{Context, Result};
@@ -79,11 +80,13 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     let block_number = result.tx_information.block_number;
                     let arbitrum_treasury_governor = arbitrum_treasury_governor_contract("arbitrum").await;
 
+                    // A timestamp failure fails the batch so rindexer retries it (with
+                    // backoff) instead of advancing the checkpoint past a dropped proposal.
                     let created_at = match estimate_timestamp("arbitrum", block_number).await {
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, "Failed to estimate created_at timestamp");
-                            continue; // Skip proposal if timestamp estimation fails
+                            return Err(format!("Failed to estimate created_at timestamp for proposal {proposal_id}: {e}"));
                         }
                     };
 
@@ -91,7 +94,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, start_block = %result.event_data.startBlock, "Failed to estimate start_at timestamp");
-                            continue;
+                            return Err(format!("Failed to estimate start_at timestamp for proposal {proposal_id}: {e}"));
                         }
                     };
 
@@ -99,7 +102,7 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, block_number = block_number, error = %e, end_block = %result.event_data.endBlock, "Failed to estimate end_at timestamp");
-                            continue;
+                            return Err(format!("Failed to estimate end_at timestamp for proposal {proposal_id}: {e}"));
                         }
                     };
 
@@ -109,7 +112,11 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                     );
                     let choices = vec!["For", "Against", "Abstain"];
 
-                    let proposal_state_result = arbitrum_treasury_governor.state(proposal_id).call().await;
+                    let proposal_state_result = with_rpc_timeout(
+                        "ArbitrumTreasuryGovernor.state",
+                        arbitrum_treasury_governor.state(proposal_id).call(),
+                    )
+                    .await;
                     let proposal_state = match proposal_state_result {
                         Ok(state_enum) => match state_enum {
                             0 => ProposalState::Pending,
@@ -128,16 +135,18 @@ async fn proposal_created_handler(manifest_path: &PathBuf, registry: &mut EventC
                         }
                     };
 
-                    let proposal_snapshot_block_result = arbitrum_treasury_governor
-                        .proposalSnapshot(proposal_id)
-                        .call()
-                        .await;
+                    let proposal_snapshot_block_result = with_rpc_timeout(
+                        "ArbitrumTreasuryGovernor.proposalSnapshot",
+                        arbitrum_treasury_governor.proposalSnapshot(proposal_id).call(),
+                    )
+                    .await;
                     let quorum_result = match proposal_snapshot_block_result {
                         Ok(snapshot_block) => {
-                            arbitrum_treasury_governor
-                                .quorum(snapshot_block)
-                                .call()
-                                .await
+                            with_rpc_timeout(
+                                "ArbitrumTreasuryGovernor.quorum",
+                                arbitrum_treasury_governor.quorum(snapshot_block).call(),
+                            )
+                            .await
                         }
                         Err(e) => {
                             error!(proposal_id = %proposal_id, error = %e, "Failed to fetch proposal snapshot block, defaulting quorum to 0");
@@ -302,7 +311,8 @@ async fn proposal_extended_handler(manifest_path: &PathBuf, registry: &mut Event
                         Ok(ts) => ts,
                         Err(e) => {
                             error!(proposal_id = %proposal_id, error = %e, extended_deadline = %extended_deadline, "Failed to estimate end_at timestamp for ProposalExtended event");
-                            continue; // Skip proposal update if timestamp estimation fails
+                            // Fail the batch so rindexer retries it instead of dropping the extension.
+                            return Err(format!("Failed to estimate extended end_at timestamp for proposal {proposal_id}: {e}"));
                         }
                     };
 
@@ -375,7 +385,7 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
 
                 let governor_id_for_votes = get_governor_id().unwrap();
 
-                let votes: Vec<vote::ActiveModel> = stream::iter(results)
+                let votes: Vec<Result<vote::ActiveModel, String>> = stream::iter(results)
                     .map(|result| async move {
                         let block_number = result.tx_information.block_number;
                         let proposal_id = result.event_data.proposalId.to_string();
@@ -384,11 +394,11 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                             Ok(ts) => ts,
                             Err(e) => {
                                 error!(proposal_id = %proposal_id, block_number = block_number, error = %e, "Failed to estimate created_at timestamp for VoteCast event");
-                                return None; // Skip vote if timestamp estimation fails
+                                return Err(format!("Failed to estimate created_at timestamp for vote on proposal {proposal_id} at block {block_number}: {e}"));
                             }
                         };
 
-                        Some(vote::ActiveModel {
+                        Ok(vote::ActiveModel {
                             id: NotSet,
                             voter_address: Set(result.event_data.voter.to_string()),
                             choice: Set(match result.event_data.support {
@@ -409,9 +419,11 @@ async fn vote_cast_handler(manifest_path: &PathBuf, registry: &mut EventCallback
                         })
                     })
                     .buffer_unordered(CONCURRENCY_LIMIT)
-                    .filter_map(|vote_opt| async { vote_opt }) // Filter out None values
                     .collect::<Vec<_>>()
                     .await;
+                // Fail the whole batch on any timestamp failure so rindexer retries it
+                // rather than advancing the checkpoint past dropped votes.
+                let votes = votes.into_iter().collect::<Result<Vec<_>, String>>()?;
 
                 if let Err(e) = store_votes(votes, governor_id_for_votes).await {
                     error!(error = %e, "Failed to store votes");
@@ -806,17 +818,21 @@ pub async fn update_active_proposals_quorum() -> Result<()> {
         };
 
         // Get the current quorum value from the contract
-        let proposal_snapshot_block_result = arbitrum_treasury_governor
-            .proposalSnapshot(proposal_id_u256)
-            .call()
-            .await;
+        let proposal_snapshot_block_result = with_rpc_timeout(
+            "ArbitrumTreasuryGovernor.proposalSnapshot",
+            arbitrum_treasury_governor
+                .proposalSnapshot(proposal_id_u256)
+                .call(),
+        )
+        .await;
 
         let current_quorum = match proposal_snapshot_block_result {
             Ok(snapshot_block) => {
-                match arbitrum_treasury_governor
-                    .quorum(snapshot_block)
-                    .call()
-                    .await
+                match with_rpc_timeout(
+                    "ArbitrumTreasuryGovernor.quorum",
+                    arbitrum_treasury_governor.quorum(snapshot_block).call(),
+                )
+                .await
                 {
                     Ok(quorum_value) => quorum_value.to::<u128>() as f64 / (10.0f64.powi(18)),
                     Err(e) => {

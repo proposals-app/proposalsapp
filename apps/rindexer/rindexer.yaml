@@ -2,7 +2,10 @@ name: rindexer
 project_type: rust
 
 global:
-  health_port: 3000
+  # rindexer's built-in health server only checks that the DB is reachable and
+  # tables exist, so it reports healthy while indexing is stalled. The app serves
+  # its own progress-aware /health on HEALTH_PORT (default 3000) instead.
+  health_port: 3001
 
 storage:
   postgres:
@@ -17,14 +20,18 @@ networks:
     rpc: ${ETHEREUM_NODE_URL}
     max_block_range: 50
     block_poll_frequency: 120000
-    compute_units_per_second: 5
+    compute_units_per_second: 300
 
   - name: arbitrum
     chain_id: 42161
     rpc: ${ARBITRUM_NODE_URL}
-    max_block_range: 500
-    block_poll_frequency: 120000
-    compute_units_per_second: 40
+    max_block_range: 100
+    # Dependency-ordered contracts fetch live logs from the last seen block to
+    # the head in one eth_getLogs call, without applying max_block_range. Poll
+    # often enough that the range stays under the RPC's 100-block cap
+    # (~60 Arbitrum blocks per 15s).
+    block_poll_frequency: 15000
+    compute_units_per_second: 500
 
 contracts:
   - name: ARBToken

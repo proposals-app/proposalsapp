@@ -15,6 +15,7 @@ live-tests = []
 alloy = { workspace = true, features = ["full"] }
 alloy-ens = { workspace = true, features = ["contract", "provider"] }
 anyhow = { workspace = true }
+axum = { workspace = true }
 chrono = { workspace = true }
 dotenv = { workspace = true }
 futures = { workspace = true }
