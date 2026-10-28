@@ -53,6 +53,8 @@ yarn start
 
 - `RESEND_API_KEY` - Required. Your Resend API key
 - `FROM_EMAIL` - Optional. Default: "Proposals.app <no-reply@proposals.app>"
+- `RESEND_MAX_SENDS_PER_SECOND` - Optional. Default: `4`. Sends are spaced to stay under Resend's
+  per-team API rate limit (10 requests/second by default, shared with the web app)
 - `NEW_ITEM_LOOKBACK_HOURS` - Optional. Default: `24`. How far back to look for proposals whose
   voting started and topics that were created
 
