@@ -24,6 +24,8 @@ export interface MappingAgentConfig {
   daoCategoryFilters: Record<string, number[]>;
   proposalIntervalMs: number;
   delegateIntervalMs: number;
+  delegateRetryInitialMs: number;
+  delegateRetryMaxMs: number;
   betterstackUrl: string | null;
   proposalConfidenceThreshold: number;
   delegateConfidenceThreshold: number;
@@ -132,6 +134,14 @@ export function loadConfig(): MappingAgentConfig {
     delegateIntervalMs:
       parseInteger(process.env.MAPPING_AGENT_DELEGATE_INTERVAL_SECONDS, 300) *
       1000,
+    delegateRetryInitialMs:
+      parseInteger(
+        process.env.MAPPING_AGENT_DELEGATE_RETRY_INITIAL_MINUTES,
+        30
+      ) * 60_000,
+    delegateRetryMaxMs:
+      parseInteger(process.env.MAPPING_AGENT_DELEGATE_RETRY_MAX_HOURS, 24) *
+      3_600_000,
     betterstackUrl: process.env.BETTERSTACK_KEY || null,
     proposalConfidenceThreshold: parseFloatValue(
       process.env.MAPPING_AGENT_PROPOSAL_CONFIDENCE_THRESHOLD,
