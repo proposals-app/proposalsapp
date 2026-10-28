@@ -22,7 +22,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{task::JoinSet, time::interval_at};
-use tracing::{Instrument, error, info, instrument, warn};
+use tracing::{Instrument, debug, error, info, instrument, warn};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 // --- Configuration Constants ---
@@ -94,8 +94,9 @@ async fn main() -> Result<()> {
                 info!("BetterStack uptime monitoring enabled");
                 loop {
                     match client.get(&betterstack_key).send().await {
-                        Ok(_) => info!("Uptime ping sent successfully"),
-                        Err(e) => warn!(error = %e, "Failed to send uptime ping"),
+                        Ok(_) => debug!("Uptime ping sent successfully"),
+                        // The heartbeat URL embeds the BetterStack token; keep it out of logs.
+                        Err(e) => warn!(error = %e.without_url(), "Failed to send uptime ping"),
                     }
                     tokio::time::sleep(Duration::from_secs(10)).await;
                 }

@@ -1,7 +1,7 @@
 use crate::extensions::{
     db_extension::{
         DAO_SLUG_GOVERNOR_SPACE_MAP, DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB,
-        store_snapshot_proposal, store_votes,
+        SNAPSHOT_VOTE_COUNT_VERIFIED_KEY, store_snapshot_proposal, store_votes,
     },
     snapshot_api::{SnapshotApi, SnapshotVote},
 };
@@ -11,7 +11,7 @@ use proposalsapp_db::models::{proposal, sea_orm_active_enums::ProposalState, vot
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::Set,
-    ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
+    ColumnTrait, Condition, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
     prelude::{Expr, Uuid},
 };
 use std::collections::{HashMap, HashSet};
@@ -27,6 +27,12 @@ const VOTE_CURSOR_OVERLAP_SECONDS: i64 = 300;
 const PROPOSAL_PAGE_SIZE: usize = 1_000;
 const VOTE_PAGE_SIZE: usize = 1_000;
 const MAX_RECONCILIATIONS_PER_SPACE_PER_CYCLE: usize = 32;
+/// Vote-gap reconciliation counts distinct voters per proposal, which is expensive on
+/// large spaces, so it runs on its own interval instead of every refresh cycle.
+const VOTE_RECONCILIATION_INTERVAL: StdDuration = StdDuration::from_secs(6 * 60 * 60);
+/// Ended proposals are re-checked for this long even after being verified, so votes
+/// Snapshot indexes late are still picked up.
+const RECENTLY_ENDED_RECHECK_DAYS: i64 = 7;
 
 fn vote_cursor_with_overlap(cursor: i64) -> i64 {
     (cursor - VOTE_CURSOR_OVERLAP_SECONDS).max(0)
@@ -34,6 +40,43 @@ fn vote_cursor_with_overlap(cursor: i64) -> i64 {
 
 fn should_reconcile_snapshot_votes(expected_count: u64, current_voter_count: u64) -> bool {
     current_voter_count != expected_count
+}
+
+/// Signed difference between the expected and local voter counts (local can exceed expected).
+fn vote_count_delta(expected_count: u64, current_voter_count: u64) -> i128 {
+    i128::from(expected_count) - i128::from(current_voter_count)
+}
+
+/// Reconciliation runs on startup, then every `interval`, and on the next cycle again
+/// while the previous pass left work behind because it hit the per-cycle cap.
+fn should_run_vote_reconciliation(
+    since_last_run: Option<StdDuration>,
+    backlog_remaining: bool,
+    interval: StdDuration,
+) -> bool {
+    backlog_remaining || since_last_run.is_none_or(|elapsed| elapsed >= interval)
+}
+
+/// The count to compare local votes against: the count confirmed by a previous
+/// reconciliation if present, else the provider-reported count. The 6-hourly metadata
+/// sync rewrites `snapshot_vote_count` with the provider's number, which for some
+/// historical proposals never matches the distinct-voter set.
+fn expected_snapshot_vote_count(metadata: Option<&serde_json::Value>) -> Option<u64> {
+    let metadata = metadata?;
+    metadata
+        .get(SNAPSHOT_VOTE_COUNT_VERIFIED_KEY)
+        .and_then(|value| value.as_u64())
+        .or_else(|| {
+            metadata
+                .get("snapshot_vote_count")
+                .and_then(|value| value.as_u64())
+        })
+}
+
+fn is_snapshot_vote_count_verified(metadata: Option<&serde_json::Value>) -> bool {
+    metadata
+        .and_then(|metadata| metadata.get(SNAPSHOT_VOTE_COUNT_VERIFIED_KEY))
+        .is_some_and(|value| value.is_u64())
 }
 
 fn should_fetch_next_vote_page(page_len: usize, page_size: usize) -> bool {
@@ -64,11 +107,19 @@ fn canonicalize_snapshot_votes(mut votes: Vec<SnapshotVote>) -> Vec<SnapshotVote
 pub async fn run_periodic_snapshot_indexing() -> Result<()> {
     info!("Starting simplified snapshot indexing with cursors");
     let mut last_full_proposal_sync: Option<StdInstant> = None;
+    let mut last_vote_reconciliation: Option<StdInstant> = None;
+    let mut vote_reconciliation_backlog = false;
 
     loop {
         let full_proposal_sync_due = last_full_proposal_sync
             .is_none_or(|last_sync| last_sync.elapsed() >= FULL_PROPOSAL_SYNC_INTERVAL);
         let mut full_proposal_sync_succeeded = true;
+        let vote_reconciliation_due = should_run_vote_reconciliation(
+            last_vote_reconciliation.map(|last_run| last_run.elapsed()),
+            vote_reconciliation_backlog,
+            VOTE_RECONCILIATION_INTERVAL,
+        );
+        let mut reconciliation_backlog_remaining = false;
         let snapshot_governors = {
             // Collect governor info synchronously
             let dao_governor_map = DAO_SLUG_GOVERNOR_TYPE_ID_MAP
@@ -139,14 +190,26 @@ pub async fn run_periodic_snapshot_indexing() -> Result<()> {
                     error!(space = %space, error = %e, "Failed to update ended snapshot proposals");
                 }
 
-                // Repair bounded vote-count gaps across the complete proposal history.
-                if let Err(e) = reconcile_snapshot_vote_gaps(&space, governor_id, dao_id).await {
-                    error!(space = %space, error = %e, "Failed to reconcile Snapshot vote gaps");
+                // Repair bounded vote-count gaps for ended proposals that are not yet
+                // verified or ended recently.
+                if vote_reconciliation_due {
+                    match reconcile_snapshot_vote_gaps(&space, governor_id, dao_id).await {
+                        Ok(backlog) => reconciliation_backlog_remaining |= backlog,
+                        Err(e) => {
+                            error!(space = %space, error = %e, "Failed to reconcile Snapshot vote gaps")
+                        }
+                    }
                 }
             }
 
             if full_proposal_sync_due && full_proposal_sync_succeeded {
                 last_full_proposal_sync = Some(StdInstant::now());
+            }
+            if vote_reconciliation_due {
+                // Failed passes also wait for the interval, so errors cannot turn the
+                // expensive count back into a once-a-minute query.
+                last_vote_reconciliation = Some(StdInstant::now());
+                vote_reconciliation_backlog = reconciliation_backlog_remaining;
             }
         }
 
@@ -581,16 +644,35 @@ async fn update_ended_snapshot_proposals(
     Ok(())
 }
 
-/// Repair vote-count gaps across the complete Snapshot proposal history.
+/// Repair vote-count gaps for ended Snapshot proposals.
 ///
-/// The work is bounded per cycle so live indexing remains responsive. Proposals
-/// are processed newest-first, and only provider vote IDs missing locally are
-/// persisted, avoiding repeated ENS work for millions of existing voters.
+/// Only proposals whose vote count is not verified yet, or that ended within
+/// `RECENTLY_ENDED_RECHECK_DAYS`, are counted, so once the history is verified the
+/// distinct-voter count touches a handful of proposals. The repair work is bounded per
+/// cycle so live indexing remains responsive. Proposals are processed newest-first,
+/// and only provider vote IDs missing locally are persisted, avoiding repeated ENS work
+/// for millions of existing voters.
+///
+/// Returns whether proposals needing repair were left for the next cycle.
 #[instrument(name = "reconcile_snapshot_vote_gaps", skip_all, fields(space = space))]
-async fn reconcile_snapshot_vote_gaps(space: &str, governor_id: Uuid, dao_id: Uuid) -> Result<()> {
+async fn reconcile_snapshot_vote_gaps(
+    space: &str,
+    governor_id: Uuid,
+    dao_id: Uuid,
+) -> Result<bool> {
     let db = DB.get().context("DB not initialized")?;
+    let now = Utc::now();
+    let recheck_cutoff = (now - Duration::days(RECENTLY_ENDED_RECHECK_DAYS)).naive_utc();
     let proposals = proposal::Entity::find()
         .filter(proposal::Column::GovernorId.eq(governor_id))
+        .filter(proposal::Column::EndAt.lte(now.naive_utc()))
+        .filter(
+            Condition::any()
+                .add(Expr::cust(format!(
+                    "(metadata->'{SNAPSHOT_VOTE_COUNT_VERIFIED_KEY}') IS NULL"
+                )))
+                .add(proposal::Column::EndAt.gte(recheck_cutoff)),
+        )
         .order_by_desc(proposal::Column::EndAt)
         .all(db)
         .await?;
@@ -616,20 +698,25 @@ async fn reconcile_snapshot_vote_gaps(space: &str, governor_id: Uuid, dao_id: Uu
     };
 
     let mut reconciled = 0;
+    let mut newly_verified = 0;
+    let mut backlog_remaining = false;
     for prop in proposals {
-        let expected_count = prop
-            .metadata
-            .as_ref()
-            .and_then(|m| m.get("snapshot_vote_count"))
-            .and_then(|v| v.as_u64());
-        let Some(expected_count) = expected_count else {
+        let Some(expected_count) = expected_snapshot_vote_count(prop.metadata.as_ref()) else {
             continue;
         };
         let current_voter_count = voter_counts.get(&prop.id).copied().unwrap_or_default();
         if !should_reconcile_snapshot_votes(expected_count, current_voter_count) {
+            if !is_snapshot_vote_count_verified(prop.metadata.as_ref()) {
+                mark_snapshot_vote_count_verified(prop.id, current_voter_count).await?;
+                newly_verified += 1;
+            }
             continue;
         }
 
+        if reconciled >= MAX_RECONCILIATIONS_PER_SPACE_PER_CYCLE {
+            backlog_remaining = true;
+            break;
+        }
         reconcile_snapshot_proposal_votes(
             space,
             &prop,
@@ -640,14 +727,38 @@ async fn reconcile_snapshot_vote_gaps(space: &str, governor_id: Uuid, dao_id: Uu
         )
         .await?;
         reconciled += 1;
-        if reconciled >= MAX_RECONCILIATIONS_PER_SPACE_PER_CYCLE {
-            break;
-        }
     }
 
-    if reconciled > 0 {
-        info!(space = %space, reconciled, "Reconciled Snapshot vote gaps");
+    if reconciled > 0 || newly_verified > 0 {
+        info!(
+            space = %space,
+            reconciled,
+            newly_verified,
+            backlog_remaining,
+            "Reconciled Snapshot vote gaps"
+        );
     }
+    Ok(backlog_remaining)
+}
+
+/// Record the confirmed distinct-voter count. Written with `jsonb_set` so it does not
+/// race with concurrent metadata refreshes, which preserve this key.
+async fn mark_snapshot_vote_count_verified(proposal_id: Uuid, voter_count: u64) -> Result<()> {
+    let db = DB.get().context("DB not initialized")?;
+    proposal::Entity::update_many()
+        .col_expr(
+            proposal::Column::Metadata,
+            Expr::cust_with_values(
+                format!(
+                    "jsonb_set(COALESCE(\"metadata\", '{{}}'::jsonb), '{{{SNAPSHOT_VOTE_COUNT_VERIFIED_KEY}}}', to_jsonb($1::bigint))"
+                ),
+                [i64::try_from(voter_count).unwrap_or(i64::MAX)],
+            ),
+        )
+        .filter(proposal::Column::Id.eq(proposal_id))
+        .exec(db)
+        .await
+        .context("Failed to mark Snapshot vote count as verified")?;
     Ok(())
 }
 
@@ -665,7 +776,7 @@ async fn reconcile_snapshot_proposal_votes(
         proposal_id = %prop.external_id,
         expected = expected_count,
         actual = current_voter_count,
-        delta = expected_count - current_voter_count,
+        delta = vote_count_delta(expected_count, current_voter_count),
         "Snapshot vote gap detected"
     );
 
@@ -683,6 +794,10 @@ async fn reconcile_snapshot_proposal_votes(
         if let Some(metadata_object) = metadata.as_object_mut() {
             metadata_object.insert(
                 "snapshot_vote_count".to_string(),
+                serde_json::json!(current_voter_count),
+            );
+            metadata_object.insert(
+                SNAPSHOT_VOTE_COUNT_VERIFIED_KEY.to_string(),
                 serde_json::json!(current_voter_count),
             );
             let mut active_model: proposal::ActiveModel = prop.clone().into();
@@ -763,6 +878,7 @@ async fn reconcile_snapshot_proposal_votes(
             repaired_voter_count
         );
     }
+    mark_snapshot_vote_count_verified(prop.id, repaired_voter_count).await?;
     info!(
         space = %space,
         proposal_id = %prop.external_id,
@@ -796,10 +912,66 @@ async fn count_snapshot_proposal_voters(proposal_id: Uuid) -> Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::{
-        VOTE_CURSOR_OVERLAP_SECONDS, canonicalize_snapshot_votes, should_fetch_next_vote_page,
-        should_reconcile_snapshot_votes, vote_cursor_with_overlap,
+        VOTE_CURSOR_OVERLAP_SECONDS, canonicalize_snapshot_votes, expected_snapshot_vote_count,
+        is_snapshot_vote_count_verified, should_fetch_next_vote_page,
+        should_reconcile_snapshot_votes, should_run_vote_reconciliation, vote_count_delta,
+        vote_cursor_with_overlap,
     };
     use crate::extensions::snapshot_api::{SnapshotProposalRef, SnapshotVote};
+    use std::time::Duration;
+
+    #[test]
+    fn vote_count_delta_is_signed() {
+        assert_eq!(vote_count_delta(1_553, 1_544), 9);
+        assert_eq!(vote_count_delta(1_553, 1_569), -16);
+        assert_eq!(vote_count_delta(0, u64::MAX), -i128::from(u64::MAX));
+    }
+
+    #[test]
+    fn reconciliation_runs_on_startup_interval_or_backlog() {
+        let interval = Duration::from_secs(6 * 60 * 60);
+        assert!(should_run_vote_reconciliation(None, false, interval));
+        assert!(!should_run_vote_reconciliation(
+            Some(Duration::from_secs(60)),
+            false,
+            interval
+        ));
+        assert!(should_run_vote_reconciliation(
+            Some(Duration::from_secs(60)),
+            true,
+            interval
+        ));
+        assert!(should_run_vote_reconciliation(
+            Some(interval),
+            false,
+            interval
+        ));
+    }
+
+    #[test]
+    fn verified_count_takes_precedence_over_provider_count() {
+        let unverified = serde_json::json!({"snapshot_vote_count": 1_553});
+        assert_eq!(expected_snapshot_vote_count(Some(&unverified)), Some(1_553));
+        assert!(!is_snapshot_vote_count_verified(Some(&unverified)));
+
+        // The metadata sync restored the provider's number; the verified count wins.
+        let verified = serde_json::json!({
+            "snapshot_vote_count": 1_553,
+            "snapshot_vote_count_verified": 1_544
+        });
+        assert_eq!(expected_snapshot_vote_count(Some(&verified)), Some(1_544));
+        assert!(is_snapshot_vote_count_verified(Some(&verified)));
+        assert!(!should_reconcile_snapshot_votes(
+            expected_snapshot_vote_count(Some(&verified)).unwrap(),
+            1_544
+        ));
+
+        assert_eq!(expected_snapshot_vote_count(None), None);
+        assert_eq!(
+            expected_snapshot_vote_count(Some(&serde_json::json!({}))),
+            None
+        );
+    }
 
     #[test]
     fn vote_cursor_applies_overlap_without_going_negative() {

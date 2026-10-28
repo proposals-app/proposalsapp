@@ -201,7 +201,7 @@ async fn update_revisions_for_post(
     post_summary: PostWithRevisionCount, // Take ownership of the summary struct
     priority: bool,
 ) -> Result<()> {
-    info!("Updating revisions for post");
+    debug!("Updating revisions for post");
 
     // Fetch existing revision versions for this post from the DB
     let existing_revision_versions: HashSet<i32> = discourse_post_revision::Entity::find()
@@ -222,7 +222,7 @@ async fn update_revisions_for_post(
         return Ok(());
     }
 
-    info!(post_id = %post_summary.id, "Walking provider revision chain from latest");
+    debug!(post_id = %post_summary.id, "Walking provider revision chain from latest");
 
     // Revision IDs and content versions diverge when hide/unhide events occur.
     // Walking backwards from `latest` is the provider-authoritative way to
@@ -299,6 +299,6 @@ async fn update_revisions_for_post(
         endpoint = previous_revision.to_string();
     }
 
-    info!(post_id = %post_summary.id, "Successfully updated missing revisions for post.");
+    debug!(post_id = %post_summary.id, "Successfully updated missing revisions for post.");
     Ok(())
 }

@@ -60,7 +60,7 @@ impl PostIndexer {
         }
 
         let start_time = Instant::now();
-        info!("Starting post update for topic");
+        debug!("Starting post update for topic");
 
         // Fetch existing post IDs for this topic from the database for deletion check later.
         let existing_db_posts = discourse_post::Entity::find()
@@ -210,7 +210,7 @@ impl PostIndexer {
         }
 
         let duration = start_time.elapsed();
-        info!(
+        debug!(
             topic_id,
             total_processed_posts = seen_in_api_post_ids.len(),
             duration = ?duration,
@@ -358,7 +358,7 @@ impl PostIndexer {
             .await
             .context("Failed to get indexed post-like count")?;
         if api_like_count != db_like_count {
-            info!(
+            debug!(
                 post_id = post_external_id,
                 api_like_count, db_like_count, "Reconciling post likes"
             );

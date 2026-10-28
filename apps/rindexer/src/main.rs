@@ -10,10 +10,14 @@ use rindexer::{
 };
 use std::{env, time::Duration};
 use tasks::{
+    indexing_health::{
+        HeartbeatGate, IndexingHealth, IndexingHealthConfig, describe_streams,
+        progress_streams_from_manifest,
+    },
     onchain_proposals_updates::run_periodic_proposal_state_update,
     snapshot_indexer::run_periodic_snapshot_indexing,
 };
-use tracing::{error, info, instrument, warn};
+use tracing::{debug, error, info, instrument, warn};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod extensions;
@@ -57,6 +61,35 @@ async fn main() -> Result<()> {
         .await
         .context("Failed to initialize database")?;
 
+    let manifest_path = env::current_dir()
+        .context("Failed to get current directory")?
+        .join("rindexer.yaml");
+
+    // Progress-aware health: /health and the uptime heartbeat only report healthy
+    // while rindexer's checkpoints keep advancing.
+    let progress_streams = progress_streams_from_manifest(&manifest_path).unwrap_or_else(|e| {
+        error!(error = ?e, "Failed to load indexing streams; health will report stalled");
+        Vec::new()
+    });
+    info!(streams = ?describe_streams(&progress_streams), "Monitoring indexing progress");
+    let indexing_health = IndexingHealth::new(progress_streams, IndexingHealthConfig::from_env());
+
+    let progress_monitor_handle = tokio::spawn({
+        let indexing_health = indexing_health.clone();
+        async move {
+            run_task_forever("indexing-progress", Duration::from_secs(5), || {
+                let indexing_health = indexing_health.clone();
+                async move { indexing_health.run_progress_monitor().await }
+            })
+            .await;
+        }
+    });
+
+    let health_server_handle = tokio::spawn({
+        let indexing_health = indexing_health.clone();
+        async move { indexing_health.serve().await }
+    });
+
     // Spawn periodic tasks and store their handles
     let snapshot_indexing_handle = tokio::spawn(async {
         if let Err(e) = run_periodic_snapshot_indexing().await {
@@ -75,11 +108,18 @@ async fn main() -> Result<()> {
         match std::env::var("BETTERSTACK_KEY") {
             Ok(betterstack_key) => {
                 let client = Client::new();
+                let mut gate = HeartbeatGate::default();
                 info!("BetterStack uptime monitoring enabled");
                 loop {
-                    match client.get(&betterstack_key).send().await {
-                        Ok(_) => info!("Uptime ping sent successfully"),
-                        Err(e) => warn!(error = %e, "Failed to send uptime ping"),
+                    // Only ping while indexing is progressing, so a stall alerts.
+                    if gate.should_ping(&indexing_health.report()) {
+                        match client.get(&betterstack_key).send().await {
+                            Ok(_) => debug!("Uptime ping sent successfully"),
+                            // The heartbeat URL embeds the BetterStack token; keep it out of logs.
+                            Err(e) => warn!(error = %e.without_url(), "Failed to send uptime ping"),
+                        }
+                    } else {
+                        debug!("Indexing stalled; uptime ping skipped");
                     }
                     tokio::time::sleep(Duration::from_secs(10)).await;
                 }
@@ -96,9 +136,6 @@ async fn main() -> Result<()> {
 
     // Start rindexer in a separate task
     info!("Starting rindexer");
-    let manifest_path = env::current_dir()
-        .context("Failed to get current directory")?
-        .join("rindexer.yaml");
     let rindexer_handle = tokio::spawn(async move {
         run_task_forever("rindexer", Duration::from_secs(5), move || {
             let manifest_path = manifest_path.clone();
@@ -142,6 +179,12 @@ async fn main() -> Result<()> {
         }
         result = rindexer_handle => {
             error!("Rindexer task completed unexpectedly: {:?}", result);
+        }
+        result = progress_monitor_handle => {
+            error!("Indexing progress monitor completed unexpectedly: {:?}", result);
+        }
+        result = health_server_handle => {
+            error!("Health server completed unexpectedly: {:?}", result);
         }
         _ = tokio::signal::ctrl_c() => {
             info!("Received Ctrl+C, shutting down gracefully");

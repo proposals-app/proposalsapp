@@ -226,7 +226,7 @@ impl UserIndexer {
                     .with_context(|| format!("Failed to upsert Discourse user {}", user.id))?;
             }
 
-            info!(
+            debug!(
                 page,
                 num_users_on_page, total_processed_users, "Processed users page"
             );

@@ -178,7 +178,7 @@ impl TopicIndexer {
                         });
                     }
 
-                    info!(
+                    debug!(
                         page,
                         num_topics_on_page,
                         total_processed_topics,

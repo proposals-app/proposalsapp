@@ -61,8 +61,8 @@ pub async fn get_ethereum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("ETHEREUM_NODE_URL")
                     .unwrap_or("ETHEREUM_NODE_URL".to_string()),
                 1,
-                Some(20),
-                Some(U64::from(100)),
+                Some(300),
+                Some(U64::from(50)),
                 Some(BlockPollFrequency::PollRateMs { millis: 120000 }),
                 HeaderMap::new(),
                 None,
@@ -88,9 +88,9 @@ pub async fn get_arbitrum_provider_cache() -> Arc<JsonRpcCachedProvider> {
                 &public_read_env_value("ARBITRUM_NODE_URL")
                     .unwrap_or("ARBITRUM_NODE_URL".to_string()),
                 42161,
-                Some(40),
-                Some(U64::from(500)),
-                Some(BlockPollFrequency::PollRateMs { millis: 120000 }),
+                Some(500),
+                Some(U64::from(100)),
+                Some(BlockPollFrequency::PollRateMs { millis: 15000 }),
                 HeaderMap::new(),
                 None,
                 chain_state_notification,
