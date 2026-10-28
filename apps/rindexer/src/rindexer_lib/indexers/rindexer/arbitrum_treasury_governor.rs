@@ -10,6 +10,7 @@ use crate::extensions::{
         DAO_SLUG_GOVERNOR_TYPE_ID_MAP, DAO_SLUG_ID_MAP, DB, calculate_total_delegated_voting_power,
         store_proposal, store_votes,
     },
+    proposal_state::refresh_governor_proposal_states,
     rpc_timeout::with_rpc_timeout,
 };
 use alloy::{hex::ToHexExt, primitives::U256};
@@ -583,75 +584,33 @@ pub async fn update_active_proposals_end_time() -> Result<()> {
     skip_all
 )]
 pub async fn update_ended_proposals_state() -> Result<()> {
-    info!(
-        governor = "ARBITRUM_TREASURY",
-        "Running task to update ended proposal states"
-    );
-    let db = DB.get().context("DB not initialized")?;
+    let governor_id = get_governor_id().context("Failed to get governor ID")?;
+    let contract = arbitrum_treasury_governor_contract("arbitrum").await;
 
-    let active_proposals = proposal::Entity::find()
-        .filter(proposal::Column::ProposalState.eq(ProposalState::Active))
-        .filter(proposal::Column::EndAt.lt(chrono::Utc::now().naive_utc()))
-        .filter(
-            proposal::Column::GovernorId
-                .eq(get_governor_id().context("Failed to get governor ID")?),
-        )
-        .all(db)
-        .await
-        .context("Failed to fetch ended active proposals")?;
-
-    if active_proposals.is_empty() {
-        info!(
-            governor = "ARBITRUM_TREASURY",
-            "No active proposals have ended"
-        );
-        return Ok(());
-    }
-
-    info!(
-        governor = "ARBITRUM_TREASURY",
-        proposal_count = active_proposals.len(),
-        "Processing ended proposals"
-    );
-
-    for proposal in active_proposals {
-        info!(
-            governor = "ARBITRUM_TREASURY",
-            proposal_id = proposal.external_id,
-            proposal_name = proposal.name,
-            proposal_end_at = ?proposal.end_at,
-            "Proposal end time reached. Calculating final state."
-        );
-
-        let votes = vote::Entity::find()
-            .filter(vote::Column::ProposalId.eq(proposal.id))
-            .all(db)
-            .await
-            .context("Failed to fetch votes for proposal")?;
-
-        let final_state = calculate_final_proposal_state(&proposal, &votes).await?;
-
-        let mut proposal_active_model: proposal::ActiveModel = proposal.clone().into();
-        proposal_active_model.proposal_state = Set(final_state.clone());
-        proposal::Entity::update(proposal_active_model)
-            .exec(db)
-            .await
-            .context("Failed to update proposal state")?;
-
-        info!(
-            governor = "ARBITRUM_TREASURY",
-            proposal_id = proposal.external_id,
-            proposal_name = proposal.name,
-            final_state = ?final_state,
-            "Proposal state updated to final state."
-        );
-    }
-
-    info!(
-        governor = "ARBITRUM_TREASURY",
-        "Task to update ended proposals state completed."
-    );
-    Ok(())
+    refresh_governor_proposal_states(
+        "ARBITRUM_TREASURY",
+        governor_id,
+        |proposal_id| {
+            let contract = &contract;
+            async move {
+                with_rpc_timeout(
+                    "ArbitrumTreasuryGovernor.state",
+                    contract.state(proposal_id).call(),
+                )
+                .await
+            }
+        },
+        |proposal| async move {
+            let db = DB.get().context("DB not initialized")?;
+            let votes = vote::Entity::find()
+                .filter(vote::Column::ProposalId.eq(proposal.id))
+                .all(db)
+                .await
+                .context("Failed to fetch votes for proposal")?;
+            calculate_final_proposal_state(&proposal, &votes).await
+        },
+    )
+    .await
 }
 
 #[instrument(name = "arbitrum_treasury_governor_calculate_final_proposal_state", skip(proposal, votes), fields(proposal_id = proposal.external_id))]
