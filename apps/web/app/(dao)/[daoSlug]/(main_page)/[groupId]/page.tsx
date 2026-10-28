@@ -265,7 +265,14 @@ async function FeedSection({
   ]);
 
   const proposalIds = group?.proposals.map((p) => p.id) || [];
-  const allVotesWithVoters = await getVotesWithVotersForProposals(proposalIds);
+  // Only individual (non-aggregated) feed votes are rendered with voter info.
+  const feedVoteIds = feed.votes
+    .filter((vote) => !vote.aggregate)
+    .map((vote) => vote.id);
+  const allVotesWithVoters = await getVotesWithVotersForProposals(
+    proposalIds,
+    feedVoteIds
+  );
 
   if (!group) {
     notFound();
