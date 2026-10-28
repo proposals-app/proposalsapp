@@ -339,22 +339,31 @@ export async function getVotesWithVoters(proposalId: string) {
     return [];
   }
 
-  const voterIds = votesWithAllData.map((v) => v.voterId);
-  const delegateToVoterLinks = await db
-    .selectFrom('delegateToVoter as dtv')
-    .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
-    .where('dtv.voterId', 'in', voterIds)
-    .where('d.daoId', '=', daoId)
-    .orderBy('dtv.voterId', 'asc')
-    .orderBy('dtv.createdAt', 'desc')
-    .distinctOn('dtv.voterId')
-    .select(['dtv.voterId', 'dtv.delegateId'])
-    .execute();
+  // Large proposals have more voters than Postgres allows bind parameters in a
+  // single statement (65,535), so every id lookup below is chunked.
+  const voterIds = [...new Set(votesWithAllData.map((v) => v.voterId))];
+  const delegateToVoterLinks: Array<{ voterId: string; delegateId: string }> =
+    [];
+  for (const chunk of chunkArray(voterIds)) {
+    const chunkLinks = await db
+      .selectFrom('delegateToVoter as dtv')
+      .innerJoin('delegate as d', 'd.id', 'dtv.delegateId')
+      .where('dtv.voterId', 'in', chunk)
+      .where('d.daoId', '=', daoId)
+      .orderBy('dtv.voterId', 'asc')
+      .orderBy('dtv.createdAt', 'desc')
+      .distinctOn('dtv.voterId')
+      .select(['dtv.voterId', 'dtv.delegateId'])
+      .execute();
+    appendAll(delegateToVoterLinks, chunkLinks);
+  }
 
   const delegateIdByVoterId = new Map(
     delegateToVoterLinks.map((link) => [link.voterId, link.delegateId])
   );
-  const delegateIds = delegateToVoterLinks.map((link) => link.delegateId);
+  const delegateIds = [
+    ...new Set(delegateToVoterLinks.map((link) => link.delegateId)),
+  ];
 
   const daoDiscourse = await db
     .selectFrom('daoDiscourse')
@@ -367,14 +376,21 @@ export async function getVotesWithVoters(proposalId: string) {
   if (delegateIds.length > 0 && daoDiscourse) {
     const daoDiscourseId = daoDiscourse.id;
 
-    const delegateToDiscourseLinks = await db
-      .selectFrom('delegateToDiscourseUser as dtdu')
-      .where('dtdu.delegateId', 'in', delegateIds)
-      .orderBy('dtdu.delegateId', 'asc')
-      .orderBy('dtdu.createdAt', 'desc')
-      .distinctOn('dtdu.delegateId')
-      .select(['dtdu.delegateId', 'dtdu.discourseUserId'])
-      .execute();
+    const delegateToDiscourseLinks: Array<{
+      delegateId: string;
+      discourseUserId: string;
+    }> = [];
+    for (const chunk of chunkArray(delegateIds)) {
+      const chunkLinks = await db
+        .selectFrom('delegateToDiscourseUser as dtdu')
+        .where('dtdu.delegateId', 'in', chunk)
+        .orderBy('dtdu.delegateId', 'asc')
+        .orderBy('dtdu.createdAt', 'desc')
+        .distinctOn('dtdu.delegateId')
+        .select(['dtdu.delegateId', 'dtdu.discourseUserId'])
+        .execute();
+      appendAll(delegateToDiscourseLinks, chunkLinks);
+    }
     discourseUserIdByDelegateId = new Map(
       delegateToDiscourseLinks.map((link) => [
         link.delegateId,
@@ -382,17 +398,21 @@ export async function getVotesWithVoters(proposalId: string) {
       ])
     );
 
-    const discourseUserIds = delegateToDiscourseLinks.map(
-      (link) => link.discourseUserId
-    );
+    const discourseUserIds = [
+      ...new Set(delegateToDiscourseLinks.map((link) => link.discourseUserId)),
+    ];
 
     if (discourseUserIds.length > 0) {
-      const discourseUsers = await db
-        .selectFrom('discourseUser')
-        .where('id', 'in', discourseUserIds)
-        .where('daoDiscourseId', '=', daoDiscourseId)
-        .selectAll()
-        .execute();
+      const discourseUsers: Selectable<DiscourseUser>[] = [];
+      for (const chunk of chunkArray(discourseUserIds)) {
+        const chunkUsers = await db
+          .selectFrom('discourseUser')
+          .where('id', 'in', chunk)
+          .where('daoDiscourseId', '=', daoDiscourseId)
+          .selectAll()
+          .execute();
+        appendAll(discourseUsers, chunkUsers);
+      }
 
       discourseUserMap = new Map(discourseUsers.map((du) => [du.id, du]));
     }
