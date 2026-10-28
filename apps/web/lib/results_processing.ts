@@ -1008,10 +1008,14 @@ export function processResultsAction(
     const relevantVotes = aggregatedVotes
       ? finalProcessedVotes.filter((v) => !v.aggregate)
       : finalProcessedVotes;
-    const maxIndividualVotingPower = Math.max(
-      ...relevantVotes.map((vote) => vote.votingPower),
-      0
-    );
+    // A loop rather than Math.max(...votes): spreading one argument per vote
+    // overflows the call stack on proposals with ~120k+ votes.
+    let maxIndividualVotingPower = 0;
+    for (const vote of relevantVotes) {
+      if (vote.votingPower > maxIndividualVotingPower) {
+        maxIndividualVotingPower = vote.votingPower;
+      }
+    }
 
     finalProcessedVotes.forEach((vote) => {
       vote.relativeVotingPower =
