@@ -7,6 +7,7 @@ import {
   hasAlreadySent,
   newItemWindowStart,
   parseLookbackHours,
+  recordNotificationSent,
 } from './notification-selection';
 
 // `@proposalsapp/db` reuses `globalThis.dbPoolInternal` outside production, so
@@ -180,5 +181,29 @@ describe('hasAlreadySent', () => {
     ).resolves.toBe(false);
 
     expect(boundValue(lastQuery(), '"sent_at"', '>=')).toEqual(DAY_AGO);
+  });
+});
+
+describe('recordNotificationSent', () => {
+  it('refreshes sent_at when the (user, type, target) row already exists', async () => {
+    await recordNotificationSent({
+      userId: 'user-1',
+      targetId: 'proposal-1',
+      type: 'ending_proposal',
+      daoId: 'dao-1',
+      sentAt: NOW,
+    });
+
+    const query = lastQuery();
+    expect(query.sql).toContain('insert into "user_notification"');
+    // A reminder re-sent after its cooldown must move sent_at forward, or
+    // hasAlreadySent keeps measuring from the first send and every later
+    // cycle sends again.
+    expect(query.sql).toContain(
+      'on conflict ("user_id", "type", "target_id") do update set "sent_at" = "excluded"."sent_at"'
+    );
+    expect(query.params).toEqual(
+      expect.arrayContaining(['user-1', 'proposal-1', 'ending_proposal', NOW])
+    );
   });
 });

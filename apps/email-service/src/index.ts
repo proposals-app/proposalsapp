@@ -27,6 +27,7 @@ import {
   findNewProposals,
   hasAlreadySent,
   NEW_ITEM_LOOKBACK_HOURS,
+  recordNotificationSent,
 } from './notification-selection';
 
 dotenv_config();
@@ -358,23 +359,11 @@ async function alreadySent(
 async function recordNotification(
   userId: string,
   targetId: string,
-  type: string,
+  type: NotificationType,
   daoId: string
 ): Promise<void> {
   try {
-    await db
-      .insertInto('userNotification')
-      .values({
-        userId,
-        targetId,
-        type,
-        daoId,
-        sentAt: new Date(),
-      })
-      .onConflict((conflict) =>
-        conflict.columns(['userId', 'type', 'targetId']).doNothing()
-      )
-      .execute();
+    await recordNotificationSent({ userId, targetId, type, daoId });
   } catch (error) {
     logger.error({ err: error }, 'Failed to record notification');
     throw error;
